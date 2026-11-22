@@ -520,4 +520,4 @@ renderer.setAnimationLoop(() => {
     if (!lan && tk.o) { lan = 1; $('nap').style.display = 'none'; } }
 });
 addEventListener('resize', datCo);
-window.__sprawl = { world, scene, camera, orbit, renderer, dsTiles, tk, datTai, rs, n2, get di() { return di; }, get xe() { return xe; } };
+window.__sprawl = { RAPIER, world, scene, camera, orbit, renderer, dsTiles, tk, datTai, datMuot, rs, n2, get di() { return di; }, get xe() { return xe; } };

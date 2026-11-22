@@ -762,7 +762,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
     _s.setScalar(1);
     napKhoet(); canLoc = true;
     if (goc.visible && thapDo) { boVa(); dungVa(); }
-    muotCu = muot; if (goc.visible) dungVaDuong();
+    muotCu = muot; muotVa = muot; if (goc.visible) dungVaDuong(); if (vaTam) dungVaGan(...vaTam);
   }
   // khung va mặt đường: ĐÚNG các đỉnh của dải đường đang vẽ (cao hơn đất nền 0,6 m) → người và xe đứng trên mặt đường nhìn thấy, không lún xuống đất nền bên dưới.
   // Mỗi mép dải thêm một vạt dốc ra ngoài 2,5 m cắm xuống dưới đất nền: từ đất nền bước / lái lên mặt đường được (vạt nằm dưới mặt đường cắt ngang nên không cộm ở nút giao).
@@ -784,8 +784,15 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
         for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld); P.push(v.x, v.y, v.z); }
         if (geo.index) for (const k of geo.index.array) I.push(b + k); else for (let i = 0; i < pos.count; i++) I.push(b + i); });
       d.va = world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(P), new Uint32Array(I)), tinh);
-    } }
-  function boVa() { for (const d of dsThap) if (d.va) { world.removeCollider(d.va, false); d.va = null; } }
+    }
+    // cầu nối giữa các tháp: sàn 9 × 1,4 m + hai vách kính hai bên (ống kính 7,5 m rộng, cao 3,2 m) → đi bộ trên cầu, không rơi qua sàn, không xuyên vách
+    boVaCau();
+    for (const c of song.cau) { const v = c.va; if (!v) continue; const xoay = (dx, dy) => world.createCollider(RAPIER.ColliderDesc.cuboid(...dx).setTranslation(v.x + dy[0], v.y + dy[1], v.z + dy[2]).setRotation(v.q), tinh);
+      vaCau.push(xoay([4.5, 0.7, v.L / 2], [0, 0, 0]));
+      for (const ben of [-1, 1]) vaCau.push(xoay([0.08, 1.6, v.L / 2], [v.dz * ben * 3.75, 2.3, -v.dx * ben * 3.75])); } }
+  let vaCau = [];
+  function boVaCau() { for (const c of vaCau) world.removeCollider(c, false); vaCau = []; }
+  function boVa() { for (const d of dsThap) if (d.va) { world.removeCollider(d.va, false); d.va = null; } boVaCau(); }
   // hien(phố, tháp đỏ): Nhật 2200 mượn phố (nhà, người, xe đất, đường) nhưng không mượn tháp đỏ — tắt cả hình lẫn khung va + cầu/xe bay/sương của tháp đỏ
   let thapDo = false;
   function hien(bat, coThap = bat) { goc.visible = bat; thapDo = bat && coThap; uDat.uDo.value = bat ? 1 : 0; canLoc = true;
@@ -802,13 +809,36 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
     _camCu.copy(cam.matrixWorld); _chieuCu.copy(cam.projectionMatrix); tLoc = now; canLoc = false;
     _fr.setFromProjectionMatrix(_pv.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
     for (const b of dsBo) b.loc(cam); }
+  // ---- va chạm đồ phố GẦN (2f nhịp A): sạp, cột đèn, ghế, bồn cây, thùng hàng, xe đẩy, thân cây vườn trong VA_R m quanh máy quay thành khối tĩnh Rapier.
+  // Cả thành phố ~20.000 món nên chỉ dựng vùng quanh người chơi, dựng lại khi dời quá VA_DOI m (cùng cách nguoi-gan.js). Hình khối khớp lưới G_* ở trên (đơn vị cục bộ, nhân tỉ lệ s).
+  const VA_R = 130, VA_DOI = 50;
+  const KHOI = [ // k = chỉ số doPho; mỗi khối: ['h', nửa x, nửa y, nửa z, tâm x, y, z] hộp | ['t', nửa cao, bán kính, tâm x, y, z] trụ
+    [['t', 3, 0.12, 0, 3, 0]], // đèn
+    [['h', 0.9, 0.46, 0.25, 0, 0.46, -0.02]], // ghế
+    [['h', 0.8, 0.3, 0.8, 0, 0.3, 0], ['t', 1.3, 0.14, 0, 1.9, 0]], // bồn cây phố + thân
+    [['h', 1.25, 0.55, 0.4, 0, 0.55, 0.05]], // thùng hàng
+    [['h', 0.8, 0.55, 0.5, 0, 0.55, 0]], // xe đẩy hàng
+    [['t', 1.6, 0.2, 0, 1.6, 0]], // thân cây vườn
+  ];
+  const KHOI_QUAY = [['h', 1.55, 0.5, 0.6, 0, 0.5, 0.55]]; // quầy sạp (mái cao, đi dưới mái được)
+  let vaGan = [], vaTam = null, muotVa = null; const _qv = new THREE.Quaternion(), TRUC_Y = new THREE.Vector3(0, 1, 0);
+  function boVaGan() { for (const c of vaGan) world.removeCollider(c, false); vaGan = []; vaTam = null; }
+  function dungVaGan(x0, z0) { boVaGan(); vaTam = [x0, z0]; const muot = muotVa || datTai;
+    const dat = (p, khoi) => { if ((p.x - x0) ** 2 + (p.z - z0) ** 2 > VA_R * VA_R) return; const s = p.s || 1, y = muot(p.x, p.z) + 0.6, c = Math.cos(p.h), sn = Math.sin(p.h);
+      _qv.setFromAxisAngle(TRUC_Y, p.h);
+      for (const k of khoi) { const [lx, ly, lz] = k[0] === 'h' ? k.slice(4) : k.slice(3), wx = p.x + (lx * c + lz * sn) * s, wz = p.z + (-lx * sn + lz * c) * s;
+        const d = k[0] === 'h' ? RAPIER.ColliderDesc.cuboid(k[1] * s, k[2] * s, k[3] * s) : RAPIER.ColliderDesc.cylinder(k[1] * s, k[2] * s);
+        vaGan.push(world.createCollider(d.setTranslation(wx, y + ly * s, wz).setRotation(_qv), tinh)); } };
+    for (const p of datQuay) dat(p, KHOI_QUAY);
+    for (const [k, ds] of datDo.entries()) for (const p of ds.slice(0, 3000)) dat(p, KHOI[k]); }
   function khung(dt, cam) {
-    if (!goc.visible) return;
+    if (!goc.visible) { if (vaTam) boVaGan(); return; }
+    if (cam && (!vaTam || Math.hypot(cam.position.x - vaTam[0], cam.position.z - vaTam[1]) > VA_DOI)) dungVaGan(cam.position.x, cam.position.z);
     if (cam) loc(cam);
     uNguoi.uT.value += dt;
     U_DEN.uTg.value += dt; song.khung(dt);
     if (cam && nguoiGan.khung(dt, cam)) canLoc = true;
   }
 
-  return { goc, vatPho, khoacDat, duong: goc.children.filter((o) => o.isMesh && o.material.customProgramCacheKey?.().startsWith('duong-')), datLai, hien, khoet, khung, loc, ql, song, nguoiGan, sang: (v) => { uSang.uSang.value = v; }, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), ...song.tk } };
+  return { goc, vatPho, khoacDat, duong: goc.children.filter((o) => o.isMesh && o.material.customProgramCacheKey?.().startsWith('duong-')), datLai, hien, khoet, khung, loc, ql, song, nguoiGan, sang: (v) => { uSang.uSang.value = v; }, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), get vaGan() { return vaGan.length; }, get vaCau() { return vaCau.length; }, ...song.tk } };
 }

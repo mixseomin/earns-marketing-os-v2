@@ -165,7 +165,7 @@ export function taoSong({ goc, ql, dsThap, nuaNut, LONG }) {
       const D = Math.hypot(bx - ax, bz - az); _d.set(bx - ax, 0, bz - az).normalize(); huong(_d, _q);
       const ga = c.ra - 0.8, gb = c.rb - 0.8, L = D - ga - gb; // mặt tới mặt, ngập 0,8 m vào thân cho kín mối nối
       _p.set(ax + _d.x * (ga + L / 2), y - 0.7, az + _d.z * (ga + L / 2)); // sàn cầu dày 1,4 m, MẶT sàn đúng cao độ sàn tầng
-      _s.set(9, 1, L); sanCau.setMatrixAt(i, _m.compose(_p, _q, _s));
+      _s.set(9, 1, L); sanCau.setMatrixAt(i, _m.compose(_p, _q, _s)); c.va = { x: _p.x, y: _p.y, z: _p.z, q: { x: _q.x, y: _q.y, z: _q.z, w: _q.w }, L, dx: _d.x, dz: _d.z }; // tư thế sàn cầu cho khung va (redspires dungVa)
       _s.set(7.5, 1, L); kinhCau.setMatrixAt(i, _m.compose(_p, _q, _s));
       _s.set(8.6, 1, L * 0.82); vuonCau.setMatrixAt(i, _m.compose(_p, _q, _s));
       for (let k = 0; k < RU * 2; k++, r++) { const ben = k % 2 ? 1 : -1, f = (ruViTri[r] - 0.5) * 0.7;
@@ -239,5 +239,5 @@ export function taoSong({ goc, ql, dsThap, nuaNut, LONG }) {
   // duyệt xe quanh (x, z) bán kính r theo lưới oXe; fn trả false = dừng, hàm trả false
   const xeQuanh = (x, z, r, fn) => { const o = Math.ceil(r / O_XE), ox = Math.floor(x / O_XE), oz = Math.floor(z / O_XE);
     for (let a = -o; a <= o; a++) for (let b = -o; b <= o; b++) for (let j = oXe.get((ox + a) * 8192 + oz + b) ?? -1; j >= 0; j = keXe[j]) if (fn(xe[j]) === false) return false; return true; };
-  return { datLai, khung, uT, vatCan, gt: { xe, tuyenXe, lay, denDo, denXe, xeQuanh }, anKhi2200: [thanBay, denTruoc, vet, suong, sanCau, kinhCau, vuonCau, ruCau], tk: { xeBay: nB, xe: xe.length, tau: tau.length, cau: cau.length, suong: o.length, khop } };
+  return { datLai, khung, uT, vatCan, gt: { xe, tuyenXe, lay, denDo, denXe, xeQuanh }, cau, anKhi2200: [thanBay, denTruoc, vet, suong, sanCau, kinhCau, vuonCau, ruCau], tk: { xeBay: nB, xe: xe.length, tau: tau.length, cau: cau.length, suong: o.length, khop } };
 }

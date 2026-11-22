@@ -220,9 +220,12 @@ export function taoNhat2200({ rs, ql, datTai, RAPIER, world, tinh }) {
       for (let i = 0; i < n; i++) { let s = 0, k = 0; for (let j = Math.max(0, i - 8); j <= Math.min(n - 1, i + 8); j++) { s += d[j]; k++; } m[i] = s / k; }
       const DAU = 0.45; // hai đầu đáp đúng mặt đường (lòng cao tốc = c.y + 0,15 = mặt đường muot + 0,6) → xe chạy từ phố lên dốc được
       const muc = baoDoc(Float32Array.from(m, (g, i) => (i === 0 || i === n - 1 ? d[i] + DAU : g + CT.cao + CT.song * Math.sin(c.kc[i] / 300 + c.pha))), c.kc, K, true);
-      const san = Float32Array.from(d, (g, i) => g + Math.min(4, DAU + K * Math.min(c.kc[i], c.L - c.kc[i]))); // sàn cũng thoải về hai đầu, không thì đầu dốc dựng đứng
-      for (let ib = 0; ib < ia; ib++) for (let i = 0; i < n; i++) { const g = ganNhat(chon[ib], c.P[i][0], c.P[i][1]); if (g.d < 2 * CT.nua + 4) san[i] = Math.max(san[i], g.y + CT.tinh + 1); }
-      baoDoc(san, c.kc, K, false); for (let i = 0; i < n; i++) c.y[i] = Math.max(muc[i], san[i]); }
+      // sàn đất: 60 m cuối mỗi đầu chỉ cần nằm trên mặt phố (bám dốc phố, phố Tokyo có chỗ dốc 10–11% > trần dốc cao tốc), xa hơn thoải dần lên 4 m. KHÔNG bao dốc sàn đất:
+      // bao dốc từng kéo đầu tuyến lên 5–13 m trên mặt phố dốc (tuyến 3, 4 cũ). Sàn vượt (tuyến khác bên dưới) thì vẫn bao dốc.
+      const sanDat = Float32Array.from(d, (g, i) => g + DAU + Math.min(3.55, Math.max(0, K * (Math.min(c.kc[i], c.L - c.kc[i]) - 60))));
+      const san = new Float32Array(n).fill(-1e9); c.d = d;
+      for (let ib = 0; ib < ia; ib++) for (let i = 0; i < n; i++) { const g = ganNhat(chon[ib], c.P[i][0], c.P[i][1]); if (g.d < 2 * CT.nua + 4 && g.y > d[i] + DAU + 1.5 && muc[i] > g.y - CT.day - CT.tinh - 1) san[i] = Math.max(san[i], g.y + CT.tinh + 1); } // tuyến sau đang dốc xuống gần đầu mà đã thấp hơn hẳn tuyến trước thì CHUI DƯỚI (đường đất dưới cầu cạn), không bay qua; tuyến trước cũng đang nằm trên mặt đường (hai đầu tuyến gặp nhau ở cùng nút giao) thì cả hai cùng đáp xuống phố → hai đầu không treo lơ lửng
+      baoDoc(san, c.kc, K, false); for (let i = 0; i < n; i++) c.y[i] = Math.max(muc[i], san[i], sanDat[i]); }
     const pC = C.geo.attributes.position; let b = 0; const yTuyen = new Float32Array(soDiem); for (const c of chon) { yTuyen.set(c.y, b); b += c.y.length; }
     for (let i = 0; i < C.so.length; i++) pC.setY(i, C.goc[i] + yTuyen[C.so[i]]);
     pC.needsUpdate = true; C.geo.computeBoundingSphere();
@@ -240,7 +243,7 @@ export function taoNhat2200({ rs, ql, datTai, RAPIER, world, tinh }) {
         for (const c2 of chon) { const g = ganNhat(c2, ob.x, ob.z); if (g.d < CT.nua + 6 + 3.4) can = Math.max(can, g.y + TL.bayTren + 1); }
         for (const t of thapTren) if (Math.hypot(t.x - ob.x, t.z - ob.z) < t.r + 6 + 3.4) can = Math.max(can, t.y0 + t.cao + TL.bayTren + 1); }
       c.s = s0; c.yBay = can - yNen; for (const [x, z] of mau) bay.push({ x, z, y: can }); }
-    const k = kiem(luoi, { thap: thapTren.map((t, i) => ({ ...t, cao: dsT[i].d.Hc, rong: 2 * t.r })), caoToc: chon.map((c) => ({ P: c.P, y: c.y })), bay, thapTren });
+    const k = kiem(luoi, { thap: thapTren.map((t, i) => ({ ...t, cao: dsT[i].d.Hc, rong: 2 * t.r })), caoToc: chon.map((c) => ({ P: c.P, y: c.y, d: c.d })), bay, thapTren });
     Object.assign(khop, k, { cotBo, bayNang: dia.filter((c) => c.yBay > c.y + 0.5).length });
     console.info(inKiem('nhật 2200', k), `· cột bỏ vì đâm mặt dưới ${cotBo} · làn bay nâng ${khop.bayNang}/${dia.length}`);
     vaCot = cot.map((k) => { cotMesh.getMatrixAt(cot.indexOf(k), _m); _p.setFromMatrixPosition(_m); const cao = _m.elements[5]; return cao > 0 ? { x: _p.x, y: _p.y, z: _p.z, cao } : null; });

@@ -74,7 +74,7 @@ export function diemGiao(A, B) {
 
 // ---------- BỘ ĐẾM: mỗi luật một con số lỗi, đích 0 ----------
 // the = { thap: [{ x, z, r, cao, rong, y0? }] (cao tính từ chân y0), cau: [{ ax, az, ra, bx, bz, rb, yA, yB, yAbs, yBabs, caoA, caoB }],
-//         caoToc: [{ P: [[x, z]], y: [], ram?: bool }], bay: [{ x, z, y }], thapTren: [{ x, z, r, cao }] (vật cao cho cao tốc / làn bay né) }
+//         caoToc: [{ P: [[x, z]], y: [], d?: [] (mặt phố dưới từng điểm), ram?: bool }], bay: [{ x, z, y }], thapTren: [{ x, z, r, cao }] (vật cao cho cao tốc / làn bay né) }
 // luoi = luoiTuyen(ql). Trả { luat: { ten: số lỗi }, vd: { ten: [mẫu đầu] } }.
 export function kiem(luoi, the) {
   const luat = {}, vd = {}, loi = (ten, mau) => { luat[ten] = (luat[ten] || 0) + 1; (vd[ten] ||= []).length < 3 && vd[ten].push(mau); }, co = (ten) => { luat[ten] ||= 0; };
@@ -98,7 +98,7 @@ export function kiem(luoi, the) {
       // nhánh nối chạm tuyến mẹ ở hai đầu là chỗ nhập làn, không phải giao cắt
       if ((C[a].ram && (C[a].me === b || C[a].con === b)) || (C[b].ram && (C[b].me === a || C[b].con === a))) continue;
       const d = Math.abs(yTai(C[a], g.i, g.fa) - yTai(C[b], g.j, g.fb)); if (d < TL.caoToc.tinh - 0.2) loi('caotoc-giao-cung-cao', { a, b, x: Math.round(g.x), z: Math.round(g.z), dy: +d.toFixed(1) }); }
-    for (const [a, c] of C.entries()) { let dMax = 0; for (let i = 1; i < c.P.length; i++) { const L = Math.hypot(c.P[i][0] - c.P[i - 1][0], c.P[i][1] - c.P[i - 1][1]); if (L > 0.5) dMax = Math.max(dMax, Math.abs(c.y[i] - c.y[i - 1]) / L); }
+    for (const [a, c] of C.entries()) { let dMax = 0; for (let i = 1; i < c.P.length; i++) { const L = Math.hypot(c.P[i][0] - c.P[i - 1][0], c.P[i][1] - c.P[i - 1][1]); if (L > 0.5 && !(c.d && c.y[i] - c.d[i] < 1.2 && c.y[i - 1] - c.d[i - 1] < 1.2)) dMax = Math.max(dMax, Math.abs(c.y[i] - c.y[i - 1]) / L); } // đoạn đang bám mặt phố (đáp đất) dốc theo phố, không tính vào trần dốc cao tốc
       if (dMax > TL.caoToc.doc + 0.005) loi('caotoc-doc', { a, doc: +dMax.toFixed(3) });
       if (!c.ram) for (const p of [c.P[0], c.P[c.P.length - 1]]) { const h = luoi.xa(p[0], p[1], 40, ['lon', 'vua']); if (h.d > 0) loi('caotoc-dau-ngoai-duong', { a, x: Math.round(p[0]), z: Math.round(p[1]), cach: +h.d.toFixed(1) }); }
       for (const [k, t] of (the.thapTren || []).entries()) for (let i = 0; i < c.P.length; i += 2) if (Math.hypot(c.P[i][0] - t.x, c.P[i][1] - t.z) < t.r + TL.caoToc.nua && (t.y0 || 0) + t.cao > c.y[i]) { loi('caotoc-xuyen-thap', { a, thap: k }); break; } } }

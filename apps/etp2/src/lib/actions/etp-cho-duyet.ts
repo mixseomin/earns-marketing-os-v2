@@ -6,6 +6,7 @@
 import { openSync, readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { envVe, xinVeTrucTiep } from '@/lib/etp-ve';
+import { chuGio, daQua, gioVn } from '@/lib/etp-nb';   // giờ VN dùng chung với nhân bản ★ ROAS bài cũ (etp-tay.ts)
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
@@ -75,9 +76,6 @@ export async function lenCamp(cr: number): Promise<{ ok: true; chu: string } | {
 const KHUON_CR: Record<string, number> = { en: 65110, es: 65734 };   // cùng sổ apps/etp/lenh_cho.py KHUON_CR
 const DIR_NB = () => `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/xuong-video/scripts/ethopex`;
 export type KqNut = { ok: true; chu: string } | { canh: string } | { loi: string };
-const gioVn = (g: string | null | undefined) => { const t = (g ?? '').trim().replace('T', ' ').slice(0, 16); return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(t) ? t : null; };
-const daQua = (g: string) => Date.parse(`${g.replace(' ', 'T')}:00+07:00`) < Date.now() - 60_000;
-const chuGio = (g: string | null) => g ? `hẹn ${g.slice(11)} ${g.slice(8, 10)}/${g.slice(5, 7)} giờ VN` : 'chạy ngay';
 
 const ROAS_CR = [0.9, 1.4] as const, NS_CR = BANG_LUAT.hoi_cho.ns_khoang as [number, number];   // ★ ROAS creative mới: mức cùng nhan-ban.py ROAS_MIN/MAX · ngân sách sổ luật hoi_cho.ns_khoang
 

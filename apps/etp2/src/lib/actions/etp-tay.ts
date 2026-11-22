@@ -10,7 +10,8 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
-import { envVe, xinVeTay } from '@/lib/etp-ve';
+import { envVe, xinVeTay, xinVeTrucTiep } from '@/lib/etp-ve';
+import { NS_ROAS_KHOANG, ROAS_KHOANG, chuGio, daQua, gioVn } from '@/lib/etp-nb';
 /** LÚC CAMP NHÂN BẢN THỰC SỰ CHẠY (anh 10/11/2026 "khi nhân bản phải ghi rõ ngày, giờ sẽ thực sự active") — cùng luật nhan-ban.lich_len / chay_luc: trong khung lên → chạy ngay khi đồng bộ xong; ngoài khung → 07:00 VN */
 function chayLuc(now = Date.now()): string {
   const [a, b] = BANG_LUAT.khung_doi.len as [number, number], vn = new Date(now + 7 * 36e5), h = vn.getUTCHours();
@@ -68,16 +69,19 @@ export async function campTay(campId: number, viec: 'bat' | 'tat' | 'ns', o: { n
   return { ok: true, chu: k.lich ?? (viec === 'ns' ? `$${k.truoc?.ns ?? '?'} → $${k.sau?.ns ?? '?'}` : `${k.truoc?.tt ?? '?'} → ${k.sau?.tt ?? '?'}`) };
 }
 
-export type KieuNb = { kieu: 'thuong' } | { kieu: 'thang'; ns: number } | { kieu: 'bo'; bo: string } | { kieu: 'roas'; roas: number; ns: number; tamDung: boolean; /** cặp 0.9 + 1.1 (Dol 22/11/2026) — một lần bấm hai camp bài cũ */ cap?: boolean };
-const ROAS_KHOANG = [0.9, 1.4] as const, NS_ROAS_KHOANG = [5, 20] as const, ROAS_CAP = [0.9, 1.1] as const;   // Dol 22/11/2026: bid 0.9 / 1 / 1.1, camp mới $5 (cùng nhan-ban.py ROAS_MIN/ROAS_MAX)
+export type KieuNb = { kieu: 'thuong' } | { kieu: 'thang'; ns: number } | { kieu: 'bo'; bo: string } | { kieu: 'roas'; roas: number; ns: number; tamDung: boolean; /** nhiều mức bài cũ một lần bấm (Dol 22/11/2026: cặp 0.9 + 1.1 · bộ ba 0.9 + 1 + 1.1) — mỗi mức một camp */ cap?: number[];
+  /** giờ chạy: bỏ trống = lịch lên camp quyết · 'ngay' · 'YYYY-MM-DD HH:MM' VN — hai cái sau là lệnh trực tiếp (vé cong.py --ve-truc-tiep) */ gio?: string | null };
+/** các mức ROAS của một lần bấm — mỗi mức một camp */
+const mucRoas = (x: Extract<KieuNb, { kieu: 'roas' }>) => (x.cap?.length ? x.cap : [x.roas]);
 const thamNb = (x: KieuNb): string[] | string => {
   if (x.kieu === 'thuong') return [];
   if (x.kieu === 'thang') return Number.isInteger(x.ns) && x.ns > 1 ? ['--thang', String(x.ns)] : 'mức thang không hợp lệ';
   if (x.kieu === 'bo') return /^[A-Za-z0-9_ -]{1,20}$/.test(x.bo) ? ['--bo', x.bo, '--ep'] : 'bộ không hợp lệ';
-  if (!x.cap && !(x.roas >= ROAS_KHOANG[0] && x.roas <= ROAS_KHOANG[1])) return `ROAS goal phải trong ${ROAS_KHOANG[0]}–${ROAS_KHOANG[1]}`;
+  const muc = mucRoas(x);
+  if (muc.length > 3 || new Set(muc).size !== muc.length || muc.some((r) => !(r >= ROAS_KHOANG[0] && r <= ROAS_KHOANG[1]))) return `ROAS goal phải trong ${ROAS_KHOANG[0]}–${ROAS_KHOANG[1]}, tối đa 3 mức khác nhau`;
   if (!(Number.isInteger(x.ns) && x.ns >= NS_ROAS_KHOANG[0] && x.ns <= NS_ROAS_KHOANG[1])) return `ngân sách camp ROAS $${NS_ROAS_KHOANG[0]}–${NS_ROAS_KHOANG[1]}`;
-  if (x.cap) return ['--ns', String(x.ns), ...(x.tamDung ? ['--tam-dung'] : [])];   // mức ROAS gắn ở từng lượt (nhanBanTay / xemNhanBan)
-  return ['--roas', x.roas.toFixed(2), '--ns', String(x.ns), ...(x.tamDung ? ['--tam-dung'] : [])];
+  if (x.gio && x.gio !== 'ngay') { const g = gioVn(x.gio); if (!g) return 'giờ chạy sai dạng'; if (daQua(g)) return `giờ ${g} VN đã qua — chọn giờ sau bây giờ`; }
+  return ['--ns', String(x.ns), ...(x.tamDung ? ['--tam-dung'] : [])];   // mức ROAS gắn ở từng lượt (nhanBanTay / xemNhanBan)
 };
 
 /** XEM TRƯỚC nhân bản: chạy khô (không --that) — máy in payload / lý do chặn, không tạo gì */
@@ -85,7 +89,7 @@ export async function xemNhanBan(campId: number, x: KieuNb): Promise<{ ok: true;
   if (!(await laChu())) return { loi: 'chỉ admin mos2 điều khiển camp' };
   const t = thamNb(x); if (typeof t === 'string') return { loi: t };
   const ve = await xinVeTay('nhan_ban', { camp: campId, ai: AI });   // chạy khô không gửi gì nên không đốt vé — vé tự hết hạn
-  const ra = await chay(['nhan-ban.py', String(campId), '--tay', '--anh', ...t, ...(x.kieu === 'roas' && x.cap ? ['--roas', ROAS_CAP[0].toFixed(2)] : [])], 120_000, ve);   // cặp: chạy khô mức đầu — mức sau chỉ khác roas   // --anh: anh bấm tay — máy không chặn bằng luật mềm (10/11/2026), chỉ có nghĩa khi mang vé (18/11/2026)
+  const ra = await chay(['nhan-ban.py', String(campId), '--tay', '--anh', ...t, ...(x.kieu === 'roas' ? ['--roas', mucRoas(x)[0]!.toFixed(2)] : [])], 120_000, ve);   // nhiều mức: chạy khô mức đầu — mức sau chỉ khác roas · giờ không chạy khô (--gio đòi vé trực tiếp)   // --anh: anh bấm tay — máy không chặn bằng luật mềm (10/11/2026), chỉ có nghĩa khi mang vé (18/11/2026)
   const k = dongJson<{ ok?: boolean; loi?: string | null; ten?: string }>(ra);
   if (k && (k.ok === false || k.loi)) return { loi: k.loi || 'máy chặn' };   // chạy khô bị chặn: ok null + loi (vd ĐANG DỪNG LÊN CAMP MỚI)
   return { ok: true, chu: ra.trim().slice(-3000) || '(máy không in gì)' };
@@ -97,17 +101,28 @@ export async function nhanBanTay(campId: number, x: KieuNb, ghi?: string): Promi
   if (!Number.isInteger(campId) || campId <= 0) return { loi: 'camp không hợp lệ' };
   const t = thamNb(x); if (typeof t === 'string') return { loi: t };
   const log = openSync(`/tmp/etp2-nb-${campId}.log`, 'a');
-  if (x.kieu === 'roas' && x.cap) {   // CẶP ★ ROAS 0.9 + 1.1 bài cũ (Dol 22/11/2026 "2 camp lên mà lãi luôn → duplicate thêm 2 camp, bid 0.9, 1.1"): hai lượt NỐI TIẾP, mỗi lượt một vé
-    const ves = await Promise.all(ROAS_CAP.map(() => xinVeTay('nhan_ban', { camp: campId, ai: AI })));
-    const chung = ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that', '--luat', `tay etp2: nhân bản cặp ROAS ${ROAS_CAP.join(' + ')} — ANH CHỊU TRÁCH NHIỆM, máy không chặn${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, '--ai', AI];
-    spawn('sh', ['-c', ROAS_CAP.map((r, i) => `ETP_VE="$V${i}" python3 "$@" --roas ${r.toFixed(2)}`).join('; '), 'sh', ...chung],
-      { cwd: DIR, detached: true, stdio: ['ignore', log, log], env: { ...envVe(null), ...Object.fromEntries(ves.map((v, i) => [`V${i}`, v ?? ''])) } }).unref();
-    await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản cặp ROAS ${ROAS_CAP.join(' + ')} · $${x.ns}` });
-    return { ok: true, chu: `đã gửi máy hai camp ★ ROAS ${ROAS_CAP.join(' và ')} · $${x.ns} (bài cũ của #${campId}, chạy nối tiếp) · camp mới ${chayLuc()} · kết quả ghi nhật ký luật` };
+  if (x.kieu === 'roas') {   // ★ ROAS bài cũ — một hay nhiều mức (cặp 0.9 + 1.1 · bộ ba 0.9 + 1 + 1.1, Dol 22/11/2026): các lượt NỐI TIẾP, mỗi lượt một vé
+    const muc = mucRoas(x), g = x.gio && x.gio !== 'ngay' ? gioVn(x.gio) : null, truc = x.gio != null;
+    const chuChay = g ? chuGio(g) : truc ? 'chạy ngay' : chayLuc();
+    const ves: string[] = [];
+    for (const r of muc) {
+      if (!truc) { ves.push((await xinVeTay('nhan_ban', { camp: campId, ai: AI })) ?? ''); continue; }
+      // chạy ngay / đặt giờ = LỆNH TRỰC TIẾP của anh (vé cong.py --ve-truc-tiep): phanh đang áp thì lần đầu cảnh báo, bấm lại trong 30 phút là lên
+      const v = await xinVeTrucTiep('nhan_ban', { camp: campId, lenh: `anh bấm etp2: nhân bản ★ ROAS ${r} bài cũ của #${campId} · $${x.ns} · ${chuGio(g)}${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, ns: x.ns });
+      if ('canh' in v) return { loi: `⚠ Phanh đang áp: ${v.canh} — bấm Tạo camp lại trong 30 phút là máy bỏ qua phanh và lên` };
+      if ('loi' in v) return { loi: v.loi };
+      ves.push(v.ma);
+    }
+    const ten = muc.map(String).join(' + ');
+    const chung = ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that', '--luat', `tay etp2: nhân bản ★ ROAS ${ten} — ANH CHỊU TRÁCH NHIỆM, máy không chặn${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, '--ai', AI];
+    spawn('sh', ['-c', muc.map((r, i) => `ETP_VE="$V${i}" python3 "$@" --roas ${r.toFixed(2)}${g ? ' --gio "$G"' : ''}`).join('; '), 'sh', ...chung],
+      { cwd: DIR, detached: true, stdio: ['ignore', log, log], env: { ...envVe(null), G: g ?? '', ...Object.fromEntries(ves.map((v, i) => [`V${i}`, v])) } }).unref();
+    await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản ★ ROAS ${ten} · $${x.ns}${muc.length > 1 ? ' mỗi camp' : ''} · ${chuChay}` });
+    return { ok: true, chu: `đã gửi máy ${muc.length > 1 ? `${muc.length} camp ★ ROAS ${muc.join(' / ')} (chạy nối tiếp)` : `camp ★ ROAS ${muc[0]}`} · $${x.ns}${muc.length > 1 ? ' mỗi camp' : ''} · bài cũ của #${campId} · camp mới ${chuChay} · kết quả ghi nhật ký luật` };
   }
   const ve = await xinVeTay('nhan_ban', { camp: campId, ai: AI });   // vé thao tác tay (anh 18/11/2026): phanh chợ chỉ miễn lệnh mang vé
   spawn('python3', ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that', '--luat', `tay etp2: nhân bản ${x.kieu} — ANH CHỊU TRÁCH NHIỆM, máy không chặn${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, '--ai', AI],
     { cwd: DIR, detached: true, stdio: ['ignore', log, log], env: envVe(ve) }).unref();
-  await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản ${x.kieu === 'thuong' ? 'thường' : x.kieu === 'thang' ? `thang $${x.ns}` : x.kieu === 'bo' ? `sang bộ ${x.bo}` : `ROAS ${x.roas}`}` });
+  await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản ${x.kieu === 'thuong' ? 'thường' : x.kieu === 'thang' ? `thang $${x.ns}` : `sang bộ ${x.bo}`}` });
   return { ok: true, chu: `đã gửi máy nhân bản (anh chịu trách nhiệm — máy không chặn bằng luật, chỉ dừng khẩn) · camp mới ${chayLuc()} · camp hiện sau lượt đồng bộ kế, kết quả ghi nhật ký luật` };
 }

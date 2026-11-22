@@ -103,7 +103,6 @@ def ung_vien(cid, cu, tu_choi, dat):
 
 def mot(camp, tu_choi, dat):
     kq = {"camp": camp, "ok": False}
-    if EA.camp_cu([camp]): return {**kq, "ok": True, "viec": "camp_cu_20"}   # camp tạo trước 20/11 dừng triệt để (anh 23/11/2026) — không thay, không bật lại, không báo
     d = api(f"/api/v1/campaigns/{camp}"); a = d["ad_groups"][0]["ads"][0]
     cu, cid = a.get("creative_id"), a.get("content_id")
     lan = False   # CHỈ AD ĐANG BỊ META TỪ CHỐI (anh 03/11/2026: "Cấm tự ý đổi creative") — bỏ thay trước cho camp khác cùng creative
@@ -235,6 +234,7 @@ if __name__ == "__main__":
     import importlib.util as _iuc
     _sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
     camps = [c for c in camps if c not in CONG.camp_roas()]
+    _cu20 = EA.camp_cu(camps); camps = [c for c in camps if c not in _cu20]   # camp tạo trước 20/11 dừng triệt để (anh 23/11/2026): bỏ khỏi danh sách, không thay / bật lại / báo — cửa api() vẫn chặn nếu lọt
     tu_choi, dat = khoa("ethopex_tu_choi"), khoa("ethopex_cta_dat")
     def an_toan(c):
         try: return mot(c, tu_choi, dat)

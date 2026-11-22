@@ -225,7 +225,7 @@ class ChanCua(NgoaiNha, ValueError): pass
 # CAMP TẠO TRƯỚC 20/11/2026 DỪNG TRIỆT ĐỂ (anh 23/11/2026 "các thứ từ trước 20/11 phải dừng triệt để"): máy không ghi gì vào camp cũ nữa — không bật lại, không tăng /
 # giảm, không đổi creative (máy luật bỏ camp cũ khỏi danh sách nên cũng không nhân bản camp cũ thắng). Camp MỚI tạo từ khuôn cũ vẫn lên. Chỉ còn TẠM DỪNG (dừng thêm thì luôn được) và lệnh TRỰC TIẾP của anh (vé truc_tiep). Một cửa ở đây:
 # mọi script (luat-ethopex, thay-tu-choi, sua-cta, soat_doan, lich-gio, nhan-ban…) đi qua api(). Người đọc (máy luật, hàng chờ) lọc thêm bằng camp_cu() để khỏi báo / thử.
-MOC_CU = "2026-11-20 00:00+07"
+MOC_CU = f"{CG.LUAT_CU_MOC} 00:00+07"   # một mốc: sổ luật luat_cu.moc (etp-bang-luat.json) — cùng mốc "luật cũ dừng" của cong.py
 _CU = None
 def camp_cu(ids=None):
     """camp nhà tạo trước MOC_CU (etp.camp.tao) — ids=None: cả bộ; có ids: phần giao. Lỗi đọc → coi mọi id hỏi tới là cũ (chặn cho an toàn)."""

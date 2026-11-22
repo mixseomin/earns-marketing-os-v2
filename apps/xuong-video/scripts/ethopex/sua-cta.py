@@ -36,7 +36,9 @@ def khoa(ten):
     global _CU20
     d = _khoa_tho(ten)
     if not any(isinstance(v, dict) and v.get("goc") for v in d.values()): return d
-    if _CU20 is None: _CU20 = set(sql("select camp_id from etp.camp where tao < '2026-11-20 00:00+07'").split())
+    if _CU20 is None:   # một mốc: sổ luật luat_cu.moc (etp-bang-luat.json) — cùng mốc với ethopex_api.MOC_CU / cong.LUAT_CU_MOC
+        moc = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))["luat_cu"]["moc"]
+        _CU20 = set(sql(f"select camp_id from etp.camp where tao < '{moc} 00:00+07'").split())
     return {k: v for k, v in d.items() if not (isinstance(v, dict) and str(v.get("goc") or "") in _CU20)}
 
 def nguon_spy(qc):

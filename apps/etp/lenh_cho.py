@@ -76,7 +76,7 @@ def the(cid):
 
 def chay_script(args):
     try:
-        r = subprocess.run(["python3", *args], capture_output=True, text=True, timeout=1500, cwd=SC)
+        r = subprocess.run(["python3", *args], capture_output=True, text=True, timeout=1500, cwd=SC, env={**os.environ, "ETP_NGUON": "lenh_cho"})   # lệnh anh từ 20/11 — qua cổng luật cũ (cong.luat_cu_chan)
         return json.loads(next((x for x in reversed(r.stdout.strip().splitlines()) if x.startswith("{")), "{}") or "{}")
     except Exception as e: return {"ok": False, "loi": str(e)[:200]}
 

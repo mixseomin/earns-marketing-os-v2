@@ -1226,6 +1226,7 @@ dat, dau_phien = ([x for x in ds if _du_tang(int(x[0] or 0))] for ds in (dat, da
 # camp đã hạ, đang trong 2 ngày theo dõi — có danh sách riêng để trang etp / bộ lọc thấy (anh 01/11/2026 "Thiếu luật G10 vừa áp dụng?": trước đó camp đang theo dõi rơi khỏi mọi danh sách)
 g10_theo = [(cid, f"#{(thang.get(cid) or {}).get('ten', '')[:70]} · đã hạ về ${G10_DICH} ngày {ngay:%d/%m} — theo dõi {G10_THEO} ngày đã khép, ROI vẫn < {G10_ROI}% thì tắt; đang khoá tăng") for cid, ngay in sorted(_g10_theo.items())]
 dat, dau_phien, tang30, thang_nb, nb, moc30 = ([x for x in v if int(x[0] or 0) not in _g10_cam] for v in (dat, dau_phien, tang30, thang_nb, nb, moc30))
+if CONG.LUAT_CU_DUNG: thang_nb, nb, moc30 = [], [], []   # LUẬT CŨ DỪNG (anh 22/11/2026): NB 25/10 · THANG · ★ lên ROAS tự động 29/10 là luật trước 20/11 — worker không nhân bản / lên ROAS nữa
 # GIỮ CAMP CUỐI CỦA PHIM — CHỈ CAMP LÃI (anh 05/11/2026 sau đó: "cam lỗ vẫn phải cắt nhưng thay bằng = camp test duy nhất !!! Thử các hướng creative khác nhau") (anh 05/11/2026: "nếu phim ko có camp thay thế thì sẽ bị mất dấu vết. Ít nhất vẫn phải có 1 camp lãi duy trì, trừ trường hợp bị bão hoà
 # + lỗ quá theo luật"): mọi camp đang bật của phim đều nằm trong danh sách tắt mà phim chưa có camp nối (camp đã tạo, hẹn lịch chưa tới giờ chạy) → gỡ camp tốt nhất
 # (ROI cả đời cao nhất) khỏi mọi danh sách tắt, vào danh sách giu_cuoi. Ngoại lệ = luật cất phim đã có: phim đã cất (thu_vong 'cat' — cat_phim) hoặc bão hoà

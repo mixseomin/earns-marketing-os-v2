@@ -283,6 +283,10 @@ def chay(q):
         k = sx["kho"]
         ghi_ngung(q, f"đủ hàng ~1 ngày chỗ lên — kho Sạch chờ lên {k['kho_san']} + đang sản xuất {k['dang_sx']} camp ≥ {k['cho_ngay']} chỗ / ngày — lộ trình không xếp thêm (sổ luật san_xuat_theo_cho)")
         return {"lo_trinh": f"đủ hàng: kho {k['kho_san']} + đang sx {k['dang_sx']} ≥ {k['cho_ngay']} chỗ / ngày", "kho": k}
+    if CG.LUAT_CU_DUNG:   # LUẬT CŨ DỪNG (anh 22/11/2026): lộ trình / AT-poster ưu tiên / bù camp / phim cứu đều là luật trước 20/11 → không xếp dòng
+        q(f"""insert into etp.nhat_ky (luc, viec, ok, luat, ai) select now(), 'lo_trinh', true, '{CG.LY_LUAT_CU} — lộ trình ngưng xếp dòng', 'máy lộ trình tự động'
+              where not exists (select 1 from etp.nhat_ky where viec = 'lo_trinh' and luat like 'LUẬT CŨ DỪNG%' and (luc at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date)""")
+        return {"lo_trinh": "luật cũ dừng — không xếp dòng"}
     if q(CG.SQL_DUNG_CAMP_MOI) == "t":   # anh dừng lên camp mới để review (cong.KHOA_DUNG_CAMP_MOI) → không xếp dòng nào
         q(f"""insert into etp.nhat_ky (luc, viec, ok, luat, ai) select now(), 'lo_trinh', true, 'đang dừng lên camp mới (etp.cau_hinh.{CG.KHOA_DUNG_CAMP_MOI}) — lộ trình ngưng xếp dòng', 'máy lộ trình tự động'
               where not exists (select 1 from etp.nhat_ky where viec = 'lo_trinh' and luat like 'đang dừng lên camp mới%' and (luc at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date)""")

@@ -297,6 +297,16 @@ def ve_truc_tiep(viec, camp_id=None, content_id=None, lenh="", ns=None, phien=""
 # PHANH CHỢ CHỈ CẢNH BÁO (anh 22/11/2026 "Phanh chợ ko bật lúc này. Chỉ dùng để cảnh báo"): sổ luật phanh_cho.chan = false → phanh_cho() vẫn ra câu cảnh báo cho trang / thẻ,
 # nhưng MỌI chỗ CHẶN (chan_cua, phanh_sx nấc rút, luat-ethopex bỏ khỏi danh sách tăng / rút CX) đọc PC_CHAN trước khi chặn.
 PC_CHAN = bool(_BL["phanh_cho"].get("chan", True))
+# LUẬT CŨ DỪNG HẲN (anh 22/11/2026, sổ luật luat_cu): luật máy lên camp mới / nhân bản / thử phim có từ trước LUAT_CU_MOC dừng hoàn toàn — chỉ lệnh từ mốc trở đi qua cổng
+_LC = _BL.get("luat_cu") or {}
+LUAT_CU_DUNG, LUAT_CU_MOC = bool(_LC.get("dung")), str(_LC.get("moc") or "2026-11-20")
+LY_LUAT_CU = f"LUẬT CŨ DỪNG: luật máy thử phim / lên camp mới có từ trước {LUAT_CU_MOC[8:10]}/{LUAT_CU_MOC[5:7]} dừng hẳn (anh 22/11/2026) — chỉ lệnh mới của anh (vé trực tiếp / nút etp2 / hàng lệnh chờ) được lên"
+def luat_cu_chan(viec, camp_ids=(), content_id=None):
+    """LY_LUAT_CU nếu việc lên camp mới này đến từ luật máy cũ (trước LUAT_CU_MOC) | None — lệnh mới = vé ETP_VE hợp lệ (trực tiếp / anh bấm) hoặc hàng lệnh chờ lenh_cho"""
+    if not LUAT_CU_DUNG or viec not in ("tao_camp", "nhan_ban"): return None
+    if os.environ.get("ETP_NGUON") == "lenh_cho": return None   # hàng lệnh chờ của anh (20/11 lenh_cho + 22/11 len_cr_roas) — apps/etp/lenh_cho.chay_script đặt
+    if ve_hop_le(viec, camp_ids, content_id) or truc_tiep(viec, camp_ids, content_id): return None
+    return LY_LUAT_CU
 def phanh_cho(tt, viec, bay_gio=None, thay=False):
     """hàm thuần: trạng thái etp.cau_hinh.phanh_cho + việc → câu lý do chặn | None (miễn trừ ROAS / lệnh anh / ngoài do kiem() xét)"""
     pc = (tt or {}).get("phanh") or {}; bay = (bay_gio or dt.datetime.now(dt.timezone.utc)).isoformat()
@@ -472,6 +482,8 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         if ly_cam: return ly_cam
         # LỆNH TRỰC TIẾP CỦA ANH (anh 20/11/2026 09:35): vé loai 'truc_tiep' (CLI --ve-truc-tiep, đã cảnh báo một lần lúc cấp) miễn MỌI phanh phía sau — chỉ phim cấm (trên) và camp đội chặn
         if not ngoai and truc_tiep(viec, [camp_id] if camp_id else (), ct): return None
+        ly_lc = luat_cu_chan(viec, [camp_id] if camp_id else (), ct)   # LUẬT CŨ DỪNG (anh 22/11/2026) — luật máy trước 20/11 không lên camp mới / nhân bản nữa
+        if ly_lc: return ly_lc
         ng = _q(f"select coalesce(nhom_goc, '') from etp.phim where content_id = {int(ct)}") if ct else ''
         if ct and not ng:   # KÍN (anh 29/10/2026 "làm cho kín"): phim chưa chấm → chấm poster NGAY (nhom_goc.py, ckey ~36₫/phim); không chấm được → CHẶN
             import importlib.util as _iu

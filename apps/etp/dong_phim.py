@@ -715,9 +715,12 @@ DOI_LAI = [0.0]
 def dung_camp_moi():
     """anh dừng lên camp mới để review (cong.KHOA_DUNG_CAMP_MOI) → không xếp / mở lại dòng nào"""
     return sql(CG.SQL_DUNG_CAMP_MOI).strip() == "t"
+def luat_cu():
+    """LUẬT CŨ DỪNG (anh 22/11/2026, sổ luật luat_cu): đợt đổi lại 06/11, mở lại trần ngày 08/11, trần test 18/11, cứu creative 07/11 là luật trước 20/11 → không chạy"""
+    return CG.LUAT_CU_DUNG
 
 def mo_doi_lai():
-    if time.time() - DOI_LAI[0] < 600 or dung_camp_moi(): return
+    if time.time() - DOI_LAI[0] < 600 or dung_camp_moi() or luat_cu(): return
     con = (SX[0].get("kho") or {}).get("con")
     if SX[0].get("phanh") or (con is not None and con <= 0): return   # sản xuất theo chợ (anh 18/11/2026): phanh / đủ ~1 ngày chỗ lên → không xếp dòng mở rộng
     DOI_LAI[0] = time.time()
@@ -740,7 +743,7 @@ def mo_tran_ngay():
     """DÒNG DỪNG VÌ TRẦN CAMP MỚI / NGÀY TỰ LÊN LẠI SANG NGÀY MỚI (08/11/2026: đợt ATT/PD/CTS 9 phim — 6 dòng creative sạch dừng "chạm trần 100 camp
     mới / ngày … mai lên tiếp" mà không máy nào làm câu "mai lên tiếp"): ngày VN mới + còn chỗ dưới trần → FIX bước camp của các dòng đó (dừng từ ngày
     trước, trong 3 ngày), tối đa bằng số chỗ còn lại; dòng vẫn vấp trần thì dừng lại với ngày hôm nay và chờ hôm sau."""
-    if dung_camp_moi(): return
+    if dung_camp_moi() or luat_cu(): return
     for l in sql(f"""with con as (select (select gia_tri::text::int from etp.cau_hinh where khoa = '{CG.KHOA_TRAN_NGAY}') - ({CG.SQL_TAO_HOM_NAY}) n),
         -- chỗ còn tính theo SỐ CAMP, không theo số dòng (16/11/2026: limit n dòng, mỗi dòng mở rộng 2–6 camp → 61 chỗ thành ~147 camp lúc 00:00)
         ung as (select b.dong_id, sum(greatest(coalesce(d.so_camp, 1), 1)) over (order by d.so_camp desc nulls last, b.ket_thuc, b.dong_id) cong
@@ -754,7 +757,7 @@ def mo_tran_ngay():
 def mo_tran_test():
     """DÒNG DỪNG VÌ TRẦN CAMP TEST / PHIM TỰ LÊN LẠI KHI CÓ CHỖ (anh 18/11/2026, cong.KHOA_TRAN_TEST): creative đã dựng xong mà bước camp bị cổng chặn vì phim đủ camp
     test chưa lãi → khi một camp test tắt / thành lãi (hoặc phim lãi ổn định) thì FIX bước camp — mỗi lượt một dòng / phim, dòng dừng trong 3 ngày; vẫn vấp thì dừng lại chờ lượt sau."""
-    if dung_camp_moi(): return
+    if dung_camp_moi() or luat_cu(): return
     for l in sql(f"""with ung as (select distinct on (d.content_id) b.dong_id, d.content_id from etp.dong_buoc b join etp.dong_phim d on d.id = b.dong_id
                 where b.buoc = 'camp' and b.trang_thai = 'dung' and not b.fix and strpos(b.ghi, '{CG.KHOA_TRAN_TEST}') > 0 and d.trang_thai = 'dung' and b.ket_thuc > now() - interval '3 days' and {KHONG_TRUNG}
                 order by d.content_id, b.ket_thuc),
@@ -879,7 +882,7 @@ def vong():
 # không giữ chân vòng dòng phim). Lượt đang chạy thì không bật lượt mới. Chỉ ở iMac (cắt video — cấm dựng video trên box3).
 CUU = {"luot": 0.0, "th": None}
 def cuu():
-    if SX[0].get("khan") or time.time() - CUU["luot"] < 900 or (CUU["th"] and CUU["th"].is_alive()): return   # dừng khẩn: không cắt lại creative
+    if luat_cu() or SX[0].get("khan") or time.time() - CUU["luot"] < 900 or (CUU["th"] and CUU["th"].is_alive()): return   # dừng khẩn: không cắt lại creative
     CUU["luot"] = time.time()
     def chay():
         try: print(f"[{time.strftime('%H:%M:%S')}] cứu creative bị chặn: {CU.chay()}", flush=True)

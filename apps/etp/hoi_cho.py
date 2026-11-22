@@ -85,6 +85,7 @@ def nb(args, luat):
     except Exception as e: return {"ok": False, "loi": str(e)[:200]}
 
 def chay(xem=False):
+    if CG.LUAT_CU_DUNG: return {"dot": False, "ly": CG.LY_LUAT_CU}   # đợt hồi chợ 18/11 là luật trước 20/11 (anh 22/11/2026)
     tt = json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'phanh_cho'), '{}')") or "{}")
     pn = q("select max(split_part(khoa, ':', 3)) from etp.canh_bao where khoa like 'phanh_cho:phanh:%'") or None
     co, ly = dot(tt, pn, dt.datetime.now(dt.timezone.utc))

@@ -11,6 +11,7 @@ Công tắc lên camp mới (etp.cau_hinh.dung_camp_moi) đang TẮT thì không
   python3 apps/etp/nuoi_bo.py          → làm (in một dòng JSON)
   python3 apps/etp/nuoi_bo.py --xem    → chỉ in kế hoạch nhịp này, không tạo gì"""
 import json, os, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cong as CG   # công tắc luật cũ (sổ luật luat_cu, anh 22/11/2026)
 
 PHIM_CHI, PHIM_ROI, GOC_CHI, PHIM_BO, MOI_NHIP = 50, 25, 5, 3, 4
 NB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "nhan-ban.py")
@@ -20,6 +21,7 @@ q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", 
 def ke_hoach():
     tl = json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'tran_len'), '{}')") or "{}")
     if q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'dung_camp_moi'), 'false')") == "true": return [], "công tắc lên camp mới đang TẮT"
+    if CG.LUAT_CU_DUNG: return [], CG.LY_LUAT_CU   # nuôi bộ 11/11 là luật trước 20/11 (anh 22/11/2026)
     nuoi = {str(b): int(n) for b, n in (tl.get("nuoi") or {}).items() if int(n) > 0}
     if not nuoi: return [], "tran_len chưa chia phần nuôi (trần 0 hoặc chưa quyết hôm nay)"
     da = {}   # (bộ, phim) → số camp nuôi hôm nay

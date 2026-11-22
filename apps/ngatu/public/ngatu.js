@@ -12,6 +12,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { taoMua } from './mua.js?v=1';
 
 // ───────────────────────── hình học đường ─────────────────────────
 // Trục x = Đông, trục z = Nam. Đường Đông–Tây rộng 2×10 m, Bắc–Nam 2×8 m, vỉa hè 4 m. Xe đi bên phải.
@@ -2603,9 +2604,35 @@ function datHinh(on) {
   if (THAT.composer) THAT.composer.setSize(innerWidth, innerHeight);
   renderer.shadowMap.needsUpdate = true;
   const b = $('hinh'); if (b) { b.classList.toggle('on', on); b.title = on ? 'Đang xem BẢN THẬT — bấm để về bản hiện tại' : 'Xem BẢN THẬT (vật liệu PBR, ánh sáng môi trường, che bóng góc, xe máy thật) để so với bản hiện tại. Mô hình: xe máy + xe buýt poly.pizza (CC BY, xe buýt của Poly by Google), ô tô Kenney (CC0), người Quaternius (CC0)'; }
+  apMua();
   const u = new URL(location.href); if (on) u.searchParams.set('hinh', 'that'); else u.searchParams.delete('hinh'); history.replaceState(null, '', u);
 }
 $('hinh')?.addEventListener('click', () => datHinh(!THAT.on));
+
+// ───────────────────────── trời mưa (anh 22/11/2026: "như sprawl ?kieu=nhat khi mưa") ─────────────────────────
+// Lớp mưa dùng chung với sprawl (mua.js): mặt đường ướt soi bóng cảnh thật, vũng nước có gợn, hạt mưa quanh máy quay.
+// Ở đây thêm: trời xám đục, nắng yếu, sương dày. Áp SAU datHinh vì datHinh đặt lại ánh sáng gốc mỗi lần đổi bản.
+const MUA = { on: false, lop: null, daUot: new WeakSet(), nen: new THREE.Color('#7d8790') };
+function uotMat() { // gắn lớp ướt cho mặt đường (cả vật liệu bản hiện tại lẫn bản thật)
+  for (const m of [mat0.material, mat0.userData.vlCu]) if (m && !MUA.daUot.has(m)) { MUA.daUot.add(m); MUA.lop.uot(m); }
+}
+function apMua() {
+  if (!MUA.on) return;
+  troi.intensity *= 0.8; sun.intensity *= 0.3; renderer.toneMappingExposure *= 0.92;
+  scene.background = MUA.nen; scene.fog.color.copy(MUA.nen); scene.fog.near = 60; scene.fog.far = 260;
+  renderer.shadowMap.needsUpdate = true;
+}
+function datMua(on) {
+  if (on && !MUA.lop) MUA.lop = taoMua({ renderer, scene, camera });
+  MUA.on = on; if (MUA.lop) { uotMat(); MUA.lop.dat(on, 1); }
+  scene.fog.color.set('#c8d9e6'); scene.fog.near = 150; scene.fog.far = 430;
+  datHinh(THAT.on); // đặt lại ánh sáng gốc của bản đang xem, rồi apMua phủ lên
+  if (!THAT.on) { if (!on) scene.background = THAT.nenCu ?? scene.background; }
+  $('mua')?.classList.toggle('on', on);
+  const u = new URL(location.href); if (on) u.searchParams.set('mua', '1'); else u.searchParams.delete('mua'); history.replaceState(null, '', u);
+}
+$('mua')?.addEventListener('click', () => datMua(!MUA.on));
+if (new URLSearchParams(location.search).has('mua')) datMua(true);
 addEventListener('resize', () => THAT.composer?.setSize(innerWidth, innerHeight));
 if (new URLSearchParams(location.search).get('hinh') === 'that') datHinh(true);
 
@@ -2697,6 +2724,7 @@ function khoiDong() {
     KHUNG.setFromProjectionMatrix(MK.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)); daCoKhung = true;
     // tự hạ chất lượng: bản thật trung bình < 45 khung/giây suốt ~3 giây thì tắt che bóng góc (GTAO), giữ phần còn lại
     if (THAT.on && THAT.composer && !THAT.ha) { THAT.fps = (THAT.fps ?? 60) * 0.97 + (1 / Math.max(dtThuc, 1e-3)) * 0.03; THAT.cham = THAT.fps < 45 ? (THAT.cham || 0) + dtThuc : 0; if (THAT.cham > 3) { THAT.ha = true; console.info('ngatu: máy chậm, tắt GTAO'); } }
+    if (MUA.on) { uotMat(); MUA.lop.khung(dtThuc, 0.01, [mat0], null); }
     if (THAT.on && THAT.composer && !THAT.ha) THAT.composer.render(); else renderer.render(scene, camera);
   });
 }

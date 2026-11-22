@@ -1,6 +1,6 @@
 // tự kiểm cuaDiDuoc (mattien.js): cửa vào chỉ thành lỗ đi qua khi đủ rộng + đủ cao (ngưỡng doc_mat.NGUONG) và đất trước cửa ngang chân cửa — node scripts/cua-di-duoc.test.mjs
 import assert from 'node:assert';
-const { cuaDiDuoc, loTrung, nhuongSo, khopCum } = await import(new URL('../public/mattien.js', import.meta.url));
+const { cuaDiDuoc, loTrung, nhuongSo, khopCum, deKhung, oCuaLo, KHE_LO } = await import(new URL('../public/mattien.js', import.meta.url));
 const d = { t0: 0, t1: 1.2, ra: 0, a0: [0, 0], u: [1, 0], n: [0, 1] }, dat = () => 10;
 const c = { loai: 'lo', cua: 'cua_vao', y0: 10, y1: 12.4, w: 1.2, h: 2.4 };
 assert.equal(cuaDiDuoc(c, d, dat), 10, 'cửa đủ cỡ, đất ngang → đi được');
@@ -54,3 +54,12 @@ console.log('25/25 ✓');
   const THREE = { MeshBasicMaterial: function (o) { Object.assign(this, o); } }; assert.ok(vlBong(THREE).polygonOffset, 'bóng vẽ sẵn cũng dán');
   const src = (await import('node:fs')).readFileSync(new URL('../public/mattien.js', import.meta.url), 'utf8');
   const tran = src.match(/(?:kinh|lom|KINH|TOI)\s*[:=]\s*new THREE\.Mesh\w*Material/g) || []; assert.deepEqual(tran, [], 'vật liệu kính / lõm / tối mặt tiền chưa qua danTuong: ' + tran.join(' · ')); }
+
+// lỗ sổ đo SÁT ô cửa đã có (anh 22/11/2026: ô kính phẳng vẽ thừa cạnh cửa vòm): lòng kính không đè ≥ 25 % nhưng khung cách < KHE_LO → cùng một cửa; cách 2 m → cửa khác (bài phá)
+const oLo = oCuaLo({ ...lo, khoi: 'k' }, dl), canh = { ...o, x: 6.4, y: 10 }; // ô vòm bên phải: lòng kính cách 0,4 m
+assert.equal(loTrung(lo, dl, [canh]), false, 'lòng kính không đè → luật cũ để lọt');
+assert.equal(deKhung(oLo, canh, KHE_LO), true, 'khung sát nhau → trùng');
+assert.equal(deKhung(oLo, { ...canh, x: 8 }, KHE_LO), false, 'cách 2 m → cửa khác');
+assert.equal(deKhung(oLo, { ...canh, y: 14 }, KHE_LO), false, 'tầng trên → cửa khác');
+assert.equal(deKhung(oLo, { ...canh, nx: 1, nz: 0 }, KHE_LO), false, 'mặt vuông góc → cửa khác');
+console.log('deKhung ✓');

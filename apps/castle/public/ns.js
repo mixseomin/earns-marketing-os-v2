@@ -24,7 +24,7 @@ import { taoChieuAnh } from './chieuanh.js';
 import { trongDa, keMep } from './hinhhoc.js';
 import { datDuong } from './duong.js';
 import { datTrangTri, datCuaCong } from './trangtri.js';
-import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, caoTheoTia, diemTheoTia, thapTheoTia, tiLeDung, datChop, datChiTietDo, cuaDiDuoc, loTrung, cachMat, SAU_CUA, oCum, boTriDo, datMai, banDoMat, datMatRieng, xMatRieng } from './mattien.js';
+import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, caoTheoTia, diemTheoTia, thapTheoTia, tiLeDung, datChop, datChiTietDo, cuaDiDuoc, loTrung, deKhung, cachMat, SAU_CUA, oCum, boTriDo, datMai, banDoMat, datMatRieng, xMatRieng } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 import { ganAnhQuanh } from './anhquanh.js';
 import { datCanhXa } from './canhxa.js';
@@ -672,7 +672,7 @@ for (const [ten, G] of Object.entries(NHOM)) {
   const m = new THREE.Mesh(g, VL[ten]); m.castShadow = m.receiveShadow = true; m.userData.nha = true; scene.add(m); LOP_OSM.push(m); // nha: nhận ảnh chiếu (chieuanh.js)
 }
 // mặt Palas hướng sân trên (đầu hồi đông, gần sân nhất): chọn TRƯỚC khi đặt cửa sổ để chừa dải trên cho tranh + ban công
-let CT_DO_MAT_RIENG = [], CUA_DA_CO_MT = []; // sổ đo phần nằm trên mặt dựng riêng + ô cửa đã có lúc dựng mặt tiền — dựng sau datMatPalas (tachSo)
+let CT_DO_MAT_RIENG = [], CT_DO_CHO = [], CUA_DA_CO_MT = []; // sổ đo phần nằm trên mặt dựng riêng + ô cửa đã có lúc dựng mặt tiền — dựng sau datMatPalas (tachSo)
 const CUA = []; // cửa sổ 3D mặt tiền (mattien.js): { x, y: bậu, z, nx, nz: pháp tuyến ra ngoài, nua: nửa bề ngang, cao, ten } — leo sát cửa có phòng phía sau thì E mở cửa trèo vào
 const SAN_TRONG = D.khoi.find((k) => k.tags.building === 'courtyard')?.ngoai?.[0];
 // NỀN SÂN TRÊN PHẲNG (NEN_LUOI đặt mặt đất trong đa giác sân = NEN.san): mặt lát + tường chắn mép dựng theo mức này (góp ý #1633)
@@ -876,7 +876,11 @@ const LOD_MT = { gan: new THREE.Group(), xa: new THREE.Group(), dangXa: false };
   const tachSo = (trenMat) => (CT_DO?.muc || []).map((c) => ({ ...c, doan: (c.doan || []).flatMap((d) => { const k = MAT_RIENG.map((m) => cachMat(d, m)).find((v) => v != null);
     return trenMat ? (k == null ? [] : [{ ...d, ra: (d.ra || 0) + k }]) : (k == null ? [d] : []); }) })).filter((c) => c.doan.length);
   CT_DO_MAT_RIENG = tachSo(true);
-  const ctDo = CT_DO?.muc?.length ? datChiTietDo({ THREE, mergeGeometries, ds: tachSo(false), nhe: CHAM, nguong: CT_DO.nguong, matDat, daCo: CUA_DA_CO, matRieng: [] }) : []; for (const m of ctDo) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
+  // lỗ cùng mặt phẳng mặt dựng riêng nhưng ngoài hai đầu (≤ 4 m): cụm cửa dựng tay theo ảnh có thể chìa quá mốc mặt → chờ mặt đó dựng xong rồi so (anh 22/11/2026: ô kính phẳng đè cụm cửa Palas)
+  const gan = (d) => MAT_RIENG.some((m) => cachMat(d, m) == null && cachMat(d, m, 4) != null);
+  CT_DO_CHO = (CT_DO?.muc || []).map((c) => ({ ...c, doan: (c.doan || []).filter(gan) })).filter((c) => c.doan.length);
+  const soNay = tachSo(false).map((c) => ({ ...c, doan: c.doan.filter((d) => !gan(d)) })).filter((c) => c.doan.length);
+  const ctDo = CT_DO?.muc?.length ? datChiTietDo({ THREE, mergeGeometries, ds: soNay, nhe: CHAM, nguong: CT_DO.nguong, matDat, daCo: CUA_DA_CO, matRieng: [] }) : []; for (const m of ctDo) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); } CUA.push(...(ctDo.cua || [])); // lỗ đã dựng vào sổ ô cửa → bộ kiểm chồng lấn thấy cả chúng
   // sàn trong lòng cửa vào (mặt trên = mặt đứng ngoài cửa, sâu SAU_CUA): bước qua cửa không hụt chân xuống đất mô hình dưới khối
   for (const c of CT_DO?.muc || []) for (const d of c.doan || []) { if (loTrung(c, d, CUA_DA_CO, MAT_RIENG)) continue; const yg = cuaDiDuoc(c, d, matDat, CT_DO?.nguong); if (yg == null) continue;
     const t = (d.t0 + d.t1) / 2, w = Math.min(c.w ?? (d.t1 - d.t0), d.t1 - d.t0), r = (d.ra || 0) - SAU_CUA / 2, q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(d.n[0], d.n[1]));
@@ -933,8 +937,8 @@ function apHienCach3() { // gọi lại sau mọi chỗ đặt hiện / ẩn LOP
       for (const ten of ['palas-thanh-george', 'palas-duc-me']) try { const t = await tl.loadAsync(`./du-lieu/anh/ngoai/${ten}.jpg`); t.colorSpace = THREE.SRGBColorSpace; TR[ten] = t; } catch (e) { console.warn('[ns] không tải được tranh mặt Palas', ten, e); }
       const mp = datMatPalas({ THREE, mergeGeometries, tuong: tot, tranh: TR, vanDa: VAN_DA, vanKhoi: VAN_KHOI, doSo: CT_DO_MAT_RIENG, nguong: CT_DO?.nguong }); CUA.push(...(mp.cua || []));
       window.__nsKhopCum = mp.cua?.khop || []; window.__nsLoDo = mp.cua?.los || []; console.info('[ns] cụm cửa Palas khớp sổ đo:', JSON.stringify(window.__nsKhopCum)); // cụm tay nào đã theo lỗ đo nhiều ảnh
-      if (CT_DO_MAT_RIENG.length) { const ct = datChiTietDo({ THREE, mergeGeometries, ds: CT_DO_MAT_RIENG, nhe: CHAM, nguong: CT_DO.nguong, matDat, daCo: [...CUA_DA_CO_MT, ...(mp.cua || [])] }); // chi tiết đo trên mặt này (xem tachSo)
-        for (const m of ct) { m.userData.nha = true; mp.push(m); } window.__nsBoTrung = [...(window.__nsBoTrung || []), ...(ct.dem?.boTrung || [])]; console.info('[ns] chi tiết đo trên mặt dựng riêng:', JSON.stringify({ ...ct.dem, boTrung: ct.dem?.boTrung?.length })); }
+      if (CT_DO_MAT_RIENG.length || CT_DO_CHO.length) { const ct = datChiTietDo({ THREE, mergeGeometries, ds: [...CT_DO_MAT_RIENG, ...CT_DO_CHO], nhe: CHAM, nguong: CT_DO.nguong, matDat, daCo: [...CUA] }); // CUA lúc này = mặt tiền + lỗ đã dựng + cụm cửa Palas vừa dựng // chi tiết đo trên mặt này (xem tachSo)
+        for (const m of ct) { m.userData.nha = true; mp.push(m); } CUA.push(...(ct.cua || [])); window.__nsBoTrung = [...(window.__nsBoTrung || []), ...(ct.dem?.boTrung || [])]; console.info('[ns] chi tiết đo trên mặt dựng riêng:', JSON.stringify({ ...ct.dem, boTrung: ct.dem?.boTrung?.length })); }
       for (const m of mp) { m.visible = !LOP_OSM.dangAn && !CACH3.bat; scene.add(m); LOP_OSM.push(m); LOP_NHA.add(m); } // cờ trên LOP_OSM (khai sớm) — anh3d khai sau, đọc ở đây dễ dính lỗi chưa khai báo
     })();
     // sân lát đá trong mặt bằng sân trên (OSM courtyard), nhô 6 cm. Nền phẳng (SAN_PHANG): một mặt phẳng cắt ĐÚNG mép đa giác + va chạm — mép là tường chắn
@@ -1708,12 +1712,10 @@ window.__ns.chiTietDeCua = () => { const ra = [];
         ra.push({ loai: e.loai, mat: e.mat, cua: c.mat || c.ten || '?', tam: [+h.cx.toFixed(1), +h.cz.toFixed(1)], cuaY: [+c.y.toFixed(1), +(c.y + c.cao).toFixed(1)], lechNgang: +ds.toFixed(2) }); } }
   return ra; };
 window.__ns.chongLan = () => { const ra = [];
-  for (let i = 0; i < CUA.length; i++) for (let j = i + 1; j < CUA.length; j++) { const a = CUA[i], b = CUA[j]; if (a.nx * b.nx + a.nz * b.nz < 0.97 || Math.abs((b.x - a.x) * a.nx + (b.z - a.z) * a.nz) > 0.8) continue;
-    const mat = a.mat || a.ten || 'Palas', ux = -a.nz, uz = a.nx, sa = a.x * ux + a.z * uz, sb = b.x * ux + b.z * uz;
-    // so theo KHUNG NGOÀI (viền đá, vòm bao) — lòng kính tách nhau mà khung vẫn đè là đúng lỗi nhìn thấy; ô cùng một cụm (cum) không tính
-    const va = a.vien || { ngang: 0.25, tren: 0.4 }, vb = b.vien || { ngang: 0.25, tren: 0.4 }; if (a.cum != null && a.cum === b.cum && Math.abs(a.y - b.y) < 0.01) continue;
-    if (Math.abs(sa - sb) < a.nua + va.ngang + b.nua + vb.ngang - 0.05 && a.y - 0.15 < b.y + b.cao + vb.tren - 0.05 && b.y - 0.15 < a.y + a.cao + va.tren - 0.05 && !(Math.abs(sa - sb) < 0.01 && Math.abs(a.y - b.y) < 0.01)) ra.push({ mat, a: [+sa.toFixed(2), +a.y.toFixed(2)], b: [+sb.toFixed(2), +b.y.toFixed(2)],
-      chiTiet: [a, b].map((o) => ({ mat: o.mat || o.ten || 'Palas', nua: +o.nua.toFixed(2), cao: +o.cao.toFixed(2), vien: o.vien || null, cum: o.cum ?? null })) }); }
+  for (let i = 0; i < CUA.length; i++) for (let j = i + 1; j < CUA.length; j++) { const a = CUA[i], b = CUA[j]; // KHUNG NGOÀI chạm nhau (mattien.js deKhung, cùng luật bộ dựng lỗ sổ đo); ô cùng một cụm (cum) không tính
+    if (a.cum != null && a.cum === b.cum && Math.abs(a.y - b.y) < 0.01) continue; const ux = -a.nz, uz = a.nx, sa = a.x * ux + a.z * uz, sb = b.x * ux + b.z * uz;
+    if (deKhung(a, b) && !(Math.abs(sa - sb) < 0.01 && Math.abs(a.y - b.y) < 0.01)) ra.push({ mat: a.mat || a.ten || 'Palas', a: [+sa.toFixed(2), +a.y.toFixed(2)], b: [+sb.toFixed(2), +b.y.toFixed(2)],
+      chiTiet: [a, b].map((o) => ({ mat: o.mat || o.ten || 'Palas', nua: +o.nua.toFixed(2), cao: +o.cao.toFixed(2), vien: o.vien || null, cum: o.cum ?? null, tu: o.tu || null })) }); }
   return ra; };
 // khung một mặt tường "khối#cạnh": hai đầu p, q, pháp tuyến ngoài n, mặt đất trước tường, đỉnh tường (mái hiên) y1, đỉnh khối yTren (scripts/kiem-ke.mjs kiểm khung)
 window.__ns.matTuong = (id) => { const [kid, si] = id.split('#'), k = dsKhoi.find((q) => q.id === kid), i = +si; if (!k || !Number.isFinite(i)) return null;

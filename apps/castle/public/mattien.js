@@ -661,11 +661,11 @@ export function cuaDiDuoc(c, d, matDat, nguong = {}) {
 }
 // ĐOẠN d (sổ đo) NẰM TRÊN MẶT DỰNG RIÊNG m ({ x1, z1, x2, z2 }: cùng hướng, tâm đoạn cách mặt ≤ 1,2 m, trong bề dài mặt)? → khoảng lùi dọc pháp tuyến d.n
 // để đưa tâm đoạn lên ĐÚNG mặt phẳng của m (cộng vào d.ra), không thì null. Dùng chung: loTrung (lỗ trên mặt dựng riêng) · ns.js đặt chi tiết đo lên mặt dựng riêng
-export function cachMat(d, m) {
+export function cachMat(d, m, le = 0.5) { // le: dư hai đầu mặt (m)
   if (!d?.n || !d?.u || !d?.a0) return null;
   const t = (d.t0 + d.t1) / 2, r = d.ra || 0, px = d.a0[0] + d.u[0] * t + d.n[0] * r, pz = d.a0[1] + d.u[1] * t + d.n[1] * r;
   const L = Math.hypot(m.x2 - m.x1, m.z2 - m.z1), ux = (m.x2 - m.x1) / L, uz = (m.z2 - m.z1) / L, s = (px - m.x1) * ux + (pz - m.z1) * uz, cheo = (px - m.x1) * uz - (pz - m.z1) * ux;
-  if (!(Math.abs(cheo) <= 1.2 && s >= -0.5 && s <= L + 0.5 && Math.abs(d.n[0] * uz - d.n[1] * ux) > 0.9)) return null;
+  if (!(Math.abs(cheo) <= 1.2 && s >= -le && s <= L + le && Math.abs(d.n[0] * uz - d.n[1] * ux) > 0.9)) return null;
   return -cheo * Math.sign(d.n[0] * uz - d.n[1] * ux); // pháp tuyến (uz, −ux) của m; d.n cùng / ngược chiều → lùi theo d.n đúng bằng khoảng chéo
 }
 // SỔ Ô CỬA ĐÃ CÓ: lỗ trong sổ đo (c, đoạn d) trùng một ô cửa bộ dựng khác đã đặt (CUA: datMatTien, datMatRieng… { x, y: bậu, z, nx, nz, nua, cao })
@@ -693,6 +693,21 @@ export function loTrung(c, d, daCo = [], matRieng = []) {
     if (ngang > 0 && dung > 0 && (ngang * dung) / Math.min(w * h, 2 * b.nua * b.cao) >= 0.25) return true; }
   return false;
 }
+// KHUNG NGOÀI HAI Ô CỬA CHẠM NHAU (viền đá, vòm bao — không chỉ lòng kính): một luật cho bộ kiểm chồng lấn (ns.js __ns.chongLan) lẫn bộ dựng lỗ sổ đo.
+// a, b: { x, z, nx, nz, nua, y: bậu, cao, vien?: { ngang, tren } }; khe > 0 = coi như chạm khi hai khung cách nhau dưới khe (m)
+export const VIEN_MD = { ngang: 0.25, tren: 0.4 };
+export function deKhung(a, b, khe = -0.05) {
+  if (a.nx * b.nx + a.nz * b.nz < 0.9 || Math.abs((b.x - a.x) * a.nx + (b.z - a.z) * a.nz) > 1.2) return false; // khác mặt tường
+  const ux = -a.nz, uz = a.nx, ds = Math.abs((b.x - a.x) * ux + (b.z - a.z) * uz), va = a.vien || VIEN_MD, vb = b.vien || VIEN_MD;
+  return ds < a.nua + va.ngang + b.nua + vb.ngang + khe && a.y - 0.15 < b.y + b.cao + vb.tren + khe && b.y - 0.15 < a.y + a.cao + va.tren + khe;
+}
+// lỗ sổ đo c trên đoạn d → bản ghi ô cửa (cùng dạng sổ CUA ns.js), viền = khung đá khungLom
+export function oCuaLo(c, d) {
+  const L = d.t1 - d.t0, w = Math.min(c.w ?? L, L), h = c.h ?? (c.y1 - c.y0), y0 = c.y0 ?? (c.y - h / 2), v = Math.min(0.14, w * 0.15, h * 0.15), t = (d.t0 + d.t1) / 2, r = d.ra || 0;
+  return { x: d.a0[0] + d.u[0] * t + d.n[0] * r, z: d.a0[1] + d.u[1] * t + d.n[1] * r, nx: d.n[0], nz: d.n[1], nua: w / 2, y: y0, cao: h, vien: { ngang: v, tren: v }, mat: c.khoi + '#' + d.canh, tu: 'so_do' };
+}
+// lỗ sổ đo nằm SÁT ô cửa đã có (khung cách < KHE_LO) = cùng một cửa đo lệch, không phải cửa thứ hai (anh 22/11/2026: ô kính phẳng vẽ thừa cạnh cửa vòm)
+export const KHE_LO = 0.3;
 export const SAU_CUA = 2.4; // lòng cửa vào sâu 2,4 m (vách + trần + sàn tối, không va chạm vách — sàn va chạm ở ns.js)
 
 export function datChiTietDo({ THREE, mergeGeometries, ds, nhe = false, nguong = {}, matDat = null, daCo = [], matRieng = [] }) {
@@ -702,7 +717,7 @@ export function datChiTietDo({ THREE, mergeGeometries, ds, nhe = false, nguong =
   // điểm t trên đoạn d (nhô ra khỏi đa giác d.ra + ra) → hình cục bộ (x dọc tường, z ra ngoài) đặt tại đó
   const dat = (ten, g, d, t, y, ra = 0) => { g = cb(g); g.rotateY(Math.atan2(d.n[0], d.n[1])); const r = d.ra + ra; g.translate(d.a0[0] + d.u[0] * t + d.n[0] * r, y, d.a0[1] + d.u[1] * t + d.n[1] * r); nhom[ten].push(g); };
   const datB = (B, d, t, y) => { for (const [ten, gs] of Object.entries(B)) for (const g of gs) dat(GIO[ten], g, d, t, y); };
-  const dem = { go: 0, day: 0, lo: 0, cua: 0, trung: 0, boTrung: [] };
+  const dem = { go: 0, day: 0, lo: 0, cua: 0, trung: 0, boTrung: [] }, cua = []; // cua: ô lỗ đã dựng (sổ CUA) — lỗ sau so với cả lỗ trước
   for (const c of ds) for (const d of c.doan || []) {
     const L = d.t1 - d.t0, tm = (d.t0 + d.t1) / 2; if (!(L >= (c.loai === 'lo' ? NG.lo_w : NG.doan))) continue; // lỗ: đoạn = bề rộng lỗ
     if (c.loai === 'go') { const B = HV.xo(); HV.phao(B, { rong: L, cao: 0.22, nho: 0.14 }); datB(B, d, tm, c.y); dem.go++; continue; }
@@ -719,6 +734,8 @@ export function datChiTietDo({ THREE, mergeGeometries, ds, nhe = false, nguong =
     }
     if (c.loai === 'lo') { // lỗ cửa: khung đá + mặt kính tối (không khoét tường — mặt kính nổi 2 cm che mặt tường)
       const w = Math.min(c.w ?? L, L), h = c.h ?? (c.y1 - c.y0), y = ((c.y0 ?? c.y) + (c.y1 ?? c.y)) / 2, v = Math.min(0.14, w * 0.15, h * 0.15); if (!loDuCo(c, d, NG)) continue;
+      const oc = oCuaLo(c, d), sat = loTrung(c, d, daCo, matRieng) ? null : [...daCo, ...cua].find((b) => deKhung(oc, b, KHE_LO));
+      if (sat) { dem.trung++; dem.boTrung.push({ khoi: c.khoi, canh: d.canh, y0: c.y0, y1: c.y1, boi: 'sat:' + (sat.mat || sat.ten || '?') }); continue; }
       if (loTrung(c, d, daCo, matRieng)) { dem.trung++; dem.boTrung.push({ khoi: c.khoi, canh: d.canh, y0: c.y0, y1: c.y1, boi: loTrung(c, d, [], matRieng) ? 'mat_rieng' : (daCo.find((b) => loTrung(c, d, [b]))?.mat || daCo.find((b) => loTrung(c, d, [b]))?.ten || '?') }); continue; } // ô cửa đã có bộ dựng khác đặt → không chồng khung thứ hai (boTrung: lỗ nào bị bỏ vì ai — bên kiểm đọc qua window.__ns)
       const yg = cuaDiDuoc(c, d, matDat, NG);
       if (yg != null) { // cửa vào: lỗ thật từ mặt đứng lên tới đỉnh lỗ (ns.js loCanh khoét cùng khoảng), khung đá không kính, lòng tối sâu SAU_CUA
@@ -727,17 +744,17 @@ export function datChiTietDo({ THREE, mergeGeometries, ds, nhe = false, nguong =
         for (const k of [-1, 1]) { const g = new THREE.PlaneGeometry(S, H); g.rotateY(-k * Math.PI / 2); g.translate(k * w / 2, 0, -S / 2); dat('toi', g, d, tm, yc); }
         const tran = new THREE.PlaneGeometry(w, S); tran.rotateX(Math.PI / 2); tran.translate(0, H / 2, -S / 2); dat('toi', tran, d, tm, yc);
         const san = new THREE.PlaneGeometry(w, S); san.rotateX(-Math.PI / 2); san.translate(0, -H / 2 + 0.02, -S / 2); dat('toi', san, d, tm, yc);
-        dem.cua++; continue;
+        dem.cua++; cua.push({ ...oc, y: yg, cao: y1 - yg }); continue;
       }
       const B = HV.xo(); HV.khungLom(B, { w: w + 2 * v, h: h + 2 * v, vien: v, nho: 0.1 }); datB(B, d, tm, y);
-      dat('kinh', new THREE.PlaneGeometry(w, h), d, tm, y, 0.02); dem.lo++;
+      dat('kinh', new THREE.PlaneGeometry(w, h), d, tm, y, 0.02); dem.lo++; cua.push(oc);
     }
   }
   const VL = { da: new THREE.MeshStandardMaterial({ color: '#ece6da', roughness: 0.8 }), kinh: danTuong(new THREE.MeshStandardMaterial({ color: '#4d5560', roughness: 0.3, metalness: 0.2, emissive: '#22272e' })),
     lom: danTuong(new THREE.MeshStandardMaterial({ color: '#8c7a5c', roughness: 0.9 })), bong: vlBong(THREE), toi: new THREE.MeshStandardMaterial({ color: '#2a2622', roughness: 1, side: THREE.DoubleSide }) };
   const ra = [];
   for (const [ten, gs] of Object.entries(nhom)) { if (!gs.length) continue; const m = new THREE.Mesh(mergeGeometries(gs), VL[ten]); m.castShadow = !nhe && ten === 'da'; m.receiveShadow = ten !== 'bong'; if (ten === 'bong') m.renderOrder = 1; ra.push(m); }
-  ra.dem = dem; return ra;
+  ra.dem = dem; ra.cua = cua; return ra;
 }
 
 // CỬA MÁI + CHÓP NHỎ TRÊN MÁI (du-lieu/<lâu>-mai.json, scripts/do-mai.mjs đo trên ảnh 3D): cửa mái = thân đá sáng nhô ra theo hướng mặt mái, mặt trước có cửa sổ vòm,

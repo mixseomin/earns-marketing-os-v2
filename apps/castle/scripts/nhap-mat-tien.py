@@ -5,7 +5,7 @@ Cách dò: ô cửa = vùng TỐI hơn tường quanh nó (so với ảnh làm m
 → gộp ô cùng hàng (đỉnh / bậu gần nhau, khe ngang hẹp) thành cụm. Ra:
   - nháp JSON dạng "cum" của <lâu>-mat-*.json (ten, o, dinhO, bau) — toạ độ điểm ảnh của ảnh nắn, như kiem-mat-tien.py đọc
   - một ảnh phủ ≤ 1600 px: khung xanh từng ô, khung vàng + số từng cụm
-  ~/.venvs/castle-khop/bin/python -I apps/castle/scripts/nhap-mat-tien.py <ảnh nắn> [--vung x0,y0,x1,y1] [--ra nhap.json] [--phu phu.jpg] [--so mat.json] [--toi 0.72] [--o-min 8]
+  ~/.venvs/castle-khop/bin/python -I apps/castle/scripts/nhap-mat-tien.py <ảnh nắn> [--vung x0,y0,x1,y1] [--ra nhap.json] [--phu phu.jpg] [--so mat.json] [--toi 0.72] [--o-min 8] [--deu 0.9 | --khong-deu]
   --so <tệp bố cục đã đo>: so nháp với cụm đã đo (khớp theo tâm), in tỉ lệ trúng — dùng để kiểm chính máy dò.
 tra-repo-ok: dò vùng tối bằng OpenCV (connectedComponents) + numpy; luật khớp ô giống kiem-mat-tien.py."""
 import sys, json, cv2, numpy as np
@@ -57,6 +57,38 @@ for i, b in enumerate(o):
             if abs(d[1] - e[1]) <= 0.25 * h and abs(d[3] - e[3]) <= 0.25 * h and khe <= 1.2 * w:
                 c.append(d); da[j] = True; doi = True; c.sort(key=lambda q: q[0])
     cum.append(c)
+# ĐIỀU HOÀ THEO LUẬT KIẾN TRÚC (23/11/2026): cụm cùng hàng (cùng đỉnh / bậu, cùng cao ô) là các nhịp LẶP — cụm nhiều ô nhất trong hàng làm MẪU (bề ngang ô, bước).
+# Cụm ít ô hơn: thử đặt mẫu ở mọi cách trùng các ô đã có; ô giả định phải tối hơn tường (tối / nền < DEU, lỏng hơn TOI — ô kính phía nắng chiếu nhạt hơn) thì nhận.
+# Đo 23/11 trên 3 mặt đã đo tay: ô sót gần hết là ô phía nắng, máy đã thấy cụm nhưng thiếu ô — luật lặp bù được mà không cần mắt.
+DEU = float(opt('--deu', 0.9))
+def ti_toi(b):
+    xa, ya, xb, yb = b
+    if xa < x0 or xb >= x1 or ya < y0 or yb >= y1: return 9
+    return float(xam[ya:yb + 1, xa:xb + 1].mean() / max(nen[ya:yb + 1, xa:xb + 1].mean(), 1))
+def deu_hoa(cum):
+    them_o = 0
+    for c in cum:
+        hc = np.median([q[3] - q[1] for q in c]); tc, bc = np.median([q[1] for q in c]), np.median([q[3] for q in c])
+        mau = max((d for d in cum if len(d) > len(c) and abs(np.median([q[1] for q in d]) - tc) <= 0.25 * hc and abs(np.median([q[3] for q in d]) - bc) <= 0.25 * hc
+                   and 0.75 <= np.median([q[3] - q[1] for q in d]) / hc <= 1.33), key=len, default=None)
+        if not mau: continue
+        tam = [(q[0] + q[2]) / 2 for q in mau]; rw = int(np.median([q[2] - q[0] for q in mau])); off = [t - tam[0] for t in tam]
+        best = None
+        for q in c:                       # mỗi ô có sẵn thử làm ô thứ k của mẫu
+            for k in range(len(mau)):
+                goc = (q[0] + q[2]) / 2 - off[k]; gia = []; ok = True
+                for o_ in off:
+                    cx_ = goc + o_; co = [d for d in c if abs((d[0] + d[2]) / 2 - cx_) <= 0.5 * rw]
+                    if co: continue
+                    b = [int(cx_ - rw / 2), int(tc), int(cx_ + rw / 2), int(bc)]
+                    if any(not (b[2] < e[0] or b[0] > e[2] or b[3] < e[1] or b[1] > e[3]) for d in cum if d is not c for e in d): ok = False; break
+                    r = ti_toi(b)
+                    if r >= DEU: ok = False; break
+                    gia.append((r, b))
+                if ok and len(c) + len(gia) == len(mau) and (best is None or sum(r for r, _ in gia) < sum(r for r, _ in best)): best = gia
+        if best: c.extend(b for _, b in best); c.sort(key=lambda q: q[0]); them_o += len(best)
+    return them_o
+if '--khong-deu' not in a: print(f'điều hoà theo nhịp lặp: thêm {deu_hoa(cum)} ô (ngưỡng tối {DEU})')
 cum.sort(key=lambda c: (round(np.median([q[1] for q in c]) / 40), c[0][0]))
 ra = [{'ten': f'nháp {i + 1} — {len(c)} ô', 'o': [[q[0], q[2]] for q in c], 'dinhO': int(np.median([q[1] for q in c])), 'bau': int(np.median([q[3] for q in c]))} for i, c in enumerate(cum)]
 print(f'{len(o)} ô · {len(ra)} cụm · ảnh {W} × {H} · vùng {x0},{y0}–{x1},{y1}')

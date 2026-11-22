@@ -410,6 +410,8 @@ def main():
             if int(cu_) in theo and int(moi_) in theo: theo[int(cu_)]["doan"] = theo[int(moi_)]["doan"]
         ghi("creative", rows, ["creative_id"], {"creative_id": "int", "content_id": "int", "dang": "text", "tu": "numeric", "den": "numeric", "doan": "text", "lang": "text", "lo": "text",
             "video": "text", "anh": "text", "cta_dat": "boolean", "thay_cho": "int", "tu_choi": "text"})
+        # NGÔN NGỮ CREATIVE THIẾU → lấy theo phim (22/11/2026: 3.139 creative lang trống — bản ảnh tĩnh / thư viện không qua xv_phim; đường lên camp coalesce 'en' dựng phim ES bằng khuôn EN)
+        q("""update etp.creative r set lang = f.locale from etp.phim f where f.content_id = r.content_id and r.lang is null and f.locale in ('en', 'es')""")
     except Exception as e: loi.append(f"phim/creative: {e}")
     # ── tài nguyên: tài khoản QC · Page · pixel · tên miền (tab Tài nguyên)
     try:

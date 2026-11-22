@@ -2487,6 +2487,12 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
       `· giờ chạy: ${chuGio}`, '',
       x && !x.cta ? '⚠ cổng sẽ bỏ qua khi anh bấm: creative chưa đạt luật CTA mới (dựng trước 22/10 — nút "TAP LEARN MORE" + mũi tên)' : '✓ creative đã đạt luật CTA mới',
       x?.truoc ? `⚠ lần thử trước: ${x.truoc}` : ''].filter((l, i, a) => l || (i > 0 && a[i - 1])).join('\n').trim(); };
+  const ChoDuyetNgan = ({ c }: { c: CampEtpKho }) => { const x = c.xep, g = c.lich ? new Date(new Date(c.lich).getTime() + 7 * 3600_000) : null, ngay = !g || g.getTime() - 7 * 3600_000 <= Date.now() + 60_000;
+    return <span data-o="cho-duyet-ngan" title={chuChoDuyet(c)} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, fontSize: 10.5, lineHeight: 1.25, cursor: 'help' }}>
+      <span style={{ color: 'var(--warn, #f5a524)', fontWeight: 600 }}>chờ anh duyệt</span>
+      <span>{c.roas != null ? `★${c.roas}` : '$1'} · ${c.ngan_sach}{x ? ` · khuôn #${x.khuon}` : ''} · {ngay ? 'chạy ngay' : `${String(g!.getUTCHours()).padStart(2, '0')}:${String(g!.getUTCMinutes()).padStart(2, '0')} VN`}</span>
+      {x && !x.cta ? <span style={{ color: 'var(--bad, #f31260)' }}>⚠ chưa đạt CTA</span> : x ? <span style={{ color: 'var(--good, #17c964)' }}>✓ CTA</span> : null}
+    </span>; };
   const cotCay: DataColumn<CampEtpKho>[] = [
     // chữ rê ô camp: tên camp + nghĩa vạch mép trái (đỏ / cam) — #1546: trước nằm ở rowTitle của cả dòng (hộp chữ thô, rê đâu cũng bật); nay ở ô camp, HoverChu dựng thẻ nổi chung
     { key: 'camp', header: 'Phim → camp gốc → bản nhân', align: 'left', width: 260, cellTitle: (c) => { const l = loiNb.get(c.camp_id); const r3 = ngayGan.slice(-3).map((d) => roi(so.get(c.camp_id)?.get(d)));
@@ -2519,7 +2525,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
     { key: 'gio', header: '⏳', align: 'right', width: 40, title: 'bao lâu nữa máy làm theo thẻ luật đang hiện (giờ:phút) — xanh chỉ chờ giờ · vàng còn điều kiện · cam ngoài khung đổi camp; rê xem giờ VN',
       cell: (c) => <OGioLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} /> },
     { key: 'luat', header: 'Luật', align: 'left', width: 130, title: 'thẻ luật đang hiện — lọc chọn nhiều theo đúng chữ trên thẻ', sortValue: (c) => chipCamp(du, c, baoCamp.get(c.camp_id))?.chip ?? '',
-      cell: (c) => <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} khongGio />,
+      cell: (c) => c.camp_id < 0 ? <ChoDuyetNgan c={c} /> : <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} khongGio />,   // dòng chờ anh duyệt: tóm tắt ▶ Lên sẽ tạo gì NGAY trên dòng, không phải rê mới thấy (anh 22/11/2026)
       // dòng PHIM (mọi camp cùng một phim) = thẻ vòng thử phim + bão hoà; dòng tổng bảng (nhiều phim) để trống
       total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k != null && rs.every((x) => x.content_id === k) ? <ChipPhim ph={phCua.get(k)} bh={bhCua.get(k)} /> : null; } },
     // MỌI CỘT CÓ BỀ RỘNG CỐ ĐỊNH, khoảng thừa vào cột đệm cuối bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang" — trước TT rồi Tuổi lần lượt ăn khoảng trống)

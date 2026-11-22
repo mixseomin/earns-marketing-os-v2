@@ -8,6 +8,9 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #101218; col
 .tren span { color: var(--mo); margin-left: 6px; }
 .ben { top: 12px; right: 12px; width: min(300px, calc(100vw - 24px)); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
 .hang { display: flex; gap: 6px; flex-wrap: wrap; }
+#kieu { flex-direction: column; gap: 6px; }
+#kieu .nhom { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+#kieu .nhom span { width: 64px; flex: none; color: var(--mo); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
 button { font: 600 13px system-ui, sans-serif; color: var(--chu); background: rgba(255, 255, 255, .07); border: 1px solid var(--vien); border-radius: 7px; padding: 7px 10px; cursor: pointer; }
 button:hover:not(:disabled) { background: rgba(255, 255, 255, .16); }
 button.on { border-color: var(--nhan); background: rgba(255, 74, 90, .18); }

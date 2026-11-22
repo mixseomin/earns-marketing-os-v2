@@ -43,10 +43,10 @@ orbit.enableDamping = true; orbit.maxPolarAngle = Math.PI * 0.49; orbit.minDista
 
 // ---------- kiểu nhìn ----------
 const KIEU = {
-  thuc: { ten: 'Thật', nen: '#b9cfe3', suong: () => new THREE.Fog('#c9d8e6', 1200, 7000), bloom: 0, troi: 1.1, nang: 1.4, mu: 1.0 },
-  bui: { ten: 'Phố Bụi', nen: '#9a6234', suong: () => new THREE.FogExp2('#9a6234', 0.0009), bloom: 0.75, troi: 0.7, nang: 0.5, mu: 0.9, tuong: '#2a1e16', cua: ['#ffb35c', '#9ee0ff'], lit: 0.72 },
-  do: { ten: 'Red Spires', nen: '#a7b6c2', suong: () => new THREE.FogExp2('#a3b2be', 0.00042), bloom: 0, troi: 1.15, nang: 1.25, mu: 1.0 },
-  nhat: { ten: 'Nhật 2200', nen: '#bcd6ec', suong: () => new THREE.FogExp2('#d3e2ee', 0.00028), bloom: 0, troi: 1.25, nang: 1.8, mu: 1.0 }, // reel Japan 2200: nắng trong, tháp trắng xoắn, cao tốc trên cao, xe bay đĩa bạc
+  thuc: { ten: 'Thật', nhom: 'Phố thật', nen: '#b9cfe3', suong: () => new THREE.Fog('#c9d8e6', 1200, 7000), bloom: 0, troi: 1.1, nang: 1.4, mu: 1.0 },
+  bui: { ten: 'Phố Bụi', nhom: 'Phố thật', nen: '#9a6234', suong: () => new THREE.FogExp2('#9a6234', 0.0009), bloom: 0.75, troi: 0.7, nang: 0.5, mu: 0.9, tuong: '#2a1e16', cua: ['#ffb35c', '#9ee0ff'], lit: 0.72 },
+  do: { ten: 'Red Spires', nhom: 'Tương lai', nen: '#a7b6c2', suong: () => new THREE.FogExp2('#a3b2be', 0.00042), bloom: 0, troi: 1.15, nang: 1.25, mu: 1.0 },
+  nhat: { ten: 'Nhật 2200', nhom: 'Tương lai', nen: '#bcd6ec', suong: () => new THREE.FogExp2('#d3e2ee', 0.00028), bloom: 0, troi: 1.25, nang: 1.8, mu: 1.0 }, // reel Japan 2200: nắng trong, tháp trắng xoắn, cao tốc trên cao, xe bay đĩa bạc
 };
 const uNeon = { uLit: { value: 0.7 }, uCuaA: { value: new THREE.Color() }, uCuaB: { value: new THREE.Color() } };
 const vatNeon = new THREE.MeshStandardMaterial({ color: '#2a1e16', roughness: 0.88, metalness: 0.1 });
@@ -122,7 +122,7 @@ function datTai(x, z) { if (!datY) return 0; const i = Math.max(0, Math.min(LUOI
 let rs = null;
 try { rs = taoRedSpires({ RAPIER, world, tinh, datTai, ql: await fetch('./du-lieu/quy-hoach.json', { cache: 'no-cache' }).then((r) => r.json()) }); scene.add(rs.goc); rs.khoacDat(datMesh.material); }
 catch (e) { console.warn('[sprawl] không nạp được quy hoạch Red Spires', e); }
-let n2 = null; // Nhật 2200 dựng trên chính Red Spires: giữ phố, người, xe đất; tháp đỏ nhường chỗ tháp trắng
+let n2 = null; // Nhật 2200 mượn phố của Red Spires (nhà, người, xe đất), tháp trắng tự đặt — tháp đỏ không có mặt
 try { if (rs) { n2 = taoNhat2200({ rs, ql: rs.ql, datTai }); scene.add(n2.goc); } } catch (e) { console.warn('[sprawl] không dựng được Nhật 2200', e); }
 const vatCho = (o) => (kieu === 'thuc' ? o.userData.vatThuc : (kieu === 'do' || kieu === 'nhat') && rs ? rs.vatPho : vatNeon);
 
@@ -169,12 +169,13 @@ function datKieu(k) {
   troi.intensity = K.troi; nang.intensity = K.nang; renderer.toneMappingExposure = K.mu; bloom.strength = K.bloom;
   if (K.cua) { uNeon.uLit.value = K.lit; uNeon.uCuaA.value.set(K.cua[0]); uNeon.uCuaB.value.set(K.cua[1]); vatNeon.color.set(K.tuong); }
   datMesh.material.color.set(k === 'thuc' ? '#6d6a66' : k === 'bui' ? '#3b2a1c' : k === 'nhat' ? '#9a9c98' : '#858b84');
-  rs?.hien(k === 'do' || k === 'nhat'); rs?.sang?.(k === 'nhat' ? 0.62 : 0); n2?.hien(k === 'nhat');
+  rs?.hien(k === 'do' || k === 'nhat', k === 'do'); rs?.sang?.(k === 'nhat' ? 0.62 : 0); n2?.hien(k === 'nhat');
   for (const t of dsTiles) t.group.traverse((o) => { if (o.isMesh && o.userData.vatThuc) o.material = vatCho(o); });
   document.querySelectorAll('#kieu button').forEach((b) => b.classList.toggle('on', b.dataset.k === k));
   try { localStorage.setItem('sprawl-kieu', k); } catch {}
 }
-$('kieu').innerHTML = Object.entries(KIEU).map(([k, v]) => `<button data-k="${k}">${v.ten}</button>`).join('');
+$('kieu').innerHTML = [...new Set(Object.values(KIEU).map((v) => v.nhom))].map((n) => `<div class="nhom"><span>${n}</span>${
+  Object.entries(KIEU).filter(([, v]) => v.nhom === n).map(([k, v]) => `<button data-k="${k}">${v.ten}</button>`).join('')}</div>`).join('');
 $('kieu').onclick = (e) => { const b = e.target.closest('button'); if (b) datKieu(b.dataset.k); };
 datKieu(kieu);
 

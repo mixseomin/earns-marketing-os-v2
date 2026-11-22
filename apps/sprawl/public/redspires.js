@@ -299,17 +299,24 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
   const thap = ql.thap;
 
   // ---------- chất liệu nhà PLATEAU: xanh xám, cửa tối, vườn mái; khoét nhà thật dưới tháp đỏ ----------
-  const uKhoet = { uThap: { value: thap.map((t) => new THREE.Vector4(t.o[0], t.o[1], t.banKinh * 1.25, 0)) } };
+  // bộ khoét đổi được: Red Spires khoét dưới tháp đỏ, Nhật 2200 nạp bộ tháp trắng của nó (rs.khoet); z = bán kính, w = chân tháp
+  const MAX_KHOET = 128, khoetDo = thap.map((t) => new THREE.Vector4(t.o[0], t.o[1], t.banKinh * 1.25, 0));
+  const uKhoet = { uThap: { value: Array.from({ length: MAX_KHOET }, () => new THREE.Vector4()) }, uSoKhoet: { value: 0 } };
+  let khoetRieng = null;
+  function napKhoet() { const src = khoetRieng || khoetDo, n = Math.min(MAX_KHOET, src.length);
+    for (let i = 0; i < n; i++) uKhoet.uThap.value[i].copy(src[i]); uKhoet.uSoKhoet.value = n;
+    if (src.length > MAX_KHOET) console.warn(`[sprawl] khoét ${src.length} tháp, quá trần ${MAX_KHOET}: tháp thừa đứng lẫn nhà PLATEAU`); }
+  napKhoet();
   const vatPho = new THREE.MeshLambertMaterial({ color: '#7f93a3' });
   vatPho.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, uKhoet, U_DEN, uSang);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWp = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-      varying vec3 vWp; uniform vec4 uThap[${thap.length}]; uniform float uDen, uTg, uSang;
+      varying vec3 vWp; uniform vec4 uThap[${MAX_KHOET}]; uniform int uSoKhoet; uniform float uDen, uTg, uSang;
       float bam(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }`)
       .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
-      for (int i = 0; i < ${thap.length}; i++) { vec4 t = uThap[i]; float d = length(vWp.xz - t.xy);
+      for (int i = 0; i < ${MAX_KHOET}; i++) { if (i >= uSoKhoet) break; vec4 t = uThap[i]; float d = length(vWp.xz - t.xy);
         if (d < t.z * 1.3 || (d < t.z * 2.6 && vWp.y > t.w + 55.0)) discard; }`)
       .replace('#include <color_fragment>', `#include <color_fragment>
       vec3 nw = normalize(cross(dFdx(vWp), dFdy(vWp)));
@@ -637,7 +644,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
     for (const [i, d] of dsThap.entries()) {
       let y0 = Infinity; for (let a = 0; a < 8; a++) y0 = Math.min(y0, datTai(d.t.o[0] + Math.cos(a) * d.R, d.t.o[1] + Math.sin(a) * d.R));
       y0 = Math.min(y0, datTai(d.t.o[0], d.t.o[1])) - 1;
-      d.g.position.y = y0; uKhoet.uThap.value[i].w = y0; d.y0 = y0;
+      d.g.position.y = y0; khoetDo[i].w = y0; d.y0 = y0;
     }
     song.datLai(muot, datTai(0, 0));
     for (const k of Object.keys(LOP)) { const B = loDuong[k], pos = duongMesh[k].geometry.attributes.position; // dải đường bám đất
@@ -648,8 +655,8 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
     for (const [i, p] of datQuay.entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); boQuay.dat(i, _m.compose(_p, _q, _s)); }
     for (const [k, ds] of datDo.entries()) for (const [i, p] of ds.slice(0, 3000).entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); _s.setScalar(p.s || 1); boDo[k].dat(i, _m.compose(_p, _q, _s)); }
     _s.setScalar(1);
-    canLoc = true;
-    if (goc.visible) { boVa(); dungVa(); }
+    napKhoet(); canLoc = true;
+    if (goc.visible && thapDo) { boVa(); dungVa(); }
   }
   // khung va: gộp mọi mesh userData.va của tháp (kể cả tháp vệ tinh, bầu bên) thành MỘT trimesh toạ độ thế giới → đứng trên ban công, mái đài kính, chóp vòm
   function dungVa() { const v = new THREE.Vector3();
@@ -661,7 +668,12 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
       d.va = world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(P), new Uint32Array(I)), tinh);
     } }
   function boVa() { for (const d of dsThap) if (d.va) { world.removeCollider(d.va, false); d.va = null; } }
-  function hien(bat) { goc.visible = bat; uDat.uDo.value = bat ? 1 : 0; canLoc = true; if (bat) dungVa(); else boVa(); }
+  // hien(phố, tháp đỏ): Nhật 2200 mượn phố (nhà, người, xe đất, đường) nhưng không mượn tháp đỏ — tắt cả hình lẫn khung va + cầu/xe bay/sương của tháp đỏ
+  let thapDo = false;
+  function hien(bat, coThap = bat) { goc.visible = bat; thapDo = bat && coThap; uDat.uDo.value = bat ? 1 : 0; canLoc = true;
+    for (const d of dsThap) d.g.visible = thapDo; for (const m of song.anKhi2200) m.visible = thapDo;
+    if (thapDo) dungVa(); else boVa(); }
+  function khoet(ds) { khoetRieng = ds; napKhoet(); }
 
   const _a = new THREE.Vector3(), _camCu = new THREE.Matrix4(), _chieuCu = new THREE.Matrix4(); let canLoc = true, tLoc = 0;
   // lọc lại khi camera đổi (tối đa 10 lần/giây) hoặc đất vừa dựng lại; ep = bắt lọc ngay (chụp 4K đổi khung hình)
@@ -678,5 +690,5 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
     U_DEN.uTg.value += dt; song.khung(dt);
   }
 
-  return { goc, vatPho, khoacDat, datLai, hien, khung, loc, ql, song, sang: (v) => { uSang.uSang.value = v; }, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), ...song.tk } };
+  return { goc, vatPho, khoacDat, datLai, hien, khoet, khung, loc, ql, song, sang: (v) => { uSang.uSang.value = v; }, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), ...song.tk } };
 }

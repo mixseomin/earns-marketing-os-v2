@@ -1,6 +1,6 @@
 // Kiểu "Nhật 2200" (anh gửi ảnh reel Japan 2200, 22/11/2026): ban ngày nắng trong, tháp trắng / kính xoắn cong có tầng vườn,
 // cao tốc trắng trên cột cao 40–70 m có toa bạc chạy, xe bay đĩa bạc phụt xanh; dưới đất giữ phố Tokyo thật của Red Spires.
-// Dựng trên chính vị trí tháp của quy hoạch chung (rs.thap): tháp đỏ ẩn, tháp trắng đứng thay; cao tốc đi theo đại lộ lớn thật.
+// Bản độc lập với Red Spires: mượn phố của rs (nhà, người, xe đất, đường) nhưng tháp trắng tự đặt — hai hàng dọc cao tốc + rải theo hạt giống riêng; cao tốc đi theo đại lộ lớn thật.
 // Một mesh tháp + một mesh cao tốc gộp sẵn (độ cao bám đất đổi trong datLai, không dựng lại hình) → vài lượt vẽ.
 // tra-repo-ok: mã dán keo nội bộ, dựng trên dữ liệu quy hoạch + khung redspires.js đã có
 import * as THREE from 'three';
@@ -33,7 +33,6 @@ function taoGom() {
 
 export function taoNhat2200({ rs, ql, datTai }) {
   const goc = new THREE.Group(); goc.visible = false; goc.name = 'nhat-2200';
-  const ds = rs.thap;
 
   // ---------- chất liệu: kính xanh trời có gờ sàn trắng mỗi tầng, phản trời theo góc nhìn; mặt trắng / vườn theo màu đỉnh ----------
   const vat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, metalness: 0.05, side: THREE.DoubleSide });
@@ -65,25 +64,29 @@ export function taoNhat2200({ rs, ql, datTai }) {
     const trung = P.filter((p) => luoiDa.has(oKey(p[0], p[1]))).length; if (trung > P.length * 0.35) continue;
     const muot = (A, r) => A.map((p, i) => { if (i < r || i >= A.length - r) return p; let x = 0, z = 0; for (let k = -r; k <= r; k++) { x += A[i + k][0]; z += A[i + k][1]; } return [x / (2 * r + 1), z / (2 * r + 1)]; });
     for (let l = 0; l < 3; l++) P = muot(P, 3);
-    for (const p of P) for (const d of ds) { const dx = p[0] - d.t.o[0], dz = p[1] - d.t.o[1], dd = Math.hypot(dx, dz), can = d.t.banKinh * 1.05 + 16;
-      if (dd < can) { p[0] = d.t.o[0] + dx / (dd || 1) * can; p[1] = d.t.o[1] + dz / (dd || 1) * can; } }
-    P = muot(P, 2);
     for (const p of P) for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) luoiDa.set(oKey(p[0] + a * 30, p[1] + b * 30), 1);
     const kc = [0]; for (let i = 1; i < P.length; i++) kc.push(kc[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
     chon.push({ P, kc, L: kc[kc.length - 1], y: new Float32Array(P.length), pha: chon.length * 1.7 });
   }
-  // ---------- tháp đứng hai bên cao tốc (reel Japan 2200: cao tốc luồn giữa hai hàng tháp) — thêm vào quy hoạch tháp đỏ, né tháp có sẵn + mọi tuyến ----------
-  const dsT = ds.map((d) => ({ t: d.t, d })), rTh = gieo(2200), THEM_TOI_DA = 44;
+  // ---------- tháp trắng của riêng Nhật 2200 (không mượn tháp đỏ): hai hàng dọc cao tốc (reel Japan 2200) rồi rải thêm, né nhau + né mọi tuyến ----------
+  const dsT = [], rTh = gieo(2200), DOC_TOI_DA = 48, RAI_TOI_DA = 30;
   const xaTuyen = (x, z, can) => chon.every((c) => c.P.every((p, i) => i % 2 || Math.hypot(p[0] - x, p[1] - z) > can));
-  for (const c of chon) for (let i = 18, ben = 1; i < c.P.length - 18 && dsT.length < ds.length + THEM_TOI_DA; i += 7, ben = -ben) {
+  const xaThap = (x, z, R) => dsT.every((q) => Math.hypot(q.t.o[0] - x, q.t.o[1] - z) > R + q.t.banKinh + 22);
+  for (const c of chon) for (let i = 18, ben = 1; i < c.P.length - 18 && dsT.length < DOC_TOI_DA; i += 7, ben = -ben) {
     if (c.kc[i] < 300 || c.kc[i] > c.L - 300 || rTh() < 0.25) continue;
     const [ax, az] = c.P[i - 2], [bx, bz] = c.P[i + 2], L = Math.hypot(bx - ax, bz - az) || 1, nx = -(bz - az) / L, nz = (bx - ax) / L;
     const R = 20 + rTh() * 16, lui = 9 + R + 6 + rTh() * 22, x = c.P[i][0] + nx * lui * ben, z = c.P[i][1] + nz * lui * ben;
     if (Math.abs(x) > NUA - 60 || Math.abs(z) > NUA - 60) continue;
-    if (!dsT.every((q) => Math.hypot(q.t.o[0] - x, q.t.o[1] - z) > R + q.t.banKinh + 22)) continue;
-    if (!xaTuyen(x, z, R + 12)) continue;
+    if (!xaThap(x, z, R) || !xaTuyen(x, z, R + 12)) continue;
     dsT.push({ t: { id: 5000 + dsT.length, o: [x, z], banKinh: R / 0.78, caoSpire: 170 + rTh() * 230 } });
   }
+  const soDoc = dsT.length;
+  for (let thu = 0, rai = 0; thu < 600 && rai < RAI_TOI_DA; thu++) { // rải: dày ở giữa, càng gần tâm càng cao
+    const a = rTh() * 6.28, kc = 1250 * Math.pow(rTh(), 0.7), x = Math.cos(a) * kc, z = Math.sin(a) * kc, R = 18 + rTh() * 20;
+    if (!xaThap(x, z, R + 30) || !xaTuyen(x, z, R + 40)) continue;
+    dsT.push({ t: { id: 6000 + dsT.length, o: [x, z], banKinh: R / 0.78, caoSpire: (150 + rTh() * 200) * (1.25 - kc / 2500) } }); rai++;
+  }
+  const khoetN = dsT.map((q) => new THREE.Vector4(q.t.o[0], q.t.o[1], q.t.banKinh * 1.05, 0)); // nhà PLATEAU dưới chân tháp trắng khoét đi (rs.khoet)
 
   // ---------- tháp trắng: thân siêu elip xoắn / thon / cong, sàn vườn trắng (vòng đủ, xoắn ốc, nửa vòng), vòm đỉnh, kim ----------
   const gT = taoGom(), cay = [];
@@ -179,7 +182,9 @@ export function taoNhat2200({ rs, ql, datTai }) {
 
   // ---------- bám đất: cộng chân tháp, dò đất dọc cao tốc ----------
   function datLai(muot) {
-    const yT = dsT.map((q) => q.d ? (q.d.y0 ?? 0) : muot(q.t.o[0], q.t.o[1]));          // tháp thêm: đất tại chân
+    const yT = dsT.map((q, i) => { const { o: [x, z], banKinh: R } = q.t; let y = datTai(x, z);   // chân tháp: điểm đất thấp nhất quanh thân, như tháp đỏ
+      for (let a = 0; a < 8; a++) y = Math.min(y, datTai(x + Math.cos(a) * R, z + Math.sin(a) * R)); khoetN[i].w = y - 1; return y - 1; });
+    if (goc.visible) rs.khoet(khoetN);
     const pT = T.geo.attributes.position; for (let i = 0; i < T.so.length; i++) pT.setY(i, T.goc[i] + yT[T.so[i]]);
     pT.needsUpdate = true; T.geo.computeBoundingSphere();
     for (const [i, c] of cay.entries()) { _p.set(c.x, c.y + yT[c.ti], c.z); _s.setScalar(c.s); cayMesh.setMatrixAt(i, _m.compose(_p, _q.identity(), _s)); }
@@ -196,8 +201,8 @@ export function taoNhat2200({ rs, ql, datTai }) {
     yNen = datTai(0, 0);
   }
 
-  // ---------- ẩn / hiện: tháp đỏ + xe bay vệt cam + lớp mây của Red Spires nhường chỗ ----------
-  function hien(bat) { goc.visible = bat; for (const d of ds) d.g.visible = !bat; for (const m of rs.song?.anKhi2200 || []) m.visible = !bat; }
+  // ---------- ẩn / hiện: tháp đỏ (hình, khung va, cầu, xe bay) do rs.hien(phố, tháp) tắt; ở đây chỉ đổi bộ khoét ----------
+  function hien(bat) { goc.visible = bat; rs.khoet(bat ? khoetN : null); }
 
   const o = {};
   function khung(dt) {
@@ -213,5 +218,5 @@ export function taoNhat2200({ rs, ql, datTai }) {
     for (const m of [diaMesh, kinhMesh, denMesh, quangMesh]) m.instanceMatrix.needsUpdate = true;
   }
 
-  return { goc, datLai, hien, khung, cao: chon, thap: dsT.map((q) => q.t), tk: { thap2200: dsT.length, thapThem: dsT.length - ds.length, cay: cay.length, caoToc: chon.length, toa: toa.length, dia: dia.length, dinhThap: T.so.length } };
+  return { goc, datLai, hien, khung, cao: chon, thap: dsT.map((q) => q.t), tk: { thap2200: dsT.length, thapDoc: soDoc, cay: cay.length, caoToc: chon.length, toa: toa.length, dia: dia.length, dinhThap: T.so.length } };
 }

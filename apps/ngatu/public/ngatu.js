@@ -593,6 +593,8 @@ function bien(a) {
     return [h - p.o1 - (a.lanTrai || 0), p.hw1 - h2 - p.o1 + leo];
   }
   if (a.s > p.sOut) return [h - p.o2 - (a.lanTrai || 0), p.hw2 - h2 - p.o2];
+  // rẽ phải: quẹo gọn sát góc, không dạt ra giữa lòng ngã tư
+  if (a.quay === 'phai') { const bp = a.loai === 'xm' ? 1.2 + Math.min(1, a.ket * 0.2) : 0.6; return [-bp, bp]; }
   const b = a.loai === 'xm' ? Math.max(2.2, 4.5 - (a.s - p.sIn) * 0.3) + Math.min(3, a.ket * 0.6) : Math.max(0.8, 3.5 - (a.s - p.sIn) * 0.35) + Math.min(2, a.ket * 0.4);
   return [-b, b];
 }
@@ -709,7 +711,10 @@ function buocXe(a, dt) {
   // Né / lách sang TRÁI được lấn qua tim đường sang nửa ngược chiều khi bên đó đang trống (anh 22/11/2026: "xe ở VN khi
   // né không nhất thiết chỉ bên phải, mà cả bên trái nếu còn khoảng trống"). Trước biên trái là tim đường → xe sát tim
   // hết chỗ dạt, chỉ còn né phải. Có xe ngược chiều tới trên nửa kia thì biên co về tim, xe tự lách trả về làn mình.
-  a.lanTrai = CAI.lanTrai && !nguoc && !p.ve ? (xm ? 1.8 : 2.8) : 0;
+  // Không lấn tim đường trong 25 m trước vạch dừng, và xe sắp rẽ phải không bao giờ lấn trái (anh 22/11/2026 khoanh
+  // ảnh: xe máy vượt hàng chờ đèn bằng nửa đường ngược chiều rồi rẽ phải chéo cả lòng ngã tư — "đi ngu"). Lấn trái chỉ
+  // để né trên đoạn đường thoáng; gần ngã tư xe về nửa đường của mình (biên kéo về), rẽ phải thì bám mép phải.
+  a.lanTrai = CAI.lanTrai && !nguoc && !p.ve && a.quay !== 'phai' && (a.s < p.sStop - 25 || a.s > p.sOut) ? (xm ? 1.8 : 2.8) : 0;
   // Luồn sau lưng người đi bộ chỉ khi bên đó CÓ KHOẢNG TRỐNG thật (anh 22/11/2026: "luồn lách nhưng phải có khoảng
   // trống"): sườn bên đó sau khi dạt vẫn hở ≥ 0,2 m, phía trước bên đó trống quá chỗ người đứng, không lấn ra ngoài mép
   // đường. Không đủ thì người đi bộ vẫn là vật cản — dừng chờ như thường.

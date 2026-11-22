@@ -25,7 +25,7 @@ export type SoTien = { chi: number; thu: number };
 export type DongNgayEtp = SoTien & { ngay: string; camp: number; ns: number | null };
 export type XetLuat = { ma: string; ten: string; mo_ta: string; dk: [string, string, string, boolean][]; ket: 'dat' | 'gan' | 'xa' | 'khong_ap'; vao: string | null; ghi: string | null; /** thẻ Tăng bậc bị cổng nhịp chặn: mốc UTC được tăng (luat-ethopex · nhip_tang.cho_tang) */ cho_toi?: string | null; chan?: Partial<Record<string, boolean>>; /** máy ĐÃ LÀM việc của thẻ sau lúc ghi thẻ — giờ VN (etp-doc theDaLam) */ da?: string; /** thẻ tăng bị Siết TS chặn: mốc UTC sớm nhất thôi chặn + điều kiện còn phải đạt lúc đó (luat-ethopex _ts_mo, anh 10/11/2026) */ mo?: { luc: string; can: string | null } };
 export type CampEtpKho = { camp_id: number; ten: string; bo: string | null; trang_thai: string; giao: string | null; ngan_sach: number; creative_id: number | null; content_id: number | null; cam?: { luc: string | null; ly_do: string | null } | null;
-  goc: number | null; lich: string | null; tao: string | null; loi: string | null; dong_bo?: string | null; phim: string | null; the_loai: string | null; dang: string | null; /** bản mẫu (PO.1…PO.5) — sqlBan */ ban: string | null; /** giọng đọc (ky_di…) — sqlGiong */ giong: string | null; doan: string | null; cung_doan: number;
+  goc: number | null; /** mã bài post "<page>_<post>" của ad (etp.camp.bai_viet) — cây camp gom các camp chung bài (#1758) */ bai?: string | null; lich: string | null; tao: string | null; loi: string | null; dong_bo?: string | null; phim: string | null; the_loai: string | null; dang: string | null; /** bản mẫu (PO.1…PO.5) — sqlBan */ ban: string | null; /** giọng đọc (ky_di…) — sqlGiong */ giong: string | null; doan: string | null; cung_doan: number;
   thang: SoTien; qua: SoTien; nay: SoTien;
   /** đang tạm dừng vì LỊCH GIỜ (etp.lich_tat — apps/etp/lich-gio.py tự bật lại khi tới khung BẬT) */
   lich_tat: boolean;
@@ -408,7 +408,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
         left join etp.creative crn on crn.creative_id = c.creative_id   /* dạng creative đội: máy phân loại (apps/etp/phan_loai_cr.py) thay nhãn tạm 'team' */
       where ${cuaNg(sql`t.nguoi_id`)} and c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`) : run<Record<string, unknown>>(sql`with s as (${soCamp}),
         cd as (select cr.doan, count(*) filter (where c.trang_thai = 'ACTIVE') chay from etp.camp c join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) where cr.doan is not null group by cr.doan)
-      select c.camp_id, c.ten, c.bo, c.trang_thai, c.giao, c.dong_bo, c.ngan_sach, etp.creative_cua(c.creative_id, c.ten) creative_id, c.content_id, c.goc, to_json(c.lich) #>> '{}' lich, c.tao::text tao, c.loi, c.roas, c.chien_luoc,
+      select c.camp_id, c.ten, c.bo, c.trang_thai, c.giao, c.dong_bo, c.ngan_sach, etp.creative_cua(c.creative_id, c.ten) creative_id, c.content_id, c.goc, nullif(c.bai_viet, '') bai_viet, to_json(c.lich) #>> '{}' lich, c.tao::text tao, c.loi, c.roas, c.chien_luoc,
         p.ten phim, p.the_loai, cr.dang, ${banCr('cr.creative_id', 'cr.dang')} ban, ${giongCr('cr.creative_id')} giong, cr.doan, coalesce(cd.chay, 0) cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, (lt.camp_id is not null) lich_tat,
         (select json_agg(json_build_object('g', cn.geo, 'c', round(cn.chi, 2), 't', round(cn.thu, 2)) order by cn.chi desc) from etp.camp_nuoc cn where cn.camp_id = c.camp_id) nuoc,
         ab.ma ab_ma, ab.ten ab_ten, ab.kieu ab_kieu, cab.nhanh ab_nhanh, ab.nhanh->cab.nhanh->>'ten' ab_nhanh_ten, ab.gia_thuyet ab_gt, ab.bat_dau::text ab_bd
@@ -454,7 +454,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     run<{ gia_tri: { the_loai?: Record<string, string> } | null }>(sql`select gia_tri from xv_khoa_ngoai where ten = 'ethopex_the_loai_thu'`),
   ]);
   const cs: CampEtpKho[] = camps.map((r) => ({ camp_id: n(r.camp_id), ten: String(r.ten ?? ''), bo: (r.bo as string) ?? null, trang_thai: String(r.trang_thai ?? ''), giao: (r.giao as string) ?? null, ngan_sach: n(r.ngan_sach),
-    creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id), goc: r.goc == null ? null : n(r.goc), lich: (r.lich as string) ?? null, tao: (r.tao as string) ?? null,
+    creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id), goc: r.goc == null ? null : n(r.goc), bai: (r.bai_viet as string) || null, lich: (r.lich as string) ?? null, tao: (r.tao as string) ?? null,
     loi: (r.loi as string) ?? null, dong_bo: (r.dong_bo as string) ?? null, phim: (r.phim as string) ?? (ngoai ? phimTuTenCamp(String(r.ten ?? '')) : null), the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, ban: (r.ban as string) ?? null, giong: (r.giong as string) ?? null, doan: (r.doan as string) ?? null, cung_doan: n(r.cung_doan),
     thang: st(r.tc, r.tt), qua: st(r.qc, r.qt), nay: st(r.nc, r.nt), lich_tat: !!r.lich_tat, roas: r.roas == null ? null : n(r.roas), chien_luoc: (r.chien_luoc as string) ?? null,
     nuoc: ((r.nuoc as { g: string; c: unknown; t: unknown }[] | null) ?? []).map((x) => ({ g: x.g, c: n(x.c), t: n(x.t) })),

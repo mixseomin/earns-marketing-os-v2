@@ -2380,8 +2380,17 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, dongCr, 
   const baoCamp = useMemo(() => { const m = new Map<number, { nhom: string; chu: string }[]>(); for (const b of du.bao) m.set(b.camp_id, [...(m.get(b.camp_id) ?? []), b]); return m; }, [du.bao]);
   const bh = useMemo(() => new Map(du.baoHoa.map((x) => [x.content_id, x])), [du.baoHoa]);
   const roi = (x?: SoTien) => (x && x.chi >= 0.3 ? Math.round(((x.thu - x.chi) / x.chi) * 100) : null);
-  const con = useMemo(() => { const ids = new Set(camps.map((c) => c.camp_id)); const m = new Map<number, CampEtpKho[]>(); const goc: CampEtpKho[] = [];
-    for (const c of camps) { if (c.goc && ids.has(c.goc)) { const a = m.get(c.goc) ?? []; a.push(c); m.set(c.goc, a); } else goc.push(c); } return { m, goc }; }, [camps]);
+  // CÂY = camp gốc → bản nhân, GOM CẢ CAMP CHUNG BÀI POST (anh 22/11/2026 #1758 "các camp có chung bài post xếp cùng nhóm tree drop"):
+  // trước chỉ nối theo goc TRONG danh sách đang lọc → mẹ bị lọc giấu (đã tắt, lọc Used post…) thì các bản dùng lại bài của mẹ rơi thành dòng gốc rời nhau.
+  // Giờ: mẹ hiện = tổ tiên GẦN NHẤT còn trong danh sách (đi chuỗi goc trên cả kho); không còn tổ tiên nào → treo dưới camp hiện sớm nhất cùng bài post.
+  // bài post: etp.camp.bai_viet; bản used post (' bai-cu ') chưa có mã → bài của camp mẹ.
+  const con = useMemo(() => { const ids = new Set(camps.map((c) => c.camp_id)); const theoId = new Map(du.camps.map((c) => [c.camp_id, c])); const m = new Map<number, CampEtpKho[]>(); const goc: CampEtpKho[] = [];
+    const baiCua = (c: CampEtpKho, sau = 0): string | null => { if (c.bai) return c.bai; const g = laBaiCu(c) && c.goc && sau < 30 ? theoId.get(c.goc) : undefined; return g ? baiCua(g, sau + 1) : null; };
+    const meHien = (c: CampEtpKho): number | null => { let g = c.goc; for (let n = 0; g && n < 30; n++) { if (ids.has(g)) return g; g = theoId.get(g)?.goc ?? null; } return null; };
+    const chuBai = new Map<string, number>(); for (const c of camps) { const b = baiCua(c), cu = b ? chuBai.get(b) : undefined; if (b && (cu == null || c.camp_id < cu)) chuBai.set(b, c.camp_id); }
+    const cha = new Map<number, number>(); for (const c of camps) { let me = meHien(c); if (me == null) { const b = baiCua(c), ch = b ? chuBai.get(b) : undefined; if (ch != null && ch !== c.camp_id) me = ch; } if (me != null) cha.set(c.camp_id, me); }
+    for (const c of camps) { let x = cha.get(c.camp_id); for (let n = 0; x != null && n < 60; n++) { if (x === c.camp_id) { cha.delete(c.camp_id); break; } x = cha.get(x); } }   // chặn vòng (dữ liệu hỏng) → dòng gốc
+    for (const c of camps) { const me = cha.get(c.camp_id); if (me != null) { const a = m.get(me) ?? []; a.push(c); m.set(me, a); } else goc.push(c); } return { m, goc }; }, [camps, du.camps]);
   const theoPhim = useMemo(() => { const g = new Map<string, CampEtpKho[]>(); for (const c of con.goc) { const k = String(c.content_id ?? 0); g.set(k, [...(g.get(k) ?? []), c]); } return g; }, [con.goc]);
   const laiDai = (c: CampEtpKho) => { const x = laiKy(c); return x.thu - x.chi; };
   const sapXep = (ds: CampEtpKho[]) => [...ds].sort((a, b) => (xep === 'tuoi' ? (tuoi(b) ?? -1) - (tuoi(a) ?? -1) : laiDai(b) - laiDai(a)));

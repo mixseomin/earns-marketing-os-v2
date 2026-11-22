@@ -6,6 +6,10 @@ import BANG_LUAT from './etp-bang-luat.json';
 export type KhungDoi = 'tang' | 'giam' | 'sang' | 'bang';
 export type HuongLuat = 'tang' | 'giam' | 'tat';
 export const KD = BANG_LUAT.khung_doi as unknown as { tang: [number, number]; giam: [number, number]; sang: [number, number]; len: [number, number]; nghi_gio: number; nghi_don_gio: number; khoa_sau_giam_gio: number; hoc_gio: number; don_13h: number; don_gio: number };
+/** THANG PHIÊN (anh 22/11/2026): tăng trong phiên khung (21–15h VN), nghỉ nghi_phut giữa hai lần tăng, tín hiệu mạnh thêm một bậc sau manh.nghi_phut — cùng số nhip_tang.py */
+export const TP = BANG_LUAT.thang_phien as unknown as { khung: [number, number]; nghi_phut: number; moi: { chi: number; roi: number }; manh: { chi: number; roi: number; lai: number; nghi_phut: number }; lui: { chi: number; roi: number; khoa_gio: number } };
+export const trongPhien = (h: number) => (TP.khung[0] <= TP.khung[1] ? h >= TP.khung[0] && h < TP.khung[1] : h >= TP.khung[0] || h < TP.khung[1]);
+export const CHU_NHIP = `thang phiên ${TP.khung[0]}–${TP.khung[1]}h: mỗi lần lên bậc kế (≤ ×1,5), nghỉ ${TP.nghi_phut} phút, lần tăng trước phải chi ≥ ${TP.moi.chi * 100}% ngân sách mới + ROI ≥ ${TP.moi.roi}% · tín hiệu mạnh (chi ≥ ${TP.manh.chi * 100}%, ROI ≥ ${TP.manh.roi}%, lãi ≥ $${TP.manh.lai}) thêm một bậc sau ${TP.manh.nghi_phut} phút · tăng xong mà chi ≥ ${TP.lui.chi * 100}% ngân sách mới với ROI < ${TP.lui.roi}% → lùi một bậc, khoá ${TP.lui.khoa_gio} giờ`;
 export const KHUNG_TEN: Record<KhungDoi, [string, string, string]> = {   // [biểu tượng, tên, màu]
   tang: ['⬆', 'Khung tăng', '#4ade80'], giam: ['🔧', 'Khung giảm · tắt', '#fb923c'], sang: ['☀', 'Nạp sáng', '#22c55e'], bang: ['🔒', 'Đóng băng', '#64748b'] };
 /** giờ VN máy sẽ làm việc đang hoãn theo hướng luật */

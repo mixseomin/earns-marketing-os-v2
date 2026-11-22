@@ -89,7 +89,7 @@ import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
 import { phimDangSx, tvChuaCr } from '@/lib/etp-sx';
-import { KD, KHUNG_TEN, TANG_CHI, TRAN_CHI, chuCong, congTang, quaCong, chuLich, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucLam, luatThang, UU_TIEN, UU_TIEN_TEN, type HuongLuat } from '@/lib/etp-khung';
+import { CHU_NHIP, KD, KHUNG_TEN, TANG_CHI, TRAN_CHI, chuCong, congTang, quaCong, chuLich, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucLam, luatThang, UU_TIEN, UU_TIEN_TEN, type HuongLuat } from '@/lib/etp-khung';
 import { nhip } from '@/lib/nhip';   // tự làm mới chỉ khi tab hiện (12/11/2026)
 import { TabDoiThu } from './etp-doi-thu';   // tab Phim đối thủ (anh giao 19/11/2026)
 import { TabMauCr } from './etp-mau-cr';   // tab Mẫu creative (anh giao 19/11/2026)
@@ -586,8 +586,8 @@ function ThanLuat({ t, gon, deXuat }: { t: ReturnType<typeof tinhLuat>; gon?: bo
 }
 // KHUNG ĐỔI CAMP — BẢN LỚN (anh 05/11/2026 "show trực quan hơn"): một hàng trọn chiều ngang trên tab Camp — trạng thái chữ to + đếm ngược,
 // thanh 24 giờ ghi chữ từng khung + kim giờ hiện tại, số camp đã đạt luật đang chờ khung (theo hướng, từ etp.bao — cùng nguồn chip ⏳)
-// nhịp tăng đọc sổ luật (khung_doi.nghi_gio / nghi_don_gio) — chữ không ghi cứng số (anh 05/11/2026: thẻ còn ghi "một bậc" sau khi đã cho tăng dồn)
-const NHIP_TANG = `mỗi lần lên bậc kế (≤ ×1,5); tăng tiếp sau ≥ ${KD.nghi_don_gio} giờ nếu vẫn qua cổng (ngân sách mới), không thì cách ≥ ${KD.nghi_gio} giờ`;
+// nhịp tăng đọc sổ luật (thang_phien, anh 22/11/2026) — chữ không ghi cứng số (anh 05/11/2026: thẻ còn ghi "một bậc" sau khi đã cho tăng dồn)
+const NHIP_TANG = CHU_NHIP;   // thang phiên 22/11/2026 — một chữ ở etp-khung.ts
 const CHU_KHUNG: Record<string, string> = { tang: `máy tự TĂNG camp ${chuCong(KD.tang[0] + 1)} (đầu phiên · tăng bậc · T30): ${NHIP_TANG} — không giảm, không tắt`, giam: 'máy tự GIẢM · TẮT camp theo luật — không tăng',
   sang: `máy NẠP camp ${chuCong(KD.sang[0] + 2)} — tiêu ≥ ${Math.round(congTang(KD.sang[0] + 2).den! * 100)}% buổi sáng là tiêu dồn, không tăng: ${NHIP_TANG} — không giảm, không tắt`, bang: 'máy KHÔNG tự tăng · giảm · tắt camp — luật vẫn chấm, đợi khung' };   // số lấy từ sổ luật chung khung_doi
 function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {

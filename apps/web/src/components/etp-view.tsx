@@ -51,7 +51,7 @@ import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
 import { phimDangSx, tvChuaCr } from '@/lib/etp-sx';
-import { KD, KHUNG_TEN, NHIP_PHUT, TANG_CHI, TRAN_CHI, chuCong, quaCong, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucTang, type HuongLuat } from '@/lib/etp-khung';
+import { CHU_NHIP, KD, KHUNG_TEN, NHIP_PHUT, TP, TANG_CHI, TRAN_CHI, chuCong, quaCong, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucTang, type HuongLuat } from '@/lib/etp-khung';
 
 type Tab = 'tong' | 'tp' | 'camp' | 'roas' | 'creative' | 'phim' | 'dong' | 'tv' | 'tn' | 'luat' | 'insight';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -451,8 +451,8 @@ function ThanLuat({ t, gon, deXuat }: { t: ReturnType<typeof tinhLuat>; gon?: bo
 }
 // KHUNG ĐỔI CAMP — BẢN LỚN (anh 05/11/2026 "show trực quan hơn"): một hàng trọn chiều ngang trên tab Camp — trạng thái chữ to + đếm ngược,
 // thanh 24 giờ ghi chữ từng khung + kim giờ hiện tại, số camp đã đạt luật đang chờ khung (theo hướng, từ etp.bao — cùng nguồn chip ⏳)
-// nhịp tăng đọc sổ luật (khung_doi.nghi_gio / nghi_don_gio) — chữ không ghi cứng số (anh 05/11/2026: thẻ còn ghi "một bậc" sau khi đã cho tăng dồn)
-const NHIP_TANG = `mỗi lần lên bậc kế (≤ ×1,5); tăng tiếp sau ≥ ${KD.nghi_don_gio} giờ nếu vẫn ${chuCong(KD.tang[0] + 1)} (ngân sách mới), không thì cách ≥ ${KD.nghi_gio} giờ`;
+// nhịp tăng đọc sổ luật (thang_phien, anh 22/11/2026) — chữ không ghi cứng số (anh 05/11/2026: thẻ còn ghi "một bậc" sau khi đã cho tăng dồn)
+const NHIP_TANG = CHU_NHIP;   // thang phiên 22/11/2026 — một chữ ở etp-khung.ts
 const CHU_KHUNG: Record<string, string> = { tang: `máy tự TĂNG camp ${chuCong(KD.tang[0] + 1)} (đầu phiên · tăng bậc · T30): ${NHIP_TANG} — không giảm, không tắt`, giam: 'máy tự GIẢM · TẮT camp theo luật — không tăng',
   sang: `máy NẠP camp ${chuCong(KD.sang[0] + 1)}: ${NHIP_TANG} — không giảm, không tắt`, bang: 'máy KHÔNG tự tăng · giảm · tắt camp — luật vẫn chấm, đợi khung' };   // số lấy từ sổ luật chung khung_doi
 function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
@@ -526,7 +526,7 @@ function ChipLuat(p: VaoLuat) {
         {/* ĐẦU THẺ = CAMP ĐANG XÉT (anh 28/10/2026 "khi hover bảng phải kèm camp ID để còn review cùng") */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, ...(t.xet ? KHONG_GIAN : { minWidth: 0 }) }}><b style={{ fontSize: 13, color: laRoas(p.c) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
           <span title={p.c.ten ?? ''} style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.ten ?? p.c.phim} · ${p.c.ngan_sach}</span></div>
-        {lucT ? <div style={{ marginBottom: 6, color: '#4ade80' }}>⏳ Máy thực sự tăng sau <b>{chuT}</b> — {chiCong ? `chờ cổng nhịp tăng (${nhipT![1]}: cách lần tăng trước ≥ ${KD.nghi_gio} giờ, tiêu dồn ${KD.nghi_don_gio} giờ), rồi nhịp máy luật đầu tiên trong khung tăng` : khungLuc(gioVnNay()) === 'tang' ? 'nhịp máy luật kế' : `nhịp đầu sau khi khung tăng mở ${KD.tang[0]}:00`} (máy luật chạy {NHIP_PHUT} phút / lần, lần gần nhất {hoan.luc ? new Date(Date.parse(hoan.luc) + 7 * 3600_000).toISOString().slice(11, 16) : '—'} VN); điều kiện còn đạt lúc đó thì tăng</div> : null}
+        {lucT ? <div style={{ marginBottom: 6, color: '#4ade80' }}>⏳ Máy thực sự tăng sau <b>{chuT}</b> — {chiCong ? `chờ cổng nhịp tăng (${nhipT![1]}: thang phiên: nghỉ ${TP.nghi_phut} phút sau lần tăng trước), rồi nhịp máy luật đầu tiên trong khung tăng` : khungLuc(gioVnNay()) === 'tang' ? 'nhịp máy luật kế' : `nhịp đầu sau khi khung tăng mở ${KD.tang[0]}:00`} (máy luật chạy {NHIP_PHUT} phút / lần, lần gần nhất {hoan.luc ? new Date(Date.parse(hoan.luc) + 7 * 3600_000).toISOString().slice(11, 16) : '—'} VN); điều kiện còn đạt lúc đó thì tăng</div> : null}
         {cho ? <div style={{ marginBottom: 6, color: 'var(--fg-2)' }}>⏳ Luật đã đạt nhưng đang ngoài khung đổi camp — máy làm lúc <b>{cho} VN</b>{khungLuc(gioVnNay()) === 'giam' ? ` (khung ${KD.giam[0]}–${KD.giam[1]}h chỉ giảm / tắt)` : ''}. Khung: {KD.tang[0]}–{KD.tang[1]}h tăng khi {chuCong(KD.tang[0] + 1)} · {KD.giam[0]}–{KD.giam[1]}h giảm / tắt · {KD.sang[0]}–{KD.sang[1]}h chỉ nạp camp {chuCong(KD.sang[0] + 1)}.</div> : null}
         <ThanLuat t={t} deXuat={p.deXuat} />
         {/* LỊCH SỬ ĐỔI BẬC ngay dưới bảng luật (anh 10/11/2026 "phần hover này cũng cần show thêm lịch sử tăng bậc") — cùng dòng thời gian thẻ Lịch sử bậc (DongBac) */}

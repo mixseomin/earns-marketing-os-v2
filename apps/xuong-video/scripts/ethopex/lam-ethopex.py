@@ -5,7 +5,7 @@ Chỉ hai việc, đúng API giao diện Ethopex dùng (đọc từ mã app 21/1
   giam <camp_id> <ngân sách>   → cùng API update, chỉ xuống thang (luật GB, nhip_tang.chan_giam)
   bat  <camp_id>               → bật lại (cùng API control, status 'active') — chỉ khi anh lệnh
   tat  <camp_id> [--ep]        → POST /api/v1/campaigns/control/batch/bulk [{entity_type:'campaign', entity_ids:[id], status:'paused'}]
-Chặn: ngân sách phải là mức hợp lệ ($2 · thang $3–20), lớn hơn mức đang chạy, không quá trần $20; camp phải đang ACTIVE; nhịp tăng (nhip_tang.py: ≥ 24 giờ giữa hai lần). Làm xong ĐỌC LẠI camp để xác nhận.
+Chặn: ngân sách phải là mức hợp lệ ($2 · thang $3–20), lớn hơn mức đang chạy, không quá trần $20; camp phải đang ACTIVE; nhịp tăng (nhip_tang.py: thang phiên 21–15h, nghỉ 60 phút, tín hiệu mạnh thêm một bậc sau 30 phút). Làm xong ĐỌC LẠI camp để xác nhận.
 In một dòng JSON {ok, viec, id, truoc, sau, loi}."""
 import json, os, subprocess, sys, time, urllib.request, importlib.util
 _s = importlib.util.spec_from_file_location("nhip_tang", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nhip_tang.py")); NT = importlib.util.module_from_spec(_s); _s.loader.exec_module(NT)
@@ -183,7 +183,7 @@ def main(a):
     bo_nhip = "--bo-nhip" in a and ai in ("anh (chat)", "anh (etp2)")   # anh (etp2) = anh tự bấm "ép" ở bảng điều khiển camp etp2 (#1553 09/11/2026)
     # --du-luat: lệnh tăng do MÁY LUẬT xếp (worker ethopex.mjs, danh sách tang / dau_phien) — máy luật VỪA chấm cổng tăng (nhip_tang.du_so trên số hôm nay ĐÃ CHỐT CHI,
     # _loc + _du_tang) cách đó vài phút. Lệnh tăng KHÔNG chấm lại cổng bằng số cả ngày (du_don): hai cách đo lệch nhau ở ca sát ngưỡng → 23 lần / 7 ngày máy xếp tăng
-    # rồi chính lệnh tăng chặn "vừa tăng — chờ" (rà 12/11/2026, anh "không thể lỗi ở bất kỳ khâu nào"). Khoá sau giảm, nhịp ≥ 3 giờ ngoài khung nhanh, mức, trần vẫn chặn.
+    # rồi chính lệnh tăng chặn "vừa tăng — chờ" (rà 12/11/2026, anh "không thể lỗi ở bất kỳ khâu nào"). Khoá sau giảm, nhịp thang phiên (nghỉ 60 phút), mức, trần vẫn chặn.
     du_luat = "--du-luat" in a and str(ai or "").startswith("máy tự tăng")
     bo_cb = "--bo-cam-bien" in a   # anh lệnh tắt nốt cả camp cảm biến giá chợ (sổ luật phanh_cho.cam_bien)
     a = [x for i, x in enumerate(a) if x not in ("--luat", "--ai", "--ep", "--bo-nhip", "--du-luat", "--bo-cam-bien") and (i == 0 or a[i - 1] not in ("--luat", "--ai"))]
@@ -200,7 +200,7 @@ def main(a):
             # LỆNH TRỰC TIẾP của anh (vé truc_tiep, cong.py --ve-truc-tiep — anh 20/11/2026 09:35): miễn nhịp 24 giờ + khoá sau giảm; cổng kiem vẫn chặn phim cấm
             if CONG.truc_tiep("tang", [cid]): bo_nhip = ep = True
             if du_luat and not bo_nhip: ly = NT.chan_tang(api, cid, du=True)   # cổng đã chấm ở máy luật (xem --du-luat)
-            else: ly = None if bo_nhip else NT.chan_tang(api, cid)   # nhịp tăng: ≥ 24 giờ, hoặc ≥ 3 giờ khi đã tiêu ≥ 90% NS mới + ROI hôm nay ≥ 100% (nút cũ bấm muộn cũng bị chặn)
+            else: ly = None if bo_nhip else NT.chan_tang(api, cid)   # nhịp tăng thang phiên (22/11/2026): nghỉ 60 phút + lần trước chi ≥ 10% NS mới, ROI ≥ 50% (nút cũ bấm muộn cũng bị chặn)
             if ly: raise ValueError(ly)
             ly = None if ep else chan_sau_giam(cid)   # đã giảm → tăng lại phải đủ quy trình, mọi đường tăng chung một cổng
             if ly: raise ValueError(ly)

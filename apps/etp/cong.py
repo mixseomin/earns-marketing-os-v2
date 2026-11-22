@@ -19,6 +19,15 @@ NAP_DUOI = max([x for x in _BAC if x < NAP_TANG[0][1]] or [_BAC[0]])
 def nap_tang(r3): return max([n for m, n in NAP_TANG if r3 is not None and r3 >= m], default=NAP_DUOI)
 SQL_ROI3 = ("select case when sum(chi) > 0 then round(100 * (sum(thu) - sum(chi)) / sum(chi)) end from etp.so_ngay where camp_id = {cid}"
             " and ngay between (now() at time zone 'utc')::date - 3 and (now() at time zone 'utc')::date - 1")
+# NẮP CAMP TRẺ (thang phiên, anh duyệt 22/11/2026): camp < 3 ngày khép có chi → nắp theo ROI HÔM NAY (≥50% $9 · ≥80% $13 · ≥100% + lãi ≥ $10 → $20);
+# camp đủ 3 ngày khép → nắp ROI 3 ngày như cũ. Không đọc được số ngày → coi là camp già (an toàn: nắp cũ).
+NAP_TRE = sorted((float(m), float(n)) for m, n in _BL["nap_tre"]["bac"]); NAP_TRE_LAI20 = float(_BL["nap_tre"]["lai_20"]); NAP_TRE_NGAY = int(_BL["nap_tre"]["ngay"])
+def nap_tre(r, lai): return max([n for m, n in NAP_TRE if r is not None and r >= m and (n < 20 or (lai or 0) >= NAP_TRE_LAI20)], default=None)
+def nap_camp(r3, ngay_chi=None, r_nay=None, lai_nay=None):
+    n = nap_tang(r3)
+    return max(n, nap_tre(r_nay, lai_nay) or 0) if ngay_chi is not None and ngay_chi < NAP_TRE_NGAY else n
+SQL_NGAY_CHI = "select count(*) from etp.so_ngay where camp_id = {cid} and chi > 0 and ngay < (now() at time zone 'utc')::date"
+SQL_NAY = "select chi, thu from etp.so_ngay where camp_id = {cid} and ngay = (now() at time zone 'utc')::date"
 # TRẦN CAMP MỚI / NGÀY — một nguồn cho cổng này và máy dòng phim (dong_phim.mo_tran_ngay nhận dòng dừng vì trần bằng KHOA_TRAN_NGAY có trong lý do, đếm chỗ còn bằng SQL_TAO_HOM_NAY)
 KHOA_TRAN_NGAY = "tran_camp_moi_ngay"
 # BỘ LÊN CAMP MỚI — một nguồn (anh 08/11/2026 "Bộ 1 = 50% Kiên… Sửa đi" + "1 phim ở nhiều bộ thoải mái"): camp mới của creative (dòng phim, worker phim mới,
@@ -514,8 +523,15 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
             return f"camp mới phải $1 — đang gửi ${float(ns_moi):g} (anh 08/11/2026); ngân sách khác phải xin anh"
         # NẮP ROI 3 NGÀY (Dol 09/11/2026): camp thường tăng lên $X mà X > trần của dải ROI 3 ngày khép → chặn; camp ★ ROAS không áp; camp đang chạy không bị hạ (chỉ chặn tăng)
         if viec == "tang" and not roas and camp_id and ns_moi is not None and _q(f"select 1 from etp.camp where camp_id = {int(camp_id)} and la_roas") != "1":
-            r3 = _q(SQL_ROI3.format(cid=int(camp_id))); nap = nap_tang(float(r3) if r3 not in ("", None) else None)
-            if float(ns_moi) > nap: return f"nắp ROI 3 ngày khép ({(r3 + '%') if r3 else 'chưa có số'}) → camp thường trần ${nap:g}, không lên ${float(ns_moi):g} (Dol 09/11/2026: 30–50% ~$10 · 50–80% ~$15 · >80% ~$20, anh duyệt chỉ áp lần tăng mới)"
+            r3 = _q(SQL_ROI3.format(cid=int(camp_id))); r3f = float(r3) if r3 not in ("", None) else None
+            try: nc = int(_q(SQL_NGAY_CHI.format(cid=int(camp_id))) or 0)
+            except Exception: nc = None
+            cn, tn = ((_q(SQL_NAY.format(cid=int(camp_id))) or "").split("|") + ["", ""])[:2]
+            cn, tn = float(cn or 0), float(tn or 0); rn = round(100 * (tn - cn) / cn) if cn > 0 else None
+            nap = nap_camp(r3f, nc, rn, tn - cn)
+            if float(ns_moi) > nap:
+                if nc is not None and nc < NAP_TRE_NGAY: return f"nắp camp trẻ ({nc} ngày khép · ROI hôm nay {rn if rn is not None else '—'}% · lãi ${tn - cn:.2f}) → trần ${nap:g}, không lên ${float(ns_moi):g} (thang phiên 22/11/2026: ≥50% $9 · ≥80% $13 · ≥100% + lãi ≥ $10 → $20)"
+                return f"nắp ROI 3 ngày khép ({(r3 + '%') if r3 else 'chưa có số'}) → camp thường trần ${nap:g}, không lên ${float(ns_moi):g} (Dol 09/11/2026: 30–50% ~$10 · 50–80% ~$15 · >80% ~$20, anh duyệt chỉ áp lần tăng mới)"
         # anh 09/11/2026: "ngày mai chỉ lên camp kiểu ROAS nếu có camp phù hợp. Chưa lên camp mới đợi các camp âm tắt hết" → công tắc dừng chặn camp thường, MIỄN camp ROAS
         # CHỈ chặn camp MỚI $1 từ creative (tao_camp) — anh 10/11/2026 "Nhân bản camp thắng vẫn đc. Chỉ chưa cho tạo camp mới $1": nhân bản (NB, thang, ROAS, clone sang bộ) vẫn chạy
         # CHỐT 3 (apps/etp/tran_len.py, anh 11/11/2026): bộ 3 ngày đã khép ROI < −20% (chi ≥ $10) → không tạo / nhân bản camp mới VÀO bộ đó (lệnh anh trong lượt, ROAS miễn)
@@ -662,6 +678,8 @@ def _tu_kiem():
     assert "having sum(g.chi) >= " + str(_NB_MIN[0]) in _sql_goc_nac(7), "SQL gốc đạt nấc cùng ngưỡng nấc NB thấp nhất của sổ"
     assert "tran_test_phim" in ly_tran_test(1, 2) and "chạm trần" in ly_tran_test(1, 2), "câu chặn phải mang khoá (dòng phim mo_tran_test) + 'chạm trần' (SQL_DONG_HONG không đếm là dòng hỏng)"
     assert '"on"' in _sql_test(1) and "camp_dang_chay" in _sql_test(1) and "la_roas" in _sql_test(1) and "ethopex_nhat_ky" in _sql_test(1)
+    assert nap_tre(49, 0) is None and nap_tre(50, 0) == 9 and nap_tre(80, 1) == 13 and nap_tre(100, 9) == 13 and nap_tre(100, 10) == 20 and nap_tre(None, 50) is None, "nắp camp trẻ lệch sổ luật"
+    assert nap_camp(None, 0, 120, 12) == 20 and nap_camp(None, 3, 120, 12) == 6 and nap_camp(None, None, 120, 12) == 6 and nap_camp(80, 1, 10, 0) == 20 and nap_camp(None, 2, 60, 1) == 9, "nắp camp: trẻ lấy max(3 ngày, hôm nay); già / không rõ ngày = nắp 3 ngày"
     assert nap_tang(None) == 6 and nap_tang(29) == 6 and nap_tang(30) == 9 and nap_tang(50) == 13 and nap_tang(79) == 13 and nap_tang(80) == 20 and nap_tang(500) == 20, "nắp ROI lệch sổ luật"
     for t in ("★ ROAS 1.1 · X roas 1.1 duplicate by 65720", "S_FB_The-Dragons_167292_EN_EP8_x10_D69655_ROAS1", "S_FB_Max_153695_EN_VD-FULL-EP1_V1_D2 (ROAS)", "Dup by 66168 ROAS 1.2"):
         assert la_roas(t), t

@@ -11,7 +11,7 @@ Mọi lệnh đi bằng PHIÊN ETHOPEX RIÊNG của người đó (token htuan82
 Dùng (box3): python3 sua-ngoai.py <nguoi_id> ns|bat|tat <camp_id> [ngân sách]   → một dòng JSON {ok, viec, id, truoc, sau, loi}
              echo '<access_token>' | python3 sua-ngoai.py <nguoi_id> ket          → {ok, het, so_camp, loi}
   --may = MÁY TỰ LÀM (chế độ Luật tự động, apps/cty/worker/etp-tu-dong.mjs): qua đúng cái gác của Nhà (lam-ethopex.py) — mức trên thang ≤ $30, camp phải đang chạy,
-          nhịp tăng / giảm nhip_tang.py (tăng cách ≥ 3 giờ, khoá tăng 6 giờ sau giảm, giảm cách ≥ 3 giờ). Người tự sửa tay (nút ✎) không qua các gác này."""
+          nhịp tăng / giảm nhip_tang.py (thang phiên 22/11/2026: tăng nghỉ 60 phút trong phiên 21–15h, khoá tăng 6 giờ sau giảm, giảm cách ≥ 3 giờ). Người tự sửa tay (nút ✎) không qua các gác này."""
 import json, os, subprocess, sys, time
 
 KET = len(sys.argv) == 3 and sys.argv[1].isdigit() and sys.argv[2] == "ket"

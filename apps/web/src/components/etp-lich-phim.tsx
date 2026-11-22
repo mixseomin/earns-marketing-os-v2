@@ -8,7 +8,7 @@ import { DongMoc, KhungNoi, TheChung, useNoi, type Moc, type TheNoi } from '@/co
 import { ChuoiBuoc } from '@/components/etp-dong';
 import { TEN_BUOC } from '@/lib/etp-sx';
 import { MA_DANG, DANG_DONG } from '@/components/etp-so';
-import { chuCong, chuLich, congTang, gioVnNay, KD, khungLuc, quaCong } from '@/lib/etp-khung';
+import { chuCong, chuLich, congTang, gioVnNay, KD, khungLuc, quaCong, TP, trongPhien } from '@/lib/etp-khung';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import { botCampPhim, docLichPhim, docLogPhim, themCampPhim, xemBotCamp, type CampThang, type LichPhim, type LogPhim } from '@/lib/actions/etp-lich-phim';
 
@@ -43,9 +43,9 @@ function lenBac(c: CampThang, hoan: boolean, now = Date.now()) {
   const h = gioVnNay(now), ke = THANG_TU.find((b) => b > c.ns + 1e-9), can = congTang(h).tu * c.ns, rNay = phan(c.chi_nay, c.thu_nay);   // cổng theo giờ, cùng hàm máy nhip_tang.cong (anh 19/11/2026 bỏ nap_chi / sang_roi)
   const dat = quaCong(c.chi_nay, c.thu_nay, c.ns, h), cong = chuCong(h), roiCan = congTang(h, c.chi_nay, c.ns).roi;
   const chan: string[] = [];
-  if (c.chi13 >= Number(BANG_LUAT.khung_doi.don_13h) * (c.ns13 ?? c.ns)) chan.push(`tiêu dồn: tới 13:00 đã chi ${tien(c.chi13)} → hoãn tăng tối nay`);
-  const t = c.tang_luc ? Date.parse(c.tang_luc) : null, mo = t ? t + (dat ? KD.nghi_don_gio : KD.nghi_gio) * 3600_000 : null;
-  if (t && mo! > now) chan.push(`đã tăng lúc ${gioVn(t)} → chờ tới ${gioVn(mo!)}${dat ? '' : ` (đạt cổng thì chỉ chờ ${KD.nghi_don_gio} giờ)`}`);
+  if (!trongPhien(h) && c.chi13 >= Number(BANG_LUAT.khung_doi.don_13h) * (c.ns13 ?? c.ns)) chan.push(`tiêu dồn: tới 13:00 đã chi ${tien(c.chi13)} → hoãn tăng tối nay`);
+  const t = c.tang_luc ? Date.parse(c.tang_luc) : null, mo = t ? t + TP.nghi_phut * 60_000 : null;   // thang phiên 22/11/2026
+  if (t && mo! > now) chan.push(`đã tăng lúc ${gioVn(t)} → chờ tới ${gioVn(mo!)} (nghỉ ${TP.nghi_phut} phút · tín hiệu mạnh được thêm một bậc sau ${TP.manh.nghi_phut} phút)`);
   if (khungLuc(gioVnNay(now)) === 'giam') chan.push(`${KD.giam[0]}–${KD.giam[1]}h chỉ giảm / tắt → mở lại từ ${KD.giam[1]}:00`);
   return { ke, can, cong, roiCan, rNay, dat, chan, hoan, lo: ke ? THANG_TU.filter((b) => b >= ke) : [] };
 }

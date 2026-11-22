@@ -735,9 +735,9 @@ function buocXe(a, dt) {
       latDich = a.s < a.p.sIn ? a.p.hw1 - a.p.o1 - 1.15 : a.p.hw2 - a.p.o2 - 1.15; // tạt sát lề, không xi nhan
       vt = Math.min(vt, con < 0.3 ? 0 : Math.sqrt(2 * 4 * con));
       if (con < 0.3) {
-        if (!a.dangDon) { a.dangDon = true; CAI.don++; }
+        if (!a.dangDon) { a.dangDon = true; if (!a.lauAo) CAI.don++; }
         a.tDon -= dt;
-        if (a.tDon <= 0) { a.sDon = -1; a.dangDon = false; }
+        if (a.tDon <= 0) { a.sDon = -1; a.dangDon = false; a.lauAo = false; }
       }
     }
   }
@@ -1139,13 +1139,27 @@ function doiNuoc(x, z, a) {
   const vm = new THREE.Mesh(HINH_VUNG, new THREE.MeshBasicMaterial({ color: '#3d6f94', transparent: true, opacity: 0, depthWrite: false }));
   vm.position.set(x, 0.035, z); vm.scale.setScalar(0.3); vm.renderOrder = 3; scene.add(vm);
   VUNG.push({ m: vm, x, z, t: 0, r: rnd(1.4, 2), qua: new Set() });
-  if (a) a.choDoi = 0.45; // nước rơi tới người thì mới giật mình
+  // nước rơi tới người thì mới giật mình — ai đứng trong tầm xô nước (~1,6 m) cũng ướt, không chỉ chiếc được bấm trúng
+  if (a) a.choDoi = 0.45;
+  for (const j of DS) if (j !== a && !j.nhac && (j.x - x) ** 2 + (j.z - z) ** 2 < 1.6 * 1.6) j.choDoi = 0.45;
   CAI.nghich++;
 }
+// Bị dội thì ƯỚT THẬT và có hậu quả (anh 22/11/2026: "dội nước thì phải ướt và có hậu quả"): người / xe sẫm màu nước,
+// nhỏ giọt suốt ~25 s. Xe máy: giật mình (có khi ngã), rồi tấp vào lề dừng 6–9 s vắt áo, ướt thì đi chậm lại. Ô tô: kính
+// ướt nhoè, chạy chậm nửa tốc tới khi khô. Người đi bộ: chạy vội tìm chỗ trú, rồi đứng giũ người.
+const MAU_UOT = new THREE.Color('#22476a'), CU = new THREE.Color();
+function uot(c, a) { return a.uot > 0 ? CU.copy(c).lerp(MAU_UOT, Math.min(0.6, a.uot / 25 * 0.9)) : c; }
 function trungNuoc(a) {
-  if (a.nhac || a.nga) return;
-  if (a.loai === 'bo') { a.vmax0 = a.vmax0 || a.vmax; a.vmax = a.vmax0 * 2.2; a.chayUot = 4; return; }
-  if (a.loai === 'xm' && Math.random() < 0.35) { dayNga(a); CAI.nghich--; return; }
+  if (a.nhac) return;
+  a.uot = 25; a.vmax0 = a.vmax0 || a.vmax;
+  if (a.nga) return;
+  if (a.loai === 'bo') { a.vmax = a.vmax0 * 2.2; a.chayUot = 4; return; }
+  if (a.loai === 'xm') {
+    if (Math.random() < 0.35) { dayNga(a); CAI.nghich--; }
+    else a.khung = 1.1;
+    if (a.sDon < 0 && (a.s < a.p.sIn - 14 || a.s > a.p.sOut + 2)) { a.sDon = a.s + 8; a.tDon = rnd(6, 9); a.lauAo = true; } // tấp lề vắt áo
+    return;
+  }
   a.khung = 1.1; // giật mình phanh khựng
 }
 function thaChuoi(x, z) {
@@ -1187,7 +1201,17 @@ function buocTro(dt) {
 }
 function trangThaiTro(a, dt) {
   if (a.choDoi > 0) { a.choDoi -= dt; if (a.choDoi <= 0) trungNuoc(a); }
-  if (a.chayUot > 0) { a.chayUot -= dt; if (a.chayUot <= 0) a.vmax = a.vmax0; }
+  if (a.chayUot > 0) { a.chayUot -= dt; if (a.chayUot <= 0) { a.vmax = a.vmax0 * 0.15; a.giu = rnd(2, 3); } } // tới chỗ trú: đứng giũ người
+  if (a.giu > 0) { a.giu -= dt; if (a.giu <= 0) a.vmax = a.vmax0; }
+  if (a.uot > 0) {
+    a.uot -= dt;
+    if (a.loai !== 'bo' && !a.giu) a.vmax = a.uot > 0 ? a.vmax0 * (a.loai === 'xm' ? 0.6 : 0.5) : a.vmax0; // ướt / kính nhoè: đi chậm
+    if (Math.random() < dt * (a.uot / 25) * (a.loai === 'bo' || a.loai === 'xm' ? 10 : 18)) { // nhỏ giọt
+      const m = new THREE.Mesh(HINH_GIOT, VAT_GIOT);
+      m.position.set(a.x + rnd(-0.3, 0.3), a.loai === 'oto' ? 1.2 : a.loai === 'bus' ? 2.8 : 1.3, a.z + rnd(-0.3, 0.3)); m.scale.setScalar(0.6); scene.add(m);
+      GIOT.push({ m, vx: 0, vz: 0, vy: 0, tre: 0 });
+    }
+  }
   if (a.khung > 0) { a.khung -= dt; a.sp = Math.max(0, a.sp - 8 * dt); return true; }
   return false;
 }
@@ -1761,7 +1785,7 @@ function ve() {
       V.set(a.x, a.y + Math.abs(Math.sin(a.buoc)) * 0.04, a.z);
       if (a.lac) { Q.multiply(Q2.setFromAxisAngle(TRUC_X, a.lac)); V.y += 0.12 * Math.abs(Math.sin(a.lac)); }
       veBo[ip] = a;
-      datMa(mBo, ip, V, Q, MOT, a.c2); datMa(mDau, ip, V, Q, MOT, a.c3); datMa(mNon, ip, V, Q, a.non ? MOT : KHONG, NON_MAU);
+      datMa(mBo, ip, V, Q, MOT, uot(a.c2, a)); datMa(mDau, ip, V, Q, MOT, uot(a.c3, a)); datMa(mNon, ip, V, Q, a.non ? MOT : KHONG, NON_MAU);
       ip++; continue;
     }
     const ben = xiNhan(a);
@@ -1771,12 +1795,12 @@ function ve() {
     if (a.loai === 'xm') {
       if (ix >= MAX_XM) continue;
       Q2.setFromAxisAngle(TRUC_X, a.nghieng); Q.multiply(Q2);
-      datMa(mXm, ix, V, Q, MOT, a.c1); datMa(mNguoi, ix, V, Q, MOT, a.c2); datMa(mMu, ix, V, Q, MOT, a.c3);
+      datMa(mXm, ix, V, Q, MOT, uot(a.c1, a)); datMa(mNguoi, ix, V, Q, MOT, uot(a.c2, a)); datMa(mMu, ix, V, Q, MOT, uot(a.c3, a));
       datMa(mCho, ix, V, Q, a.cho ? MOT : KHONG, a.c4); datMa(mHang, ix, V, Q, a.hang ? MOT : KHONG, a.c5);
       if (ben) datMa(XN.xm, nx.xm++, V, Q, SXN.set(1, 1, ben));
       veXm[ix] = a; ix++;
-    } else if (a.loai === 'oto') { veOto[io] = a; datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, a.c1); if (ben) datMa(XN.oto, nx.oto++, V, Q, SXN.set(1, 1, ben)); }
-    else { veBus[ib] = a; datMa(mBus, ib++, V, Q, MOT, a.c1); if (ben) datMa(XN.bus, nx.bus++, V, Q, SXN.set(1, 1, ben)); }
+    } else if (a.loai === 'oto') { veOto[io] = a; datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, uot(a.c1, a)); if (ben) datMa(XN.oto, nx.oto++, V, Q, SXN.set(1, 1, ben)); }
+    else { veBus[ib] = a; datMa(mBus, ib++, V, Q, MOT, uot(a.c1, a)); if (ben) datMa(XN.bus, nx.bus++, V, Q, SXN.set(1, 1, ben)); }
   }
   for (const [m, n] of [[mXm, ix], [mNguoi, ix], [mMu, ix], [mCho, ix], [mHang, ix], [mOto, io], [mMui, io], [mBus, ib], [mBo, ip], [mDau, ip], [mNon, ip], [mBong, is], [XN.xm, nx.xm], [XN.oto, nx.oto], [XN.bus, nx.bus]]) {
     m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;

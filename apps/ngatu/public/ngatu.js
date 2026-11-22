@@ -5,6 +5,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 // ───────────────────────── hình học đường ─────────────────────────
 // Trục x = Đông, trục z = Nam. Đường Đông–Tây rộng 2×10 m, Bắc–Nam 2×8 m, vỉa hè 4 m. Xe đi bên phải.
@@ -1343,7 +1348,7 @@ controls.maxPolarAngle = Math.PI * 0.49;
 controls.minDistance = 4; controls.maxDistance = 380;
 controls.enableDamping = true;
 
-scene.add(new THREE.HemisphereLight('#dfefff', '#8a7a66', 1.1));
+const troi = new THREE.HemisphereLight('#dfefff', '#8a7a66', 1.1); scene.add(troi);
 const sun = new THREE.DirectionalLight('#fff1dc', 1.9);
 sun.position.set(90, 160, 60);
 sun.castShadow = true;
@@ -2189,6 +2194,64 @@ function coKhung() {
 addEventListener('resize', coKhung);
 coKhung();
 
+// ───────────────────────── hai bản hình: hiện tại ↔ bản thật (anh 22/11/2026, "giống castle, làm 2 option") ─────────────────────────
+// Cùng một dòng xe, chỉ đổi cách VẼ. Nút 🧩 (hoặc ?hinh=that) bật bản thật: vật liệu PBR + ánh sáng môi trường + che bóng góc (GTAO)
+// + mặt đường nhựa có vân. Lớp 1/4 của kế hoạch "mô hình thật"; xe máy, nhà phố, người thật sẽ nạp ngầm vào cùng nút này.
+const THAT = { on: false, vl: new Map(), composer: null, env: null, duong: null };
+function vlThat(m) {
+  if (THAT.vl.has(m)) return THAT.vl.get(m);
+  const n = new THREE.MeshStandardMaterial({
+    color: m.color, map: m.map, vertexColors: m.vertexColors, transparent: m.transparent, opacity: m.opacity,
+    side: m.side, polygonOffset: m.polygonOffset, polygonOffsetFactor: m.polygonOffsetFactor, depthWrite: m.depthWrite,
+    roughness: 0.62, metalness: 0.08, envMapIntensity: 0.25,
+  });
+  THAT.vl.set(m, n); return n;
+}
+function vanNhua() { // vân nhựa đường: hạt sỏi + vệt bánh xe, tự sinh (0 byte tải)
+  const c = document.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d');
+  const d = x.createImageData(512, 512);
+  for (let i = 0; i < d.data.length; i += 4) { const v = 150 + (Math.random() - 0.5) * 70 + (Math.random() < 0.02 ? 50 : 0); d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+  x.putImageData(d, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(140, 140); t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return t;
+}
+function datHinh(on) {
+  THAT.on = on;
+  if (on && !THAT.env) {
+    const pm = new THREE.PMREMGenerator(renderer);
+    THAT.env = pm.fromScene(new RoomEnvironment(renderer), 0.04).texture; pm.dispose();
+    THAT.duong = vanNhua();
+  }
+  scene.traverse((o) => {
+    if (!o.isMesh) return;
+    if (on) {
+      if (o.material.isMeshLambertMaterial) { o.userData.vlCu = o.material; o.material = vlThat(o.material); }
+    } else if (o.userData.vlCu) { o.material = o.userData.vlCu; o.material.needsUpdate = true; delete o.userData.vlCu; }
+  });
+  const vd = THAT.vl.get(mat0.userData.vlCu || mat0.material);
+  if (vd) { vd.map = on ? THAT.duong : null; vd.roughness = 0.95; vd.needsUpdate = true; }
+  scene.environment = on ? THAT.env : null;
+  renderer.toneMapping = on ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+  renderer.toneMappingExposure = on ? 0.7 : 1;
+  troi.intensity = on ? 0.5 : 1.1; sun.intensity = on ? 2.6 : 1.9;
+  if (on && !THAT.composer && !DD) {
+    const c = new EffectComposer(renderer);
+    c.addPass(new RenderPass(scene, camera));
+    const ao = new GTAOPass(scene, camera, innerWidth, innerHeight);
+    ao.updateGtaoMaterial({ radius: 1.2, distanceFallOff: 1, thickness: 1.5 });
+    c.addPass(ao); c.addPass(new OutputPass());
+    THAT.composer = c;
+  }
+  if (THAT.composer) THAT.composer.setSize(innerWidth, innerHeight);
+  renderer.shadowMap.needsUpdate = true;
+  const b = $('hinh'); if (b) { b.classList.toggle('on', on); b.title = on ? 'Đang xem BẢN THẬT — bấm để về bản hiện tại' : 'Xem BẢN THẬT (vật liệu PBR, ánh sáng môi trường, che bóng góc) để so với bản hiện tại'; }
+  const u = new URL(location.href); if (on) u.searchParams.set('hinh', 'that'); else u.searchParams.delete('hinh'); history.replaceState(null, '', u);
+}
+$('hinh')?.addEventListener('click', () => datHinh(!THAT.on));
+addEventListener('resize', () => THAT.composer?.setSize(innerWidth, innerHeight));
+if (new URLSearchParams(location.search).get('hinh') === 'that') datHinh(true);
+
 // ───────────────────────── chấm phương án ─────────────────────────
 // Mỗi phương án chạy CÙNG một dòng xe: 3 hạt ngẫu nhiên cố định, mỗi hạt 40 s làm nóng + 120 s đo, bước 1/20 s.
 // Math.random chỉ bị thay bằng bộ sinh có hạt trong lúc chạy bước chấm — vẽ cảnh vẫn dùng Math.random thật.
@@ -2275,7 +2338,7 @@ function khoiDong() {
     if (cam === 'theo') capNhatCamTheo(dtThuc); else controls.update();
     hudT -= dtThuc; if (hudT <= 0) { hud(); hudT = 0.25; }
     KHUNG.setFromProjectionMatrix(MK.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)); daCoKhung = true;
-    renderer.render(scene, camera);
+    if (THAT.on && THAT.composer) THAT.composer.render(); else renderer.render(scene, camera);
   });
 }
 requestAnimationFrame(() => setTimeout(khoiDong, 30));

@@ -1,0 +1,278 @@
+{
+ "ghi_chu": "BỐ CỤC MẶT RITTERHAUS HƯỚNG SÂN TRÊN (bước 8 roadmap, 23/11/2026) — dãy vòm lõm tầng trệt của cánh bắc sân trên (way/223069513 cạnh #7, đỉnh 7 (3,21; −11,31) → đỉnh 8 (−37,88; 6,48), dài 44,8 m). Số đo ĐIỂM ẢNH trên ẢNH ĐÃ NẮN nan-castillo-xvi-ritterhaus.jpg: ảnh gốc Commons 'Castillo de Neuschwanstein (Alemania) XVI' chiếu ngược lên mặt phẳng đứng qua cạnh #7 bằng camera do-anh.json của chính ảnh đó (LightGlue + PnP, 1893 điểm, lệch 2,7 px) — script tạm b8/nan.py. Trên ảnh nắn x = (s − 8) × 40 px (s = mét dọc cạnh từ đỉnh 7), y = (48 − cao độ tuyệt đối) × 40 px: cột đứng thẳng, gờ nằm ngang, nên mốc ngang tính thẳng từ OSM. Kiểm chéo: khối đầu hồi way/1573692063 (s 22–32 theo OSM) hiện trên ảnh nắn ở s 21,8–32,8; gờ đo được (32,9 / 38,0 m) trùng gờ so-anh-that.mjs báo THIẾU trên chính mặt này (33,2 / 34,0 / 38,0 m). 11 nhịp vòm lõm, mỗi nhịp một cặp cửa vòm có cột nhỏ giữa, nhịp trung bình 131 px = 3,28 m. Kiểm: python3 apps/castle/scripts/kiem-mat-tien.py <tệp này> --luoi x0,y0,x1,y1 ra.png",
+ "anh": {
+  "tep": "public/du-lieu/anh/web/nan-castillo-xvi-ritterhaus.jpg",
+  "rong": 1680,
+  "cao": 800,
+  "nguon": "https://commons.wikimedia.org/wiki/File:Castillo_de_Neuschwanstein_(Alemania)_XVI.JPG",
+  "tacGia": "Dbarralm",
+  "giayPhep": "CC BY-SA 3.0 es",
+  "ghi_chu": "ảnh phái sinh (nắn lên mặt phẳng cạnh way/223069513#7) của ảnh gốc cùng giấy phép; không có camera vì ảnh đã nắn — camera ảnh gốc ở do-anh.json (anh/web/c-Castillo-de-Neuschwanstein-Alemania-XVI.jpg)"
+ },
+ "mat": {
+  "ghi_chu": "MỐC QUY ĐỔI. NGANG: x ảnh nắn = (s − 8) × 40, s chiếu từ toạ độ OSM lên cạnh #7. ĐỨNG: đỉnh gờ sàn dưới dãy vòm ↔ vGo, mép trên gờ mái hiên trên dãy vòm ↔ đỉnh tường khung.",
+  "khung": "way/223069513#7",
+  "vGo": 0.4341,
+  "ly_do_vGo": "ảnh nắn cho cao độ tuyệt đối (y = (48 − cao) × 40): đỉnh gờ sàn dưới dãy vòm y 604 = 32,90 m; khung way/223069513#7 chân 26,48 m (suy từ xem-mat-rieng: v 0,3 → 30,92 m, đỉnh 41,27 m) → v = (32,90 − 26,48) / (41,27 − 26,48) = 0,434. Khớp gờ 33,2 m so-anh-that tìm thấy trên mặt này (đỉnh gờ dày ↔ mép dưới bậu)",
+  "ngang": [
+   [
+    -320,
+    "way/223069513",
+    7,
+    "đỉnh 7 — góc đông (ngoài khung ảnh, tính từ phép nắn)"
+   ],
+   [
+    1471,
+    "way/223069513",
+    8,
+    "đỉnh 8 — đầu tây (s 44,8)"
+   ],
+   [
+    1510,
+    "way/223069513",
+    9,
+    "đỉnh 9 — cạnh 8→9 thẳng hàng tiếp ra mặt sân Wintergarten (s 45,8)"
+   ]
+  ],
+  "go": [
+   [
+    100,
+    604
+   ],
+   [
+    1450,
+    604
+   ]
+  ],
+  "ly_do_go": "đỉnh gờ sàn dày dưới dãy vòm (lưới 80–1480 / 440–620): y 608 ở đầu đông → 600 ở đầu tây (32.8–33.0 m), lấy giữa y 604 = 32.90 m",
+  "maiHien": [
+   [
+    100,
+    269
+   ],
+   [
+    1450,
+    269
+   ]
+  ],
+  "ly_do_maiHien": "đỉnh tường khung 41,27 m (xem-mat-rieng) đặt đúng chỗ của nó trên ảnh nắn: y = (48 − 41,27) × 40 = 269 — trên ảnh, mép mái hiên thật của tầng trên nằm quanh y 250 (≈ 41,7 m), lệch ~0,5 m; gờ đỉnh dãy vòm y 402 = 37.95 m (so-anh-that báo gờ 38,0 m)"
+ },
+ "cum": [
+  {
+   "ten": "vòm lõm tầng trệt — nhịp A (khuất một nửa sau mép khung ảnh — chỉ thấy một ô)",
+   "o": [
+    [
+     107,
+     137
+    ]
+   ],
+   "dinhO": 517,
+   "bau": 589,
+   "vom": [
+    90,
+    159,
+    472
+   ]
+  },
+  {
+   "ten": "vòm lõm tầng trệt — nhịp B",
+   "o": [
+    [
+     206,
+     231
+    ],
+    [
+     249,
+     274
+    ]
+   ],
+   "dinhO": 514,
+   "bau": 584,
+   "vom": [
+    200,
+    291,
+    470
+   ]
+  },
+  {
+   "ten": "vòm lõm tầng trệt — nhịp C",
+   "o": [
+    [
+     342,
+     367
+    ],
+    [
+     385,
+     406
+    ]
+   ],
+   "dinhO": 509,
+   "bau": 578,
+   "vom": [
+    337,
+    430,
+    465
+   ]
+  },
+  {
+   "ten": "vòm lõm tầng trệt — nhịp D",
+   "o": [
+    [
+     476,
+     501
+    ],
+    [
+     518,
+     536
+    ]
+   ],
+   "dinhO": 506,
+   "bau": 577,
+   "vom": [
+    472,
+    556,
+    461
+   ]
+  },
+  {
+   "ten": "vòm lõm tầng trệt — nhịp E",
+   "o": [
+    [
+     609,
+     634
+    ],
+    [
+     651,
+     674
+    ]
+   ],
+   "dinhO": 501,
+   "bau": 569,
+   "vom": [
+    611,
+    697,
+    458
+   ]
+  },
+  {
+   "ten": "vòm lõm tầng trệt — nhịp F",
+   "o": [
+    [
+     741,
+     766
+    ],
+    [
+     775,
+     805
+    ]
+   ],
+   "dinhO": 498,
+   "bau": 566,
+   "vom": [
+    748,
+    832,
+    452
+   ]
+  },
+  {
+   "ten": "vòm lõm tầng trệt — nhịp G",
+   "o": [
+    [
+     873,
+     898
+    ],
+    [
+     910,
+     940
+    ]
+   ],
+   "dinhO": 493,
+   "bau": 562,
+   "vom": [
+    881,
+    962,
+    451
+   ]
+  },
+  {
+   "ten": "vòm lõm tầng trệt — nhịp H",
+   "o": [
+    [
+     1007,
+     1032
+    ],
+    [
+     1041,
+     1069
+    ]
+   ],
+   "dinhO": 490,
+   "bau": 560,
+   "vom": [
+    1013,
+    1093,
+    448
+   ]
+  },
+  {
+   "ten": "vòm lõm tầng trệt — nhịp I",
+   "o": [
+    [
+     1138,
+     1162
+    ],
+    [
+     1174,
+     1199
+    ]
+   ],
+   "dinhO": 489,
+   "bau": 560,
+   "vom": [
+    1142,
+    1226,
+    443
+   ]
+  },
+  {
+   "ten": "vòm lõm tầng trệt — nhịp J",
+   "o": [
+    [
+     1269,
+     1291
+    ],
+    [
+     1304,
+     1329
+    ]
+   ],
+   "dinhO": 485,
+   "bau": 558,
+   "vom": [
+    1267,
+    1355,
+    441
+   ]
+  },
+  {
+   "ten": "vòm lõm tầng trệt — nhịp K (đầu tây, giáp Wintergarten)",
+   "o": [
+    [
+     1400,
+     1422
+    ],
+    [
+     1432,
+     1456
+    ]
+   ],
+   "dinhO": 484,
+   "bau": 556,
+   "vom": [
+    1395,
+    1480,
+    440
+   ]
+  }
+ ]
+}

@@ -1,0 +1,388 @@
+{
+ "ghi_chu": "BỐ CỤC MẶT TÂY PALAS (đầu hồi hướng hẻm Pöllat / cầu Marienbrücke, 23/11/2026). Số đo điểm ảnh trên ảnh ĐÃ NẮN 1355 × 2026. Phần thấp hơn y ≈ 1540 bị cây che; phần trên mái hiên (đầu hồi, vòm mù, chòi góc, tượng) KHÔNG đặt từ tệp này. Soát: python3 apps/castle/scripts/kiem-mat-tien.py <tệp này> --ve-tep ra.png",
+ "anh": {
+  "tep": "public/du-lieu/anh/web/nan-palas-tay-05.jpg",
+  "rong": 1355,
+  "cao": 2026,
+  "nguon": "https://commons.wikimedia.org/wiki/File:Neuschwanstein_Castle_05.jpg",
+  "tacGia": "Llez",
+  "giayPhep": "CC BY-SA 3.0",
+  "ghi_chu": "ảnh phái sinh (nắn phối cảnh) của ảnh gốc commons-Neuschwanstein-Castle-05.jpg 1280 × 2083, cùng giấy phép; không có camera vì ảnh đã nắn. Điểm tụ đứng đo bằng LSD (OpenCV) (568,4; −13706,8), điểm tụ ngang ở vô cực (độ dốc nét ngang 0,0008) → phép chiếu đưa điểm tụ đứng ra vô cực, giữ hàng y 800, dời vào khung (ma trận ở scratchpad b5/T.json)"
+ },
+ "mat": {
+  "ghi_chu": "Trục mặt = cạnh way/223110819#9 (tường tây phần khối Palas; khối vỏ way/221599090 không dựng nên không làm khung được). Mảng giữa nhô ~1,5 m = phần khối way/223145713 (OSM min_height 15, height 26). Bốn mốc: góc bắc way/223110819 v0 (TRÁI ảnh), góc mảng nhô way/223145713 v3 và v2, góc nam way/223110819 v8 (PHẢI ảnh). Mảng nhô 415–880 px (465 px / 10,9 m); hai vai lùi 250–415 và 880–1075 px — tỉ lệ ngang khác nhau vì mảng giữa gần máy hơn, banDoMat khớp phép chiếu + sửa dư theo đoạn.",
+  "khung": "way/223110819#9",
+  "vGo": 0.542,
+  "ly_do_vGo": "gờ = dải đá ngang dưới hàng con-xon đầu người (y 1400). Tỉ lệ đứng đo trên đầu hồi: mái hiên y 800 → đỉnh hồi y 355 = 445 px ↔ roof:height 12 m (OSM) = 37,1 px/m → gờ thấp hơn mái hiên 600 / 37,1 = 16,17 m; v sao cho khung.y(v) = mái hiên khung − 16,17 m (tính từ 'gờ chia tầng' của xem-mat-rieng.mjs)",
+  "ngang": [
+   [
+    250,
+    "way/223110819",
+    0,
+    "góc bắc tường (dưới chòi góc trái), y 1100–1250"
+   ],
+   [
+    415,
+    "way/223145713",
+    3,
+    "mép trái mảng nhô (gờ y 1095 bắt đầu), y 1100–1400"
+   ],
+   [
+    880,
+    "way/223145713",
+    2,
+    "mép phải mảng nhô, y 1100–1400"
+   ],
+   [
+    1075,
+    "way/223110819",
+    8,
+    "góc nam tường (dưới chòi góc phải), y 1100–1250"
+   ]
+  ],
+  "go": [
+   [
+    0,
+    1400
+   ],
+   [
+    1355,
+    1400
+   ]
+  ],
+  "ly_do_go": "dải đá ngang dưới hàng con-xon đầu người, nằm ngang trên ảnh nắn (lưới kiem-mat-tien.py --luoi trên ảnh nắn (b5/g1–g4: 170–710 & 640–1180 / 280–1000 & 990–1700))",
+  "maiHien": [
+   [
+    0,
+    800
+   ],
+   [
+    1355,
+    800
+   ]
+  ],
+  "ly_do_maiHien": "mép trên gờ mái hiên chạy ngang dưới đầu hồi (y 783–800), băng 800–815, diềm vòm nhỏ 830–850"
+ },
+ "cum": [
+  {
+   "ten": "cửa ba ô dưới mái hiên — trái",
+   "o": [
+    [
+     383,
+     416
+    ],
+    [
+     423,
+     456
+    ],
+    [
+     463,
+     497
+    ]
+   ],
+   "dinhO": 885,
+   "bau": 960
+  },
+  {
+   "ten": "cửa ba ô dưới mái hiên — giữa",
+   "o": [
+    [
+     607,
+     640
+    ],
+    [
+     647,
+     680
+    ],
+    [
+     687,
+     715
+    ]
+   ],
+   "dinhO": 885,
+   "bau": 960
+  },
+  {
+   "ten": "cửa ba ô dưới mái hiên — phải",
+   "o": [
+    [
+     825,
+     862
+    ],
+    [
+     868,
+     905
+    ],
+    [
+     911,
+     945
+    ]
+   ],
+   "dinhO": 885,
+   "bau": 960
+  },
+  {
+   "ten": "lô-gia trên (ban công tầng 4) — 5 vòm",
+   "o": [
+    [
+     462,
+     522
+    ],
+    [
+     542,
+     602
+    ],
+    [
+     622,
+     682
+    ],
+    [
+     700,
+     760
+    ],
+    [
+     777,
+     837
+    ]
+   ],
+   "dinhO": 990,
+   "bau": 1055
+  },
+  {
+   "ten": "lô-gia dưới (ban công tầng 3) — 5 vòm",
+   "o": [
+    [
+     470,
+     520
+    ],
+    [
+     545,
+     600
+    ],
+    [
+     622,
+     677
+    ],
+    [
+     702,
+     755
+    ],
+    [
+     782,
+     832
+    ]
+   ],
+   "dinhO": 1150,
+   "bau": 1212
+  },
+  {
+   "ten": "cửa sổ sau 5 vòm con-xon",
+   "o": [
+    [
+     497,
+     522
+    ],
+    [
+     573,
+     598
+    ],
+    [
+     648,
+     674
+    ],
+    [
+     724,
+     749
+    ],
+    [
+     799,
+     825
+    ]
+   ],
+   "dinhO": 1355,
+   "bau": 1400
+  },
+  {
+   "ten": "cặp cửa vòm vai bắc trên",
+   "o": [
+    [
+     345,
+     367
+    ],
+    [
+     377,
+     400
+    ]
+   ],
+   "dinhO": 1040,
+   "bau": 1109
+  },
+  {
+   "ten": "cặp cửa vòm vai bắc dưới",
+   "o": [
+    [
+     345,
+     367
+    ],
+    [
+     377,
+     400
+    ]
+   ],
+   "dinhO": 1190,
+   "bau": 1262
+  },
+  {
+   "ten": "cặp cửa vòm vai nam trên",
+   "o": [
+    [
+     927,
+     947
+    ],
+    [
+     960,
+     985
+    ]
+   ],
+   "dinhO": 1040,
+   "bau": 1110
+  },
+  {
+   "ten": "cặp cửa vòm vai nam dưới",
+   "o": [
+    [
+     927,
+     947
+    ],
+    [
+     960,
+     985
+    ]
+   ],
+   "dinhO": 1190,
+   "bau": 1264
+  },
+  {
+   "ten": "cửa đơn vai bắc",
+   "o": [
+    [
+     356,
+     384
+    ]
+   ],
+   "dinhO": 1345,
+   "bau": 1400
+  },
+  {
+   "ten": "cửa đơn vai nam",
+   "o": [
+    [
+     940,
+     967
+    ]
+   ],
+   "dinhO": 1346,
+   "bau": 1401
+  },
+  {
+   "ten": "cặp cửa tầng dưới — trái giữa",
+   "o": [
+    [
+     482,
+     502
+    ],
+    [
+     515,
+     535
+    ]
+   ],
+   "dinhO": 1490,
+   "bau": 1535
+  },
+  {
+   "ten": "cặp cửa tầng dưới — phải giữa",
+   "o": [
+    [
+     637,
+     655
+    ],
+    [
+     665,
+     685
+    ]
+   ],
+   "dinhO": 1490,
+   "bau": 1535
+  },
+  {
+   "ten": "cửa vòm lớn tầng dưới",
+   "o": [
+    [
+     757,
+     802
+    ]
+   ],
+   "dinhO": 1480,
+   "bau": 1575
+  }
+ ],
+ "ly_do_cum": "lưới kiem-mat-tien.py --luoi trên ảnh nắn (b5/g1–g4: 170–710 & 640–1180 / 280–1000 & 990–1700): cửa ba ô dưới mái hiên chia đều theo bề rộng cụm (cột nhỏ không đọc rõ); lô-gia đo theo cột đôi; cặp cửa vai đo khung đá",
+ "be": [
+  {
+   "ten": "mái ban công trên + diềm răng",
+   "tu": 415,
+   "den": 885,
+   "tren": 940,
+   "duoi": 965,
+   "nho": 0.3
+  },
+  {
+   "ten": "lan can ban công trên + gờ",
+   "tu": 415,
+   "den": 885,
+   "tren": 1055,
+   "duoi": 1097,
+   "nho": 0.3
+  },
+  {
+   "ten": "lan can ban công dưới + gờ",
+   "tu": 415,
+   "den": 885,
+   "tren": 1212,
+   "duoi": 1240,
+   "nho": 0.3
+  },
+  {
+   "ten": "gờ ngang vai bắc",
+   "tu": 250,
+   "den": 415,
+   "tren": 1095,
+   "duoi": 1105,
+   "nho": 0.15
+  },
+  {
+   "ten": "gờ ngang vai nam",
+   "tu": 880,
+   "den": 1075,
+   "tren": 1095,
+   "duoi": 1105,
+   "nho": 0.15
+  },
+  {
+   "ten": "dải đá dưới con-xon",
+   "tu": 415,
+   "den": 885,
+   "tren": 1395,
+   "duoi": 1405,
+   "nho": 0.15
+  },
+  {
+   "ten": "trụ ốp mép nam mảng nhô",
+   "tu": 865,
+   "den": 912,
+   "tren": 1482,
+   "duoi": 1540,
+   "nho": 0.3
+  }
+ ]
+}

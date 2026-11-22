@@ -1,0 +1,301 @@
+{
+ "ghi_chu": "BỐ CỤC MẶT NGOÀI PHÍA BẮC RITTERHAUS (đầu hồi khối way/1573692063, cạnh #4 hướng bắc-tây bắc) — BƯỚC 3 roadmap 23/11/2026. Số đo ĐIỂM ẢNH trên ẢNH ĐÃ NẮN nan-sjeverna-ritterhaus.jpg: ảnh gốc Commons 'Dvorac Neuschwanstein – sjeverna strana' (1280 × 960, chụp ngước ~35°) nắn bằng phép QUAY THUẦN từ camera do-anh của chính ảnh (neuschwanstein-do-anh.json: 1010 điểm khớp, sai 2,9 px) sang camera ảo nhìn thẳng pháp tuyến mặt (ngẩng 0, nghiêng 0, tiêu cự 900 px), rồi cắt vùng x 150–1150 / y 4800–6367 của ảnh nắn. Mặt tường song song mặt ảnh nên tỉ lệ ĐẲNG HƯỚNG: chân khối dưới 178 → 642 px = 464 px ↔ cạnh OSM 10,01 m = 46,35 px/m (khớp tỉ lệ hình học 900 px / sâu 19,4 m = 46,4). Script nắn tạm: /private/tmp/claude-501/-Users-htuan-Me-GitHub-earns-marketing-os-v2/8c01bb4a-349c-49e5-96a4-7d528cfc32c6/scratchpad/b3/nan.py. Đo: python3 apps/castle/scripts/kiem-mat-tien.py <tệp này> --luoi x0,y0,x1,y1 ra.png (lưới 100–700 × 100–600 / 550–1050 / 1000–1567).",
+ "anh": {
+  "tep": "public/du-lieu/anh/web/nan-sjeverna-ritterhaus.jpg",
+  "rong": 1000,
+  "cao": 1567,
+  "nguon": "https://commons.wikimedia.org/wiki/File:Dvorac_Neuschwanstein_-_sjeverna_strana.jpg",
+  "tacGia": "Silverije",
+  "giayPhep": "CC BY-SA 4.0",
+  "ghi_chu": "ảnh phái sinh (nắn phối cảnh + cắt) của ảnh gốc, cùng giấy phép CC BY-SA 4.0; không có camera vì ảnh đã nắn. Ảnh gốc: commons-Dvorac-Neuschwanstein---sjeverna-strana.jpg"
+ },
+ "mat": {
+  "ghi_chu": "s = 0 ở góc tây v4 (x 642, mép phải khối dưới), tăng sang TRÁI tới góc đông v5 (s 10,01, x 178, mép trái khối dưới) — đo ở dải y 650–1100 (lưới 100–700 × 550–1050 và 1000–1567). Tầng trên (y < 560) đua ra hai bên 152–640 có trụ góc, không lấy làm mốc. Mốc thứ ba way/1573692065 đỉnh (−17,84, −11,37) (chân tháp tròn phía đông, chiếu lên trục mặt s 12,69) SUY TUYẾN TÍNH trên ảnh nắn (x ∝ s, 46,35 px/m → x 54) — chỉ để banDoMat đủ ba mốc, không phần tử nào đặt ngoài s 0–10,01.",
+  "khung": "way/1573692063#4",
+  "vGo": 0.789,
+  "ly_do_vGo": "gờ = gờ đá ngang chạy dưới hàng ba cửa vòm đôi tầng trên (y 555). ĐỨNG: tỉ lệ đẳng hướng 46,35 px/m; mốc tuyệt đối = đỉnh đầu hồi y 110 ↔ sống mái 48,34 m (LoD2 Bavaria neuschwanstein-mai-lod2.json way/1573692063 y2 48,335; DOM20 p95 47,36; cham-goc 48,28) → gờ 48,335 − 445 / 46,35 = 38,73 m; v sao cho khung.y(v) = 38,73",
+  "ngang": [
+   [
+    642,
+    "way/1573692063",
+    4,
+    "góc tây (mép phải khối dưới, y 650–1100)"
+   ],
+   [
+    178,
+    "way/1573692063",
+    5,
+    "góc đông (mép trái khối dưới, y 650–1100)"
+   ],
+   [
+    54,
+    "way/1573692065",
+    2,
+    "suy tuyến tính s 12,69 trên ảnh nắn — xem mat.ghi_chu"
+   ]
+  ],
+  "go": [
+   [
+    150,
+    555
+   ],
+   [
+    650,
+    555
+   ]
+  ],
+  "ly_do_go": "ảnh nắn: gờ nằm ngang (y 553–560 suốt 160–640)",
+  "maiHien": [
+   [
+    150,
+    238
+   ],
+   [
+    650,
+    238
+   ]
+  ],
+  "ly_do_maiHien": "đỉnh tường khung 45,575 m (LoD2 y1) = 110 + (48,335 − 45,575) × 46,35 = 238; đầu hồi phía trên là mái (neuschwanstein-mai*.json), không đặt từ tệp này"
+ },
+ "ly_do_cum": "đo trên lưới 100–700 × 100–600 / 550–1050 / 1000–1567 (ảnh /private/tmp/claude-501/-Users-htuan-Me-GitHub-earns-marketing-os-v2/8c01bb4a-349c-49e5-96a4-7d528cfc32c6/scratchpad/b3/l1–l3.png): tầng trên ba cửa vòm đôi (cột giữa) trong viền vòm; tầng giữa hai cửa vòm đơn hai bên một hốc vòm lớn chứa cửa vòm đôi + ban công nhỏ; dưới đó ba cửa vòm đơn; ba khe chữ nhật (khe phải đôi); sát chân ba lỗ nhỏ đầu nhọn. Hai móc sắt hình hoa huệ (x 275 / 517, y 810) không có loại phần tử — bỏ. Tầng trên: ô phải của mỗi cặp nằm trong má vòm sâu, đo theo lưới 210–550 × 450–560 (l4) — ô tối thật lệch phải so với viền vòm vì ảnh chụp chéo từ tây; mép phải ô phải lấy giữa mép kính thấy trên lưới và mép bóng má vòm máy dò (sai ≤ 0,15 m).",
+ "cum": [
+  {
+   "ten": "cửa vòm đôi tầng trên — trái",
+   "o": [
+    [
+     239,
+     254
+    ],
+    [
+     275,
+     292
+    ]
+   ],
+   "dinhO": 498,
+   "bau": 547,
+   "vom": [
+    218,
+    295,
+    460
+   ]
+  },
+  {
+   "ten": "cửa vòm đôi tầng trên — giữa",
+   "o": [
+    [
+     356,
+     373
+    ],
+    [
+     392,
+     418
+    ]
+   ],
+   "dinhO": 498,
+   "bau": 547,
+   "vom": [
+    336,
+    422,
+    460
+   ]
+  },
+  {
+   "ten": "cửa vòm đôi tầng trên — phải",
+   "o": [
+    [
+     474,
+     490
+    ],
+    [
+     508,
+     540
+    ]
+   ],
+   "dinhO": 498,
+   "bau": 547,
+   "vom": [
+    456,
+    540,
+    460
+   ]
+  },
+  {
+   "ten": "cửa vòm đơn tầng giữa — trái",
+   "o": [
+    [
+     260,
+     295
+    ]
+   ],
+   "dinhO": 692,
+   "bau": 775,
+   "vom": [
+    250,
+    305,
+    680
+   ]
+  },
+  {
+   "ten": "cửa vòm đôi trong hốc vòm lớn tầng giữa",
+   "o": [
+    [
+     340,
+     383
+    ],
+    [
+     389,
+     435
+    ]
+   ],
+   "dinhO": 700,
+   "bau": 770,
+   "vom": [
+    315,
+    455,
+    637
+   ]
+  },
+  {
+   "ten": "cửa vòm đơn tầng giữa — phải",
+   "o": [
+    [
+     500,
+     535
+    ]
+   ],
+   "dinhO": 685,
+   "bau": 770,
+   "vom": [
+    490,
+    545,
+    675
+   ]
+  },
+  {
+   "ten": "cửa vòm đơn tầng dưới — trái",
+   "o": [
+    [
+     262,
+     295
+    ]
+   ],
+   "dinhO": 917,
+   "bau": 990,
+   "vom": [
+    252,
+    305,
+    905
+   ]
+  },
+  {
+   "ten": "cửa vòm đơn tầng dưới — giữa",
+   "o": [
+    [
+     380,
+     417
+    ]
+   ],
+   "dinhO": 912,
+   "bau": 987,
+   "vom": [
+    370,
+    427,
+    900
+   ]
+  },
+  {
+   "ten": "cửa vòm đơn tầng dưới — phải",
+   "o": [
+    [
+     502,
+     537
+    ]
+   ],
+   "dinhO": 910,
+   "bau": 982,
+   "vom": [
+    492,
+    547,
+    898
+   ]
+  },
+  {
+   "ten": "khe chữ nhật — trái",
+   "o": [
+    [
+     277,
+     295
+    ]
+   ],
+   "dinhO": 1077,
+   "bau": 1137
+  },
+  {
+   "ten": "khe chữ nhật — giữa",
+   "o": [
+    [
+     400,
+     417
+    ]
+   ],
+   "dinhO": 1075,
+   "bau": 1132
+  },
+  {
+   "ten": "khe chữ nhật đôi — phải",
+   "o": [
+    [
+     510,
+     527
+    ],
+    [
+     534,
+     551
+    ]
+   ],
+   "dinhO": 1072,
+   "bau": 1130
+  },
+  {
+   "ten": "lỗ nhỏ sát chân — trái",
+   "o": [
+    [
+     281,
+     305
+    ]
+   ],
+   "dinhO": 1262,
+   "bau": 1290
+  },
+  {
+   "ten": "lỗ nhỏ sát chân — giữa",
+   "o": [
+    [
+     403,
+     429
+    ]
+   ],
+   "dinhO": 1260,
+   "bau": 1290
+  },
+  {
+   "ten": "lỗ nhỏ sát chân — phải",
+   "o": [
+    [
+     527,
+     551
+    ]
+   ],
+   "dinhO": 1258,
+   "bau": 1288
+  }
+ ],
+ "oTron": [
+  {
+   "ten": "cửa sổ tròn đầu hồi",
+   "x": 385,
+   "y": 325,
+   "r": 17
+  }
+ ]
+}

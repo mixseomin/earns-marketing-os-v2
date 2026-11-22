@@ -18,7 +18,7 @@ export function datAnhSang({ THREE, renderer, scene, nang, nhe, mauChanTroi = 0x
   vom.renderOrder = -1; vom.frustumCulled = false; vom.userData.troi = true; scene.add(vom);
   if (!nhe) { // ánh trời theo hướng (một lần, ~10 ms GPU lúc mở trang)
     const pm = new THREE.PMREMGenerator(renderer), s2 = new THREE.Scene(), v2 = vom.clone(); v2.scale.setScalar(100); s2.add(v2);
-    scene.environment = pm.fromScene(s2, 0.04).texture; scene.environmentIntensity = 0.45; pm.dispose();
+    scene.environment = pm.fromScene(s2, 0.04).texture; scene.environmentIntensity = 0.3; pm.dispose();
   }
   const tam = new THREE.Vector3(1e9, 0, 0), lech = nang.position.clone(); scene.add(nang.target);
   return {

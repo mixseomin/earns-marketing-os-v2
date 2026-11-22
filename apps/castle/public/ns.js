@@ -77,8 +77,13 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure
 document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0xa9c4dc); scene.fog = new THREE.Fog(0xa9c4dc, 2500, 18000);
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.5, 25000);
-scene.add(new THREE.HemisphereLight(0xdfe9f5, 0x55603a, 1.3));
-const nang = new THREE.DirectionalLight(0xfff1dc, 2.6); nang.position.set(-260, 380, 180); nang.castShadow = true;
+// ÁNH SÁNG PHÂN MẶT (anh 22/11/2026 "thiếu ánh sáng nên các khối cứ đồng màu khó nhìn"): trước ánh trời bán cầu 1,3 chiếu đều mọi hướng ngang → tường quay bắc / đông / tây
+// cùng một độ sáng, khối chồng lên nhau thành một mảng. Nay: ánh trời yếu (chỉ đỡ phần tối), nắng thấp hơn (39°) để tường hướng nắng / khuất nắng tách rõ,
+// thêm ánh trời phản từ hướng đông bắc (xanh lạnh, KHÔNG đổ bóng → gần như không tốn GPU) cho mặt khuất nắng khác mặt quay đông — mỗi hướng tường một độ sáng
+scene.add(new THREE.HemisphereLight(0xd6e4f2, 0x5c5a46, 0.45));
+const nang = new THREE.DirectionalLight(0xfff0d8, 3.2); nang.position.set(-300, 300, 220); nang.castShadow = true;
+const phan = new THREE.DirectionalLight(0xb9cde6, 1.0); phan.position.set(240, 150, -280); scene.add(phan);
+const phan2 = new THREE.DirectionalLight(0xe8e2d4, 0.45); phan2.position.set(280, 90, 260); scene.add(phan2); // đèn phụ thứ hai: mặt trong bóng mỗi hướng một độ sáng (sân trong không còn đồng màu)
 nang.shadow.mapSize.set(CHAM ? 1024 : 2048, CHAM ? 1024 : 2048); Object.assign(nang.shadow.camera, { left: -200, right: 200, top: 200, bottom: -200, near: 50, far: 1200 }); nang.shadow.bias = -0.0004; scene.add(nang);
 const ANH_SANG = datAnhSang({ THREE, renderer, scene, nang, nhe: CHAM, mauChanTroi: 0xa9c4dc }); // vòm trời + ánh trời + bóng nắng đi theo người (anhsang.js)
 

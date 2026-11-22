@@ -88,3 +88,6 @@ button:disabled { opacity: .6; cursor: progress; }
 .ben.gon { width: auto; }
 .ben.gon .cong, .ben.gon #so, .ben.gon #than, .ben.gon #mo { display: none !important; }
 .ben.gon #gon { background: var(--nhan); color: #1a1a1a; }
+
+/* chế độ chỉ xem: ẩn hàng công cụ tương tác tới khi bật ✏️ Chỉnh sửa */
+.ben:not(.sua) .nut.cong { display: none !important; }

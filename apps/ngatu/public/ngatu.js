@@ -2070,7 +2070,7 @@ function capNhatNet() {
   }
 }
 cv.addEventListener('pointerdown', (e) => {
-  if (cong !== 've' || e.button > 0) return;
+  if (!SUA || cong !== 've' || e.button > 0) return;
   const a = chonXe(e);
   if (!a || a.loai === 'bo' || a.nhac) return; // bấm ra chỗ trống → vẫn xoay máy quay như thường
   e.stopImmediatePropagation(); e.preventDefault();
@@ -2111,7 +2111,7 @@ cv.addEventListener('pointerup', xongVe);
 cv.addEventListener('pointercancel', xongVe);
 cv.addEventListener('pointerdown', (e) => (xuong = [e.clientX, e.clientY]));
 cv.addEventListener('pointerup', (e) => {
-  if (!xuong || Math.hypot(e.clientX - xuong[0], e.clientY - xuong[1]) > 6) return;
+  if (!SUA || !xuong || Math.hypot(e.clientX - xuong[0], e.clientY - xuong[1]) > 6) return;
   const a = chonXe(e);
   if (cong === 'chuoi') { const d = diemDat(e); if (d) thaChuoi(d[0], d[1]); return; }
   if (cong === 'nuoc') { const d = a ? [a.x, a.z] : diemDat(e); if (d) doiNuoc(d[0], d[1], a); return; }
@@ -2168,7 +2168,7 @@ function reVao() {
   cv.style.cursor = t ? 'pointer' : '';
 }
 cv.addEventListener('pointermove', (e) => {
-  if (e.pointerType === 'touch' || e.buttons) { reE = null; } else reE = e;
+  if (!SUA) { reE = null; } else if (e.pointerType === 'touch' || e.buttons) { reE = null; } else reE = e;
   if (!reCho) reCho = setTimeout(reVao, 60);
 });
 cv.addEventListener('pointerleave', () => { reE = null; if (!reCho) reCho = setTimeout(reVao, 0); });
@@ -2223,6 +2223,17 @@ function moChinh(e) {
 }
 function dongChinh() { chinh = null; veChinh(); }
 addEventListener('keydown', (e) => { if (e.key === 'Escape') dongChinh(); });
+// Chế độ chỉnh sửa (anh 22/11/2026): mặc định chỉ XEM — bấm vào xe / người / đường không làm gì, chỉ xoay máy quay.
+// Bật ✏️ Chỉnh sửa mới hiện hàng công cụ (Túm, Đẩy ngã, Dội nước, Vỏ chuối, Vẽ) và cho bấm vào đối tượng. Nhớ trên URL ?sua.
+let SUA = new URLSearchParams(location.search).has('sua');
+function datSua(on) {
+  SUA = on; ben.classList.toggle('sua', on);
+  const b = $('sua'); if (b) { b.classList.toggle('on', on); b.title = on ? 'Đang CHỈNH SỬA — bấm để về chế độ chỉ xem' : 'Bật chỉnh sửa: túm, đẩy ngã, dội nước, vỏ chuối, vẽ đường, bấm vào làn để chỉnh'; }
+  if (!on) { dongChinh(); reE = null; cv.style.cursor = ''; }
+  const u = new URL(location.href); if (on) u.searchParams.set('sua', '1'); else u.searchParams.delete('sua'); history.replaceState(null, '', u);
+}
+$('sua')?.addEventListener('click', () => datSua(!SUA));
+datSua(SUA);
 let cong = 'nhac'; // 'theo' (đi theo xe) tạm bỏ khỏi giao diện 21/11/2026, mã giữ để bật lại
 document.querySelectorAll('[data-cong]').forEach((b) => b.addEventListener('click', () => {
   cong = b.dataset.cong;

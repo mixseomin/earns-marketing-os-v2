@@ -1400,7 +1400,7 @@ const geoCho = ghep([
   [new THREE.SphereGeometry(0.15, 10, 8).translate(-0.62, 1.53, 0), TRANG],
   [box(0.42, 0.14, 0.15).translate(-0.48, 0.86, 0.16), '#3a3a3a'], [box(0.42, 0.14, 0.15).translate(-0.48, 0.86, -0.16), '#3a3a3a'],
 ]);
-const geoHang = box(0.55, 0.5, 0.62).translate(-0.72, 1.06, 0);
+const geoHang = ghep([[box(0.55, 0.5, 0.62).translate(-0.72, 1.06, 0), '#ffffff'], [box(0.56, 0.012, 0.1).translate(-0.72, 1.312, 0), '#d8c9a0'], [box(0.1, 0.512, 0.632).translate(-0.72, 1.06, 0), '#d8c9a0']]);
 const geoOto = ghep([
   [box(4.3, 0.72, 1.78).translate(0, 0.62, 0), TRANG],
   [box(2.3, 0.6, 1.62).translate(-0.25, 1.27, 0), '#3a4450'],
@@ -1443,9 +1443,10 @@ const geoMuT = ghep([
   [new THREE.SphereGeometry(0.1, 12, 4, -Math.PI * 0.32, Math.PI * 0.64, Math.PI * 0.5, 0.06).scale(1.25, 1, 1.15).translate(0.01, -0.03, 0), '#ffffff'],
   [box(0.012, 0.11, 0.01).translate(0.015, -0.09, 0.112), '#202020'], [box(0.012, 0.11, 0.01).translate(0.015, -0.09, -0.112), '#202020'],
 ]);
+const mKhau = inst(new THREE.SphereGeometry(0.098, 12, 8, Math.PI * 0.08, Math.PI * 0.84, Math.PI * 0.55, Math.PI * 0.25).scale(1, 1.1, 1.08).translate(0.005, -0.01, 0), new THREE.MeshStandardMaterial({ roughness: 0.9 }), MAX_XM * 2); mKhau.userData.n = 0;
 const mMuT = inst(geoMuT, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.32, metalness: 0.05 }), MAX_XM * 2); mMuT.userData.n = 0;
 const mXm = inst(geoXm, vatLieuMau, MAX_XM), mNguoi = inst(geoNguoi, vatLieuMau, MAX_XM), mMu = inst(geoMu, vatLieu, MAX_XM);
-const mCho = inst(geoCho, vatLieuMau, MAX_XM), mHang = inst(geoHang, vatLieu, MAX_XM);
+const mCho = inst(geoCho, vatLieuMau, MAX_XM), mHang = inst(geoHang, vatLieuMau, MAX_XM);
 const mOto = inst(geoOto, vatLieuMau, MAX_OTO), mMui = inst(geoMui, vatLieuMau, MAX_OTO), mBus = inst(geoBus, vatLieuMau, 16);
 const mBo = inst(geoBo, vatLieuMau, 400), mDau = inst(geoDau, vatLieu, 400), mNon = inst(geoNon, vatLieu, 400);
 const NON_MAU = new THREE.Color('#e8d7a6');
@@ -1474,11 +1475,14 @@ const mBong = (() => {
   g.addColorStop(0, 'rgba(0,0,0,0.62)'); g.addColorStop(0.6, 'rgba(0,0,0,0.38)'); g.addColorStop(1, 'rgba(0,0,0,0)');
   x.fillStyle = g; x.fillRect(0, 0, 64, 64);
   const mat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 });
-  const m = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), mat, MAX_XM + 900);
+  const m = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), mat, 2 * (MAX_XM + 900));
   m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.renderOrder = 1;
   scene.add(m); return m;
 })();
+const NANG = (() => { const d = sun.position.clone().normalize(), l = Math.hypot(d.x, d.z) / d.y; return { x: d.x / Math.hypot(d.x, d.z) * l, z: d.z / Math.hypot(d.x, d.z) * l, l, g: Math.atan2(-d.z, d.x) }; })();
 const SB = new THREE.Vector3(), VY = new THREE.Vector3(), VO = new THREE.Vector3(), VD = new THREE.Vector3();
+const CARTON = ['#b8925f', '#a98352', '#c7a676'].map((h) => new THREE.Color(h));
+const KHAU = ['#7fb3e0', '#f2f2f2', '#2b2b2b', '#5f8fc4', '#e9a0b4'].map((h) => new THREE.Color(h));
 const MU_SAU = ['#e8e8e8', '#c0392b', '#1f3a68', '#f2c94c', '#2d2d2d', '#e88fb0'].map((h) => new THREE.Color(h));
 const MUI_TAXI = new THREE.Color('#ffd84a'), DEN_DON = new THREE.Color('#ff5a2a');
 
@@ -1859,7 +1863,9 @@ function ve() {
   let ix = 0, io = 0, ib = 0, ip = 0, is = 0; const nx = { xm: 0, oto: 0, bus: 0 };
   veXm.length = 0; veOto.length = 0; veBus.length = 0; veBo.length = 0;
   for (const a of DS) {
-    if (is < MAX_XM + 900) { Q.setFromAxisAngle(UP, a.goc); V.set(a.x, a.nhac ? 0.03 : a.y + 0.03, a.z); datMa(mBong, is++, V, Q, a.loai === 'bo' ? SB.set(0.75, 1, 0.75) : SB.set(a.len * 1.15, 1, a.wid * 1.7)); }
+    if (is < MAX_XM + 900) { Q.setFromAxisAngle(UP, a.goc); V.set(a.x, a.nhac ? 0.03 : a.y + 0.03, a.z); datMa(mBong, is++, V, Q, a.loai === 'bo' ? SB.set(0.75, 1, 0.75) : SB.set(a.len * 1.15, 1, a.wid * 1.7));
+      // bản thật: thêm bóng đổ dài theo hướng nắng (cao vật × độ nghiêng nắng), như bóng thật trên mặt nhựa
+      if (THAT.on && is < 2 * (MAX_XM + 900)) { const h = a.loai === 'bo' || a.loai === 'xm' ? 1.7 : a.loai === 'bus' ? 3.2 : 1.5; V.x -= NANG.x * h * 0.5; V.z -= NANG.z * h * 0.5; V.y += 0.002; Q.setFromAxisAngle(UP, NANG.g); datMa(mBong, is++, V, Q, SB.set(h * NANG.l + (a.loai === 'bo' ? 0.4 : a.len * 0.6), 1, a.loai === 'bo' ? 0.55 : a.wid * 1.2)); } }
     if (a.loai === 'bo') {
       Q.setFromAxisAngle(UP, a.goc);
       V.set(a.x, a.y + Math.abs(Math.sin(a.buoc)) * 0.04, a.z);
@@ -1882,17 +1888,18 @@ function ve() {
       VY.copy(V); if (yen) VY.add(VO.copy(yen).applyQuaternion(Q));
       if (nThat) {
         const mau = (a.mau ??= (Math.random() * 1e6) | 0), m = NGT.ds[mau % NGT.ds.length].m[NGT.buoc + 1]; datMa(m, m.userData.n++, VY, Q, MOT, uot(a.c2, a));
-        const d1 = NGT.ds[mau % NGT.ds.length].dau; if (d1) datMa(mMuT, mMuT.userData.n++, VD.copy(d1.v).applyQuaternion(Q).add(VY), Q, d1.s, uot(a.c3, a));
+        const d1 = NGT.ds[mau % NGT.ds.length].dau; if (d1) { datMa(mMuT, mMuT.userData.n++, VD.copy(d1.v).applyQuaternion(Q).add(VY), Q, d1.s, uot(a.c3, a)); if (mau % 5 < 3) datMa(mKhau, mKhau.userData.n++, VD.copy(d1.v).add(VO.set(0.0, 0.0, 0)).applyQuaternion(Q).add(VY), Q, d1.s, KHAU[mau % KHAU.length]); }
         if (a.cho) { const k2 = NGT.ds[(mau + 1) % NGT.ds.length], m2 = k2.m[NGT.buoc + 1]; VO.set(-0.36, 0.05, 0).applyQuaternion(Q).add(VY); datMa(m2, m2.userData.n++, VO, Q, MOT, uot(a.c4, a));
           if (k2.dau && mau % 4) datMa(mMuT, mMuT.userData.n++, VD.copy(k2.dau.v).applyQuaternion(Q).add(VO), Q, k2.dau.s, MU_SAU[mau % MU_SAU.length]); }
       }
       datMa(mXm, ix, V, Q, MOT, uot(a.c1, a)); datMa(mNguoi, ix, V, Q, MOT, uot(a.c2, a)); datMa(mMu, ix, VY, Q, nThat ? KHONG : MOT, uot(a.c3, a));
-      datMa(mCho, ix, V, Q, a.cho && !nThat ? MOT : KHONG, a.c4); datMa(mHang, ix, VY, Q, a.hang && !(nThat && a.cho) ? MOT : KHONG, a.c5);
+      datMa(mCho, ix, V, Q, a.cho && !nThat ? MOT : KHONG, a.c4); datMa(mHang, ix, VY, Q, a.hang && !(nThat && a.cho) ? MOT : KHONG, nThat ? CARTON[(a.mau ?? 0) % CARTON.length] : a.c5);
       if (ben) datMa(XN.xm, nx.xm++, V, Q, SXN.set(1, 1, ben));
       veXm[ix] = a; ix++;
     } else if (a.loai === 'oto') { veOto[io] = a; datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, uot(a.c1, a)); if (OTT.on) { const k = a.taxi && OTT.taxi ? OTT.taxi : OTT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % OTT.ds.length]; datMa(k.t, k.n, V, Q, MOT, uot(a.c1, a)); datMa(k.f, k.n++, V, Q, MOT); } if (ben) datMa(XN.oto, nx.oto++, V, Q, SXN.set(1, 1, ben)); }
     else { veBus[ib] = a; datMa(mBus, ib++, V, Q, MOT, uot(a.c1, a)); if (OTT.on && OTT.bus) { const k = OTT.bus; datMa(k.t, k.n, V, Q, MOT, uot(a.cb ??= new THREE.Color(chon(SON_BUS)), a)); datMa(k.f, k.n++, V, Q, MOT); } if (ben) datMa(XN.bus, nx.bus++, V, Q, SXN.set(1, 1, ben)); }
   }
+  mKhau.count = mKhau.userData.n; mKhau.userData.n = 0; mKhau.instanceMatrix.needsUpdate = true; if (mKhau.instanceColor) mKhau.instanceColor.needsUpdate = true;
   mMuT.count = mMuT.userData.n; mMuT.userData.n = 0; mMuT.instanceMatrix.needsUpdate = true; if (mMuT.instanceColor) mMuT.instanceColor.needsUpdate = true;
   if (NG.on && NGT.ok) for (const k of NGT.ds) for (const m of k.m) { m.count = m.userData.n; m.userData.n = 0; m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; }
   if (NG.on) { for (const [m, c] of [[NG.than, ip], [NG.tay, ip * 2], [NG.chan, ip * 2]]) { m.count = c; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; } }
@@ -2417,7 +2424,7 @@ function datXm(on) {
 // Chi tiết mặt tiền nhà phố VN cho bản thật: máy lạnh, lan can sắt, cửa cuốn có gân, khung cửa sổ, chậu cây, đồ phơi, biển dọc.
 // Dựng một lần thành MỘT khối gộp (một lần vẽ), chỉ hiện khi bật 🧩. Hạt ngẫu nhiên theo từng nhà → bật/tắt không đổi dáng.
 function dungChiTiet() {
-  const ds = [], DT = !!DD;
+  const ds = [], DT = !!DD, kinh = [];
   for (const [F, n, w, tang, hat] of NHA_CT) {
     let h0 = hat; const r = () => { h0 = (h0 * 1103515245 + 12345) & 0x7fffffff; return h0 / 0x7fffffff; };
     const goc = Math.atan2(n[0], n[1]);
@@ -2433,6 +2440,7 @@ function dungChiTiet() {
       // khung cửa sổ + song sắt
       b(0, y0 + 2.48, 0.07, ww + 0.16, 0.08, 0.08, '#e8e6e0'); b(0, y0 + 0.92, 0.07, ww + 0.16, 0.08, 0.08, '#e8e6e0');
       b(-ww / 2, y0 + 1.7, 0.07, 0.08, 1.6, 0.08, '#e8e6e0'); b(ww / 2, y0 + 1.7, 0.07, 0.08, 1.6, 0.08, '#e8e6e0');
+      { const p = theo(F, n, 0, 0.04); kinh.push(p[0], y0 + 1.7, p[1], ww, 1.5, 0.02, goc, r() < 0.45 ? ['#c9b38f', '#9fb4c4', '#d8c8d8', '#b9c7a6'][(r() * 4) | 0] : '#26303a'); }
       if (!DT) for (let k = 1; k < 5; k++) b(-ww / 2 + (ww * k) / 5, y0 + 1.7, 0.12, 0.03, 1.5, 0.03, '#2b2b2b');
       // lan can sắt ban công
       if (r() < 0.8) {
@@ -2455,6 +2463,10 @@ function dungChiTiet() {
     const hx = ds[k + 7]; if (!MAU.has(hx)) MAU.set(hx, new THREE.Color(hx)); m.setColorAt(i, MAU.get(hx));
   }
   m.receiveShadow = true; m.castShadow = !DT; m.matrixAutoUpdate = false; m.computeBoundingSphere(); scene.add(m);
+  // kính cửa sổ: bóng như gương, phản chiếu trời HDRI; sau kính có ô rèm màu (45%) hoặc phòng tối
+  const NK = kinh.length / 8, mk = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.06, metalness: 0.7, envMapIntensity: 1.1 }), Math.max(1, NK));
+  for (let i = 0; i < NK; i++) { const k = i * 8; v.set(kinh[k], kinh[k + 1], kinh[k + 2]); sc.set(kinh[k + 3], kinh[k + 4], kinh[k + 5]); q.setFromAxisAngle(Y, kinh[k + 6]); mk.setMatrixAt(i, mm.compose(v, q, sc)); mk.setColorAt(i, c.set(kinh[k + 7])); }
+  mk.count = NK; mk.matrixAutoUpdate = false; mk.computeBoundingSphere(); m.add(mk); // con của khối chi tiết → ẩn/hiện theo bản thật
   return m;
 }
 // Người đi bộ có khớp (bản thật, lớp 4): thân + 2 tay + 2 chân là InstancedMesh riêng, tay chân đung đưa theo nhịp bước a.buoc.

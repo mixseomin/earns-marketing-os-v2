@@ -203,6 +203,7 @@ export function taoSong({ goc, ql, dsThap, nuaNut, LONG }) {
     tXe += dt; if (tXe >= 1 / 30) {
       oXe.clear(); for (const c of xe) { if (c.dx === undefined) continue; const k = Math.floor(c.x / O_XE) * 8192 + Math.floor(c.z / O_XE); keXe[c.i] = oXe.has(k) ? oXe.get(k) : -1; oXe.set(k, c.i); } // lưới 12 m: xe nào đang ở ô nào
       for (const lan of lanXe) for (let k = 0; k < lan.length; k++) { const c = lan[k], t = c.t, ch = c.chieu;
+        if (c.ngoai) continue; // xe đã bị đâm văng khỏi làn: thân vật lý lái hình (xe-duong-va.js), xe sau trong làn vẫn dừng sau chỗ nó bỏ làn
         let trong = 1e4; // quãng trống phía trước tới chỗ phải dừng (m)
         if (lan.length > 1) { const tr = lan[(k + ch + lan.length) % lan.length]; trong = (((tr.s - c.s) * ch) % t.L + t.L) % t.L - 7; } // xe trước: giữ hở 2,6 m sau đuôi
         for (const n of t.nut) { const d = (n.s - c.s) * ch - n.h - 8.6; if (d > -1 && d < trong && denDo(n, uT.value)) trong = d; } // vạch dừng ở 6,2 m trước mép đường cắt; qua vạch rồi thì đi tiếp
@@ -219,7 +220,7 @@ export function taoSong({ goc, ql, dsThap, nuaNut, LONG }) {
         c.v = vDuoc > c.v ? Math.min(vDuoc, c.v + 1.8 * tXe) : Math.max(vDuoc, c.v - 7 * tXe);
         c.s = ((c.s + c.v * ch * tXe) % t.L + t.L) % t.L;
         lay(t, c.s, _p, _d); if (ch < 0) _d.negate();
-        _p.x += _d.z * c.ben; _p.z -= _d.x * c.ben; c.x = _p.x; c.z = _p.z; c.dx = _d.x; c.dz = _d.z;
+        _p.x += _d.z * c.ben; _p.z -= _d.x * c.ben; c.x = _p.x; c.y = _p.y; c.z = _p.z; c.dx = _d.x; c.dz = _d.z;
         huong(_d, _q); _m.compose(_p, _q, _s); thanXe.setMatrixAt(c.i, _m); dauXe.setMatrixAt(c.i, _m);
       }
       thanXe.instanceMatrix.needsUpdate = dauXe.instanceMatrix.needsUpdate = true; tXe = 0;
@@ -236,8 +237,10 @@ export function taoSong({ goc, ql, dsThap, nuaNut, LONG }) {
   const denXe = (x, z, ux, uz, them = 0) => { const kn = Math.round(x) + ',' + Math.round(z), g0 = huongNut.get(kn); if (g0 === undefined) return null;
     const goc = (Math.atan2(uz, ux) + Math.PI) % Math.PI, lech = Math.abs(goc - g0);
     return denDo({ pha: Math.abs(Math.round(x) * 7 + Math.round(z) * 13) % 36, nhom: Math.min(lech, Math.PI - lech) > Math.PI / 4 ? 1 : 0 }, uT.value + them); };
+  // đặt hình một xe theo tư thế ngoài (xác xe bị đâm, xe-duong-va.js lái mỗi khung)
+  const datHinh = (c, p, q) => { _m.compose(p, q, _s); thanXe.setMatrixAt(c.i, _m); dauXe.setMatrixAt(c.i, _m); thanXe.instanceMatrix.needsUpdate = dauXe.instanceMatrix.needsUpdate = true; };
   // duyệt xe quanh (x, z) bán kính r theo lưới oXe; fn trả false = dừng, hàm trả false
   const xeQuanh = (x, z, r, fn) => { const o = Math.ceil(r / O_XE), ox = Math.floor(x / O_XE), oz = Math.floor(z / O_XE);
     for (let a = -o; a <= o; a++) for (let b = -o; b <= o; b++) for (let j = oXe.get((ox + a) * 8192 + oz + b) ?? -1; j >= 0; j = keXe[j]) if (fn(xe[j]) === false) return false; return true; };
-  return { datLai, khung, uT, vatCan, gt: { xe, tuyenXe, lay, denDo, denXe, xeQuanh }, cau, anKhi2200: [thanBay, denTruoc, vet, suong, sanCau, kinhCau, vuonCau, ruCau], tk: { xeBay: nB, xe: xe.length, tau: tau.length, cau: cau.length, suong: o.length, khop } };
+  return { datLai, khung, uT, vatCan, gt: { xe, tuyenXe, lay, denDo, denXe, xeQuanh, datHinh }, cau, anKhi2200: [thanBay, denTruoc, vet, suong, sanCau, kinhCau, vuonCau, ruCau], tk: { xeBay: nB, xe: xe.length, tau: tau.length, cau: cau.length, suong: o.length, khop } };
 }

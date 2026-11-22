@@ -24,6 +24,7 @@ import { taoRedSpires } from './redspires.js';
 import { taoNhat2200 } from './nhat2200.js';
 import { taoMua } from './mua.js';
 import { taoXe } from './xe.js';
+import { taoXeDuongVa } from './xe-duong-va.js';
 
 const $ = (id) => document.getElementById(id);
 // tâm cảnh: Nishi-Shinjuku, giữa ga Shinjuku và toà thị chính Tokyo
@@ -231,6 +232,7 @@ datKieu(kieu);
 // ---------- đi bộ (castle dibo.js) ----------
 let toi = null, di = null, camUng = null, xe = null;
 try { await napNguoi3d('./chung/tai-san/nguoi.glb'); toi = taoNguoi3d(); toi.goc.visible = false; scene.add(toi.goc); } catch (e) { console.warn('[sprawl] không nạp được người 3D', e); }
+const xeDuong = rs ? taoXeDuongVa({ RAPIER, world, gt: rs.song.gt }) : null; // 2f nhịp B: xe trên phố có thân thật quanh người chơi, đâm mạnh thì văng khỏi làn
 if (toi) {
   xe = taoXe({ RAPIER, world, scene, toi, layDi: () => di, datTai, bao: (c) => baoNho(c) }); // xe lái được (ô phố mẫu, bước 1)
   di = taoDiBo({ RAPIER, world, camera, dom: renderer.domElement, toi, layTruc: () => camUng?.layTruc(), ngoai: { buoc: (dt, tr) => xe.lai(dt, tr), khung: () => xe.nguoi() }, khiDoi: (dang) => {
@@ -494,7 +496,7 @@ renderer.setAnimationLoop(() => {
   { const t = performance.now(), yen = !di?.dang && !ghi && t - tDong > 2000;
     if (t - tVe < (yen ? 30 : 14)) return; tVe = t; }
   const dt = Math.min(0.05, dongHo.getDelta());
-  if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); xe?.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } xe?.khung(); di.khung(dt); }
+  if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); xe?.buoc(1 / 60); xeDuong?.buoc(rs.goc.visible ? di.viTri() : null, 1 / 60); world.step(); tichLuy -= 1 / 60; } xe?.khung(); xeDuong?.khung(); di.khung(dt); }
   else { bayTien(dt); orbit.update(); }
   saKhung(dt);
   rs?.khung(dt, camera); n2?.khung(dt, camera);
@@ -510,6 +512,7 @@ renderer.setAnimationLoop(() => {
   { const pM = di?.dang ? di.viTri() : orbit.target; mua.khung(dt, datTai(pM.x, pM.z), dsUot, bauTroi.visible ? bauTroi : null); } // mưa: soi bóng ướt · khô: bóng mờ khi nhìn sát mặt đường
   const vc = rs?.song.vatCan; if (vc) { vc.length = 0; // xe trên phố dừng trước người chơi và trước chiếc xe của người chơi
     if (di?.dang) { if (!xe?.dangLai) { const p = di.viTri(); vc.push({ x: p.x, z: p.z, r: 0.5 }); } if (xe) { const p = xe.than.translation(); if (p.y > -300) vc.push({ x: p.x, z: p.z, r: 1.6 }); } }
+    for (const x of xeDuong?.xac || []) { const p = x.than.translation(); vc.push({ x: p.x, z: p.z, r: 2.2 }); } // xác xe nằm trên đường: xe sau dừng trước nó, không đâm dây chuyền
     rs.nguoiGan.dayVatCan(vc); } // người gần đang băng qua lòng đường: xe dừng trước họ
   rs?.nguoiGan.datChoi(di?.dang && !xe?.dangLai ? di.viTri() : null); // người chơi đi bộ: người gần né
   ve(); demKhung++;
@@ -531,4 +534,4 @@ function kiemVa({ buoc = 4, lech = 0.6 } = {}) {
     for (const f of [-0.4, 0, 0.4]) { ra.cau.thu++; const x = v.x + v.dx * v.L * f, z = v.z + v.dz * v.L * f, y = tha(x, v.y + 0.7, z);
       if (y == null || Math.abs(y - (v.y + 0.7)) > lech) ra.cau.truot.push({ k, f, can: +(v.y + 0.7).toFixed(1), cham: y == null ? null : +y.toFixed(1) }); } }
   ra.dat = !ra.caoToc.truot.length && !ra.cau.truot.length; return ra; }
-window.__sprawl = { RAPIER, world, scene, camera, orbit, renderer, dsTiles, tk, datTai, datMuot, rs, n2, kiemVa, get di() { return di; }, get xe() { return xe; } };
+window.__sprawl = { RAPIER, world, scene, camera, orbit, renderer, dsTiles, tk, datTai, datMuot, rs, n2, kiemVa, get di() { return di; }, get xe() { return xe; }, xeDuong };

@@ -1436,6 +1436,14 @@ function inst(geo, mat, n) {
   return m;
 }
 const MAX_XM = 1200;
+// mũ bảo hiểm nửa đầu kiểu VN cho bản người thật: vỏ bóng ôm đầu, lưỡi trai ngắn phía trước, quai đen hai bên; gốc = tâm đầu, +x là hướng nhìn
+const geoMuT = ghep([
+  [new THREE.SphereGeometry(0.122, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.6).scale(1.12, 0.92, 0.98), '#ffffff'],
+  [new THREE.TorusGeometry(0.118, 0.008, 6, 24).rotateX(Math.PI / 2).scale(1.12, 1, 0.98).translate(0, -0.035, 0), '#dddddd'],
+  [new THREE.SphereGeometry(0.1, 12, 4, -Math.PI * 0.32, Math.PI * 0.64, Math.PI * 0.5, 0.06).scale(1.25, 1, 1.15).translate(0.01, -0.03, 0), '#ffffff'],
+  [box(0.012, 0.11, 0.01).translate(0.015, -0.09, 0.112), '#202020'], [box(0.012, 0.11, 0.01).translate(0.015, -0.09, -0.112), '#202020'],
+]);
+const mMuT = inst(geoMuT, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.32, metalness: 0.05 }), MAX_XM * 2); mMuT.userData.n = 0;
 const mXm = inst(geoXm, vatLieuMau, MAX_XM), mNguoi = inst(geoNguoi, vatLieuMau, MAX_XM), mMu = inst(geoMu, vatLieu, MAX_XM);
 const mCho = inst(geoCho, vatLieuMau, MAX_XM), mHang = inst(geoHang, vatLieu, MAX_XM);
 const mOto = inst(geoOto, vatLieuMau, MAX_OTO), mMui = inst(geoMui, vatLieuMau, MAX_OTO), mBus = inst(geoBus, vatLieuMau, 16);
@@ -1470,7 +1478,8 @@ const mBong = (() => {
   m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.renderOrder = 1;
   scene.add(m); return m;
 })();
-const SB = new THREE.Vector3(), VY = new THREE.Vector3(), VO = new THREE.Vector3();
+const SB = new THREE.Vector3(), VY = new THREE.Vector3(), VO = new THREE.Vector3(), VD = new THREE.Vector3();
+const MU_SAU = ['#e8e8e8', '#c0392b', '#1f3a68', '#f2c94c', '#2d2d2d', '#e88fb0'].map((h) => new THREE.Color(h));
 const MUI_TAXI = new THREE.Color('#ffd84a'), DEN_DON = new THREE.Color('#ff5a2a');
 
 // ── mặt đất, vỉa hè, vạch kẻ
@@ -1864,15 +1873,18 @@ function ve() {
       VY.copy(V); if (yen) VY.add(VO.copy(yen).applyQuaternion(Q));
       if (nThat) {
         const mau = (a.mau ??= (Math.random() * 1e6) | 0), m = NGT.ds[mau % NGT.ds.length].m[NGT.buoc + 1]; datMa(m, m.userData.n++, VY, Q, MOT, uot(a.c2, a));
-        if (a.cho) { const m2 = NGT.ds[(mau + 1) % NGT.ds.length].m[NGT.buoc + 1]; VO.set(-0.36, 0.05, 0).applyQuaternion(Q).add(VY); datMa(m2, m2.userData.n++, VO, Q, MOT, uot(a.c4, a)); }
+        const d1 = NGT.ds[mau % NGT.ds.length].dau; if (d1) datMa(mMuT, mMuT.userData.n++, VD.copy(d1.v).applyQuaternion(Q).add(VY), Q, d1.s, uot(a.c3, a));
+        if (a.cho) { const k2 = NGT.ds[(mau + 1) % NGT.ds.length], m2 = k2.m[NGT.buoc + 1]; VO.set(-0.36, 0.05, 0).applyQuaternion(Q).add(VY); datMa(m2, m2.userData.n++, VO, Q, MOT, uot(a.c4, a));
+          if (k2.dau && mau % 4) datMa(mMuT, mMuT.userData.n++, VD.copy(k2.dau.v).applyQuaternion(Q).add(VO), Q, k2.dau.s, MU_SAU[mau % MU_SAU.length]); }
       }
-      datMa(mXm, ix, V, Q, MOT, uot(a.c1, a)); datMa(mNguoi, ix, V, Q, MOT, uot(a.c2, a)); datMa(mMu, ix, VY, Q, MOT, uot(a.c3, a));
+      datMa(mXm, ix, V, Q, MOT, uot(a.c1, a)); datMa(mNguoi, ix, V, Q, MOT, uot(a.c2, a)); datMa(mMu, ix, VY, Q, nThat ? KHONG : MOT, uot(a.c3, a));
       datMa(mCho, ix, V, Q, a.cho && !nThat ? MOT : KHONG, a.c4); datMa(mHang, ix, VY, Q, a.hang && !(nThat && a.cho) ? MOT : KHONG, a.c5);
       if (ben) datMa(XN.xm, nx.xm++, V, Q, SXN.set(1, 1, ben));
       veXm[ix] = a; ix++;
     } else if (a.loai === 'oto') { veOto[io] = a; datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, uot(a.c1, a)); if (OTT.on) { const k = a.taxi && OTT.taxi ? OTT.taxi : OTT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % OTT.ds.length]; datMa(k.t, k.n, V, Q, MOT, uot(a.c1, a)); datMa(k.f, k.n++, V, Q, MOT); } if (ben) datMa(XN.oto, nx.oto++, V, Q, SXN.set(1, 1, ben)); }
     else { veBus[ib] = a; datMa(mBus, ib++, V, Q, MOT, uot(a.c1, a)); if (OTT.on && OTT.bus) { const k = OTT.bus; datMa(k.t, k.n, V, Q, MOT, uot(a.cb ??= new THREE.Color(chon(SON_BUS)), a)); datMa(k.f, k.n++, V, Q, MOT); } if (ben) datMa(XN.bus, nx.bus++, V, Q, SXN.set(1, 1, ben)); }
   }
+  mMuT.count = mMuT.userData.n; mMuT.userData.n = 0; mMuT.instanceMatrix.needsUpdate = true; if (mMuT.instanceColor) mMuT.instanceColor.needsUpdate = true;
   if (NG.on && NGT.ok) for (const k of NGT.ds) for (const m of k.m) { m.count = m.userData.n; m.userData.n = 0; m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; }
   if (NG.on) { for (const [m, c] of [[NG.than, ip], [NG.tay, ip * 2], [NG.chan, ip * 2]]) { m.count = c; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; } }
   if (OTT.on) for (const k of OTT.tat) { for (const m of [k.t, k.f]) { m.count = k.n; m.instanceMatrix.needsUpdate = true; } k.t.instanceColor.needsUpdate = true; k.n = 0; }
@@ -2477,14 +2489,19 @@ function taiNguoi() {
       const col = new Float32Array(md.nv * 3), nh = new Float32Array(md.nv), c = new THREE.Color();
       for (let i = 0; i < md.nv; i++) { c.setRGB(mu[i * 4] / 255, mu[i * 4 + 1] / 255, mu[i * 4 + 2] / 255, THREE.SRGBColorSpace); col.set([c.r, c.g, c.b], i * 3); nh[i] = mu[i * 4 + 3] / 255; }
       const aCol = new THREE.BufferAttribute(col, 3), aNh = new THREE.BufferAttribute(nh, 1);
-      const m = [];
+      const m = []; let dau = null;
       for (let d = 0; d < md.dang; d++) {
         const q = lay(Int16Array, md.nv * 3), g = new THREE.BufferGeometry();
         g.setAttribute('position', new THREE.BufferAttribute(Float32Array.from(q, (x) => x / 10000), 3)); g.setAttribute('color', aCol); g.setAttribute('nhuom', aNh); g.setIndex(idx); g.computeVertexNormals();
+        if (d === md.dang - 1) { // dáng ngồi: đo tâm + bề ngang đầu để đội mũ đúng chỗ, đúng cỡ
+          const P = g.attributes.position; let top = -1e9; for (let i = 0; i < P.count; i++) top = Math.max(top, P.getY(i));
+          let sx = 0, sz = 0, n = 0, z0 = 1e9, z1 = -1e9; for (let i = 0; i < P.count; i++) if (P.getY(i) > top - 0.2) { sx += P.getX(i); sz += P.getZ(i); n++; z0 = Math.min(z0, P.getZ(i)); z1 = Math.max(z1, P.getZ(i)); }
+          const k = Math.min(1.25, Math.max(0.85, ((z1 - z0) / 2 + 0.018) / 0.12)); dau = { v: new THREE.Vector3(sx / n, top - 0.1, sz / n), s: new THREE.Vector3(k, k, k) };
+        }
         const mm = new THREE.InstancedMesh(g, vl, d === md.dang - 1 ? MAX_XM : 400);
         mm.instanceMatrix.setUsage(THREE.DynamicDrawUsage); mm.count = 0; mm.frustumCulled = false; mm.castShadow = !DD; mm.visible = NG.on; mm.userData.n = 0; mm.setColorAt(0, c.set(1, 1, 1)); scene.add(mm); m.push(mm);
       }
-      return { m };
+      return { m, dau };
     });
     NGT.ok = true; datNguoi(NG.on);
   }).catch((e) => console.warn('người thật', e));

@@ -22,6 +22,8 @@ import { NHOM_DANG } from '@/lib/etp-dang';
 import { maGiong } from '@/lib/etp-dang';
 import { lyDoChan, chuChan, type TieuChi } from '@/lib/etp-chan';
 import { openEntityDrawer } from '@/lib/entity-drawer';
+import { wrapHref } from '@/components/external-link';
+import { SiteFavicon } from '@/components/ui/site-favicon';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { VideoXem } from '@/components/ui/video-xem';
 import { moTabNeuModifier } from '@/lib/url-mo-tab';
@@ -2386,7 +2388,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, dongCr, 
   // Giờ: mẹ hiện = tổ tiên GẦN NHẤT còn trong danh sách (đi chuỗi goc trên cả kho); không còn tổ tiên nào → treo dưới camp hiện sớm nhất cùng bài post.
   // bài post: etp.camp.bai_viet; bản used post (' bai-cu ') chưa có mã → bài của camp mẹ.
   const con = useMemo(() => { const ids = new Set(camps.map((c) => c.camp_id)); const theoId = new Map(du.camps.map((c) => [c.camp_id, c])); const m = new Map<number, CampEtpKho[]>(); const goc: CampEtpKho[] = [];
-    const baiCua = (c: CampEtpKho, sau = 0): string | null => { if (c.bai) return c.bai; const g = laBaiCu(c) && c.goc && sau < 30 ? theoId.get(c.goc) : undefined; return g ? baiCua(g, sau + 1) : null; };
+    const baiCua = (c: CampEtpKho) => baiCuaCamp(c, du.camps)?.bai ?? null;
     const meHien = (c: CampEtpKho): number | null => { let g = c.goc; for (let n = 0; g && n < 30; n++) { if (ids.has(g)) return g; g = theoId.get(g)?.goc ?? null; } return null; };
     const chuBai = new Map<string, number>(); for (const c of camps) { const b = baiCua(c), cu = b ? chuBai.get(b) : undefined; if (b && (cu == null || c.camp_id < cu)) chuBai.set(b, c.camp_id); }
     const cha = new Map<number, number>(); for (const c of camps) { let me = meHien(c); if (me == null) { const b = baiCua(c), ch = b ? chuBai.get(b) : undefined; if (ch != null && ch !== c.camp_id) me = ch; } if (me != null) cha.set(c.camp_id, me); }
@@ -2507,6 +2509,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, dongCr, 
       total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k != null && rs.every((x) => x.content_id === k) ? <ChipPhim ph={phCua.get(k)} bh={bhCua.get(k)} /> : null; } },
     // MỌI CỘT CÓ BỀ RỘNG CỐ ĐỊNH, khoảng thừa vào cột đệm cuối bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang" — trước TT rồi Tuổi lần lượt ăn khoảng trống)
     { key: 'cr', header: 'Creative · điểm chấm', align: 'left', width: 200, title: 'creative camp đang chạy (mã + điểm chấm Meta · AFS, ×N = số lần nhân bản giống hệt) — rê xem video', sortValue: (c) => c.creative_id ?? 0, cell: (c) => oCr(c) },
+    { key: 'bai', header: 'Bài post', align: 'left', width: 80, title: 'link bài post Facebook của camp (bản Used post chưa có mã → bài của camp mẹ) — bấm mở tab mới', sortValue: (c) => baiCuaCamp(c, du.camps)?.bai ?? '', cell: (c) => <OBai c={c} kho={du.camps} /> },
     /* bỏ cột Loại riêng (#1538 anh 05/11/2026 "Bỏ cột này !!"): badge loại đã nằm ở ô camp (BadgeDangNgan, dạt phải thẳng cột) */
     ...(coLich ? [{ key: 'lich', header: 'Lịch giờ', align: 'left' as const, cell: (c: CampEtpKho) => <LichCamp c={c} du={du} tl={tlC} gon />, sortValue: (c: CampEtpKho) => tlC(c.the_loai) }] : []),
     ...ngay.map((d, i): DataColumn<CampEtpKho> => ({ key: `roi${i}`, header: <NgayNhan d={d} />, align: 'center', width: 56, title: `ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)} — lọc 🔍 theo %`,
@@ -2804,6 +2807,23 @@ const TABS: Tab[] = ['tong', 'camp', 'roas', 'creative', 'phim', 'dt', 'mau', 'd
 const LOC_CAMP = ['all', 'chay', 'cho', 'tat', 'luat', 'ganluat', 'gtang', 'ggiam', 'gtat', 'mlai', 'mlo', 'chua_tieu', 'tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran', 'sx', 'cung', 'roas', 'bai_cu', 'bai_moi'] as const;
 // USED POST (#1672 anh 18/11/2026 "cần thêm bộ lọc cho các Creative dạng Used post"): bản nhân dùng lại bài đăng camp gốc — nhan-ban.py đặt tên ' bai-cu ', cùng dấu so-luat.py đọc
 const laBaiCu = (c: { ten: string }) => / bai-cu /.test(c.ten);
+// BÀI POST CỦA CAMP (#1761 anh 22/11/2026 "thêm 1 cột để show link bài viết của camp tương ứng"): etp.camp.bai_viet = "<page>_<post>" (dong-bo.py đọc effective_object_story_id);
+// bản Used post chưa đồng bộ mã → bài của camp mẹ (đi chuỗi goc). Cây gom nhóm chung bài (#1758) và cột Bài post cùng đọc MỘT hàm này.
+const KHO_ID = new WeakMap<CampEtpKho[], Map<number, CampEtpKho>>();
+const khoTheoId = (ds: CampEtpKho[]) => { let m = KHO_ID.get(ds); if (!m) KHO_ID.set(ds, (m = new Map(ds.map((c) => [c.camp_id, c])))); return m; };
+const baiCuaCamp = (c: CampEtpKho, kho: CampEtpKho[]): { bai: string; tu: number } | null => { const theoId = khoTheoId(kho);
+  for (let x: CampEtpKho | undefined = c, n = 0; x && n < 30; n++) { if (x.bai) return { bai: x.bai, tu: x.camp_id }; x = laBaiCu(x) && x.goc ? theoId.get(x.goc) : undefined; } return null; };
+const linkBai = (bai: string) => { const [p, b] = bai.split('_'); return b ? `https://www.facebook.com/${p}/posts/${b}` : `https://www.facebook.com/${bai}`; };
+function OBai({ c, kho }: { c: CampEtpKho; kho: CampEtpKho[] }) {
+  if (!(c.camp_id > 0)) return null;
+  const x = baiCuaCamp(c, kho);
+  if (!x) return <span data-cot="bai" title="camp chưa có bài post (Ethopex chưa trả mã bài cho camp này)" style={{ color: 'var(--fg-3, #6b7280)' }}>—</span>;
+  const me = x.tu !== c.camp_id;
+  return <a data-cot="bai" href={wrapHref(linkBai(x.bai))} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+    title={`mở bài post Facebook của camp (tab mới) — mã bài ${x.bai}${me ? ` · bản Used post dùng lại bài của camp #${x.tu}` : ''}`}
+    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--neon-cyan, #22d3ee)', textDecoration: 'none', whiteSpace: 'nowrap', fontSize: 12 }}>
+    <SiteFavicon url="https://www.facebook.com" size={13} />{me ? 'Bài mẹ' : 'Bài'} ↗</a>;
+}
 // MỨC TIÊU HÔM NAY (anh 06/11/2026 "bộ lọc về các camp đã tiêu kịch trần ngân sách ngày" + "camp chưa tiêu đồng nào... các level"): camp ĐANG CHẠY chia theo
 // chi hôm nay (ngày Ethopex từ 07:00 VN) / ngân sách ngày; kịch trần = ≥ tang_ngay.duoi × ngân sách — cùng ngưỡng máy xét tăng (tieu90 còn trong LOC_CAMP cho URL cũ, không còn camp nào rơi vào)
 const mucTieu = (c: CampEtpKho): 'tieu0' | 'tieu25' | 'tieu50' | 'tieu90' | 'tran' | null => { if (!dangChay(c)) return null; const r = c.ngan_sach > 0 ? c.nay.chi / c.ngan_sach : 0;
@@ -3117,6 +3137,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const cotCamp: DataColumn<CampEtpKho>[] = [
     { key: 'id', header: 'Camp', align: 'left', cell: (c) => <span style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} /><span style={laRoas(c) ? { color: MAU_ROAS, fontWeight: 600 } : undefined}>#{c.camp_id}</span> <TT c={c} /></span>, sortValue: (c) => c.camp_id },
     { key: 'phim', header: 'Phim · creative', align: 'left', width: 260, cell: (c) => <PhimO anh={anh(c.creative_id)} ten={c.phim ?? c.ten} title={c.ten} phu={`#${c.creative_id} ${c.dang ?? ''}`} cung={c.cung_doan} />, sortValue: (c) => c.phim ?? '' },
+    { key: 'bai', header: 'Bài post', align: 'left', width: 80, title: 'link bài post Facebook của camp (bản Used post chưa có mã → bài của camp mẹ) — bấm mở tab mới', sortValue: (c) => baiCuaCamp(c, du.camps)?.bai ?? '', cell: (c) => <OBai c={c} kho={du.camps} /> },
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (c) => <span style={{ fontSize: 12 }}>{tl(c.the_loai)}</span>, sortValue: (c) => c.the_loai ?? '' },
     ...(du.cauHinh.find((k) => k.khoa === 'lich_gio')?.gia_tri === true ? [{key: 'lich', header: 'Lịch giờ', align: 'left', title: 'lịch bật / tắt theo thể loại: 07h · 08h–12h · 13h–19h · 20h–06h (xanh BẬT, xám TẮT, viền = khung đang chạy) — sửa ở Camp › Lịch giờ', cell: (c) => <LichCamp c={c} du={du} tl={tl} />, sortValue: (c) => (c.lich_tat ? 1 : 0) }] as DataColumn<CampEtpKho>[] : []),
     // dòng mờ = hết ngân sách hôm nay: chữ rê ở ô ngân sách (#1546 — trước rowTitle cả dòng, hộp chữ thô)

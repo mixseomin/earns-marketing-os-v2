@@ -420,7 +420,7 @@ const LUAT = [
   { card: '1725', tep: 'apps/etp2/src/components/etp-phim-drawer.tsx', mot: '<KhungPhimCam cid={p.id} />', vi: 'ngăn phim hiện khung lý do cấm ở đầu' },
   { card: '1725', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const n = nguonCam(c.ly_do)', vi: 'chữ nổi PHIM CẤM ở tab Phim ghi nguồn + điểm' },
   { card: '1758', tep: 'apps/etp2/src/lib/etp-doc.ts', mot: "nullif(c.bai_viet, '') bai_viet", vi: 'dữ liệu camp mang mã bài post để cây gom camp chung bài' },
-  { card: '1758', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const baiCua = (c: CampEtpKho, sau = 0)', vi: 'cây camp gom các camp chung bài post vào cùng một nhánh' },
+  { card: '1758', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const baiCua = (c: CampEtpKho) => baiCuaCamp(c, du.camps)?.bai ?? null;', vi: 'cây camp gom các camp chung bài post vào cùng một nhánh (đọc cùng hàm với cột Bài post #1761)' },
   { card: '1758', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const meHien = (c: CampEtpKho)', vi: 'mẹ bị bộ lọc giấu thì con treo dưới tổ tiên gần nhất còn hiện' },
   { card: '1758', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'if (c.goc && ids.has(c.goc)) { const a = m.get(c.goc)', vi: 'không quay về cây chỉ nối goc trong danh sách lọc (camp chung bài rơi rời nhau)' },
   { card: '1759', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', mot: 'export function useNguoiMenu(', vi: 'menu chọn Người đọc số hiệu quả từng người từ cùng bản số với bảng Người' },
@@ -433,6 +433,10 @@ const LUAT = [
   { card: '1759', tep: 'apps/etp2/src/components/ui/chon2.tsx', co: "overflowX: cot ? 'auto' : undefined", vi: 'điện thoại: bảng nổi có cột số cuộn ngang được' },
   { card: '1759', tep: 'apps/etp2/src/components/ui/chon2.tsx', cam: 'onMouseEnter={() => setTro(i)}', vi: 'không quay về đổi trỏ khi chạm (Safari iOS nuốt cú chạm đầu)' },
   { card: '1759', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', cam: "{ key: 'roi', h: 'ROI', rong: 64", vi: 'cột ROI đủ rộng cho số kèm ▲▼ so kỳ trước, không bị cắt' },
+  { card: '1761', tep: 'apps/etp2/src/components/etp-view.tsx', co: "{ key: 'bai', header: 'Bài post'", vi: 'bảng cây camp và bảng camp có cột Bài post' },
+  { card: '1761', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function OBai({ c, kho }', vi: 'một ô Bài post dùng chung cho mọi bảng camp' },
+  { card: '1761', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const baiCuaCamp = (c: CampEtpKho, kho: CampEtpKho[])', vi: 'một hàm tìm bài post của camp (Used post → bài của camp mẹ), cây gom nhóm và cột link cùng đọc' },
+  { card: '1761', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'href={wrapHref(linkBai(x.bai))}', vi: 'link bài post đi qua href.li, không lộ trang nguồn' },
 ];
 
 const loi = [];

@@ -68,16 +68,11 @@ def tao_moi(kq, camp, d, cu, cid, ly_meta, vi_sao, tu_choi, dat):
     if not ds:
         gop("ethopex_cho_dung_lai", {str(cu): {"goc": camp, "luc": vn(), "ten": d["campaign"]["name"].split(": ", 1)[-1], "content_id": cid, "tu_choi": True, "ly_do": ly_meta}})
         return bo_qua(kq, camp, cu, cid, ly_meta, f"{vi_sao} — chưa có creative sạch khác cùng phim, đã xếp hàng dựng góc mới (sua-cta.py); có creative thì máy tạo camp thay")
-    moi_cr = ds[0]; ten = re.sub(r"\s*\(thay \d+ bi tu choi\)", "", d["campaign"]["name"].split(": ", 1)[-1])[:150] + f" (thay {camp} bi tu choi)"
-    r = subprocess.run(["python3", NB, str(camp), "--creative", str(moi_cr), "--content", str(cid), "--ten", ten, "--that", "--thay",
-                        "--luat", f"camp #{camp} bị Meta từ chối ({vi_sao}) → camp mới thay thế, creative sạch khác cùng phim #{moi_cr}",
-                        "--ai", "anh (chat 12/11/2026: camp bị phốt thì phải tạo cái mới thay thế để duyệt lại) — máy chạy"], capture_output=True, text=True, timeout=600)
-    try: j = json.loads((r.stdout.strip().splitlines() or ["{}"])[-1])
-    except Exception: j = {"ok": False, "loi": (r.stderr or r.stdout)[-200:]}
-    if not j.get("ok"): return {**kq, "creative_cu": cu, "content": cid, "viec": "tao_moi_hong", "ly_do": ly_meta, "loi": f"tạo camp thay hỏng: {str(j.get('loi') or '?')[:200]}"}
-    gop("ethopex_tu_choi_thay_moi", {str(camp): {"luc": vn(), "moi": j.get("moi"), "creative": moi_cr, "vi_sao": vi_sao}})
-    if not la_spam(ly_meta): gop("ethopex_tu_choi", {str(cu): {"camp": camp, "ly_do": ly_meta, "luc": vn()}})   # lỗi nội dung: creative cũ không bao giờ chọn lại
-    return {**kq, "ok": True, "viec": "tao_moi", "creative_cu": cu, "creative_moi": moi_cr, "content": cid, "camp_moi": j.get("moi"), "chay": j.get("chay"), "ly_do": ly_meta, "loi": None}
+    # CẤM TỰ ĐẨY CAMP THAY THẾ (anh 23/11/2026 "ko đc tự ý đẩy camp thay thế nữa !!"): trước đây chỗ này gọi nhan-ban.py --that tạo camp mới. Giờ máy chỉ đưa
+    # creative sạch cùng phim vào etp.cho_anh_duyet (etp2 › Camp, trạng thái Chờ duyệt) + báo MỘT lần; anh duyệt và tự bấm ▶ Lên nếu muốn camp thay.
+    moi_cr = ds[0]
+    q(f"insert into etp.cho_anh_duyet (creative_id, ghi) values ({int(moi_cr)}, 'thay camp #{int(camp)} bị Meta từ chối') on conflict do nothing")
+    return bo_qua(kq, camp, cu, cid, ly_meta, f"{vi_sao} — máy KHÔNG tự tạo camp thay; creative sạch cùng phim #{moi_cr} đã vào Chờ duyệt trên etp2, anh duyệt rồi ▶ Lên nếu muốn")
 
 def bo_qua(kq, camp, cu, cid, ly_meta, loi):
     """không thay — báo MỘT lần mỗi camp (sổ ethopex_tu_choi_bo_qua), lượt sau im"""

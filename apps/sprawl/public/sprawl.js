@@ -195,6 +195,36 @@ function diBo() { // đứng xuống mặt đất ngay dưới tâm nhìn, quay 
   di.vao(x, y + 0.3, z, h);
 }
 $('b-di').onclick = diBo; $('b-bay').onclick = () => di?.ra();
+
+// ---------- bấm đúp = sà xuống chỗ đó ----------
+// đang ở trên cao thấy đoạn phố hay: bấm đúp vào đó → camera lượn xuống trong 1,6 s, dừng cách điểm bấm ~55 m, cao ~20 m, giữ hướng đang nhìn.
+// Bấm đúp lần nữa khi đã thấp → sà sát hơn (cao ~6 m, như người đứng trên ban công tầng 2). Enter = đứng hẳn xuống đi bộ.
+const _tia = new THREE.Raycaster(), _chuot = new THREE.Vector2();
+let sa = null; // { t, tu: [cam, dich], toi: [cam, dich] }
+renderer.domElement.addEventListener('dblclick', (e) => {
+  if (di?.dang) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  _chuot.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  _tia.setFromCamera(_chuot, camera);
+  const trung = _tia.intersectObjects(scene.children, true).find((h) => { for (let o = h.object; o; o = o.parent) if (!o.visible) return false; return true; });
+  let p = trung?.point;
+  if (!p) { // trượt khỏi nhà: lấy mặt đất dọc tia
+    const o = _tia.ray.origin, d = _tia.ray.direction; if (d.y > -0.01) return;
+    const t = (o.y - datTai(o.x, o.z)) / -d.y; p = o.clone().addScaledVector(d, t); p.y = datTai(p.x, p.z);
+  }
+  const caoNay = camera.position.y - p.y, thap = caoNay < 45, lui = thap ? 22 : 55, len = thap ? 6 : 20;
+  const huong = new THREE.Vector3(camera.position.x - p.x, 0, camera.position.z - p.z); if (huong.lengthSq() < 1) huong.set(0, 0, 1); huong.normalize();
+  const camToi = p.clone().addScaledVector(huong, lui); camToi.y = Math.max(p.y + len, datTai(camToi.x, camToi.z) + 2);
+  sa = { t: 0, tu: [camera.position.clone(), orbit.target.clone()], toi: [camToi, p.clone()] };
+  orbit.autoRotate = false;
+});
+function saKhung(dt) {
+  if (!sa) return; sa.t = Math.min(1, sa.t + dt / 1.6); const k = sa.t * sa.t * (3 - 2 * sa.t);
+  // lượn cung: giữa đường nhấc cao thêm một chút để không cắm thẳng qua tháp
+  camera.position.lerpVectors(sa.tu[0], sa.toi[0], k); camera.position.y += Math.sin(Math.PI * k) * Math.min(80, sa.tu[0].distanceTo(sa.toi[0]) * 0.12);
+  orbit.target.lerpVectors(sa.tu[1], sa.toi[1], k); orbit.update();
+  if (sa.t >= 1) sa = null;
+}
 addEventListener('keydown', (e) => { if (e.code === 'Escape' && di?.dang) di.ra(); if (e.code === 'Enter' && !di?.dang && !e.target.closest?.('input,textarea')) diBo(); });
 
 ganGopY({ nut: $('b-gy'), chupAnh: () => chupCanvas(renderer.domElement, () => ve()), nguCanh: () => { const p = di?.dang ? di.viTri() : orbit.target, ll = laLatLon(p.x, p.z);
@@ -264,6 +294,7 @@ async function chup4k() { // một khung 3840 × 2160 (kể cả khi đang xem k
   const cu = new THREE.Vector2(); renderer.getSize(cu); const pr = renderer.getPixelRatio(), asp = camera.aspect;
   renderer.setPixelRatio(1); renderer.setSize(3840, 2160, false); composer.setSize(3840, 2160); camera.aspect = 16 / 9; camera.updateProjectionMatrix();
   for (const t of dsTiles) { t.setResolutionFromRenderer(camera, renderer); t.update(); }
+  rs?.loc(camera, true);
   ve(); const blob = await new Promise((ok) => renderer.domElement.toBlob(ok, 'image/png'));
   if (!K4) { renderer.setPixelRatio(pr); renderer.setSize(cu.x, cu.y, false); composer.setSize(cu.x, cu.y); camera.aspect = asp; camera.updateProjectionMatrix(); }
   taiVe(blob, `sprawl-${kieu}-${Date.now()}.png`); baoNho('Đã chụp 3840 × 2160');
@@ -291,23 +322,28 @@ addEventListener('keydown', (e) => { if (e.target.closest?.('input,textarea') ||
   else if (e.code === 'KeyR') quayPhim(); });
 
 // ---------- vòng vẽ ----------
-let daGoc = false, lan = 0, tichLuy = 0, demKhung = 0, tFps = performance.now(), fps = 0, tDat = 0;
+let daGoc = false, lan = 0, tichLuy = 0, demKhung = 0, tFps = performance.now(), fps = 0, tDat = 0, tO = 0;
+const _camO = new THREE.Matrix4(), _chieuO = new THREE.Matrix4();
 const dongHo = new THREE.Clock();
 function ve() { renderer.info.reset(); if (KIEU[kieu].bloom > 0) composer.render(); else renderer.render(scene, camera); }
 renderer.setAnimationLoop(() => {
   const dt = Math.min(0.05, dongHo.getDelta());
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
   else { bayTien(dt); orbit.update(); }
-  rs?.khung(dt);
+  saKhung(dt);
+  rs?.khung(dt, camera);
   if (datY && !gocTay && !daGoc) { daGoc = true; datGoc(); } // đất dựng xong mới biết độ cao thật → đặt lại góc dựng sẵn (nếu anh chưa tự xoay)
-  for (const t of dsTiles) { t.setCamera(camera); t.setResolutionFromRenderer(camera, renderer); t.update(); }
-  const now = performance.now();
+  // ô nhà: chỉ duyệt cây ô khi camera đổi, còn ô đang tải, hoặc mỗi 0,5 s (trước đây mỗi khung)
+  const now = performance.now(); camera.updateMatrixWorld();
+  if (!camera.matrixWorld.equals(_camO) || !camera.projectionMatrix.equals(_chieuO) || now - tO > 500 || dsTiles.some((t) => t.stats.queued + t.stats.downloading + t.stats.parsing > 0)) {
+    _camO.copy(camera.matrixWorld); _chieuO.copy(camera.projectionMatrix); tO = now;
+    for (const t of dsTiles) { t.setCamera(camera); t.setResolutionFromRenderer(camera, renderer); t.update(); } }
   if (chanDoi && now - tDat > (datY ? 2500 : 600)) { tDat = now; dungDat(); }
   ve(); demKhung++;
   if (now - tFps > 1000) { fps = Math.round(demKhung * 1000 / (now - tFps)); demKhung = 0; tFps = now;
     const p = di?.dang ? di.viTri() : orbit.target, ll = laLatLon(p.x, p.z);
-    $('tt').textContent = `${fps} khung/s · ${tk.o} ô nhà · ${renderer.info.render.triangles.toLocaleString('vi')} tam giác · ${ll.lat.toFixed(4)}, ${ll.lon.toFixed(4)}`;
+    $('tt').textContent = `${fps} khung/s · ${tk.o} ô nhà · ${renderer.info.render.triangles.toLocaleString('vi')} tam giác · ${renderer.info.render.calls} lượt vẽ · ${ll.lat.toFixed(4)}, ${ll.lon.toFixed(4)}`;
     if (!lan && tk.o) { lan = 1; $('nap').style.display = 'none'; } }
 });
 addEventListener('resize', datCo);
-window.__sprawl = { scene, camera, orbit, dsTiles, tk, datTai, rs, get di() { return di; } };
+window.__sprawl = { scene, camera, orbit, renderer, dsTiles, tk, datTai, rs, get di() { return di; } };

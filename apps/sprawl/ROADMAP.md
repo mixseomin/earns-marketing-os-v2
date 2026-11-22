@@ -18,6 +18,7 @@ Chốt 22/11/2026: gốc bản đồ = **Tokyo**.
 2. Dựng sprawl.on.tc + bộ máy chung: gộp Phố Bụi (đưa `apps/phobui` từ box vào repo) và bộ đi lại của city.on.tc (`apps/castle`), ô tải dần.
 2b. **Quy hoạch chung Red Spires (anh chen 22/11/2026, làm trước bước 3)** — máy `apps/sprawl/scripts/quy-hoach.mjs` lấy OSM thật 3 × 3 km quanh Nishi-Shinjuku, chia khu theo ảnh mẫu: tháp đỏ nón chóp vòm (nhà thật ≥ 90 m, cao ×1,35), đại lộ đi bộ lát đá sáng (đường lớn), phố thấp xanh xám + vườn mái, tuyến tàu, làn xe bay 140–220 m, vành khối khổng lồ mờ xa. Ra `public/du-lieu/quy-hoach.json` + bản vẽ `quy-hoach.svg`. Ban ngày sương xanh xám, KHÔNG phải đêm neon.
 3. Thử 1 km² Shinjuku: nhà PLATEAU + đường OSM, khoác phong cách Red Spires, đi bộ + bay được.
+3b. **Nhìn từ trong toà nhà ra (anh thêm 22/11/2026)** — chế độ "đứng trong nhà": bấm vào bất kỳ toà nào (tháp đỏ hoặc nhà PLATEAU), chọn tầng + mặt, camera đặt sát sau ô kính nhìn ra ngoài. Trong phòng dựng tối giản (khung cửa, bậu, kính phản chiếu nhẹ, sàn + trần theo cao tầng thật), ngoài cửa là thành phố thật đúng độ cao đó. Lưu được thành góc quay (link `&goc=`) như các góc 4K đã có.
 4. Thêm khu Phố Bụi, chuyển khu liền mạch.
 5. Mở rộng lên 30 × 30 km: mức chi tiết theo khoảng cách, đo khung hình/giây trên máy tính và điện thoại.
 6. Người dân có lịch sống (sáng đi làm, trưa ra chợ, tối về nhà).

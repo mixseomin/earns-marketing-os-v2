@@ -3,6 +3,7 @@
 // có chợ + người · phố thấp xanh xám, vườn mái · khối khổng lồ mờ xa · xe bay theo làn trên đại lộ lớn.
 // Nhà PLATEAU giữ nguyên bố cục thật, khoác chất liệu xanh xám; nhà thật ≥ 90 m bị khoét bỏ trong shader để tháp đỏ đứng thay.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const MAU_NGUOI = ['#2b2f36', '#4a3b33', '#c9b8a0', '#6d7f8c', '#8a3b2e', '#d8d2c4', '#3e5566', '#9b8a6a'];
 const MAU_MAI = ['#c9483a', '#e0a83c', '#3f7f8c', '#d9d2c2', '#7d9a5a'];
@@ -67,7 +68,7 @@ function khiaGan(geo, than, n, bien) {
 function vatThap(gen) {
   const v = new THREE.MeshStandardMaterial({ color: gen.mau, roughness: 0.74 + gen.r * 0.12, metalness: 0.05 });
   const u = { uVien: { value: new THREE.Color(gen.vien) }, uNhip: { value: new THREE.Vector4(gen.oRong, gen.tang, gen.bang, gen.tron) }, uKieu: { value: new THREE.Vector2(gen.soc, gen.than) } };
-  v.customProgramCacheKey = () => 'thap-do';
+  v.customProgramCacheKey = () => 'thap-do'; v.userData.than = true;
   v.onBeforeCompile = (sh) => { // tấm ốp + cửa sổ + cửa tròn + vệt bẩn + sọc viền, theo toạ độ trong thân; nhịp riêng mỗi tháp qua uniform
     Object.assign(sh.uniforms, u);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vLo;')
@@ -104,16 +105,18 @@ function vatThap(gen) {
       float khungCua = step(0.26, f.x) * step(f.x, 0.74) * step(0.28, f.y) * step(f.y, 0.82) * coCua - cua;
       float chay = step(0.43, f.x) * step(f.x, 0.57) * step(f.y, 0.32) * coCua * step(0.45, bam(o + 1.7)) * (f.y / 0.32) * gan;
       float laChop = (1.0 - coCua) * trongThan * step(0.3, f.x) * step(f.x, 0.7) * step(0.35, f.y) * step(f.y, 0.75) * step(0.5, fract(f.y * 14.0)) * step(0.6, bam(o + 9.1));
-      vec2 nb = vec2(cung, vLo.y) / 1.7; vec2 i0 = floor(nb), t0 = fract(nb); t0 = t0 * t0 * (3.0 - 2.0 * t0);
+      vec2 nb = vec2(cung, vLo.y) / 3.2; vec2 i0 = floor(nb), t0 = fract(nb); t0 = t0 * t0 * (3.0 - 2.0 * t0);
       float nh = mix(mix(bam(i0), bam(i0 + vec2(1, 0)), t0.x), mix(bam(i0 + vec2(0, 1)), bam(i0 + vec2(1, 1)), t0.x), t0.y);
-      float bong = smoothstep(0.8, 0.84, nh) * step(0.55, bam(floor(vec2(cung, vLo.y) / 13.0) + 4.4));
+      // sơn bong: mảng lớn, thưa, tắt dần khi xa (trước đây chấm trắng 1,7 m rắc khắp thân, nhìn từ xa thành nhiễu)
+      float xa = 1.0 - smoothstep(0.25, 1.1, px);
+      float bong = smoothstep(0.82, 0.87, nh) * step(0.68, bam(floor(vec2(cung, vLo.y) / 16.0) + 4.4)) * xa;
       diffuseColor.rgb *= tam * (1.0 - 0.32 * vet) * (1.0 - 0.35 * bang);
       diffuseColor.rgb = mix(diffuseColor.rgb, uVien * (1.0 - 0.25 * vet), soc * 0.85);
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.74, 0.68), bong * 0.8);
       diffuseColor.rgb *= (1.0 - 0.45 * mep) * (1.0 + 0.18 * sang) * (1.0 - 0.4 * chay) * (1.0 - 0.35 * laChop);
       diffuseColor.rgb = mix(diffuseColor.rgb, uVien * 0.8, max(khungCua, 0.0) * 0.55 * gan);
       vec3 kinh = mix(vec3(0.11, 0.14, 0.17), vec3(0.36, 0.44, 0.5), smoothstep(0.32, 0.78, f.y) * 0.7 + 0.3 * bam(o + 2.2));
-      diffuseColor.rgb = mix(diffuseColor.rgb, kinh, cua * 0.9);
+      diffuseColor.rgb = mix(diffuseColor.rgb, kinh, cua * mix(0.4, 0.9, xa)); // xa: lưới cửa nhạt bớt cho khỏi răng cưa
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.22, 0.27, 0.3), tron);`);
   };
   return v;
@@ -127,6 +130,52 @@ const G_HOP = new THREE.BoxGeometry(1, 1, 1), G_COT = new THREE.CylinderGeometry
 const _m4 = new THREE.Matrix4(), _q4 = new THREE.Quaternion(), _v4 = new THREE.Vector3(), _s4 = new THREE.Vector3(), _e4 = new THREE.Euler(), _c4 = new THREE.Color();
 // đặt instance quay mặt ra ngoài theo góc a (trục z cục bộ = hướng bán kính)
 function datRa(im, i, a, rr, y, sx, sy, sz) { _q4.setFromEuler(_e4.set(0, Math.PI / 2 - a, 0)); im.setMatrixAt(i, _m4.compose(_v4.set(Math.cos(a) * rr, y, Math.sin(a) * rr), _q4, _s4.set(sx, sy, sz))); }
+
+// mảnh phụ của tháp (ban công, viền, kim loại, hộp ốp, cửa tròn) gộp về MỘT mesh tô màu theo đỉnh — trước đây mỗi tháp ~35 mesh rời
+// (2.162 lượt vẽ toàn cảnh, đo M4 22/11/2026: 17 khung/s). Thân vT giữ riêng vì mang nhịp cửa riêng qua uniform; kính gộp thành một mesh trong suốt.
+const V_PHU = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.74, metalness: 0.2, side: THREE.DoubleSide });
+function gopThap(g) {
+  g.updateMatrixWorld(true);
+  const inv = g.matrixWorld.clone().invert(), phu = [], kinh = [], bo = [], mw = new THREE.Matrix4(), mi = new THREE.Matrix4(), c = new THREE.Color();
+  const lay = (geo, m, mau) => { let x = geo.clone().applyMatrix4(m); if (x.index) x = x.toNonIndexed();
+    for (const k of Object.keys(x.attributes)) if (k !== 'position' && k !== 'normal') x.deleteAttribute(k);
+    if (mau) { const a = new Float32Array(x.attributes.position.count * 3); for (let i = 0; i < a.length; i += 3) { a[i] = mau.r; a[i + 1] = mau.g; a[i + 2] = mau.b; } x.setAttribute('color', new THREE.BufferAttribute(a, 3)); }
+    return x; };
+  g.traverse((m) => {
+    if (!m.isMesh || m.userData.va || !m.visible || m.material.userData.than) return;
+    const laKinh = m.material === V_KINH, ds = laKinh ? kinh : phu; mw.multiplyMatrices(inv, m.matrixWorld);
+    if (m.isInstancedMesh) for (let i = 0; i < m.count; i++) { m.getMatrixAt(i, mi); c.copy(m.material.color); if (m.instanceColor) { const t = new THREE.Color(); m.getColorAt(i, t); c.multiply(t); } ds.push(lay(m.geometry, mi.premultiply(mw), laKinh ? null : c)); }
+    else ds.push(lay(m.geometry, mw, laKinh ? null : m.material.color));
+    bo.push(m);
+  });
+  for (const m of bo) { m.parent.remove(m); if (m.isInstancedMesh) m.dispose(); }
+  if (phu.length) g.add(new THREE.Mesh(mergeGeometries(phu), V_PHU));
+  if (kinh.length) g.add(new THREE.Mesh(mergeGeometries(kinh), V_KINH));
+}
+
+// lọc instance theo tầm nhìn + tầm xa: giữ bản gốc (ma trận, màu, thuộc tính đi bộ), mỗi nhịp chép những cái nằm trong khung nhìn
+// và trong bán kính R lên đầu mảng rồi đặt count. Trước đây 16.000 người + 1.100 quầy vẽ hết kể cả ở xa 2 km: 7,7 triệu tam giác mỗi khung.
+// ms = các lớp dùng chung một instanceMatrix; r = bán kính cầu bao một cái (người đi tới lui ±12 m nên r lớn)
+const _fr = new THREE.Frustum(), _pv = new THREE.Matrix4(), _cau = new THREE.Sphere();
+function taoBo(ms, n, R, r) {
+  const src = new Float32Array(n * 16), mau = ms.map((m) => m.instanceColor ? new Float32Array(m.instanceColor.array.length) : null);
+  const phu = []; for (const m of ms) for (const a of Object.values(m.geometry.attributes)) if (a.isInstancedBufferAttribute && !phu.some((p) => p.a === a)) phu.push({ a, src: null });
+  return { ms, n, R, r, src, mau, phu, dem: 0,
+    chot() { // gọi sau khi dựng xong màu / thuộc tính: chép bản gốc
+      ms.forEach((m, k) => { if (mau[k]) mau[k].set(m.instanceColor.array); }); for (const p of phu) p.src = p.a.array.slice(); },
+    dat(i, m4) { m4.toArray(src, i * 16); },
+    loc(cam) { const R2 = this.R * this.R, cx = cam.position.x, cy = cam.position.y, cz = cam.position.z, dst = ms[0].instanceMatrix.array; let k = 0;
+      for (let i = 0; i < this.dem; i++) { const o = i * 16, x = src[o + 12], y = src[o + 13], z = src[o + 14], d2 = (x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2;
+        if (d2 > R2) continue; _cau.center.set(x, y, z); _cau.radius = this.r + Math.sqrt(d2) * 0.15; if (!_fr.intersectsSphere(_cau)) continue;
+        if (k !== i) { const ok = k * 16; for (let j = 0; j < 16; j++) dst[ok + j] = src[o + j];
+          for (const [q, a] of mau.entries()) if (a) { const d = ms[q].instanceColor.array; d[k * 3] = a[i * 3]; d[k * 3 + 1] = a[i * 3 + 1]; d[k * 3 + 2] = a[i * 3 + 2]; }
+          for (const p of phu) { const s = p.a.itemSize; for (let j = 0; j < s; j++) p.a.array[k * s + j] = p.src[i * s + j]; } }
+        else { for (let j = 0; j < 16; j++) dst[o + j] = src[o + j]; }
+        k++; }
+      const cap = (a) => { a.clearUpdateRanges(); a.addUpdateRange(0, Math.max(1, k * a.itemSize)); a.needsUpdate = true; };
+      cap(ms[0].instanceMatrix); ms.forEach((m) => { m.count = k; if (m.instanceColor) cap(m.instanceColor); }); for (const p of phu) cap(p.a);
+      return k; } };
+}
 
 // một tháp đỏ hoàn chỉnh (thân + ban công + đỉnh + chi tiết nhìn gần), gốc toạ độ ở chân.
 // Mesh mang userData.va = khung va chạm (ẩn, ít đỉnh) — dungVa gộp thành một trimesh mỗi tháp để đứng / leo được.
@@ -297,6 +346,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
       }
       rVa = hs.rMax * 1.6;
     }
+    gopThap(g);
     g.rotation.y = r() * 6.28;
     g.position.set(t.o[0], 0, t.o[1]);
     goc.add(g);
@@ -377,7 +427,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
   const mauG = (g, hex) => { g = g.index ? g.toNonIndexed() : g; const c = new THREE.Color(hex), a = new Float32Array(g.attributes.position.count * 3); for (let i = 0; i < a.length; i += 3) { a[i] = c.r; a[i + 1] = c.g; a[i + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); g.deleteAttribute('uv'); return g; };
   const hop = (w, h, d, x, y, z, hex) => mauG(new THREE.BoxGeometry(w, h, d).translate(x, y, z), hex);
   const tru = (r1, r2, h, x, y, z, hex, n = 6) => mauG(new THREE.CylinderGeometry(r1, r2, h, n).translate(x, y, z), hex);
-  const cau = (r, x, y, z, hex) => mauG(new THREE.SphereGeometry(r, 7, 5).translate(x, y, z), hex);
+  const cau = (r, x, y, z, hex, w = 7, h = 5) => mauG(new THREE.SphereGeometry(r, w, h).translate(x, y, z), hex);
   const G_KHUNG = gop([hop(3, 0.95, 1.1, 0, 0.475, 0.55, '#7a5a3e'), hop(3.06, 0.07, 1.2, 0, 0.98, 0.55, '#9b7a55'), hop(3, 0.12, 1.1, 0, 0.06, 0.55, '#3a2e26'),
     ...[[-1.45, 1.1], [1.45, 1.1], [-1.45, -1.0], [1.45, -1.0]].map(([x, z]) => tru(0.05, 0.05, z > 0 ? 2.5 : 2.85, x, z > 0 ? 1.25 : 1.42, z, '#4a3b30')),
     hop(1.2, 0.5, 0.06, 0.6, 2.25, 1.2, '#efe6cf'), hop(0.06, 0.6, 0.06, 0.6, 2.55, 1.2, '#4a3b30')]); // bảng hiệu treo trước mái
@@ -385,7 +435,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
   { const p = maiG.attributes.position, c = new Float32Array(p.count * 3); for (let i = 0; i < p.count; i++) { const k = Math.floor((p.getX(i) + 1.7) / 3.4 * 6 + 0.001) % 2 ? 1 : 0.82; c.set([k, k, k], i * 3); } maiG.setAttribute('color', new THREE.BufferAttribute(c, 3)); }
   const G_MAI = maiG.toNonIndexed(); G_MAI.deleteAttribute('uv');
   const HANG = ['#e07a2e', '#c2312a', '#e8c23a', '#6d9a3a', '#8a4b8f', '#d9d2c2', '#3f7f8c', '#b5562f'];
-  const G_HANG = (bo) => gop([...[-1.05, -0.35, 0.35, 1.05].flatMap((x, k) => [hop(0.6, 0.22, 0.5, x, 1.12, 0.62, '#8a6a46'), ...[0, 1, 2].map((j) => cau(0.1, x - 0.16 + j * 0.16, 1.27, 0.55 + (j % 2) * 0.12, HANG[(bo + k * 3 + j) % HANG.length]))]),
+  const G_HANG = (bo) => gop([...[-1.05, -0.35, 0.35, 1.05].flatMap((x, k) => [hop(0.6, 0.22, 0.5, x, 1.12, 0.62, '#8a6a46'), ...[0, 1, 2].map((j) => cau(0.1, x - 0.16 + j * 0.16, 1.27, 0.55 + (j % 2) * 0.12, HANG[(bo + k * 3 + j) % HANG.length], 5, 3))]),
     hop(0.5, 0.55, 0.45, -1.0, 0.27, -0.55, '#b89a6a'), hop(0.45, 0.4, 0.45, -0.45, 0.2, -0.6, '#9b7a55'), tru(0.22, 0.26, 0.55, 1.0, 0.27, -0.55, '#d8cdb0', 8),
     cau(0.16, -0.9, 2.05, 1.05, bo % 2 ? '#d93b2b' : '#e8b04a'), cau(0.16, 0.9, 2.05, 1.05, bo % 2 ? '#d93b2b' : '#e8b04a')]);
   const vMau = new THREE.MeshLambertMaterial({ vertexColors: true });
@@ -432,6 +482,11 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
   for (const m of quay) m.count = datQuay.length;
   for (const [i, m] of doPho.entries()) m.count = Math.min(3000, datDo[i].length);
   goc.add(...lopNguoi, ...quay, ...doPho);
+  // tầm xa mỗi lớp (m): người 650 · quầy 900 · cột đèn / bồn cây 900 (cao, thấy từ xa) · ghế / thùng 450 · xe đẩy 600
+  const boNguoi = taoBo(lopNguoi, NN, 650, 14), boQuay = taoBo(quay, NQ, 900, 4), boDo = doPho.map((m, k) => taoBo([m], 3000, [900, 450, 900, 450, 600][k], 5));
+  const dsBo = [boNguoi, boQuay, ...boDo];
+  boNguoi.dem = datNguoi.length; boQuay.dem = datQuay.length; boDo.forEach((b, k) => { b.dem = Math.min(3000, datDo[k].length); });
+  for (const b of dsBo) b.chot();
 
   // ---------- khối khổng lồ mờ xa (không chịu sương, tự pha màu sương) ----------
   const vXa = new THREE.MeshBasicMaterial({ color: '#97a8b6', fog: false });
@@ -481,11 +536,11 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
       } }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(vs, 3)); g.setIndex(idx); g.computeVertexNormals();
     loMesh.geometry.dispose(); loMesh.geometry = g;
-    for (const [i, p] of datNguoi.entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); _s.setScalar(p.s); lopNguoi[0].setMatrixAt(i, _m.compose(_p, _q, _s)); }
+    for (const [i, p] of datNguoi.entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); _s.setScalar(p.s); boNguoi.dat(i, _m.compose(_p, _q, _s)); }
     _s.setScalar(1);
-    for (const [i, p] of datQuay.entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); quay[0].setMatrixAt(i, _m.compose(_p, _q, _s)); }
-    for (const [k, ds] of datDo.entries()) { for (const [i, p] of ds.slice(0, 3000).entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); doPho[k].setMatrixAt(i, _m.compose(_p, _q, _s)); } doPho[k].instanceMatrix.needsUpdate = true; }
-    lopNguoi[0].instanceMatrix.needsUpdate = true; quay[0].instanceMatrix.needsUpdate = true;
+    for (const [i, p] of datQuay.entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); boQuay.dat(i, _m.compose(_p, _q, _s)); }
+    for (const [k, ds] of datDo.entries()) for (const [i, p] of ds.slice(0, 3000).entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); boDo[k].dat(i, _m.compose(_p, _q, _s)); }
+    canLoc = true;
     if (goc.visible) { boVa(); dungVa(); }
   }
   // khung va: gộp mọi mesh userData.va của tháp (kể cả tháp vệ tinh, bầu bên) thành MỘT trimesh toạ độ thế giới → đứng trên ban công, mái đài kính, chóp vòm
@@ -498,11 +553,19 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
       d.va = world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(P), new Uint32Array(I)), tinh);
     } }
   function boVa() { for (const d of dsThap) if (d.va) { world.removeCollider(d.va, false); d.va = null; } }
-  function hien(bat) { goc.visible = bat; if (bat) dungVa(); else boVa(); }
+  function hien(bat) { goc.visible = bat; canLoc = true; if (bat) dungVa(); else boVa(); }
 
-  const _a = new THREE.Vector3();
-  function khung(dt) {
+  const _a = new THREE.Vector3(), _camCu = new THREE.Matrix4(), _chieuCu = new THREE.Matrix4(); let canLoc = true, tLoc = 0;
+  // lọc lại khi camera đổi (tối đa 10 lần/giây) hoặc đất vừa dựng lại; ep = bắt lọc ngay (chụp 4K đổi khung hình)
+  function loc(cam, ep) { const now = performance.now(); cam.updateMatrixWorld();
+    const doi = !cam.matrixWorld.equals(_camCu) || !cam.projectionMatrix.equals(_chieuCu);
+    if (!ep && !canLoc && (!doi || now - tLoc < 100)) return;
+    _camCu.copy(cam.matrixWorld); _chieuCu.copy(cam.projectionMatrix); tLoc = now; canLoc = false;
+    _fr.setFromProjectionMatrix(_pv.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    for (const b of dsBo) b.loc(cam); }
+  function khung(dt, cam) {
     if (!goc.visible) return;
+    if (cam) loc(cam);
     uNguoi.uT.value += dt;
     for (const [i, c] of xe.entries()) {
       const l = c.l; c.s = ((c.s + c.v * dt) % l.L + l.L) % l.L;
@@ -516,5 +579,5 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
     xeMesh.instanceMatrix.needsUpdate = true; den.instanceMatrix.needsUpdate = true;
   }
 
-  return { goc, vatPho, datLai, hien, khung, ql, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), xe: xe.length } };
+  return { goc, vatPho, datLai, hien, khung, loc, ql, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), xe: xe.length } };
 }

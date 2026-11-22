@@ -3,7 +3,7 @@
 // làm hết 8 bước tới khi camp chạy; dính policy thì dòng tự dừng; nút FIX từng bước; thằng Mạnh (apps/etp/manh.py, box3) canh bước kẹt. Kho: etp.dong_phim / etp.dong_buoc (0413).
 // Chỉ chủ / admin (tài khoản Nhà) — đội chưa có đường tự động (luật "ko làm gì tự động ngoài tk Nhà", 02/11/2026).
 import { spawn } from 'node:child_process';
-import { openSync } from 'node:fs';
+import { docNhatKyLen, moNhatKyLen } from '@/lib/etp-nhat-ky-len';
 import { sql } from 'drizzle-orm';
 import { banCr, giongCr } from '@/lib/etp-ban';
 import { getDb } from '@mos2/db';
@@ -294,13 +294,14 @@ export async function lenCampCr(dongId: number, creativeId: number): Promise<{ o
   if (!x.duoc) return { loi: 'cổng chấm đang chặn creative này' };
   if (!x.bo) return { loi: 'không đọc được bộ lên camp (etp.cau_hinh.bo_phim_moi)' };
   if (x.co_camp) return { loi: 'creative đã có camp' };
+  if (docNhatKyLen(cr).gui) return { loi: 'đã gửi lệnh lên creative này, máy đang tạo camp — chờ xong, không gửi lần hai' };   // #1770
   if (id > 0) await db().execute(sql`insert into etp.cau_hinh (khoa, gia_tri) values ('lo_trinh', jsonb_build_object(${String(x.content_id)}::text, jsonb_build_object('cr', jsonb_build_array(${cr}))))
     on conflict (khoa) do update set gia_tri = coalesce(etp.cau_hinh.gia_tri, '{}'::jsonb) || jsonb_build_object(${String(x.content_id)}::text,
       coalesce(etp.cau_hinh.gia_tri->${String(x.content_id)}, '{}'::jsonb) || jsonb_build_object('cr', coalesce(etp.cau_hinh.gia_tri->${String(x.content_id)}->'cr', '[]'::jsonb) || jsonb_build_array(${cr})))`);
   const lang = x.lang === 'es' ? 'es' : 'en';
   const ten = `${id > 0 ? `dp${id}` : 'tay'} ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - creative #${cr}`;   // spawn không qua shell — chỉ giữ chữ ASCII cho tên camp
   const dir = `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/xuong-video/scripts/ethopex`;
-  const log = openSync(`/tmp/etp-len-cr-${cr}.log`, 'a');
+  const log = moNhatKyLen(cr, `anh (etp2 ${me.email})`);   // #1770: dòng gửi → bảng hiện "đang lên" ngay
   const ve = await xinVeTay('tao_camp', { content: x.content_id, ai: `anh (etp.on.tc ${me.email})` });   // vé thao tác tay (anh 18/11/2026) — phanh chợ chỉ miễn lệnh mang vé
   spawn('python3', ['nhan-ban.py', String(KHUON[lang]), '--tay', '--bo', x.bo ?? '', '--creative', String(cr), '--content', String(x.content_id), '--ten', ten, '--that',   // giờ chạy do nhan-ban.lich_len quyết (anh 05/11/2026: ngoài 07–12h VN hẹn 07:00 hôm sau)
     '--luat', `anh bấm lên camp creative #${cr} (etp.on.tc › Sản xuất)`, '--ai', `anh (etp.on.tc ${me.email})`], { cwd: dir, detached: true, stdio: ['ignore', log, log], env: envVe(ve) }).unref();

@@ -6,6 +6,7 @@
 import { openSync, readFileSync } from 'node:fs';
 import { execFile, spawn } from 'node:child_process';
 import { envVe, xinVeTrucTiep } from '@/lib/etp-ve';
+import { docNhatKyLen, gioVnIso, moNhatKyLen } from '@/lib/etp-nhat-ky-len';
 import { chuGio, daQua, gioVn } from '@/lib/etp-nb';   // giờ VN dùng chung với nhân bản ★ ROAS bài cũ (etp-tay.ts)
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -133,9 +134,10 @@ export async function lenNgayCr(cr: number, gio?: string | null, o?: { roas: num
   const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được lên camp' };
   const L = await lenhNb(cr, gio, o); if ('loi' in L) return L;
   const id = Math.trunc(Number(cr)), { ro, g, lenh } = L;
+  const dg = docNhatKyLen(id).gui; if (dg) return { canh: `đã gửi lệnh lên lúc ${gioVnIso(dg)} giờ VN, máy đang tạo camp — chờ xong, không gửi lần hai` };   // #1770: dòng "đang lên" bấm lại không nhân đôi camp
   const v = await xinVeTrucTiep('tao_camp', { content: L.content, lenh, ns: ro?.ns ?? 1 });
   if (!('ma' in v)) return v;
-  const log = openSync(`/tmp/etp-len-cr-${id}.log`, 'a');
+  const log = moNhatKyLen(id, `anh (etp2 ${me.email})`);   // #1770: dòng gửi → bảng hiện "đang lên" ngay
   spawn('python3', [...L.args, '--that', '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
   return { ok: true, chu: `đã gửi lệnh lên ${ro ? `★ ROAS ${ro.roas} · $${ro.ns}` : 'camp $1'} — ${chuGio(g)}` };
 }

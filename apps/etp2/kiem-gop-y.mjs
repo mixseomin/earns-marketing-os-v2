@@ -456,6 +456,14 @@ const LUAT = [
   { card: '1767', tep: 'apps/etp2/src/components/etp-view.tsx', cam: '[...con.ds, ...du.hangCr]', vi: 'không nối thẳng dòng chờ duyệt vào cây bỏ qua bộ lọc' },
   { card: '1769', tep: 'apps/etp2/src/components/etp-noi.tsx', co: "TRO.cham = e.pointerType !== 'mouse';", vi: 'ghi loại con trỏ cuối (chạm / chuột) trước mouseover giả của điện thoại' },
   { card: '1769', tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'if (TRO.cham) return;   // #1769', vi: 'HoverChu không mở thẻ chữ rê khi chạm ngón tay (anh "Ko dùng kiểu hover này ở mọi nơi")' },
+  { card: '1770', tep: 'apps/etp2/src/lib/etp-nhat-ky-len.ts', co: 'JSON.stringify({ gui: luc })', vi: 'nút lên camp ghi dòng ĐÃ GỬI vào nhật ký trước khi chạy nhan-ban' },
+  { card: '1770', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: 'moNhatKyLen(id,', vi: 'lenNgayCr mở nhật ký qua moNhatKyLen (có dòng gửi)' },
+  { card: '1770', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', cam: 'openSync(`/tmp/etp-len-cr-', vi: 'không tự mở nhật ký lên camp mà bỏ dòng gửi' },
+  { card: '1770', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: 'moNhatKyLen(cr,', vi: 'lenCampCr mở nhật ký qua moNhatKyLen (có dòng gửi)' },
+  { card: '1770', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', cam: 'openSync(`/tmp/etp-len-cr-', vi: 'không tự mở nhật ký lên camp mà bỏ dòng gửi' },
+  { card: '1770', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'gui: nk.gui', vi: 'dòng chờ duyệt mang giờ đã gửi lên → bảng biết đang lên' },
+  { card: '1770', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'data-o="dang-len"', vi: 'cột trạng thái hiện "đang lên" ngay khi đã gửi, không còn "chờ anh duyệt"' },
+  { card: '1770', tep: 'apps/etp2/src/components/etp-len-gio.tsx', co: "'ok' in r) router.refresh();", vi: 'gửi lên thành công thì làm mới bảng ngay, không chờ đóng khung' },
 ];
 
 const loi = [];

@@ -86,9 +86,12 @@ export function NutLenGio({ cr, camp, lich, nhan, anh, video }: { cr?: number | 
   const doiGio = camp != null && camp > 0;
   const bam = async (g: string | null, khong?: boolean) => {
     setDang(khong ? 'khong' : g ? 'gio' : 'ngay'); setKq(null);
-    try { setKq(khong ? await khongDuyetCr(Number(cr)) : doiGio ? await doiGioCamp(camp, g ?? '') : await lenNgayCr(Number(cr), g)); }
-    catch (e) { setKq({ loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` }); }
-    setDang(null); daGui.current = true;   // làm mới bảng lúc ĐÓNG khung — làm mới ngay thì dòng chờ duyệt biến mất, khung + kết quả mất theo
+    let r: KqNut;
+    try { r = khong ? await khongDuyetCr(Number(cr)) : doiGio ? await doiGioCamp(camp, g ?? '') : await lenNgayCr(Number(cr), g); }
+    catch (e) { r = { loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` }; }
+    setKq(r); setDang(null);
+    if (!khong && !doiGio && 'ok' in r) router.refresh();   // #1770 "đã gửi thì status này phải update ngay": ▶ Lên xong làm mới NGAY — dòng còn (camp chưa vào sổ) nên khung không mất, ô trạng thái thành "đang lên"
+    else daGui.current = true;   // Không duyệt / đổi giờ: làm mới lúc ĐÓNG khung — làm mới ngay thì dòng biến mất, khung + kết quả mất theo
   };
   const daGui = useRef(false);
   const dong = () => { setMo(false); if (daGui.current) { daGui.current = false; router.refresh(); } };

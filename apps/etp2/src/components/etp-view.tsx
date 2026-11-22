@@ -2487,7 +2487,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
   // DÒNG CHỜ ANH DUYỆT (anh 22/11/2026 "Chờ duyệt thì tao phải xem được mày đang làm gì mới duyệt được"): ▶ Lên sẽ tạo đúng camp nào + cổng nào sẽ bỏ qua — máy KHÔNG tự lên dòng ★ ROAS
   const chuChoDuyet = (c: CampEtpKho) => { const x = c.xep, gio = c.lich ? new Date(c.lich) : null, vn = gio ? new Date(gio.getTime() + 7 * 3600_000) : null;
     const chuGio = !vn || gio!.getTime() <= Date.now() + 60_000 ? 'chạy ngay khi Ethopex / Meta đồng bộ xong' : `hẹn chạy ${String(vn.getUTCHours()).padStart(2, '0')}:${String(vn.getUTCMinutes()).padStart(2, '0')} ${String(vn.getUTCDate()).padStart(2, '0')}/${String(vn.getUTCMonth() + 1).padStart(2, '0')} giờ VN${c.roas != null ? ' (★ ROAS lên ban tối) — muốn giờ khác bấm 🕒 đặt giờ' : ''}`;
-    return [`⏳ CHỜ ANH DUYỆT — máy không tự lên, anh bấm ▶ Lên mới tạo camp`, '',
+    return [x?.gui ? `🚀 ĐANG LÊN — anh đã bấm ▶ Lên lúc ${gioVn(x.gui)} giờ VN, máy đang tạo camp trên Ethopex (thường vài phút; xong thì dòng này thành camp thật). Quá 2 giờ chưa xong thì dòng về lại chờ duyệt` : `⏳ CHỜ ANH DUYỆT — máy không tự lên, anh bấm ▶ Lên mới tạo camp`, '',
       `▶ Lên sẽ tạo: 1 camp ${c.roas != null ? `★ ROAS ${c.roas} (Lowest cost + min ROAS) · $${c.ngan_sach}/ngày` : `$${c.ngan_sach}/ngày`}`,
       `· phim: ${c.phim ?? `#${c.content_id ?? '?'}`} · creative #${c.creative_id} (${c.dang ?? '?'}${x ? `, ${x.lang.toUpperCase()}` : ''})`,
       x ? `· chép khung từ camp khuôn #${x.khuon} (${x.lang.toUpperCase()}) · bộ ${c.bo ?? '?'}` : `· bộ ${c.bo ?? '?'}`,
@@ -2496,7 +2496,8 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
       x?.truoc ? `⚠ lần thử trước: ${x.truoc}` : ''].filter((l, i, a) => l || (i > 0 && a[i - 1])).join('\n').trim(); };
   const ChoDuyetNgan = ({ c }: { c: CampEtpKho }) => { const x = c.xep, g = c.lich ? new Date(new Date(c.lich).getTime() + 7 * 3600_000) : null, ngay = !g || g.getTime() - 7 * 3600_000 <= Date.now() + 60_000;
     return <span data-o="cho-duyet-ngan" title={chuChoDuyet(c)} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, fontSize: 10.5, lineHeight: 1.25, cursor: 'help' }}>
-      <span style={{ color: 'var(--warn, #f5a524)', fontWeight: 600 }}>chờ anh duyệt</span>
+      {x?.gui ? <span data-o="dang-len" style={{ color: 'var(--good, #17c964)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}><Den mau={MAU_DEN.cho} song t="đã gửi lệnh lên, chờ Ethopex tạo camp" />đang lên · {gioVn(x.gui)}</span>
+        : <span style={{ color: 'var(--warn, #f5a524)', fontWeight: 600 }}>chờ anh duyệt</span>}
       <span>{c.roas != null ? `★${c.roas}` : '$1'} · ${c.ngan_sach} · {ngay ? 'chạy ngay' : `${String(g!.getUTCHours()).padStart(2, '0')}:${String(g!.getUTCMinutes()).padStart(2, '0')} VN`}</span>
       {x && !x.cta ? <span style={{ color: 'var(--bad, #f31260)' }}>⚠ chưa đạt CTA</span> : x ? <span style={{ color: 'var(--good, #17c964)' }}>✓ CTA</span> : null}
     </span>; };

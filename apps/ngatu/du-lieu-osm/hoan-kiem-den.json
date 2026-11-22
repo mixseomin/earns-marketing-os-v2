@@ -1,0 +1,4309 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-22T16:35:21Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "way",
+  "id": 11005921,
+  "bounds": {
+    "minlat": 21.0269191,
+    "minlon": 105.8437592,
+    "maxlat": 21.0280896,
+    "maxlon": 105.8440937
+  },
+  "geometry": [
+    { "lat": 21.0280896, "lon": 105.8438946 },
+    { "lat": 21.0280588, "lon": 105.8439740 },
+    { "lat": 21.0280185, "lon": 105.8440412 },
+    { "lat": 21.0279742, "lon": 105.8440757 },
+    { "lat": 21.0279255, "lon": 105.8440922 },
+    { "lat": 21.0278936, "lon": 105.8440937 },
+    { "lat": 21.0278328, "lon": 105.8440826 },
+    { "lat": 21.0277872, "lon": 105.8440687 },
+    { "lat": 21.0274055, "lon": 105.8439341 },
+    { "lat": 21.0270533, "lon": 105.8438100 },
+    { "lat": 21.0269191, "lon": 105.8437592 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Phan Bội Châu",
+    "name:en": "Phan Boi Chau Street",
+    "name:etymology:wikidata": "Q714924",
+    "oneway": "yes",
+    "sidewalk:both": "separate",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 11550119,
+  "bounds": {
+    "minlat": 21.0289599,
+    "minlon": 105.8555372,
+    "maxlat": 21.0290430,
+    "maxlon": 105.8565535
+  },
+  "geometry": [
+    { "lat": 21.0290430, "lon": 105.8565535 },
+    { "lat": 21.0289624, "lon": 105.8555603 },
+    { "lat": 21.0289599, "lon": 105.8555372 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Trần Nguyên Hãn",
+    "name:en": "Tran Nguyen Han Street",
+    "name:etymology:wikidata": "Q10829396",
+    "name:zh": "陈元扞街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 11551090,
+  "bounds": {
+    "minlat": 21.0151291,
+    "minlon": 105.8529519,
+    "maxlat": 21.0168194,
+    "maxlon": 105.8531662
+  },
+  "geometry": [
+    { "lat": 21.0168194, "lon": 105.8529519 },
+    { "lat": 21.0166273, "lon": 105.8529685 },
+    { "lat": 21.0153893, "lon": 105.8531173 },
+    { "lat": 21.0152758, "lon": 105.8531356 },
+    { "lat": 21.0151517, "lon": 105.8531603 },
+    { "lat": 21.0151291, "lon": 105.8531662 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Ngô Thì Nhậm",
+    "name:en": "Ngo Thi Nham Street",
+    "name:etymology:wikidata": "Q1155621",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 11551237,
+  "bounds": {
+    "minlat": 21.0168194,
+    "minlon": 105.8529519,
+    "maxlat": 21.0172861,
+    "maxlon": 105.8556233
+  },
+  "geometry": [
+    { "lat": 21.0172861, "lon": 105.8556233 },
+    { "lat": 21.0172575, "lon": 105.8555292 },
+    { "lat": 21.0172067, "lon": 105.8553235 },
+    { "lat": 21.0171128, "lon": 105.8547394 },
+    { "lat": 21.0170305, "lon": 105.8542013 },
+    { "lat": 21.0169953, "lon": 105.8540474 },
+    { "lat": 21.0169758, "lon": 105.8539543 },
+    { "lat": 21.0169108, "lon": 105.8535555 },
+    { "lat": 21.0168409, "lon": 105.8530829 },
+    { "lat": 21.0168194, "lon": 105.8529519 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Trần Xuân Soạn",
+    "name:en": "Tran Xuan Soan Street",
+    "name:etymology:wikidata": "Q10829653",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 11551275,
+  "bounds": {
+    "minlat": 21.0172651,
+    "minlon": 105.8424924,
+    "maxlat": 21.0173642,
+    "maxlon": 105.8435857
+  },
+  "geometry": [
+    { "lat": 21.0173642, "lon": 105.8424924 },
+    { "lat": 21.0172849, "lon": 105.8433952 },
+    { "lat": 21.0172805, "lon": 105.8434371 },
+    { "lat": 21.0172651, "lon": 105.8435857 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Trần Nhân Tông",
+    "name:en": "Tran Nhan Tong Street",
+    "name:etymology:wikidata": "Q72083",
+    "oneway": "yes",
+    "surface": "asphalt",
+    "turn:lanes": "through;left|through|through"
+  }
+},
+{
+  "type": "way",
+  "id": 11558030,
+  "bounds": {
+    "minlat": 21.0132433,
+    "minlon": 105.8474309,
+    "maxlat": 21.0133873,
+    "maxlon": 105.8491504
+  },
+  "geometry": [
+    { "lat": 21.0132433, "lon": 105.8474309 },
+    { "lat": 21.0132774, "lon": 105.8476341 },
+    { "lat": 21.0133175, "lon": 105.8481687 },
+    { "lat": 21.0133237, "lon": 105.8482749 },
+    { "lat": 21.0133342, "lon": 105.8484426 },
+    { "lat": 21.0133487, "lon": 105.8486256 },
+    { "lat": 21.0133511, "lon": 105.8486626 },
+    { "lat": 21.0133598, "lon": 105.8488192 },
+    { "lat": 21.0133727, "lon": 105.8490151 },
+    { "lat": 21.0133873, "lon": 105.8491504 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Tô Hiến Thành",
+    "name:en": "To Hien Thanh Street",
+    "name:etymology:wikidata": "Q1319976",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 11558435,
+  "bounds": {
+    "minlat": 21.0276431,
+    "minlon": 105.8404146,
+    "maxlat": 21.0277838,
+    "maxlon": 105.8414065
+  },
+  "geometry": [
+    { "lat": 21.0276431, "lon": 105.8414065 },
+    { "lat": 21.0276457, "lon": 105.8413683 },
+    { "lat": 21.0276612, "lon": 105.8411432 },
+    { "lat": 21.0276654, "lon": 105.8410981 },
+    { "lat": 21.0276962, "lon": 105.8407640 },
+    { "lat": 21.0277557, "lon": 105.8405058 },
+    { "lat": 21.0277838, "lon": 105.8404146 }
+  ],
+  "tags": {
+    "foot": "yes",
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Nguyễn Khuyến",
+    "name:en": "Nguyen Khuyen Street",
+    "name:etymology:wikidata": "Q7022865",
+    "name:id": "Jalan Nguyen Khuyen",
+    "name:zh": "阮劝街",
+    "oneway": "yes",
+    "oneway:bicycle": "no",
+    "oneway:mofa": "no",
+    "oneway:moped": "no",
+    "oneway:motorcycle": "no",
+    "sidewalk": "both",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 11705879,
+  "bounds": {
+    "minlat": 21.0290340,
+    "minlon": 105.8546054,
+    "maxlat": 21.0313250,
+    "maxlon": 105.8554067
+  },
+  "geometry": [
+    { "lat": 21.0313250, "lon": 105.8546054 },
+    { "lat": 21.0308829, "lon": 105.8547524 },
+    { "lat": 21.0302935, "lon": 105.8549501 },
+    { "lat": 21.0302521, "lon": 105.8549640 },
+    { "lat": 21.0302315, "lon": 105.8549715 },
+    { "lat": 21.0290543, "lon": 105.8553988 },
+    { "lat": 21.0290340, "lon": 105.8554067 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "3",
+    "lanes:motorcycle": "3",
+    "maxspeed": "60",
+    "motorcycle:lanes": "yes|yes|designated",
+    "name": "Phố Lý Thái Tổ",
+    "name:en": "Ly Thai To Street",
+    "name:etymology:wikidata": "Q716945",
+    "name:id": "Jalan Ly Thai To",
+    "name:zh": "李太祖街",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 27933445,
+  "bounds": {
+    "minlat": 21.0255375,
+    "minlon": 105.8517930,
+    "maxlat": 21.0259101,
+    "maxlon": 105.8530690
+  },
+  "geometry": [
+    { "lat": 21.0255375, "lon": 105.8530690 },
+    { "lat": 21.0255467, "lon": 105.8530399 },
+    { "lat": 21.0255528, "lon": 105.8530182 },
+    { "lat": 21.0257589, "lon": 105.8523023 },
+    { "lat": 21.0258860, "lon": 105.8518819 },
+    { "lat": 21.0258888, "lon": 105.8518719 },
+    { "lat": 21.0259101, "lon": 105.8517930 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "motor_vehicle:conditional": "no @ (Fr 19:00-23:59; Sa 00:00-23:59; Su 00:00-23:59)",
+    "name": "Phố Hàng Khay",
+    "name:en": "Hang Khay Street",
+    "parking:left:restriction": "no_parking",
+    "parking:right:restriction": "no_stopping",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 28103383,
+  "bounds": {
+    "minlat": 21.0168343,
+    "minlon": 105.8503544,
+    "maxlat": 21.0169123,
+    "maxlon": 105.8514047
+  },
+  "geometry": [
+    { "lat": 21.0168343, "lon": 105.8514047 },
+    { "lat": 21.0168416, "lon": 105.8513198 },
+    { "lat": 21.0168489, "lon": 105.8509488 },
+    { "lat": 21.0168556, "lon": 105.8508468 },
+    { "lat": 21.0168603, "lon": 105.8507677 },
+    { "lat": 21.0168994, "lon": 105.8504493 },
+    { "lat": 21.0169123, "lon": 105.8503544 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Trần Nhân Tông",
+    "name:en": "Tran Nhan Tong Street",
+    "name:etymology:wikidata": "Q72083",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 35972484,
+  "bounds": {
+    "minlat": 21.0097837,
+    "minlon": 105.8490747,
+    "maxlat": 21.0106586,
+    "maxlon": 105.8499467
+  },
+  "geometry": [
+    { "lat": 21.0106586, "lon": 105.8490747 },
+    { "lat": 21.0104311, "lon": 105.8493074 },
+    { "lat": 21.0097837, "lon": 105.8499467 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Lê Đại Hành",
+    "name:en": "Le Dai Hanh Street",
+    "name:etymology:wikidata": "Q1317979",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 211891422,
+  "bounds": {
+    "minlat": 21.0291861,
+    "minlon": 105.8450687,
+    "maxlat": 21.0299584,
+    "maxlon": 105.8465680
+  },
+  "geometry": [
+    { "lat": 21.0299584, "lon": 105.8465680 },
+    { "lat": 21.0299076, "lon": 105.8464726 },
+    { "lat": 21.0292323, "lon": 105.8451502 },
+    { "lat": 21.0291861, "lon": 105.8450687 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Hàng Bông",
+    "name:en": "Hang Bong Street",
+    "oneway": "yes",
+    "oneway:bicycle": "no",
+    "oneway:bus": "no",
+    "oneway:foot": "no",
+    "oneway:mofa": "no",
+    "oneway:moped": "no",
+    "oneway:motorcycle": "no",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 218106606,
+  "bounds": {
+    "minlat": 21.0182234,
+    "minlon": 105.8413908,
+    "maxlat": 21.0188449,
+    "maxlon": 105.8414031
+  },
+  "geometry": [
+    { "lat": 21.0188449, "lon": 105.8413912 },
+    { "lat": 21.0187106, "lon": 105.8413908 },
+    { "lat": 21.0184564, "lon": 105.8413968 },
+    { "lat": 21.0182234, "lon": 105.8414031 }
+  ],
+  "tags": {
+    "highway": "primary",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Đường Lê Duẩn",
+    "name:en": "Le Duan Road",
+    "name:etymology:wikidata": "Q466001",
+    "oneway": "yes",
+    "oneway:bicycle": "no",
+    "oneway:mofa": "no",
+    "oneway:moped": "no",
+    "oneway:motorcycle": "no",
+    "smoothness": "good",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 218106748,
+  "bounds": {
+    "minlat": 21.0289355,
+    "minlon": 105.8415706,
+    "maxlat": 21.0296129,
+    "maxlon": 105.8415837
+  },
+  "geometry": [
+    { "lat": 21.0296129, "lon": 105.8415837 },
+    { "lat": 21.0295323, "lon": 105.8415821 },
+    { "lat": 21.0289867, "lon": 105.8415715 },
+    { "lat": 21.0289355, "lon": 105.8415706 }
+  ],
+  "tags": {
+    "bicycle": "yes",
+    "foot": "yes",
+    "highway": "primary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Đường Lê Duẩn",
+    "name:en": "Le Duan Road",
+    "name:etymology:wikidata": "Q466001",
+    "name:id": "Jalan Le Duan",
+    "name:zh": "黎笋路",
+    "oneway": "no",
+    "sidewalk": "both",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 219870323,
+  "bounds": {
+    "minlat": 21.0238043,
+    "minlon": 105.8427470,
+    "maxlat": 21.0254436,
+    "maxlon": 105.8432716
+  },
+  "geometry": [
+    { "lat": 21.0238043, "lon": 105.8427470 },
+    { "lat": 21.0239724, "lon": 105.8427943 },
+    { "lat": 21.0240652, "lon": 105.8428231 },
+    { "lat": 21.0246071, "lon": 105.8429910 },
+    { "lat": 21.0253222, "lon": 105.8432309 },
+    { "lat": 21.0254436, "lon": 105.8432716 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Phan Bội Châu",
+    "name:en": "Phan Boi Chau Street",
+    "oneway": "yes",
+    "oneway:bicycle": "no",
+    "oneway:mofa": "no",
+    "oneway:moped": "no",
+    "oneway:motorcycle": "no",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 408484144,
+  "bounds": {
+    "minlat": 21.0152083,
+    "minlon": 105.8491983,
+    "maxlat": 21.0169984,
+    "maxlon": 105.8492523
+  },
+  "geometry": [
+    { "lat": 21.0169984, "lon": 105.8492523 },
+    { "lat": 21.0168469, "lon": 105.8492508 },
+    { "lat": 21.0153110, "lon": 105.8491992 },
+    { "lat": 21.0152083, "lon": 105.8491983 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Bà Triệu",
+    "name:en": "Ba Trieu Street",
+    "name:etymology:wikidata": "Q269989",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 408783962,
+  "bounds": {
+    "minlat": 21.0222176,
+    "minlon": 105.8486839,
+    "maxlat": 21.0237053,
+    "maxlon": 105.8491985
+  },
+  "geometry": [
+    { "lat": 21.0222176, "lon": 105.8486839 },
+    { "lat": 21.0226074, "lon": 105.8488040 },
+    { "lat": 21.0227009, "lon": 105.8488361 },
+    { "lat": 21.0228304, "lon": 105.8488860 },
+    { "lat": 21.0235142, "lon": 105.8491339 },
+    { "lat": 21.0237053, "lon": 105.8491985 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "maxspeed": "50",
+    "name": "Phố Quang Trung",
+    "name:en": "Quang Trung Street",
+    "name:etymology:wikidata": "Q379775",
+    "sidewalk:both": "separate",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 408801203,
+  "bounds": {
+    "minlat": 21.0210682,
+    "minlon": 105.8447516,
+    "maxlat": 21.0229745,
+    "maxlon": 105.8454119
+  },
+  "geometry": [
+    { "lat": 21.0229745, "lon": 105.8454119 },
+    { "lat": 21.0228611, "lon": 105.8453747 },
+    { "lat": 21.0217298, "lon": 105.8449798 },
+    { "lat": 21.0215357, "lon": 105.8449143 },
+    { "lat": 21.0210682, "lon": 105.8447516 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Trần Bình Trọng",
+    "name:en": "Tran Binh Trong Street",
+    "name:etymology:wikidata": "Q4798254",
+    "surface": "asphalt",
+    "traffic_signals:direction": "backward"
+  }
+},
+{
+  "type": "way",
+  "id": 408801295,
+  "bounds": {
+    "minlat": 21.0174211,
+    "minlon": 105.8436347,
+    "maxlat": 21.0188761,
+    "maxlon": 105.8440234
+  },
+  "geometry": [
+    { "lat": 21.0188761, "lon": 105.8440234 },
+    { "lat": 21.0182848, "lon": 105.8438579 },
+    { "lat": 21.0181427, "lon": 105.8438212 },
+    { "lat": 21.0178984, "lon": 105.8437645 },
+    { "lat": 21.0175294, "lon": 105.8436731 },
+    { "lat": 21.0174211, "lon": 105.8436347 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Trần Bình Trọng",
+    "name:en": "Tran Binh Trong Street",
+    "name:etymology:wikidata": "Q4798254",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 408808099,
+  "bounds": {
+    "minlat": 21.0188567,
+    "minlon": 105.8421770,
+    "maxlat": 21.0202983,
+    "maxlon": 105.8426704
+  },
+  "geometry": [
+    { "lat": 21.0188567, "lon": 105.8421770 },
+    { "lat": 21.0189940, "lon": 105.8422192 },
+    { "lat": 21.0193080, "lon": 105.8423207 },
+    { "lat": 21.0195967, "lon": 105.8424236 },
+    { "lat": 21.0198425, "lon": 105.8425112 },
+    { "lat": 21.0201975, "lon": 105.8426353 },
+    { "lat": 21.0202983, "lon": 105.8426704 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Yết Kiêu",
+    "name:en": "Yet Kieu Street",
+    "name:etymology:wikidata": "Q10838332",
+    "name:ja": "イエット・キエウ通り",
+    "name:zh": "歇骄街",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 460259869,
+  "bounds": {
+    "minlat": 21.0190967,
+    "minlon": 105.8443164,
+    "maxlat": 21.0198187,
+    "maxlon": 105.8476612
+  },
+  "geometry": [
+    { "lat": 21.0190967, "lon": 105.8476612 },
+    { "lat": 21.0191210, "lon": 105.8475435 },
+    { "lat": 21.0191720, "lon": 105.8473042 },
+    { "lat": 21.0193914, "lon": 105.8462157 },
+    { "lat": 21.0195002, "lon": 105.8456923 },
+    { "lat": 21.0197532, "lon": 105.8445115 },
+    { "lat": 21.0198187, "lon": 105.8443164 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Nguyễn Du",
+    "name:en": "Nguyen Du Street",
+    "name:etymology:wikidata": "Q313322",
+    "name:ja": "グエンズー通り",
+    "name:zh": "阮攸街",
+    "sidewalk:both": "separate",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 460259870,
+  "bounds": {
+    "minlat": 21.0198187,
+    "minlon": 105.8426704,
+    "maxlat": 21.0202983,
+    "maxlon": 105.8443164
+  },
+  "geometry": [
+    { "lat": 21.0198187, "lon": 105.8443164 },
+    { "lat": 21.0198698, "lon": 105.8441616 },
+    { "lat": 21.0202651, "lon": 105.8428109 },
+    { "lat": 21.0202983, "lon": 105.8426704 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Nguyễn Du",
+    "name:en": "Nguyen Du Street",
+    "name:etymology:wikidata": "Q313322",
+    "name:ja": "グエンズー通り",
+    "name:zh": "阮攸街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 464097835,
+  "bounds": {
+    "minlat": 21.0143607,
+    "minlon": 105.8563444,
+    "maxlat": 21.0159717,
+    "maxlon": 105.8572727
+  },
+  "geometry": [
+    { "lat": 21.0159717, "lon": 105.8563444 },
+    { "lat": 21.0158596, "lon": 105.8564066 },
+    { "lat": 21.0158430, "lon": 105.8564160 },
+    { "lat": 21.0157404, "lon": 105.8564742 },
+    { "lat": 21.0156239, "lon": 105.8565404 },
+    { "lat": 21.0154395, "lon": 105.8566450 },
+    { "lat": 21.0152951, "lon": 105.8567269 },
+    { "lat": 21.0151822, "lon": 105.8567910 },
+    { "lat": 21.0144607, "lon": 105.8572118 },
+    { "lat": 21.0143607, "lon": 105.8572727 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "name": "Phố Lò Đúc",
+    "name:en": "Lo Duc Street",
+    "old_name:fr": "Boulevard Armand Rousseau",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 599618292,
+  "bounds": {
+    "minlat": 21.0133873,
+    "minlon": 105.8491504,
+    "maxlat": 21.0134998,
+    "maxlon": 105.8504595
+  },
+  "geometry": [
+    { "lat": 21.0133873, "lon": 105.8491504 },
+    { "lat": 21.0134030, "lon": 105.8492672 },
+    { "lat": 21.0134420, "lon": 105.8497526 },
+    { "lat": 21.0134519, "lon": 105.8498801 },
+    { "lat": 21.0134680, "lon": 105.8500340 },
+    { "lat": 21.0134882, "lon": 105.8503695 },
+    { "lat": 21.0134998, "lon": 105.8504595 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Tô Hiến Thành",
+    "name:en": "To Hien Thanh Street",
+    "name:etymology:wikidata": "Q1319976",
+    "oneway": "no",
+    "oneway:bicycle": "no",
+    "oneway:mofa": "no",
+    "oneway:moped": "no",
+    "oneway:motorcycle": "no",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 599618293,
+  "bounds": {
+    "minlat": 21.0109648,
+    "minlon": 105.8490813,
+    "maxlat": 21.0152083,
+    "maxlon": 105.8491983
+  },
+  "geometry": [
+    { "lat": 21.0152083, "lon": 105.8491983 },
+    { "lat": 21.0150874, "lon": 105.8491951 },
+    { "lat": 21.0137094, "lon": 105.8491587 },
+    { "lat": 21.0135536, "lon": 105.8491558 },
+    { "lat": 21.0133873, "lon": 105.8491504 },
+    { "lat": 21.0132473, "lon": 105.8491445 },
+    { "lat": 21.0124376, "lon": 105.8491179 },
+    { "lat": 21.0119611, "lon": 105.8491139 },
+    { "lat": 21.0118669, "lon": 105.8491140 },
+    { "lat": 21.0117278, "lon": 105.8491130 },
+    { "lat": 21.0114259, "lon": 105.8491003 },
+    { "lat": 21.0112326, "lon": 105.8490934 },
+    { "lat": 21.0109648, "lon": 105.8490813 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Bà Triệu",
+    "name:en": "Ba Trieu Street",
+    "name:etymology:wikidata": "Q269989",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 600115700,
+  "bounds": {
+    "minlat": 21.0143607,
+    "minlon": 105.8572727,
+    "maxlat": 21.0145685,
+    "maxlon": 105.8583968
+  },
+  "geometry": [
+    { "lat": 21.0143607, "lon": 105.8572727 },
+    { "lat": 21.0143838, "lon": 105.8574333 },
+    { "lat": 21.0144538, "lon": 105.8577910 },
+    { "lat": 21.0144982, "lon": 105.8580299 },
+    { "lat": 21.0145420, "lon": 105.8582658 },
+    { "lat": 21.0145685, "lon": 105.8583968 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "name": "Phố Nguyễn Công Trứ",
+    "name:etymology:wikidata": "Q3339357",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 601522489,
+  "bounds": {
+    "minlat": 21.0277198,
+    "minlon": 105.8415536,
+    "maxlat": 21.0287139,
+    "maxlon": 105.8415652
+  },
+  "geometry": [
+    { "lat": 21.0287139, "lon": 105.8415652 },
+    { "lat": 21.0286411, "lon": 105.8415641 },
+    { "lat": 21.0282601, "lon": 105.8415596 },
+    { "lat": 21.0277254, "lon": 105.8415537 },
+    { "lat": 21.0277198, "lon": 105.8415536 }
+  ],
+  "tags": {
+    "bicycle": "yes",
+    "foot": "yes",
+    "highway": "primary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Đường Lê Duẩn",
+    "name:en": "Le Duan Road",
+    "name:etymology:wikidata": "Q466001",
+    "name:id": "Jalan Le Duan",
+    "name:zh": "黎笋路",
+    "oneway": "yes",
+    "parking:right:restriction": "no_parking",
+    "sidewalk": "both",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 601529284,
+  "bounds": {
+    "minlat": 21.0107460,
+    "minlon": 105.8413476,
+    "maxlat": 21.0174645,
+    "maxlon": 105.8414159
+  },
+  "geometry": [
+    { "lat": 21.0174645, "lon": 105.8414099 },
+    { "lat": 21.0173900, "lon": 105.8414086 },
+    { "lat": 21.0173073, "lon": 105.8414072 },
+    { "lat": 21.0167095, "lon": 105.8413987 },
+    { "lat": 21.0162187, "lon": 105.8414158 },
+    { "lat": 21.0160974, "lon": 105.8414159 },
+    { "lat": 21.0153146, "lon": 105.8414068 },
+    { "lat": 21.0152743, "lon": 105.8414063 },
+    { "lat": 21.0150318, "lon": 105.8414023 },
+    { "lat": 21.0145829, "lon": 105.8413939 },
+    { "lat": 21.0142355, "lon": 105.8413880 },
+    { "lat": 21.0134169, "lon": 105.8413787 },
+    { "lat": 21.0110836, "lon": 105.8413515 },
+    { "lat": 21.0107460, "lon": 105.8413476 }
+  ],
+  "tags": {
+    "highway": "primary",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Đường Lê Duẩn",
+    "name:en": "Le Duan Road",
+    "name:etymology:wikidata": "Q466001",
+    "oneway": "no",
+    "sidewalk": "both",
+    "smoothness": "good",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 601595921,
+  "bounds": {
+    "minlat": 21.0249069,
+    "minlon": 105.8451257,
+    "maxlat": 21.0257694,
+    "maxlon": 105.8454267
+  },
+  "geometry": [
+    { "lat": 21.0249069, "lon": 105.8451257 },
+    { "lat": 21.0250008, "lon": 105.8451492 },
+    { "lat": 21.0255726, "lon": 105.8453598 },
+    { "lat": 21.0257694, "lon": 105.8454267 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Quán Sứ",
+    "name:en": "Quan Su Street",
+    "oneway": "no",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 601882375,
+  "bounds": {
+    "minlat": 21.0198187,
+    "minlon": 105.8443164,
+    "maxlat": 21.0210682,
+    "maxlon": 105.8447516
+  },
+  "geometry": [
+    { "lat": 21.0210682, "lon": 105.8447516 },
+    { "lat": 21.0205841, "lon": 105.8445809 },
+    { "lat": 21.0204246, "lon": 105.8445276 },
+    { "lat": 21.0199623, "lon": 105.8443664 },
+    { "lat": 21.0198187, "lon": 105.8443164 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Trần Bình Trọng",
+    "name:en": "Tran Binh Trong Street",
+    "name:etymology:wikidata": "Q4798254",
+    "sidewalk:both": "separate",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 617308704,
+  "bounds": {
+    "minlat": 21.0235778,
+    "minlon": 105.8446791,
+    "maxlat": 21.0249069,
+    "maxlon": 105.8451257
+  },
+  "geometry": [
+    { "lat": 21.0235778, "lon": 105.8446791 },
+    { "lat": 21.0236378, "lon": 105.8447003 },
+    { "lat": 21.0241870, "lon": 105.8448939 },
+    { "lat": 21.0247504, "lon": 105.8450869 },
+    { "lat": 21.0249069, "lon": 105.8451257 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "60",
+    "name": "Phố Quán Sứ",
+    "name:en": "Quan Su Street",
+    "note": "Cơ quan chức năng có thông báo xe máy được đi 2 chiều ở đây. Tuy nhiên, tôi thấy họ vẫn chưa thay biển cấm đi ngược chiều ở đầu điểm giao với phố Lý Thường Kiệt. Một vài hôm nữa qua đây nếu có thay đổi thì tôi sẽ cập nhật.",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 684044679,
+  "bounds": {
+    "minlat": 21.0257694,
+    "minlon": 105.8454267,
+    "maxlat": 21.0263771,
+    "maxlon": 105.8456154
+  },
+  "geometry": [
+    { "lat": 21.0257694, "lon": 105.8454267 },
+    { "lat": 21.0259637, "lon": 105.8454860 },
+    { "lat": 21.0260360, "lon": 105.8455086 },
+    { "lat": 21.0262390, "lon": 105.8455722 },
+    { "lat": 21.0263771, "lon": 105.8456154 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "60",
+    "name": "Phố Quán Sứ",
+    "name:en": "Quan Su Street",
+    "oneway": "yes",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 707055568,
+  "bounds": {
+    "minlat": 21.0247837,
+    "minlon": 105.8513510,
+    "maxlat": 21.0258722,
+    "maxlon": 105.8516951
+  },
+  "geometry": [
+    { "lat": 21.0258722, "lon": 105.8516951 },
+    { "lat": 21.0258016, "lon": 105.8516728 },
+    { "lat": 21.0251376, "lon": 105.8514629 },
+    { "lat": 21.0248431, "lon": 105.8513698 },
+    { "lat": 21.0247837, "lon": 105.8513510 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "60",
+    "motor_vehicle:lanes": "yes|no",
+    "motorcycle:lanes": "no|yes",
+    "name": "Phố Bà Triệu",
+    "name:en": "Ba Trieu Street",
+    "name:etymology:wikidata": "Q269989",
+    "name:id": "Jalan Ba Trieu",
+    "name:zh": "婆赵街",
+    "oneway": "yes",
+    "parking:right:restriction": "no_parking",
+    "surface": "asphalt",
+    "turn:lanes": "through;left|through|through|through;right"
+  }
+},
+{
+  "type": "way",
+  "id": 707337132,
+  "bounds": {
+    "minlat": 21.0269838,
+    "minlon": 105.8477905,
+    "maxlat": 21.0270442,
+    "maxlon": 105.8479924
+  },
+  "geometry": [
+    { "lat": 21.0269838, "lon": 105.8479924 },
+    { "lat": 21.0269939, "lon": 105.8479591 },
+    { "lat": 21.0270442, "lon": 105.8477905 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Tràng Thi",
+    "name:en": "Trang Thi Street",
+    "name:id": "Jalan Trang Thi",
+    "name:vi": "Phố Tràng Thi",
+    "name:zh": "场试街",
+    "oneway": "yes",
+    "sidewalk:both": "yes",
+    "sidewalk:both:surface": "paving_stones",
+    "smoothness": "good",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 708514874,
+  "bounds": {
+    "minlat": 21.0288502,
+    "minlon": 105.8396906,
+    "maxlat": 21.0293866,
+    "maxlon": 105.8414562
+  },
+  "geometry": [
+    { "lat": 21.0293866, "lon": 105.8396906 },
+    { "lat": 21.0293754, "lon": 105.8397286 },
+    { "lat": 21.0293316, "lon": 105.8398804 },
+    { "lat": 21.0292397, "lon": 105.8402021 },
+    { "lat": 21.0290777, "lon": 105.8407373 },
+    { "lat": 21.0290267, "lon": 105.8409109 },
+    { "lat": 21.0288533, "lon": 105.8414463 },
+    { "lat": 21.0288502, "lon": 105.8414562 }
+  ],
+  "tags": {
+    "highway": "primary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Nguyễn Thái Học",
+    "name:cy": "Stryd Nguyen Thai Hoc",
+    "name:en": "Nguyen Thai Hoc Street",
+    "name:etymology:wikidata": "Q111822",
+    "name:id": "Jalan Nguyen Thai Hoc",
+    "name:zh": "阮太学街",
+    "oneway": "yes",
+    "parking:right:restriction": "no_stopping",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 709360978,
+  "bounds": {
+    "minlat": 21.0175268,
+    "minlon": 105.8414115,
+    "maxlat": 21.0176273,
+    "maxlon": 105.8424984
+  },
+  "geometry": [
+    { "lat": 21.0175268, "lon": 105.8424984 },
+    { "lat": 21.0175396, "lon": 105.8423156 },
+    { "lat": 21.0175452, "lon": 105.8422551 },
+    { "lat": 21.0175588, "lon": 105.8421085 },
+    { "lat": 21.0175902, "lon": 105.8417705 },
+    { "lat": 21.0175925, "lon": 105.8417457 },
+    { "lat": 21.0175948, "lon": 105.8417208 },
+    { "lat": 21.0175993, "lon": 105.8416694 },
+    { "lat": 21.0176273, "lon": 105.8414115 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Trần Nhân Tông",
+    "name:en": "Tran Nhan Tong Street",
+    "name:etymology:wikidata": "Q72083",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 710176319,
+  "bounds": {
+    "minlat": 21.0188121,
+    "minlon": 105.8408334,
+    "maxlat": 21.0188454,
+    "maxlon": 105.8412242
+  },
+  "geometry": [
+    { "lat": 21.0188270, "lon": 105.8408334 },
+    { "lat": 21.0188121, "lon": 105.8411675 },
+    { "lat": 21.0188454, "lon": 105.8412242 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "60",
+    "motorcar": "yes",
+    "motorcar:conditional": "no @ (06:00-09:00)",
+    "name": "Phố Khâm Thiên",
+    "name:en": "Kham Thien Street",
+    "name:zh": "钦天街",
+    "oneway": "yes",
+    "surface": "asphalt",
+    "taxi:conditional": "no @ (Mo-Fr 06:00-09:00)",
+    "turn:lanes": "through|right"
+  }
+},
+{
+  "type": "way",
+  "id": 710219942,
+  "bounds": {
+    "minlat": 21.0106586,
+    "minlon": 105.8488907,
+    "maxlat": 21.0108647,
+    "maxlon": 105.8490747
+  },
+  "geometry": [
+    { "lat": 21.0108647, "lon": 105.8488907 },
+    { "lat": 21.0107432, "lon": 105.8490073 },
+    { "lat": 21.0106586, "lon": 105.8490747 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Lê Đại Hành",
+    "name:en": "Le Dai Hanh Street",
+    "name:etymology:wikidata": "Q1317979",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 711138757,
+  "bounds": {
+    "minlat": 21.0182179,
+    "minlon": 105.8550110,
+    "maxlat": 21.0183662,
+    "maxlon": 105.8551039
+  },
+  "geometry": [
+    { "lat": 21.0183662, "lon": 105.8550110 },
+    { "lat": 21.0182179, "lon": 105.8551039 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Lò Đúc",
+    "name:en": "Lo Duc Street",
+    "old_name:fr": "Boulevard Armand Rousseau",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "turn:lanes:backward": "through;left;right",
+    "turn:lanes:forward": "through"
+  }
+},
+{
+  "type": "way",
+  "id": 711138760,
+  "bounds": {
+    "minlat": 21.0180897,
+    "minlon": 105.8516030,
+    "maxlat": 21.0182926,
+    "maxlon": 105.8528936
+  },
+  "geometry": [
+    { "lat": 21.0182926, "lon": 105.8516030 },
+    { "lat": 21.0182683, "lon": 105.8517354 },
+    { "lat": 21.0181716, "lon": 105.8523380 },
+    { "lat": 21.0181633, "lon": 105.8523904 },
+    { "lat": 21.0181279, "lon": 105.8526149 },
+    { "lat": 21.0181024, "lon": 105.8527770 },
+    { "lat": 21.0180897, "lon": 105.8528936 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Lê Văn Hưu",
+    "name:en": "Le Van Huu Street",
+    "name:etymology:wikidata": "Q1111882",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 711138761,
+  "bounds": {
+    "minlat": 21.0183662,
+    "minlon": 105.8550110,
+    "maxlat": 21.0185265,
+    "maxlon": 105.8550771
+  },
+  "geometry": [
+    { "lat": 21.0183662, "lon": 105.8550110 },
+    { "lat": 21.0185265, "lon": 105.8550771 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Phan Chu Trinh",
+    "name:en": "Phan Chu Trinh Street",
+    "name:etymology:wikidata": "Q2705303",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "turn:lanes:backward": "through;left;right",
+    "turn:lanes:forward": "through"
+  }
+},
+{
+  "type": "way",
+  "id": 711372254,
+  "bounds": {
+    "minlat": 21.0180897,
+    "minlon": 105.8528936,
+    "maxlat": 21.0191659,
+    "maxlon": 105.8532227
+  },
+  "geometry": [
+    { "lat": 21.0191659, "lon": 105.8532227 },
+    { "lat": 21.0191011, "lon": 105.8532038 },
+    { "lat": 21.0182143, "lon": 105.8529084 },
+    { "lat": 21.0180897, "lon": 105.8528936 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "60",
+    "name": "Phố Ngô Thì Nhậm",
+    "name:en": "Ngo Thi Nham Street",
+    "name:etymology:wikidata": "Q1155621",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 764854185,
+  "bounds": {
+    "minlat": 21.0244193,
+    "minlon": 105.8529855,
+    "maxlat": 21.0253409,
+    "maxlon": 105.8532029
+  },
+  "geometry": [
+    { "lat": 21.0244193, "lon": 105.8529855 },
+    { "lat": 21.0252841, "lon": 105.8531865 },
+    { "lat": 21.0253252, "lon": 105.8531975 },
+    { "lat": 21.0253409, "lon": 105.8532029 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "motor_vehicle:conditional": "no @ (Fr 19:00-23:59; Sa 00:00-23:59; Su 00:00-23:59)",
+    "name": "Phố Hàng Bài",
+    "oneway": "yes",
+    "parking:right:restriction": "no_parking",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 769798550,
+  "bounds": {
+    "minlat": 21.0237053,
+    "minlon": 105.8469014,
+    "maxlat": 21.0243922,
+    "maxlon": 105.8491985
+  },
+  "geometry": [
+    { "lat": 21.0237053, "lon": 105.8491985 },
+    { "lat": 21.0237418, "lon": 105.8490175 },
+    { "lat": 21.0238472, "lon": 105.8486797 },
+    { "lat": 21.0239107, "lon": 105.8484762 },
+    { "lat": 21.0241050, "lon": 105.8478485 },
+    { "lat": 21.0241716, "lon": 105.8476249 },
+    { "lat": 21.0241825, "lon": 105.8475885 },
+    { "lat": 21.0242821, "lon": 105.8472741 },
+    { "lat": 21.0243922, "lon": 105.8469014 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "4",
+    "maxspeed": "60",
+    "name": "Phố Lý Thường Kiệt",
+    "name:en": "Ly Thuong Kiet Street",
+    "name:etymology:wikidata": "Q702734",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 788757975,
+  "bounds": {
+    "minlat": 21.0282027,
+    "minlon": 105.8432287,
+    "maxlat": 21.0283300,
+    "maxlon": 105.8435788
+  },
+  "geometry": [
+    { "lat": 21.0283300, "lon": 105.8432287 },
+    { "lat": 21.0282388, "lon": 105.8434793 },
+    { "lat": 21.0282027, "lon": 105.8435788 }
+  ],
+  "tags": {
+    "fixme": "Hiện đoạn đường đã không còn dải phân cách cứng, nếu ai có thể sửa thì hãy sửa lại đoạn đường này, xin cảm ơn các bạn đã đọc",
+    "highway": "primary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Nguyễn Thái Học",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 898272869,
+  "bounds": {
+    "minlat": 21.0176273,
+    "minlon": 105.8414031,
+    "maxlat": 21.0182234,
+    "maxlon": 105.8414180
+  },
+  "geometry": [
+    { "lat": 21.0182234, "lon": 105.8414031 },
+    { "lat": 21.0181057, "lon": 105.8414180 },
+    { "lat": 21.0179823, "lon": 105.8414164 },
+    { "lat": 21.0178295, "lon": 105.8414145 },
+    { "lat": 21.0176273, "lon": 105.8414115 }
+  ],
+  "tags": {
+    "highway": "primary",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Đường Lê Duẩn",
+    "name:en": "Le Duan Road",
+    "name:etymology:wikidata": "Q466001",
+    "smoothness": "good",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 943964891,
+  "bounds": {
+    "minlat": 21.0249069,
+    "minlon": 105.8432716,
+    "maxlat": 21.0254436,
+    "maxlon": 105.8451257
+  },
+  "geometry": [
+    { "lat": 21.0249069, "lon": 105.8451257 },
+    { "lat": 21.0249332, "lon": 105.8450186 },
+    { "lat": 21.0250640, "lon": 105.8445734 },
+    { "lat": 21.0251196, "lon": 105.8443723 },
+    { "lat": 21.0251993, "lon": 105.8441076 },
+    { "lat": 21.0252602, "lon": 105.8439015 },
+    { "lat": 21.0254123, "lon": 105.8433793 },
+    { "lat": 21.0254436, "lon": 105.8432716 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "4",
+    "maxspeed": "60",
+    "name": "Phố Lý Thường Kiệt",
+    "name:en": "Ly Thuong Kiet Street",
+    "name:etymology:wikidata": "Q702734",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 944100696,
+  "bounds": {
+    "minlat": 21.0127586,
+    "minlon": 105.8572727,
+    "maxlat": 21.0143607,
+    "maxlon": 105.8582827
+  },
+  "geometry": [
+    { "lat": 21.0143607, "lon": 105.8572727 },
+    { "lat": 21.0142842, "lon": 105.8573111 },
+    { "lat": 21.0142147, "lon": 105.8573454 },
+    { "lat": 21.0140688, "lon": 105.8574276 },
+    { "lat": 21.0138106, "lon": 105.8575585 },
+    { "lat": 21.0137846, "lon": 105.8575736 },
+    { "lat": 21.0136534, "lon": 105.8576459 },
+    { "lat": 21.0135232, "lon": 105.8577177 },
+    { "lat": 21.0134180, "lon": 105.8577752 },
+    { "lat": 21.0132506, "lon": 105.8578798 },
+    { "lat": 21.0130313, "lon": 105.8580606 },
+    { "lat": 21.0128788, "lon": 105.8581862 },
+    { "lat": 21.0128385, "lon": 105.8582205 },
+    { "lat": 21.0127586, "lon": 105.8582827 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "name": "Phố Lò Đúc",
+    "name:en": "Lo Duc Street",
+    "old_name:fr": "Boulevard Armand Rousseau",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 951487942,
+  "bounds": {
+    "minlat": 21.0106586,
+    "minlon": 105.8490747,
+    "maxlat": 21.0109648,
+    "maxlon": 105.8490813
+  },
+  "geometry": [
+    { "lat": 21.0109648, "lon": 105.8490813 },
+    { "lat": 21.0108414, "lon": 105.8490805 },
+    { "lat": 21.0106586, "lon": 105.8490747 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "name": "Phố Bà Triệu",
+    "name:en": "Ba Trieu Street",
+    "name:etymology:wikidata": "Q269989",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 961685430,
+  "bounds": {
+    "minlat": 21.0190967,
+    "minlon": 105.8476612,
+    "maxlat": 21.0200887,
+    "maxlon": 105.8479737
+  },
+  "geometry": [
+    { "lat": 21.0190967, "lon": 105.8476612 },
+    { "lat": 21.0192422, "lon": 105.8477068 },
+    { "lat": 21.0195767, "lon": 105.8478058 },
+    { "lat": 21.0200219, "lon": 105.8479516 },
+    { "lat": 21.0200887, "lon": 105.8479737 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Quang Trung",
+    "name:en": "Quang Trung Street",
+    "name:etymology:wikidata": "Q379775",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 965041063,
+  "bounds": {
+    "minlat": 21.0202983,
+    "minlon": 105.8414183,
+    "maxlat": 21.0206551,
+    "maxlon": 105.8426704
+  },
+  "geometry": [
+    { "lat": 21.0202983, "lon": 105.8426704 },
+    { "lat": 21.0203358, "lon": 105.8425301 },
+    { "lat": 21.0206257, "lon": 105.8415578 },
+    { "lat": 21.0206551, "lon": 105.8414183 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Nguyễn Du",
+    "name:en": "Nguyen Du Street",
+    "name:etymology:wikidata": "Q313322",
+    "name:ja": "グエンズー通り",
+    "name:zh": "阮攸街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 965041064,
+  "bounds": {
+    "minlat": 21.0227579,
+    "minlon": 105.8455219,
+    "maxlat": 21.0229434,
+    "maxlon": 105.8461680
+  },
+  "geometry": [
+    { "lat": 21.0227579, "lon": 105.8461680 },
+    { "lat": 21.0228038, "lon": 105.8460077 },
+    { "lat": 21.0228579, "lon": 105.8458190 },
+    { "lat": 21.0229302, "lon": 105.8455667 },
+    { "lat": 21.0229434, "lon": 105.8455219 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "old_name:fr": "Boulevard Gambetta",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 965041065,
+  "bounds": {
+    "minlat": 21.0243922,
+    "minlon": 105.8451257,
+    "maxlat": 21.0249069,
+    "maxlon": 105.8469014
+  },
+  "geometry": [
+    { "lat": 21.0243922, "lon": 105.8469014 },
+    { "lat": 21.0244031, "lon": 105.8468661 },
+    { "lat": 21.0245553, "lon": 105.8463801 },
+    { "lat": 21.0245966, "lon": 105.8462253 },
+    { "lat": 21.0246197, "lon": 105.8461298 },
+    { "lat": 21.0246362, "lon": 105.8460687 },
+    { "lat": 21.0246907, "lon": 105.8458809 },
+    { "lat": 21.0248729, "lon": 105.8452775 },
+    { "lat": 21.0248779, "lon": 105.8452522 },
+    { "lat": 21.0249069, "lon": 105.8451257 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Lý Thường Kiệt",
+    "name:en": "Ly Thuong Kiet Street",
+    "name:etymology:wikidata": "Q702734",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 971422902,
+  "bounds": {
+    "minlat": 21.0169984,
+    "minlon": 105.8484518,
+    "maxlat": 21.0170395,
+    "maxlon": 105.8492523
+  },
+  "geometry": [
+    { "lat": 21.0169984, "lon": 105.8492523 },
+    { "lat": 21.0170024, "lon": 105.8491546 },
+    { "lat": 21.0170352, "lon": 105.8485651 },
+    { "lat": 21.0170395, "lon": 105.8484518 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "name": "Phố Trần Nhân Tông",
+    "name:en": "Tran Nhan Tong Street",
+    "name:etymology:wikidata": "Q72083",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 971422903,
+  "bounds": {
+    "minlat": 21.0169984,
+    "minlon": 105.8492523,
+    "maxlat": 21.0187503,
+    "maxlon": 105.8493412
+  },
+  "geometry": [
+    { "lat": 21.0187503, "lon": 105.8493412 },
+    { "lat": 21.0185760, "lon": 105.8492936 },
+    { "lat": 21.0184103, "lon": 105.8492847 },
+    { "lat": 21.0174756, "lon": 105.8492605 },
+    { "lat": 21.0170884, "lon": 105.8492544 },
+    { "lat": 21.0169984, "lon": 105.8492523 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Bà Triệu",
+    "name:en": "Ba Trieu Street",
+    "name:etymology:wikidata": "Q269989",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 972186120,
+  "bounds": {
+    "minlat": 21.0173050,
+    "minlon": 105.8436347,
+    "maxlat": 21.0174211,
+    "maxlon": 105.8442692
+  },
+  "geometry": [
+    { "lat": 21.0173050, "lon": 105.8442692 },
+    { "lat": 21.0173870, "lon": 105.8440396 },
+    { "lat": 21.0174024, "lon": 105.8438705 },
+    { "lat": 21.0174211, "lon": 105.8436347 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Trần Nhân Tông",
+    "name:en": "Tran Nhan Tong Street",
+    "name:etymology:wikidata": "Q72083",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1135436652,
+  "bounds": {
+    "minlat": 21.0282766,
+    "minlon": 105.8436528,
+    "maxlat": 21.0285916,
+    "maxlon": 105.8439851
+  },
+  "geometry": [
+    { "lat": 21.0285916, "lon": 105.8439851 },
+    { "lat": 21.0285542, "lon": 105.8439273 },
+    { "lat": 21.0284978, "lon": 105.8438731 },
+    { "lat": 21.0283444, "lon": 105.8437192 },
+    { "lat": 21.0282766, "lon": 105.8436528 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "1",
+    "maxspeed": "50",
+    "name": "Phố Hàng Bông",
+    "name:en": "Hang Bong Street",
+    "oneway": "yes",
+    "parking": "no",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1180597074,
+  "bounds": {
+    "minlat": 21.0188449,
+    "minlon": 105.8412242,
+    "maxlat": 21.0188454,
+    "maxlon": 105.8413912
+  },
+  "geometry": [
+    { "lat": 21.0188454, "lon": 105.8412242 },
+    { "lat": 21.0188449, "lon": 105.8413912 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Khâm Thiên",
+    "name:en": "Kham Thien Street",
+    "name:zh": "钦天街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1180597075,
+  "bounds": {
+    "minlat": 21.0188454,
+    "minlon": 105.8408367,
+    "maxlat": 21.0188939,
+    "maxlon": 105.8412242
+  },
+  "geometry": [
+    { "lat": 21.0188454, "lon": 105.8412242 },
+    { "lat": 21.0188756, "lon": 105.8411688 },
+    { "lat": 21.0188878, "lon": 105.8409479 },
+    { "lat": 21.0188939, "lon": 105.8408367 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "60",
+    "motorcar": "yes",
+    "motorcar:conditional": "no @ (16:00-19:30)",
+    "name": "Phố Khâm Thiên",
+    "name:en": "Kham Thien Street",
+    "name:zh": "钦天街",
+    "oneway": "yes",
+    "surface": "asphalt",
+    "taxi:conditional": "no @ (Mo-Fr 16:00-19:30)"
+  }
+},
+{
+  "type": "way",
+  "id": 1223365201,
+  "bounds": {
+    "minlat": 21.0249161,
+    "minlon": 105.8551509,
+    "maxlat": 21.0254087,
+    "maxlon": 105.8553119
+  },
+  "geometry": [
+    { "lat": 21.0254087, "lon": 105.8553119 },
+    { "lat": 21.0253133, "lon": 105.8552804 },
+    { "lat": 21.0250480, "lon": 105.8551920 },
+    { "lat": 21.0249161, "lon": 105.8551509 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "3",
+    "maxspeed": "60",
+    "name": "Phố Ngô Quyền",
+    "name:en": "Ngo Quyen Street",
+    "name:etymology:wikidata": "Q699904",
+    "name:zh": "吴权街",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1225587548,
+  "bounds": {
+    "minlat": 21.0183772,
+    "minlon": 105.8474562,
+    "maxlat": 21.0190967,
+    "maxlon": 105.8476612
+  },
+  "geometry": [
+    { "lat": 21.0183772, "lon": 105.8474562 },
+    { "lat": 21.0187134, "lon": 105.8475577 },
+    { "lat": 21.0190154, "lon": 105.8476392 },
+    { "lat": 21.0190967, "lon": 105.8476612 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Quang Trung",
+    "name:en": "Quang Trung Street",
+    "name:etymology:wikidata": "Q379775",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1229239673,
+  "bounds": {
+    "minlat": 21.0169606,
+    "minlon": 105.8492523,
+    "maxlat": 21.0169984,
+    "maxlon": 105.8498371
+  },
+  "geometry": [
+    { "lat": 21.0169606, "lon": 105.8498371 },
+    { "lat": 21.0169686, "lon": 105.8497192 },
+    { "lat": 21.0169931, "lon": 105.8493704 },
+    { "lat": 21.0169984, "lon": 105.8492523 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "name": "Phố Trần Nhân Tông",
+    "name:en": "Tran Nhan Tong Street",
+    "name:etymology:wikidata": "Q72083",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1239615466,
+  "bounds": {
+    "minlat": 21.0237053,
+    "minlon": 105.8491985,
+    "maxlat": 21.0251837,
+    "maxlon": 105.8496991
+  },
+  "geometry": [
+    { "lat": 21.0237053, "lon": 105.8491985 },
+    { "lat": 21.0238305, "lon": 105.8492418 },
+    { "lat": 21.0239897, "lon": 105.8492953 },
+    { "lat": 21.0243540, "lon": 105.8494186 },
+    { "lat": 21.0247729, "lon": 105.8495586 },
+    { "lat": 21.0250082, "lon": 105.8496400 },
+    { "lat": 21.0251837, "lon": 105.8496991 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "maxspeed": "50",
+    "name": "Phố Quang Trung",
+    "name:en": "Quang Trung Street",
+    "name:etymology:wikidata": "Q379775",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1240199915,
+  "bounds": {
+    "minlat": 21.0168194,
+    "minlon": 105.8528822,
+    "maxlat": 21.0180897,
+    "maxlon": 105.8529519
+  },
+  "geometry": [
+    { "lat": 21.0180897, "lon": 105.8528936 },
+    { "lat": 21.0179347, "lon": 105.8528822 },
+    { "lat": 21.0177323, "lon": 105.8528951 },
+    { "lat": 21.0169481, "lon": 105.8529449 },
+    { "lat": 21.0168194, "lon": 105.8529519 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Ngô Thì Nhậm",
+    "name:en": "Ngo Thi Nham Street",
+    "name:etymology:wikidata": "Q1155621",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1240199916,
+  "bounds": {
+    "minlat": 21.0168023,
+    "minlon": 105.8514047,
+    "maxlat": 21.0168343,
+    "maxlon": 105.8529519
+  },
+  "geometry": [
+    { "lat": 21.0168194, "lon": 105.8529519 },
+    { "lat": 21.0168023, "lon": 105.8528264 },
+    { "lat": 21.0168092, "lon": 105.8522653 },
+    { "lat": 21.0168103, "lon": 105.8520723 },
+    { "lat": 21.0168134, "lon": 105.8515506 },
+    { "lat": 21.0168343, "lon": 105.8514047 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "name": "Phố Trần Xuân Soạn",
+    "name:en": "Tran Xuan Soan Street",
+    "name:etymology:wikidata": "Q10829653",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1240455070,
+  "bounds": {
+    "minlat": 21.0254436,
+    "minlon": 105.8418610,
+    "maxlat": 21.0258427,
+    "maxlon": 105.8432716
+  },
+  "geometry": [
+    { "lat": 21.0254436, "lon": 105.8432716 },
+    { "lat": 21.0254772, "lon": 105.8431550 },
+    { "lat": 21.0255504, "lon": 105.8429003 },
+    { "lat": 21.0256816, "lon": 105.8424201 },
+    { "lat": 21.0258403, "lon": 105.8418690 },
+    { "lat": 21.0258427, "lon": 105.8418610 }
+  ],
+  "tags": {
+    "cycleway:both": "shoulder",
+    "highway": "tertiary",
+    "lanes": "4",
+    "maxspeed": "60",
+    "name": "Phố Lý Thường Kiệt",
+    "name:en": "Ly Thuong Kiet Street",
+    "name:etymology:wikidata": "Q702734",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1246298985,
+  "bounds": {
+    "minlat": 21.0188761,
+    "minlon": 105.8440234,
+    "maxlat": 21.0198187,
+    "maxlon": 105.8443164
+  },
+  "geometry": [
+    { "lat": 21.0198187, "lon": 105.8443164 },
+    { "lat": 21.0195878, "lon": 105.8442365 },
+    { "lat": 21.0193556, "lon": 105.8441670 },
+    { "lat": 21.0188761, "lon": 105.8440234 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Trần Bình Trọng",
+    "name:en": "Tran Binh Trong Street",
+    "name:etymology:wikidata": "Q4798254",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1334956949,
+  "bounds": {
+    "minlat": 21.0280671,
+    "minlon": 105.8436528,
+    "maxlat": 21.0282766,
+    "maxlon": 105.8442028
+  },
+  "geometry": [
+    { "lat": 21.0280671, "lon": 105.8442028 },
+    { "lat": 21.0281707, "lon": 105.8439570 },
+    { "lat": 21.0282346, "lon": 105.8437803 },
+    { "lat": 21.0282559, "lon": 105.8437163 },
+    { "lat": 21.0282766, "lon": 105.8436528 }
+  ],
+  "tags": {
+    "fixme": "Hiện đoạn đường đã không còn dải phân cách cứng, nếu ai có thể sửa thì hãy sửa lại đoạn đường này, xin cảm ơn các bạn đã đọc",
+    "highway": "secondary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Tràng Thi",
+    "name:en": "Trang Thi Street",
+    "name:zh": "场诗街",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1431504377,
+  "bounds": {
+    "minlat": 21.0276316,
+    "minlon": 105.8415518,
+    "maxlat": 21.0277198,
+    "maxlon": 105.8415536
+  },
+  "geometry": [
+    { "lat": 21.0277198, "lon": 105.8415536 },
+    { "lat": 21.0276316, "lon": 105.8415518 }
+  ],
+  "tags": {
+    "access": "yes",
+    "bicycle": "yes",
+    "foot": "yes",
+    "highway": "primary",
+    "horse": "yes",
+    "lanes": "2",
+    "maxspeed": "60",
+    "motor_vehicle": "yes",
+    "name": "Đường Lê Duẩn",
+    "name:en": "Le Duan Road",
+    "name:etymology:wikidata": "Q466001",
+    "oneway": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1551010888,
+  "bounds": {
+    "minlat": 21.0246668,
+    "minlon": 105.8513284,
+    "maxlat": 21.0247164,
+    "maxlon": 105.8515004
+  },
+  "geometry": [
+    { "lat": 21.0246668, "lon": 105.8515004 },
+    { "lat": 21.0246710, "lon": 105.8514859 },
+    { "lat": 21.0247164, "lon": 105.8513284 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "motorcar:conditional": "no @ (Fr-Su 19:00-24:00)",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1551213393,
+  "bounds": {
+    "minlat": 21.0188449,
+    "minlon": 105.8413912,
+    "maxlat": 21.0193508,
+    "maxlon": 105.8413984
+  },
+  "geometry": [
+    { "lat": 21.0193508, "lon": 105.8413984 },
+    { "lat": 21.0189757, "lon": 105.8413931 },
+    { "lat": 21.0188449, "lon": 105.8413912 }
+  ],
+  "tags": {
+    "bicycle": "yes",
+    "foot": "yes",
+    "highway": "primary",
+    "lanes": "4",
+    "lit": "yes",
+    "name": "Đường Lê Duẩn",
+    "name:en": "Le Duan Road",
+    "name:etymology:wikidata": "Q466001",
+    "name:id": "Jalan Le Duan",
+    "name:zh": "黎笋路",
+    "oneway": "yes",
+    "sidewalk": "both",
+    "smoothness": "good",
+    "surface": "asphalt",
+    "turn:lanes": "left|through|through|right"
+  }
+},
+{
+  "type": "way",
+  "id": 1552803192,
+  "bounds": {
+    "minlat": 21.0280085,
+    "minlon": 105.8434805,
+    "maxlat": 21.0281804,
+    "maxlon": 105.8436466
+  },
+  "geometry": [
+    { "lat": 21.0280085, "lon": 105.8434805 },
+    { "lat": 21.0280195, "lon": 105.8434953 },
+    { "lat": 21.0281053, "lon": 105.8435730 },
+    { "lat": 21.0281804, "lon": 105.8436466 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "maxspeed": "50",
+    "name": "Phố Cửa Nam",
+    "name:en": "Cua Nam Street",
+    "oneway": "yes",
+    "parking": "no",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559271727,
+  "bounds": {
+    "minlat": 21.0134100,
+    "minlon": 105.8517220,
+    "maxlat": 21.0136037,
+    "maxlon": 105.8517316
+  },
+  "geometry": [
+    { "lat": 21.0134100, "lon": 105.8517316 },
+    { "lat": 21.0134462, "lon": 105.8517315 },
+    { "lat": 21.0136037, "lon": 105.8517220 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Huế",
+    "name:en": "Hue Street",
+    "name:etymology:wikidata": "Q36399",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559271731,
+  "bounds": {
+    "minlat": 21.0150411,
+    "minlon": 105.8515578,
+    "maxlat": 21.0151545,
+    "maxlon": 105.8515678
+  },
+  "geometry": [
+    { "lat": 21.0150411, "lon": 105.8515678 },
+    { "lat": 21.0150688, "lon": 105.8515651 },
+    { "lat": 21.0151545, "lon": 105.8515578 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Huế",
+    "name:en": "Hue Street",
+    "name:etymology:wikidata": "Q36399",
+    "oneway": "yes",
+    "surface": "asphalt",
+    "turn:lanes": "left;through|through|right"
+  }
+},
+{
+  "type": "way",
+  "id": 1559271733,
+  "bounds": {
+    "minlat": 21.0166481,
+    "minlon": 105.8514047,
+    "maxlat": 21.0168343,
+    "maxlon": 105.8514222
+  },
+  "geometry": [
+    { "lat": 21.0166481, "lon": 105.8514222 },
+    { "lat": 21.0166829, "lon": 105.8514189 },
+    { "lat": 21.0168343, "lon": 105.8514047 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Huế",
+    "name:en": "Hue Street",
+    "name:etymology:wikidata": "Q36399",
+    "oneway": "yes",
+    "smoothness": "good",
+    "surface": "asphalt",
+    "turn:lanes": "left;through|through|right"
+  }
+},
+{
+  "type": "way",
+  "id": 1559271737,
+  "bounds": {
+    "minlat": 21.0181120,
+    "minlon": 105.8515604,
+    "maxlat": 21.0182926,
+    "maxlon": 105.8516030
+  },
+  "geometry": [
+    { "lat": 21.0181120, "lon": 105.8515604 },
+    { "lat": 21.0181524, "lon": 105.8515703 },
+    { "lat": 21.0182926, "lon": 105.8516030 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Huế",
+    "name:en": "Hue Street",
+    "name:etymology:wikidata": "Q36399",
+    "oneway": "yes",
+    "surface": "asphalt",
+    "turn:lanes": "left;through|through|right"
+  }
+},
+{
+  "type": "way",
+  "id": 1559271741,
+  "bounds": {
+    "minlat": 21.0196096,
+    "minlon": 105.8519046,
+    "maxlat": 21.0197634,
+    "maxlon": 105.8519368
+  },
+  "geometry": [
+    { "lat": 21.0196096, "lon": 105.8519046 },
+    { "lat": 21.0196391, "lon": 105.8519112 },
+    { "lat": 21.0197634, "lon": 105.8519368 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Huế",
+    "name:en": "Hue Street",
+    "name:etymology:wikidata": "Q36399",
+    "oneway": "yes",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "turn:lanes": "left;through|through|right"
+  }
+},
+{
+  "type": "way",
+  "id": 1559271743,
+  "bounds": {
+    "minlat": 21.0208042,
+    "minlon": 105.8521866,
+    "maxlat": 21.0209829,
+    "maxlon": 105.8522331
+  },
+  "geometry": [
+    { "lat": 21.0208042, "lon": 105.8521866 },
+    { "lat": 21.0208464, "lon": 105.8521971 },
+    { "lat": 21.0209829, "lon": 105.8522331 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Hàng Bài",
+    "oneway": "yes",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559272106,
+  "bounds": {
+    "minlat": 21.0225468,
+    "minlon": 105.8525736,
+    "maxlat": 21.0227149,
+    "maxlon": 105.8525930
+  },
+  "geometry": [
+    { "lat": 21.0225468, "lon": 105.8525736 },
+    { "lat": 21.0225809, "lon": 105.8525808 },
+    { "lat": 21.0227149, "lon": 105.8525930 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Hàng Bài",
+    "oneway": "yes",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "turn:lanes": "left;through|through|through;right"
+  }
+},
+{
+  "type": "way",
+  "id": 1559272108,
+  "bounds": {
+    "minlat": 21.0240501,
+    "minlon": 105.8528877,
+    "maxlat": 21.0242487,
+    "maxlon": 105.8529397
+  },
+  "geometry": [
+    { "lat": 21.0240501, "lon": 105.8528877 },
+    { "lat": 21.0240850, "lon": 105.8528955 },
+    { "lat": 21.0242487, "lon": 105.8529397 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Hàng Bài",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559279426,
+  "bounds": {
+    "minlat": 21.0259447,
+    "minlon": 105.8515823,
+    "maxlat": 21.0261542,
+    "maxlon": 105.8516786
+  },
+  "geometry": [
+    { "lat": 21.0261542, "lon": 105.8515823 },
+    { "lat": 21.0261495, "lon": 105.8515837 },
+    { "lat": 21.0260631, "lon": 105.8516130 },
+    { "lat": 21.0260129, "lon": 105.8516368 },
+    { "lat": 21.0259447, "lon": 105.8516786 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "60",
+    "motor_vehicle:conditional": "no @ (Fr 19:00-23:59; Sa 00:00-23:59; Su 00:00-23:59)",
+    "name": "Phố Lê Thái Tổ",
+    "name:en": "Le Thai To Street",
+    "name:etymology:wikidata": "Q1195391",
+    "name:id": "Jalan Le Thai To",
+    "name:vi": "Phố Lê Thái Tổ",
+    "name:zh": "黎太祖街",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559767457,
+  "bounds": {
+    "minlat": 21.0251441,
+    "minlon": 105.8533885,
+    "maxlat": 21.0254141,
+    "maxlon": 105.8543449
+  },
+  "geometry": [
+    { "lat": 21.0254141, "lon": 105.8533885 },
+    { "lat": 21.0254056, "lon": 105.8534146 },
+    { "lat": 21.0253913, "lon": 105.8534640 },
+    { "lat": 21.0251555, "lon": 105.8543025 },
+    { "lat": 21.0251512, "lon": 105.8543180 },
+    { "lat": 21.0251441, "lon": 105.8543449 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "60",
+    "motor_vehicle:conditional": "no @ (Fr 19:00-23:59; Sa 00:00-23:59; Su 00:00-23:59)",
+    "name": "Phố Tràng Tiền",
+    "name:en": "Trang Tien Street",
+    "name:id": "Jalan Trang Tien",
+    "name:zh": "场钱街",
+    "parking:both:restriction": "no_stopping",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559767459,
+  "bounds": {
+    "minlat": 21.0249161,
+    "minlon": 105.8549894,
+    "maxlat": 21.0249635,
+    "maxlon": 105.8551509
+  },
+  "geometry": [
+    { "lat": 21.0249635, "lon": 105.8549894 },
+    { "lat": 21.0249571, "lon": 105.8550132 },
+    { "lat": 21.0249161, "lon": 105.8551509 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "60",
+    "motor_vehicle:conditional": "no @ (Fr 19:00-23:59; Sa 00:00-23:59; Su 00:00-23:59)",
+    "name": "Phố Tràng Tiền",
+    "name:en": "Trang Tien Street",
+    "name:id": "Jalan Trang Tien",
+    "name:zh": "场钱街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559767461,
+  "bounds": {
+    "minlat": 21.0237160,
+    "minlon": 105.8547547,
+    "maxlat": 21.0238750,
+    "maxlon": 105.8548142
+  },
+  "geometry": [
+    { "lat": 21.0238750, "lon": 105.8548142 },
+    { "lat": 21.0238594, "lon": 105.8548086 },
+    { "lat": 21.0237160, "lon": 105.8547547 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Ngô Quyền",
+    "name:en": "Ngo Quyen Street",
+    "name:etymology:wikidata": "Q699904",
+    "name:zh": "吴权街",
+    "oneway": "yes",
+    "parking:right:restriction": "no",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559799629,
+  "bounds": {
+    "minlat": 21.0242487,
+    "minlon": 105.8527902,
+    "maxlat": 21.0242926,
+    "maxlon": 105.8529397
+  },
+  "geometry": [
+    { "lat": 21.0242487, "lon": 105.8529397 },
+    { "lat": 21.0242880, "lon": 105.8528062 },
+    { "lat": 21.0242926, "lon": 105.8527902 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "motorcar:conditional": "no @ (Fr-Su 19:00-24:00)",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559800650,
+  "bounds": {
+    "minlat": 21.0236562,
+    "minlon": 105.8547547,
+    "maxlat": 21.0237160,
+    "maxlon": 105.8549528
+  },
+  "geometry": [
+    { "lat": 21.0236562, "lon": 105.8549528 },
+    { "lat": 21.0236600, "lon": 105.8549396 },
+    { "lat": 21.0237160, "lon": 105.8547547 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559800651,
+  "bounds": {
+    "minlat": 21.0241906,
+    "minlon": 105.8529397,
+    "maxlat": 21.0242487,
+    "maxlon": 105.8531303
+  },
+  "geometry": [
+    { "lat": 21.0241906, "lon": 105.8531303 },
+    { "lat": 21.0242050, "lon": 105.8530811 },
+    { "lat": 21.0242487, "lon": 105.8529397 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "motorcar:conditional": "no @ (Fr-Su 19:00-24:00)",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559800652,
+  "bounds": {
+    "minlat": 21.0237160,
+    "minlon": 105.8545694,
+    "maxlat": 21.0237690,
+    "maxlon": 105.8547547
+  },
+  "geometry": [
+    { "lat": 21.0237160, "lon": 105.8547547 },
+    { "lat": 21.0237668, "lon": 105.8545769 },
+    { "lat": 21.0237690, "lon": 105.8545694 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "motorcar:conditional": "no @ (Fr-Su 19:00-24:00)",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559800656,
+  "bounds": {
+    "minlat": 21.0222221,
+    "minlon": 105.8542857,
+    "maxlat": 21.0223787,
+    "maxlon": 105.8543362
+  },
+  "geometry": [
+    { "lat": 21.0223787, "lon": 105.8543362 },
+    { "lat": 21.0223600, "lon": 105.8543307 },
+    { "lat": 21.0222221, "lon": 105.8542857 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "3",
+    "maxspeed": "60",
+    "name": "Phố Ngô Quyền",
+    "name:en": "Ngo Quyen Street",
+    "name:etymology:wikidata": "Q699904",
+    "name:zh": "吴权街",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559801495,
+  "bounds": {
+    "minlat": 21.0232260,
+    "minlon": 105.8508198,
+    "maxlat": 21.0234017,
+    "maxlon": 105.8508806
+  },
+  "geometry": [
+    { "lat": 21.0234017, "lon": 105.8508806 },
+    { "lat": 21.0233759, "lon": 105.8508713 },
+    { "lat": 21.0232260, "lon": 105.8508198 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Bà Triệu",
+    "name:en": "Ba Trieu Street",
+    "name:etymology:wikidata": "Q269989",
+    "name:id": "Jalan Ba Trieu",
+    "name:zh": "婆赵街",
+    "oneway": "yes",
+    "surface": "asphalt",
+    "turn:lanes": "through;left|through|through|through;right"
+  }
+},
+{
+  "type": "way",
+  "id": 1559801497,
+  "bounds": {
+    "minlat": 21.0215614,
+    "minlon": 105.8502802,
+    "maxlat": 21.0217951,
+    "maxlon": 105.8503565
+  },
+  "geometry": [
+    { "lat": 21.0217951, "lon": 105.8503565 },
+    { "lat": 21.0216632, "lon": 105.8503147 },
+    { "lat": 21.0215614, "lon": 105.8502802 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Bà Triệu",
+    "name:en": "Ba Trieu Street",
+    "name:etymology:wikidata": "Q269989",
+    "name:id": "Jalan Ba Trieu",
+    "name:zh": "婆赵街",
+    "oneway": "yes",
+    "surface": "asphalt",
+    "turn:lanes": "through;left|through|through|through;right"
+  }
+},
+{
+  "type": "way",
+  "id": 1559822567,
+  "bounds": {
+    "minlat": 21.0263607,
+    "minlon": 105.8500986,
+    "maxlat": 21.0263959,
+    "maxlon": 105.8502261
+  },
+  "geometry": [
+    { "lat": 21.0263607, "lon": 105.8502261 },
+    { "lat": 21.0263673, "lon": 105.8502032 },
+    { "lat": 21.0263959, "lon": 105.8500986 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "3",
+    "maxspeed": "60",
+    "motor_vehicle:conditional": "no @ (Feb 16 19:30-23:59; Feb 17 00:01-02:00; Fr 19:00-23:59; Sa-Su 00:00-23:59)",
+    "name": "Phố Tràng Thi",
+    "name:en": "Trang Thi Street",
+    "name:id": "Jalan Trang Thi",
+    "name:vi": "Phố Tràng Thi",
+    "name:zh": "场试街",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559847340,
+  "bounds": {
+    "minlat": 21.0205574,
+    "minlon": 105.8537007,
+    "maxlat": 21.0207206,
+    "maxlon": 105.8537580
+  },
+  "geometry": [
+    { "lat": 21.0207206, "lon": 105.8537580 },
+    { "lat": 21.0206676, "lon": 105.8537400 },
+    { "lat": 21.0205574, "lon": 105.8537007 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "3",
+    "maxspeed": "60",
+    "name": "Phố Ngô Quyền",
+    "name:en": "Ngo Quyen Street",
+    "name:etymology:wikidata": "Q699904",
+    "name:zh": "吴权街",
+    "oneway": "yes",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559847342,
+  "bounds": {
+    "minlat": 21.0191659,
+    "minlon": 105.8532227,
+    "maxlat": 21.0193134,
+    "maxlon": 105.8532709
+  },
+  "geometry": [
+    { "lat": 21.0193134, "lon": 105.8532709 },
+    { "lat": 21.0192618, "lon": 105.8532530 },
+    { "lat": 21.0192089, "lon": 105.8532363 },
+    { "lat": 21.0191659, "lon": 105.8532227 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "3",
+    "maxspeed": "60",
+    "name": "Phố Ngô Quyền",
+    "name:en": "Ngo Quyen Street",
+    "name:etymology:wikidata": "Q699904",
+    "name:zh": "吴权街",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559847350,
+  "bounds": {
+    "minlat": 21.0143335,
+    "minlon": 105.8570969,
+    "maxlat": 21.0143607,
+    "maxlon": 105.8572727
+  },
+  "geometry": [
+    { "lat": 21.0143335, "lon": 105.8570969 },
+    { "lat": 21.0143402, "lon": 105.8571283 },
+    { "lat": 21.0143607, "lon": 105.8572727 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lit": "yes",
+    "name": "Phố Nguyễn Công Trứ",
+    "name:en": "Nguyen Cong Tru Street",
+    "name:etymology:wikidata": "Q3339357",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559851033,
+  "bounds": {
+    "minlat": 21.0262428,
+    "minlon": 105.8500485,
+    "maxlat": 21.0263959,
+    "maxlon": 105.8500986
+  },
+  "geometry": [
+    { "lat": 21.0262428, "lon": 105.8500485 },
+    { "lat": 21.0262924, "lon": 105.8500649 },
+    { "lat": 21.0263959, "lon": 105.8500986 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "maxspeed": "50",
+    "name": "Phố Quang Trung",
+    "name:en": "Quang Trung Street",
+    "name:etymology:wikidata": "Q379775",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559851034,
+  "bounds": {
+    "minlat": 21.0251404,
+    "minlon": 105.8496991,
+    "maxlat": 21.0251837,
+    "maxlon": 105.8498633
+  },
+  "geometry": [
+    { "lat": 21.0251404, "lon": 105.8498633 },
+    { "lat": 21.0251463, "lon": 105.8498423 },
+    { "lat": 21.0251837, "lon": 105.8496991 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559851035,
+  "bounds": {
+    "minlat": 21.0247164,
+    "minlon": 105.8511619,
+    "maxlat": 21.0247637,
+    "maxlon": 105.8513284
+  },
+  "geometry": [
+    { "lat": 21.0247164, "lon": 105.8513284 },
+    { "lat": 21.0247566, "lon": 105.8511856 },
+    { "lat": 21.0247637, "lon": 105.8511619 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "maxspeed": "50",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559851041,
+  "bounds": {
+    "minlat": 21.0251837,
+    "minlon": 105.8495219,
+    "maxlat": 21.0252336,
+    "maxlon": 105.8496991
+  },
+  "geometry": [
+    { "lat": 21.0251837, "lon": 105.8496991 },
+    { "lat": 21.0252262, "lon": 105.8495477 },
+    { "lat": 21.0252336, "lon": 105.8495219 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559851046,
+  "bounds": {
+    "minlat": 21.0259769,
+    "minlon": 105.8468693,
+    "maxlat": 21.0260006,
+    "maxlon": 105.8469516
+  },
+  "geometry": [
+    { "lat": 21.0259769, "lon": 105.8469516 },
+    { "lat": 21.0260006, "lon": 105.8468693 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559851047,
+  "bounds": {
+    "minlat": 21.0260006,
+    "minlon": 105.8467230,
+    "maxlat": 21.0260437,
+    "maxlon": 105.8468693
+  },
+  "geometry": [
+    { "lat": 21.0260006, "lon": 105.8468693 },
+    { "lat": 21.0260282, "lon": 105.8467737 },
+    { "lat": 21.0260437, "lon": 105.8467230 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559851048,
+  "bounds": {
+    "minlat": 21.0263203,
+    "minlon": 105.8456154,
+    "maxlat": 21.0263771,
+    "maxlon": 105.8458136
+  },
+  "geometry": [
+    { "lat": 21.0263203, "lon": 105.8458136 },
+    { "lat": 21.0263379, "lon": 105.8457521 },
+    { "lat": 21.0263771, "lon": 105.8456154 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1560054254,
+  "bounds": {
+    "minlat": 21.0136037,
+    "minlon": 105.8517220,
+    "maxlat": 21.0136080,
+    "maxlon": 105.8518675
+  },
+  "geometry": [
+    { "lat": 21.0136037, "lon": 105.8517220 },
+    { "lat": 21.0136057, "lon": 105.8518489 },
+    { "lat": 21.0136080, "lon": 105.8518675 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lit": "yes",
+    "name": "Phố Nguyễn Công Trứ",
+    "name:en": "Nguyen Cong Tru Street",
+    "name:etymology:wikidata": "Q3339357",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1560056236,
+  "bounds": {
+    "minlat": 21.0187503,
+    "minlon": 105.8489825,
+    "maxlat": 21.0188051,
+    "maxlon": 105.8493412
+  },
+  "geometry": [
+    { "lat": 21.0187503, "lon": 105.8493412 },
+    { "lat": 21.0187958, "lon": 105.8490222 },
+    { "lat": 21.0188051, "lon": 105.8489825 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Nguyễn Du",
+    "name:en": "Nguyen Du Street",
+    "name:etymology:wikidata": "Q313322",
+    "name:zh": "阮攸街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1560056237,
+  "bounds": {
+    "minlat": 21.0190588,
+    "minlon": 105.8476612,
+    "maxlat": 21.0190967,
+    "maxlon": 105.8478360
+  },
+  "geometry": [
+    { "lat": 21.0190588, "lon": 105.8478360 },
+    { "lat": 21.0190710, "lon": 105.8477780 },
+    { "lat": 21.0190967, "lon": 105.8476612 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Nguyễn Du",
+    "name:en": "Nguyen Du Street",
+    "name:etymology:wikidata": "Q313322",
+    "name:zh": "阮攸街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1560056240,
+  "bounds": {
+    "minlat": 21.0187503,
+    "minlon": 105.8493412,
+    "maxlat": 21.0189943,
+    "maxlon": 105.8494238
+  },
+  "geometry": [
+    { "lat": 21.0189943, "lon": 105.8494238 },
+    { "lat": 21.0188830, "lon": 105.8493880 },
+    { "lat": 21.0187503, "lon": 105.8493412 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Bà Triệu",
+    "name:en": "Ba Trieu Street",
+    "name:etymology:wikidata": "Q269989",
+    "oneway": "yes",
+    "surface": "asphalt",
+    "turn:lanes": "through;left|through|through|through;right"
+  }
+},
+{
+  "type": "way",
+  "id": 1562143970,
+  "bounds": {
+    "minlat": 21.0274994,
+    "minlon": 105.8459889,
+    "maxlat": 21.0275475,
+    "maxlon": 105.8461629
+  },
+  "geometry": [
+    { "lat": 21.0274994, "lon": 105.8461629 },
+    { "lat": 21.0275107, "lon": 105.8461253 },
+    { "lat": 21.0275475, "lon": 105.8459889 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Tràng Thi",
+    "name:en": "Trang Thi Street",
+    "name:zh": "场诗街",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1562147307,
+  "bounds": {
+    "minlat": 21.0231564,
+    "minlon": 105.8564354,
+    "maxlat": 21.0232126,
+    "maxlon": 105.8566143
+  },
+  "geometry": [
+    { "lat": 21.0231564, "lon": 105.8566143 },
+    { "lat": 21.0232059, "lon": 105.8564573 },
+    { "lat": 21.0232126, "lon": 105.8564354 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1562147308,
+  "bounds": {
+    "minlat": 21.0230957,
+    "minlon": 105.8566143,
+    "maxlat": 21.0231564,
+    "maxlon": 105.8568062
+  },
+  "geometry": [
+    { "lat": 21.0230957, "lon": 105.8568062 },
+    { "lat": 21.0231089, "lon": 105.8567651 },
+    { "lat": 21.0231564, "lon": 105.8566143 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1562147309,
+  "bounds": {
+    "minlat": 21.0228750,
+    "minlon": 105.8573234,
+    "maxlat": 21.0229296,
+    "maxlon": 105.8574777
+  },
+  "geometry": [
+    { "lat": 21.0228750, "lon": 105.8574777 },
+    { "lat": 21.0229222, "lon": 105.8573464 },
+    { "lat": 21.0229296, "lon": 105.8573234 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1562147311,
+  "bounds": {
+    "minlat": 21.0231564,
+    "minlon": 105.8566143,
+    "maxlat": 21.0233305,
+    "maxlon": 105.8566775
+  },
+  "geometry": [
+    { "lat": 21.0231564, "lon": 105.8566143 },
+    { "lat": 21.0233176, "lon": 105.8566731 },
+    { "lat": 21.0233305, "lon": 105.8566775 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Phan Chu Trinh",
+    "name:en": "Phan Chu Trinh Street",
+    "name:etymology:wikidata": "Q2705303",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1562147312,
+  "bounds": {
+    "minlat": 21.0229567,
+    "minlon": 105.8565434,
+    "maxlat": 21.0231564,
+    "maxlon": 105.8566143
+  },
+  "geometry": [
+    { "lat": 21.0229567, "lon": 105.8565434 },
+    { "lat": 21.0230063, "lon": 105.8565608 },
+    { "lat": 21.0231564, "lon": 105.8566143 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "maxspeed": "60",
+    "name": "Phố Phan Chu Trinh",
+    "name:en": "Phan Chu Trinh Street",
+    "name:etymology:wikidata": "Q2705303",
+    "surface": "asphalt",
+    "turn:lanes": "through;right|through;left|through|through;right"
+  }
+},
+{
+  "type": "way",
+  "id": 1562147313,
+  "bounds": {
+    "minlat": 21.0216867,
+    "minlon": 105.8561315,
+    "maxlat": 21.0218031,
+    "maxlon": 105.8561704
+  },
+  "geometry": [
+    { "lat": 21.0216867, "lon": 105.8561315 },
+    { "lat": 21.0217826, "lon": 105.8561642 },
+    { "lat": 21.0218031, "lon": 105.8561704 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "maxspeed": "60",
+    "name": "Phố Phan Chu Trinh",
+    "name:en": "Phan Chu Trinh Street",
+    "name:etymology:wikidata": "Q2705303",
+    "surface": "asphalt",
+    "turn:lanes:backward": "through|through;right",
+    "turn:lanes:forward": "through;right|through;left"
+  }
+},
+{
+  "type": "way",
+  "id": 1562150793,
+  "bounds": {
+    "minlat": 21.0214992,
+    "minlon": 105.8560698,
+    "maxlat": 21.0216867,
+    "maxlon": 105.8561315
+  },
+  "geometry": [
+    { "lat": 21.0214992, "lon": 105.8560698 },
+    { "lat": 21.0215243, "lon": 105.8560776 },
+    { "lat": 21.0216867, "lon": 105.8561315 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Phan Chu Trinh",
+    "name:en": "Phan Chu Trinh Street",
+    "name:etymology:wikidata": "Q2705303",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1562150794,
+  "bounds": {
+    "minlat": 21.0199953,
+    "minlon": 105.8555751,
+    "maxlat": 21.0202333,
+    "maxlon": 105.8556561
+  },
+  "geometry": [
+    { "lat": 21.0199953, "lon": 105.8555751 },
+    { "lat": 21.0201602, "lon": 105.8556318 },
+    { "lat": 21.0202333, "lon": 105.8556561 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Phan Chu Trinh",
+    "name:en": "Phan Chu Trinh Street",
+    "name:etymology:wikidata": "Q2705303",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1562150799,
+  "bounds": {
+    "minlat": 21.0198405,
+    "minlon": 105.8555262,
+    "maxlat": 21.0199953,
+    "maxlon": 105.8555751
+  },
+  "geometry": [
+    { "lat": 21.0198405, "lon": 105.8555262 },
+    { "lat": 21.0199235, "lon": 105.8555519 },
+    { "lat": 21.0199953, "lon": 105.8555751 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Phan Chu Trinh",
+    "name:en": "Phan Chu Trinh Street",
+    "name:etymology:wikidata": "Q2705303",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1562156069,
+  "bounds": {
+    "minlat": 21.0267618,
+    "minlon": 105.8437043,
+    "maxlat": 21.0269191,
+    "maxlon": 105.8437592
+  },
+  "geometry": [
+    { "lat": 21.0269191, "lon": 105.8437592 },
+    { "lat": 21.0267842, "lon": 105.8437124 },
+    { "lat": 21.0267618, "lon": 105.8437043 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Phan Bội Châu",
+    "name:en": "Phan Boi Chau Street",
+    "name:etymology:wikidata": "Q714924",
+    "smoothness": "good",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1562156070,
+  "bounds": {
+    "minlat": 21.0254436,
+    "minlon": 105.8432716,
+    "maxlat": 21.0255801,
+    "maxlon": 105.8433152
+  },
+  "geometry": [
+    { "lat": 21.0255801, "lon": 105.8433152 },
+    { "lat": 21.0255520, "lon": 105.8433062 },
+    { "lat": 21.0254436, "lon": 105.8432716 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Phan Bội Châu",
+    "name:en": "Phan Boi Chau Street",
+    "name:etymology:wikidata": "Q714924",
+    "smoothness": "good",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1562157325,
+  "bounds": {
+    "minlat": 21.0269191,
+    "minlon": 105.8436086,
+    "maxlat": 21.0269645,
+    "maxlon": 105.8437592
+  },
+  "geometry": [
+    { "lat": 21.0269191, "lon": 105.8437592 },
+    { "lat": 21.0269556, "lon": 105.8436379 },
+    { "lat": 21.0269645, "lon": 105.8436086 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1562157326,
+  "bounds": {
+    "minlat": 21.0274819,
+    "minlon": 105.8416312,
+    "maxlat": 21.0275906,
+    "maxlon": 105.8419849
+  },
+  "geometry": [
+    { "lat": 21.0274819, "lon": 105.8419849 },
+    { "lat": 21.0275036, "lon": 105.8419015 },
+    { "lat": 21.0275708, "lon": 105.8416723 },
+    { "lat": 21.0275906, "lon": 105.8416312 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "parking:left:restriction": "no_parking",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1562157328,
+  "bounds": {
+    "minlat": 21.0268830,
+    "minlon": 105.8437592,
+    "maxlat": 21.0269191,
+    "maxlon": 105.8438780
+  },
+  "geometry": [
+    { "lat": 21.0268830, "lon": 105.8438780 },
+    { "lat": 21.0268897, "lon": 105.8438559 },
+    { "lat": 21.0269191, "lon": 105.8437592 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1562157334,
+  "bounds": {
+    "minlat": 21.0263771,
+    "minlon": 105.8456154,
+    "maxlat": 21.0265202,
+    "maxlon": 105.8456623
+  },
+  "geometry": [
+    { "lat": 21.0263771, "lon": 105.8456154 },
+    { "lat": 21.0264705, "lon": 105.8456460 },
+    { "lat": 21.0265202, "lon": 105.8456623 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Quán Sứ",
+    "name:en": "Quan Su Street",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1562157336,
+  "bounds": {
+    "minlat": 21.0273879,
+    "minlon": 105.8459409,
+    "maxlat": 21.0275475,
+    "maxlon": 105.8459889
+  },
+  "geometry": [
+    { "lat": 21.0273879, "lon": 105.8459409 },
+    { "lat": 21.0274021, "lon": 105.8459454 },
+    { "lat": 21.0275475, "lon": 105.8459889 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Quán Sứ",
+    "name:en": "Quan Su Street",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563480864,
+  "bounds": {
+    "minlat": 21.0221729,
+    "minlon": 105.8542857,
+    "maxlat": 21.0222221,
+    "maxlon": 105.8544526
+  },
+  "geometry": [
+    { "lat": 21.0221729, "lon": 105.8544526 },
+    { "lat": 21.0221801, "lon": 105.8544284 },
+    { "lat": 21.0222221, "lon": 105.8542857 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "4",
+    "maxspeed": "60",
+    "name": "Phố Lý Thường Kiệt",
+    "name:en": "Ly Thuong Kiet Street",
+    "name:etymology:wikidata": "Q702734",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "turn:lanes": "through|through|through;left|through;left"
+  }
+},
+{
+  "type": "way",
+  "id": 1563480867,
+  "bounds": {
+    "minlat": 21.0216867,
+    "minlon": 105.8559536,
+    "maxlat": 21.0217362,
+    "maxlon": 105.8561315
+  },
+  "geometry": [
+    { "lat": 21.0216867, "lon": 105.8561315 },
+    { "lat": 21.0217227, "lon": 105.8560005 },
+    { "lat": 21.0217362, "lon": 105.8559536 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "4",
+    "maxspeed": "60",
+    "name": "Phố Lý Thường Kiệt",
+    "name:en": "Ly Thuong Kiet Street",
+    "name:etymology:wikidata": "Q702734",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "turn:lanes": "through;right|through;left|through;left|through;left"
+  }
+},
+{
+  "type": "way",
+  "id": 1563480868,
+  "bounds": {
+    "minlat": 21.0216330,
+    "minlon": 105.8561315,
+    "maxlat": 21.0216867,
+    "maxlon": 105.8563020
+  },
+  "geometry": [
+    { "lat": 21.0216330, "lon": 105.8563020 },
+    { "lat": 21.0216383, "lon": 105.8562849 },
+    { "lat": 21.0216867, "lon": 105.8561315 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "4",
+    "maxspeed": "60",
+    "name": "Phố Lý Thường Kiệt",
+    "name:en": "Ly Thuong Kiet Street",
+    "name:etymology:wikidata": "Q702734",
+    "surface": "asphalt",
+    "turn:lanes": "through;right|through;left|through;left|through;right"
+  }
+},
+{
+  "type": "way",
+  "id": 1563480873,
+  "bounds": {
+    "minlat": 21.0222221,
+    "minlon": 105.8541127,
+    "maxlat": 21.0222728,
+    "maxlon": 105.8542857
+  },
+  "geometry": [
+    { "lat": 21.0222221, "lon": 105.8542857 },
+    { "lat": 21.0222513, "lon": 105.8541862 },
+    { "lat": 21.0222668, "lon": 105.8541332 },
+    { "lat": 21.0222728, "lon": 105.8541127 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "4",
+    "maxspeed": "60",
+    "name": "Phố Lý Thường Kiệt",
+    "name:en": "Ly Thuong Kiet Street",
+    "name:etymology:wikidata": "Q702734",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "turn:lanes": "through;right|through;right|through|through"
+  }
+},
+{
+  "type": "way",
+  "id": 1563480874,
+  "bounds": {
+    "minlat": 21.0226621,
+    "minlon": 105.8525930,
+    "maxlat": 21.0227149,
+    "maxlon": 105.8527801
+  },
+  "geometry": [
+    { "lat": 21.0226621, "lon": 105.8527801 },
+    { "lat": 21.0226675, "lon": 105.8527620 },
+    { "lat": 21.0227149, "lon": 105.8525930 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "4",
+    "maxspeed": "60",
+    "name": "Phố Lý Thường Kiệt",
+    "name:en": "Ly Thuong Kiet Street",
+    "name:etymology:wikidata": "Q702734",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "turn:lanes": "through|through|through;right|through;right"
+  }
+},
+{
+  "type": "way",
+  "id": 1563480877,
+  "bounds": {
+    "minlat": 21.0227149,
+    "minlon": 105.8524344,
+    "maxlat": 21.0227631,
+    "maxlon": 105.8525930
+  },
+  "geometry": [
+    { "lat": 21.0227149, "lon": 105.8525930 },
+    { "lat": 21.0227584, "lon": 105.8524506 },
+    { "lat": 21.0227631, "lon": 105.8524344 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "4",
+    "maxspeed": "60",
+    "name": "Phố Lý Thường Kiệt",
+    "name:en": "Ly Thuong Kiet Street",
+    "name:etymology:wikidata": "Q702734",
+    "surface": "asphalt",
+    "turn:lanes": "through;left|through;left|through|through"
+  }
+},
+{
+  "type": "way",
+  "id": 1563480878,
+  "bounds": {
+    "minlat": 21.0231621,
+    "minlon": 105.8508198,
+    "maxlat": 21.0232260,
+    "maxlon": 105.8510494
+  },
+  "geometry": [
+    { "lat": 21.0231621, "lon": 105.8510494 },
+    { "lat": 21.0231663, "lon": 105.8510345 },
+    { "lat": 21.0232260, "lon": 105.8508198 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "4",
+    "maxspeed": "60",
+    "name": "Phố Lý Thường Kiệt",
+    "name:en": "Ly Thuong Kiet Street",
+    "name:etymology:wikidata": "Q702734",
+    "surface": "asphalt",
+    "turn:lanes": "through|through|through;left|through;left"
+  }
+},
+{
+  "type": "way",
+  "id": 1563676354,
+  "bounds": {
+    "minlat": 21.0159717,
+    "minlon": 105.8562759,
+    "maxlat": 21.0160927,
+    "maxlon": 105.8563444
+  },
+  "geometry": [
+    { "lat": 21.0160927, "lon": 105.8562759 },
+    { "lat": 21.0160716, "lon": 105.8562876 },
+    { "lat": 21.0159717, "lon": 105.8563444 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "name": "Phố Lò Đúc",
+    "name:en": "Lo Duc Street",
+    "old_name:fr": "Boulevard Armand Rousseau",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563676355,
+  "bounds": {
+    "minlat": 21.0182720,
+    "minlon": 105.8548234,
+    "maxlat": 21.0183662,
+    "maxlon": 105.8550110
+  },
+  "geometry": [
+    { "lat": 21.0182720, "lon": 105.8548234 },
+    { "lat": 21.0182805, "lon": 105.8548411 },
+    { "lat": 21.0183662, "lon": 105.8550110 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Lê Văn Hưu",
+    "name:en": "Le Van Huu Street",
+    "name:etymology:wikidata": "Q1111882",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563677552,
+  "bounds": {
+    "minlat": 21.0180718,
+    "minlon": 105.8528936,
+    "maxlat": 21.0180897,
+    "maxlon": 105.8530378
+  },
+  "geometry": [
+    { "lat": 21.0180897, "lon": 105.8528936 },
+    { "lat": 21.0180736, "lon": 105.8530250 },
+    { "lat": 21.0180718, "lon": 105.8530378 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Lê Văn Hưu",
+    "name:en": "Le Van Huu Street",
+    "name:etymology:wikidata": "Q1111882",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563677553,
+  "bounds": {
+    "minlat": 21.0183662,
+    "minlon": 105.8550110,
+    "maxlat": 21.0183930,
+    "maxlon": 105.8552286
+  },
+  "geometry": [
+    { "lat": 21.0183930, "lon": 105.8552286 },
+    { "lat": 21.0183774, "lon": 105.8551205 },
+    { "lat": 21.0183662, "lon": 105.8550110 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Hàn Thuyên",
+    "name:en": "Han Thuyen Street",
+    "name:etymology:wikidata": "Q7022991",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563678839,
+  "bounds": {
+    "minlat": 21.0226600,
+    "minlon": 105.8574777,
+    "maxlat": 21.0228750,
+    "maxlon": 105.8575486
+  },
+  "geometry": [
+    { "lat": 21.0228750, "lon": 105.8574777 },
+    { "lat": 21.0226865, "lon": 105.8575399 },
+    { "lat": 21.0226600, "lon": 105.8575486 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Lê Thánh Tông",
+    "name:en": "Le Thanh Tong Street",
+    "name:etymology:wikidata": "Q1771050",
+    "name:zh": "黎圣宗街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563678843,
+  "bounds": {
+    "minlat": 21.0228750,
+    "minlon": 105.8574034,
+    "maxlat": 21.0231058,
+    "maxlon": 105.8574777
+  },
+  "geometry": [
+    { "lat": 21.0231058, "lon": 105.8574034 },
+    { "lat": 21.0230836, "lon": 105.8574105 },
+    { "lat": 21.0228750, "lon": 105.8574777 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Lê Thánh Tông",
+    "name:etymology:wikidata": "Q1771050",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563681383,
+  "bounds": {
+    "minlat": 21.0195496,
+    "minlon": 105.8569529,
+    "maxlat": 21.0195937,
+    "maxlon": 105.8571036
+  },
+  "geometry": [
+    { "lat": 21.0195496, "lon": 105.8571036 },
+    { "lat": 21.0195596, "lon": 105.8570699 },
+    { "lat": 21.0195937, "lon": 105.8569529 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "name:zh": "陈兴道坊",
+    "old_name:fr": "Boulevard Gambetta",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563681384,
+  "bounds": {
+    "minlat": 21.0195937,
+    "minlon": 105.8567984,
+    "maxlat": 21.0196397,
+    "maxlon": 105.8569529
+  },
+  "geometry": [
+    { "lat": 21.0195937, "lon": 105.8569529 },
+    { "lat": 21.0196276, "lon": 105.8568417 },
+    { "lat": 21.0196397, "lon": 105.8567984 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "name:zh": "陈兴道坊",
+    "old_name:fr": "Boulevard Gambetta",
+    "smoothness": "good",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563681385,
+  "bounds": {
+    "minlat": 21.0199269,
+    "minlon": 105.8555751,
+    "maxlat": 21.0199953,
+    "maxlon": 105.8557909
+  },
+  "geometry": [
+    { "lat": 21.0199269, "lon": 105.8557909 },
+    { "lat": 21.0199417, "lon": 105.8557417 },
+    { "lat": 21.0199953, "lon": 105.8555751 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "name:zh": "陈兴道坊",
+    "old_name:fr": "Boulevard Gambetta",
+    "smoothness": "good",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563681386,
+  "bounds": {
+    "minlat": 21.0199953,
+    "minlon": 105.8553785,
+    "maxlat": 21.0200554,
+    "maxlon": 105.8555751
+  },
+  "geometry": [
+    { "lat": 21.0199953, "lon": 105.8555751 },
+    { "lat": 21.0200486, "lon": 105.8554005 },
+    { "lat": 21.0200554, "lon": 105.8553785 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "name:zh": "陈兴道坊",
+    "old_name:fr": "Boulevard Gambetta",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563681387,
+  "bounds": {
+    "minlat": 21.0205056,
+    "minlon": 105.8537007,
+    "maxlat": 21.0205574,
+    "maxlon": 105.8538830
+  },
+  "geometry": [
+    { "lat": 21.0205056, "lon": 105.8538830 },
+    { "lat": 21.0205139, "lon": 105.8538535 },
+    { "lat": 21.0205574, "lon": 105.8537007 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "name:zh": "陈兴道坊",
+    "old_name:fr": "Boulevard Gambetta",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563681388,
+  "bounds": {
+    "minlat": 21.0205574,
+    "minlon": 105.8534971,
+    "maxlat": 21.0206122,
+    "maxlon": 105.8537007
+  },
+  "geometry": [
+    { "lat": 21.0205574, "lon": 105.8537007 },
+    { "lat": 21.0205970, "lon": 105.8535495 },
+    { "lat": 21.0206122, "lon": 105.8534971 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "name:zh": "陈兴道坊",
+    "old_name:fr": "Boulevard Gambetta",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563681389,
+  "bounds": {
+    "minlat": 21.0209369,
+    "minlon": 105.8522331,
+    "maxlat": 21.0209829,
+    "maxlon": 105.8523953
+  },
+  "geometry": [
+    { "lat": 21.0209369, "lon": 105.8523953 },
+    { "lat": 21.0209479, "lon": 105.8523593 },
+    { "lat": 21.0209829, "lon": 105.8522331 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "name:zh": "陈兴道坊",
+    "old_name:fr": "Boulevard Gambetta",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563681533,
+  "bounds": {
+    "minlat": 21.0209829,
+    "minlon": 105.8519910,
+    "maxlat": 21.0210530,
+    "maxlon": 105.8522331
+  },
+  "geometry": [
+    { "lat": 21.0209829, "lon": 105.8522331 },
+    { "lat": 21.0210280, "lon": 105.8520743 },
+    { "lat": 21.0210530, "lon": 105.8519910 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "old_name:fr": "Boulevard Gambetta",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563681534,
+  "bounds": {
+    "minlat": 21.0215040,
+    "minlon": 105.8502802,
+    "maxlat": 21.0215614,
+    "maxlon": 105.8504545
+  },
+  "geometry": [
+    { "lat": 21.0215040, "lon": 105.8504545 },
+    { "lat": 21.0215258, "lon": 105.8503782 },
+    { "lat": 21.0215614, "lon": 105.8502802 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "old_name:fr": "Boulevard Gambetta",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563683323,
+  "bounds": {
+    "minlat": 21.0248713,
+    "minlon": 105.8551509,
+    "maxlat": 21.0249161,
+    "maxlon": 105.8553255
+  },
+  "geometry": [
+    { "lat": 21.0249161, "lon": 105.8551509 },
+    { "lat": 21.0248813, "lon": 105.8552900 },
+    { "lat": 21.0248713, "lon": 105.8553255 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Tràng Tiền",
+    "name:en": "Trang Tien Street",
+    "name:id": "Jalan Trang Tien",
+    "name:zh": "场钱街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563706637,
+  "bounds": {
+    "minlat": 21.0263771,
+    "minlon": 105.8454958,
+    "maxlat": 21.0264123,
+    "maxlon": 105.8456154
+  },
+  "geometry": [
+    { "lat": 21.0263771, "lon": 105.8456154 },
+    { "lat": 21.0264061, "lon": 105.8455169 },
+    { "lat": 21.0264123, "lon": 105.8454958 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Hai Bà Trưng",
+    "name:en": "Hai Ba Trung Street",
+    "name:etymology:wikidata": "Q1207428",
+    "name:zh": "二征夫人街",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1564018289,
+  "bounds": {
+    "minlat": 21.0182926,
+    "minlon": 105.8514822,
+    "maxlat": 21.0183146,
+    "maxlon": 105.8516030
+  },
+  "geometry": [
+    { "lat": 21.0182926, "lon": 105.8516030 },
+    { "lat": 21.0183123, "lon": 105.8514939 },
+    { "lat": 21.0183146, "lon": 105.8514822 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Nguyễn Du",
+    "name:en": "Nguyen Du Street",
+    "name:etymology:wikidata": "Q313322",
+    "name:zh": "阮攸街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1564018290,
+  "bounds": {
+    "minlat": 21.0187249,
+    "minlon": 105.8493412,
+    "maxlat": 21.0187503,
+    "maxlon": 105.8494923
+  },
+  "geometry": [
+    { "lat": 21.0187249, "lon": 105.8494923 },
+    { "lat": 21.0187290, "lon": 105.8494728 },
+    { "lat": 21.0187503, "lon": 105.8493412 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Nguyễn Du",
+    "name:en": "Nguyen Du Street",
+    "name:etymology:wikidata": "Q313322",
+    "name:zh": "阮攸街",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1564631519,
+  "bounds": {
+    "minlat": 21.0259447,
+    "minlon": 105.8516786,
+    "maxlat": 21.0261656,
+    "maxlon": 105.8516985
+  },
+  "geometry": [
+    { "lat": 21.0261656, "lon": 105.8516873 },
+    { "lat": 21.0261599, "lon": 105.8516881 },
+    { "lat": 21.0260611, "lon": 105.8516985 },
+    { "lat": 21.0260124, "lon": 105.8516953 },
+    { "lat": 21.0259447, "lon": 105.8516786 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "motor_vehicle:conditional": "no @ (Fr 19:00-23:59; Sa 00:00-23:59; Su 00:00-23:59)",
+    "name": "Phố Lê Thái Tổ",
+    "name:etymology:wikidata": "Q1195391",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1572401239,
+  "bounds": {
+    "minlat": 21.0134998,
+    "minlon": 105.8504595,
+    "maxlat": 21.0136037,
+    "maxlon": 105.8517220
+  },
+  "geometry": [
+    { "lat": 21.0134998, "lon": 105.8504595 },
+    { "lat": 21.0135125, "lon": 105.8505453 },
+    { "lat": 21.0135572, "lon": 105.8509381 },
+    { "lat": 21.0135674, "lon": 105.8510471 },
+    { "lat": 21.0135732, "lon": 105.8511906 },
+    { "lat": 21.0135972, "lon": 105.8516281 },
+    { "lat": 21.0136037, "lon": 105.8517220 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Phố Tô Hiến Thành",
+    "name:en": "To Hien Thanh Street",
+    "name:etymology:wikidata": "Q1319976",
+    "oneway": "no",
+    "oneway:bicycle": "no",
+    "oneway:mofa": "no",
+    "oneway:moped": "no",
+    "oneway:motorcycle": "no",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1573860416,
+  "bounds": {
+    "minlat": 21.0276372,
+    "minlon": 105.8416337,
+    "maxlat": 21.0276995,
+    "maxlon": 105.8419661
+  },
+  "geometry": [
+    { "lat": 21.0276995, "lon": 105.8419661 },
+    { "lat": 21.0276400, "lon": 105.8416737 },
+    { "lat": 21.0276372, "lon": 105.8416337 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "60",
+    "name": "Phố Cửa Nam",
+    "name:en": "Cua Nam Street",
+    "name:zh": "南门街",
+    "oneway": "yes",
+    "parking:right:restriction": "no_parking",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1573860980,
+  "bounds": {
+    "minlat": 21.0276367,
+    "minlon": 105.8414065,
+    "maxlat": 21.0276431,
+    "maxlon": 105.8414893
+  },
+  "geometry": [
+    { "lat": 21.0276367, "lon": 105.8414893 },
+    { "lat": 21.0276431, "lon": 105.8414065 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Cửa Nam",
+    "name:en": "Cua Nam Street",
+    "oneway": "yes",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1573874789,
+  "bounds": {
+    "minlat": 21.0215614,
+    "minlon": 105.8500830,
+    "maxlat": 21.0216248,
+    "maxlon": 105.8502802
+  },
+  "geometry": [
+    { "lat": 21.0215614, "lon": 105.8502802 },
+    { "lat": 21.0216019, "lon": 105.8501597 },
+    { "lat": 21.0216248, "lon": 105.8500830 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "old_name:fr": "Boulevard Gambetta",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1573887424,
+  "bounds": {
+    "minlat": 21.0218569,
+    "minlon": 105.8485671,
+    "maxlat": 21.0220391,
+    "maxlon": 105.8486244
+  },
+  "geometry": [
+    { "lat": 21.0218569, "lon": 105.8485671 },
+    { "lat": 21.0218788, "lon": 105.8485737 },
+    { "lat": 21.0220391, "lon": 105.8486244 }
+  ],
+  "tags": {
+    "highway": "tertiary",
+    "maxspeed": "50",
+    "name": "Phố Quang Trung",
+    "name:en": "Quang Trung Street",
+    "name:etymology:wikidata": "Q379775",
+    "sidewalk:both": "separate",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1573887426,
+  "bounds": {
+    "minlat": 21.0220391,
+    "minlon": 105.8484553,
+    "maxlat": 21.0220873,
+    "maxlon": 105.8486244
+  },
+  "geometry": [
+    { "lat": 21.0220391, "lon": 105.8486244 },
+    { "lat": 21.0220726, "lon": 105.8485037 },
+    { "lat": 21.0220873, "lon": 105.8484553 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "old_name:fr": "Boulevard Gambetta",
+    "sidewalk": "both",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1573887430,
+  "bounds": {
+    "minlat": 21.0219919,
+    "minlon": 105.8486244,
+    "maxlat": 21.0220391,
+    "maxlon": 105.8487905
+  },
+  "geometry": [
+    { "lat": 21.0219919, "lon": 105.8487905 },
+    { "lat": 21.0219993, "lon": 105.8487640 },
+    { "lat": 21.0220391, "lon": 105.8486244 }
+  ],
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "old_name:fr": "Boulevard Gambetta",
+    "surface": "asphalt",
+    "turn:lanes": "through|through;left;right"
+  }
+}
+
+  ]
+}

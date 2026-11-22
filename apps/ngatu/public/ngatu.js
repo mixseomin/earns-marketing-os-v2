@@ -16,7 +16,19 @@ import { taoMua } from './mua.js?v=1';
 
 // ───────────────────────── hình học đường ─────────────────────────
 // Trục x = Đông, trục z = Nam. Đường Đông–Tây rộng 2×10 m, Bắc–Nam 2×8 m, vỉa hè 4 m. Xe đi bên phải.
-const L = 165, HW_EW = 10, HW_NS = 8, SW = 4, CW = 4;
+// Ngã tư thật (bước 2, anh 22/11/2026 "Tìm ngã tư ở Hà Nội"): ?nga=ba-trieu = Bà Triệu × Trần Hưng Đạo (OSM node 21.02156, 105.85028).
+// Trần Hưng Đạo hai chiều 4 làn (2 mỗi chiều) chạy Đông–Tây; Bà Triệu một chiều Bắc → Nam 4 làn. Mặt đường đo OSM ≈ 13 m mỗi đường
+// (lệch vuông góc ~2° bỏ qua). Dữ liệu gốc: apps/ngatu/du-lieu-osm/.
+const NGA_THAT = {
+  'ba-trieu': {
+    ten: 'Bà Triệu × Trần Hưng Đạo', hwEW: 6.5, hwNS: 6.5, nhom: ['Trần Hưng Đạo', 'Bà Triệu'],
+    nhanh: [{ ten: 'Trần Hưng Đạo (Tây)', w: 0.32 }, { ten: 'Trần Hưng Đạo (Đông)', w: 0.32 }, { ten: 'Bà Triệu (Bắc)', w: 0.36, mot: 'vao' }, { ten: 'Bà Triệu (Nam)', w: 0, mot: 'ra' }],
+    lan: [{ soLan: 2, lan: ['tudo', 'tudo'], vach: 'dut', dai: 30 }, { soLan: 2, lan: ['tudo', 'tudo'], vach: 'dut', dai: 30 },
+      { soLan: 4, lan: ['trai-thang', 'thang', 'thang', 'thang-phai'], vach: 'dut', dai: 30 }, { soLan: 2, lan: ['tudo', 'tudo'], vach: 'dut', dai: 30 }],
+  },
+};
+const NGA_K = new URLSearchParams(location.search).get('nga'), NGA = NGA_THAT[NGA_K] || null;
+const L = 165, HW_EW = NGA ? NGA.hwEW : 10, HW_NS = NGA ? NGA.hwNS : 8, SW = 4, CW = 4;
 const right = (d) => [-d[1], d[0]];
 const neg = (d) => [-d[0], -d[1]];
 // Đồ thị nút giao (bước 1 kế hoạch "ngã tư thật → thành phố", 22/11/2026): mỗi nhánh tự mang hình học của nó
@@ -31,9 +43,10 @@ const NUT = {
     { ten: 'Nam', d: [0, -1], g: 1, w: 0.2, hw: HW_NS, e: HW_EW },
   ],
 };
+if (NGA) NUT.nhanh.forEach((A, i) => Object.assign(A, NGA.nhanh[i]));
 const ARMS = NUT.nhanh;
 const SO_MV = ARMS.length * 3; // chuyển động: mỗi nhánh × thẳng / phải / trái
-NUT.nhom = ['Đông–Tây', 'Bắc–Nam']; // tên hai nhóm đường giao nhau (g = 0 / 1)
+NUT.nhom = NGA ? NGA.nhom : ['Đông–Tây', 'Bắc–Nam']; // tên hai nhóm đường giao nhau (g = 0 / 1)
 // nhánh nằm trên cùng con đường với hướng d (cùng chiều hoặc ngược chiều)
 const nhanhTheo = (d) => {
   let tot = ARMS[0], m = -2;
@@ -42,6 +55,11 @@ const nhanhTheo = (d) => {
 };
 const hwAlong = (d) => nhanhTheo(d).hw; // nửa mặt đường của con đường chạy theo hướng d
 const eAlong = (d) => nhanhTheo(d).e; // nửa lòng ngã tư đo theo hướng d
+// Đường một chiều: nhánh 'vao' chỉ có xe đi vào, chiếm cả bề ngang [−hw, hw]; nhánh 'ra' chỉ có xe đi ra, cũng cả bề ngang.
+const nhanhVao = (d) => ARMS.find((A) => A.d[0] === d[0] && A.d[1] === d[1]);
+const nhanhRa = (d2) => ARMS.find((A) => A.d[0] === -d2[0] && A.d[1] === -d2[1]);
+const loVao = (d) => (nhanhVao(d)?.mot === 'vao' ? -hwAlong(d) : 0); // mép trái vùng xe vào (0 = tim đường)
+const loRa = (d2) => (nhanhRa(d2)?.mot === 'ra' ? -hwAlong(d2) : 0);
 const rnd = (a, b) => a + Math.random() * (b - a);
 const chon = (ds) => ds[(Math.random() * ds.length) | 0];
 
@@ -77,7 +95,7 @@ const MAU_LAN = {
 };
 const lanMau = (k) => ARMS.map(() => structuredClone(MAU_LAN[k].h));
 const choQuay = (cn, quay) => cn === 'tudo' || cn.split('-').includes(quay);
-const lanKhoang = (h, i, hw) => [(i * hw) / h.soLan, ((i + 1) * hw) / h.soLan];
+const lanKhoang = (h, i, hw, lo = 0) => [lo + (i * (hw - lo)) / h.soLan, lo + ((i + 1) * (hw - lo)) / h.soLan];
 const lanHopLe = (v) => Array.isArray(v) && v.length === ARMS.length && v.every((h) => h && h.soLan >= 1 && h.soLan <= 4 && Array.isArray(h.lan)
   && h.lan.length === h.soLan && h.lan.every((c) => c in CONG_NANG) && ['dut', 'lien', 'khong'].includes(h.vach) && h.dai >= 10 && h.dai <= 60);
 const GOC_LE = 7; // xe leo vỉa hè phải bước xuống đường trước vạch dừng chừng này mét, không chạy tới góc phố
@@ -126,7 +144,7 @@ function taoDuongXe(d, d2, o1, o2) {
   pts.push(Pf);
   const p = taoPath(pts);
   p.sIn = p.s[iPi]; p.sStop = p.sIn - CW; p.sOut = p.s[iPe];
-  p.o1 = o1; p.o2 = o2; p.hw1 = hwAlong(d); p.hw2 = hwAlong(d2);
+  p.o1 = o1; p.o2 = o2; p.hw1 = hwAlong(d); p.hw2 = hwAlong(d2); p.lo1 = loVao(d); p.lo2 = loRa(d2);
   return p;
 }
 // Đường anh tự vẽ cho một xe (22/11/2026): nét vẽ (làm mượt) → hết nét thì nhập vào làn bên phải của con đường gần
@@ -285,8 +303,8 @@ function buocDen(dt) {
 const DD = matchMedia('(pointer: coarse)').matches || innerWidth < 700; // điện thoại / máy tính bảng → giảm tải cho máy khỏi nóng
 // Tuỳ chọn người xem chỉnh được — lưu vào trình duyệt, F5 vẫn giữ (anh 21/11/2026); nút "Mặc định" đưa về như lúc đầu.
 // choNga: luật "lòng ngã tư kẹt thì đứng chờ ở vạch" — ở VN không ai làm vậy, nên chỉ là tuỳ chọn, mặc định tắt.
-const MAC_DINH = { matDo: DD ? 200 : 250, lieu: 0.12, rePhai: true, tyLeOto: 7, toc: 1, choNga: false, nhuongLoi: false, lanTrai: true, choThoat: 3, denAI: false, kieuPha: '2pha', phaiXanh: false, nguoiBo: DD ? 80 : 85, lanCfg: lanMau('vn'), danTrai: true, denLan: true };
-const KHOA_LUU = 'ngatu-tuy-chon';
+const MAC_DINH = { matDo: DD ? 200 : 250, lieu: 0.12, rePhai: true, tyLeOto: 7, toc: 1, choNga: false, nhuongLoi: false, lanTrai: true, choThoat: 3, denAI: false, kieuPha: '2pha', phaiXanh: false, nguoiBo: DD ? 80 : 85, lanCfg: NGA ? structuredClone(NGA.lan) : lanMau('vn'), danTrai: true, denLan: true };
+const KHOA_LUU = 'ngatu-tuy-chon' + (NGA ? '-' + NGA_K : '');
 const daLuu = (() => { try { const o = JSON.parse(localStorage.getItem(KHOA_LUU) || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } })();
 const CAI = { ...MAC_DINH, lanCfg: structuredClone(MAC_DINH.lanCfg), dung: false, vuot: 0, don: 0, nghich: 0 };
 // Bản lưu cũ (trước 21/11/2026, chưa có _ban) còn mật độ 450 → bỏ mật độ đã lưu, về mặc định mới 250.
@@ -368,21 +386,23 @@ function duongXe(loai) {
   const d = arm.d, h = CAI.lanCfg[ARMS.indexOf(arm)], tuDo = h.lan.every((c) => c === 'tudo');
   let quay = 'thang';
   if (loai !== 'bus') { const r = Math.random(); quay = r < 0.6 ? 'thang' : r < 0.8 ? 'phai' : 'trai'; }
-  if (!tuDo && !h.lan.some((c) => choQuay(c, quay))) { // hướng này cấm kiểu rẽ vừa bốc → bốc lại trong các kiểu được phép
-    const duoc = [['thang', 0.6], ['phai', 0.2], ['trai', 0.2]].filter(([q]) => h.lan.some((c) => choQuay(c, q)));
+  const raDuoc = (q) => nhanhRa(q === 'thang' ? d : q === 'phai' ? right(d) : neg(right(d)))?.mot !== 'vao'; // không rẽ ngược chiều vào đường một chiều
+  if (!raDuoc(quay) || (!tuDo && !h.lan.some((c) => choQuay(c, quay)))) { // hướng này cấm kiểu rẽ vừa bốc → bốc lại trong các kiểu được phép
+    const duoc = [['thang', 0.6], ['phai', 0.2], ['trai', 0.2]].filter(([q]) => raDuoc(q) && (tuDo || h.lan.some((c) => choQuay(c, q))));
     let r = Math.random() * duoc.reduce((t, x) => t + x[1], 0);
     for (const [q, w] of duoc) { quay = q; if ((r -= w) <= 0) break; }
   }
   const d2 = quay === 'thang' ? d : quay === 'phai' ? right(d) : neg(right(d));
-  const hw1 = hwAlong(d), hw2 = hwAlong(d2);
+  const hw1 = hwAlong(d), hw2 = hwAlong(d2), lo1 = loVao(d), lo2 = loRa(d2);
+  const m2 = (o) => (lo2 ? lo2 + (o * (hw2 - lo2)) / hw2 : o); // đường ra một chiều: giãn khoảng [0, hw] thành [−hw, hw]
   let o1, o2;
   if (!tuDo) { // vào một làn cho phép kiểu rẽ của mình; làn chuyên dụng ưu tiên hơn làn tự do
     const ds = h.lan.map((c, i) => [c, i]).filter(([c]) => choQuay(c, quay));
     const rieng = ds.filter(([c]) => c !== 'tudo'), [cn, i] = (rieng.length ? rieng : ds)[Math.floor(Math.random() * (rieng.length || ds.length))];
-    const [l0, l1] = lanKhoang(h, i, hw1), m0 = loai === 'xm' ? Math.min(0.5, (l1 - l0) / 2 - 0.45) : 0;
+    const [l0, l1] = lanKhoang(h, i, hw1, lo1), m0 = loai === 'xm' ? Math.min(0.5, (l1 - l0) / 2 - 0.45) : 0;
     o1 = loai === 'xm' ? rnd(l0 + m0 + (l0 ? 0 : 0.1), l1 - m0) : (l0 + l1) / 2;
     o2 = loai === 'xm' ? (quay === 'phai' ? rnd(hw2 * 0.55, hw2 - 0.6) : quay === 'trai' ? rnd(0.8, hw2 * 0.45) : rnd(0.8, hw2 - 0.6)) : loai === 'oto' ? (quay === 'phai' ? hw2 * 0.5 : 2.2) : hw2 * 0.55;
-    const p = taoDuongXe(d, d2, o1, o2);
+    const p = taoDuongXe(d, d2, o1, m2(o2));
     if (cn !== 'tudo' && h.vach === 'lien') { p.lan = [l0, l1]; p.lanDai = h.dai; } // vạch liền: cấm chuyển làn trong đoạn đó
     return { arm, quay, p };
   }
@@ -393,7 +413,8 @@ function duongXe(loai) {
     o2 = quay === 'phai' ? rnd(hw2 * 0.55, hw2 - 0.6) : quay === 'trai' ? rnd(0.8, hw2 * 0.45) : rnd(0.8, hw2 - 0.6);
   } else if (loai === 'oto') { o1 = quay === 'phai' ? hw1 * 0.5 : 2.2; o2 = quay === 'phai' ? hw2 * 0.5 : 2.2; }
   else o1 = o2 = hw1 * 0.55;
-  return { arm, quay, p: taoDuongXe(d, d2, o1, o2) };
+  if (lo1) o1 = lo1 + (o1 * (hw1 - lo1)) / hw1;
+  return { arm, quay, p: taoDuongXe(d, d2, o1, m2(o2)) };
 }
 function sinhXe(loai) {
   const { arm, quay, p } = duongXe(loai);
@@ -624,9 +645,9 @@ function bien(a) {
     // leo lề khi kẹt trước đèn đỏ — chỉ ở đoạn vỉa hè còn cách vạch dừng GOC_LE m; góc phố (cột đèn, người chờ sang đường)
     // không bao giờ leo tới (anh 22/11/2026 khoanh ảnh: xe leo lề đều dồn vào góc rồi kẹt ở đó)
     const leo = a.hayLeo && a.s < p.sStop - GOC_LE && a.sp < 2.5 ? 2.0 : 0;
-    return [h - p.o1 - (a.lanTrai || 0), p.hw1 - h2 - p.o1 + leo];
+    return [h + (p.lo1 || 0) - p.o1 - (a.lanTrai || 0), p.hw1 - h2 - p.o1 + leo];
   }
-  if (a.s > p.sOut) return [h - p.o2 - (a.lanTrai || 0), p.hw2 - h2 - p.o2];
+  if (a.s > p.sOut) return [h + (p.lo2 || 0) - p.o2 - (a.lanTrai || 0), p.hw2 - h2 - p.o2];
   // rẽ phải: quẹo gọn sát góc, không dạt ra giữa lòng ngã tư
   if (a.quay === 'phai') { const bp = a.loai === 'xm' ? 1.2 + Math.min(1, a.ket * 0.2) : 0.6; return [-bp, bp]; }
   const b = a.loai === 'xm' ? Math.max(2.2, 4.5 - (a.s - p.sIn) * 0.3) + Math.min(3, a.ket * 0.6) : Math.max(0.8, 3.5 - (a.s - p.sIn) * 0.35) + Math.min(2, a.ket * 0.4);
@@ -1519,18 +1540,20 @@ for (const qx of [-1, 1]) for (const qz of [-1, 1]) {
   HOP.push([qx * (x0 + 0.15), 0.09, qz * (z0 + z1) / 2, 0.3, 0.18, z1 - z0, 0, '#d9d3c9']);
 }
 const VANG = '#f2c230', TRANG_V = '#ededed', H2 = Math.SQRT1_2;
+// tim đường vàng kép chỉ trên đường hai chiều; đường một chiều thay bằng vạch trắng đứt ở giữa
+const motEW = ARMS.some((A) => A.g === 0 && A.mot), motNS = ARMS.some((A) => A.g === 1 && A.mot);
 for (const sx of [-1, 1]) {
   const ea = HW_NS + CW, la = L - ea;
-  for (const off of [-0.16, 0.16]) PHANG.push([sx * (ea + la / 2), off, la, 0.12, VANG]);
-  for (let u = ea + 1; u < L; u += 6) for (const zz of [-4.6, 4.6]) if (zz * sx > 0) PHANG.push([sx * (u + 1.5), zz, 3, 0.13, TRANG_V]);
+  if (!motEW) for (const off of [-0.16, 0.16]) PHANG.push([sx * (ea + la / 2), off, la, 0.12, VANG]);
+  else for (let u = ea + 1; u < L; u += 6) PHANG.push([sx * (u + 1.5), 0, 3, 0.13, TRANG_V]);
   const eb = HW_EW + CW, lb = L - eb;
-  for (const off of [-0.16, 0.16]) PHANG.push([off, sx * (eb + lb / 2), 0.12, lb, VANG]);
-  for (let u = eb + 1; u < L; u += 6) for (const xx of [-4, 4]) if (xx * sx < 0) PHANG.push([xx, sx * (u + 1.5), 0.13, 3, TRANG_V]);
+  if (!motNS) for (const off of [-0.16, 0.16]) PHANG.push([off, sx * (eb + lb / 2), 0.12, lb, VANG]);
+  else for (let u = eb + 1; u < L; u += 6) PHANG.push([0, sx * (u + 1.5), 0.13, 3, TRANG_V]);
 }
 for (const arm of ARMS) {
   const d = arm.d, r = right(d), hw = hwAlong(d), e = eAlong(d);
-  const st = -(e + CW), cx = st * d[0] + (hw / 2) * r[0], cz = st * d[1] + (hw / 2) * r[1];
-  PHANG.push([cx, cz, d[0] ? 0.45 : hw, d[0] ? hw : 0.45, TRANG_V]); // vạch dừng
+  const lo = loVao(d), st = -(e + CW), cx = st * d[0] + ((hw + lo) / 2) * r[0], cz = st * d[1] + ((hw + lo) / 2) * r[1];
+  if (arm.mot !== 'ra') PHANG.push([cx, cz, d[0] ? 0.45 : hw - lo, d[0] ? hw - lo : 0.45, TRANG_V]); // vạch dừng (đường ra một chiều: không có)
   const mid = -(e + CW / 2);
   for (let u = -hw + 0.6; u < hw - 0.3; u += 1.1) {
     const px = mid * d[0] + u * r[0], pz = mid * d[1] + u * r[1];
@@ -1775,7 +1798,8 @@ const MV_MESH = (() => {
 // trong làn rẽ trái của mỗi hướng — mép phía luồng rẽ trái đối diện. Hai nét đối diện kẹp khoảng trống giữa hai luồng.
 function danReTrai(PHANG) {
 for (const arm of ARMS) {
-  const d = arm.d, hw = hwAlong(d), p = taoDuongXe(d, neg(right(d)), hw * 0.125, 1.2);
+  if (arm.mot === 'ra' || nhanhRa(neg(right(arm.d)))?.mot === 'vao') continue; // một chiều: không có luồng rẽ trái này
+  const d = arm.d, hw = hwAlong(d), p = taoDuongXe(d, neg(right(d)), loVao(d) + (hw - loVao(d)) * 0.0625, 1.2);
   const n = p.s.length;
   for (let u = p.sIn + 0.6; u < p.sOut - 0.6; u += 1.6) {
     let i = 0; while (i < n - 2 && p.s[i + 1] < u) i++;
@@ -1802,10 +1826,10 @@ function veDenLan() {
     const h = CAI.lanCfg[ia]; if (h.lan.every((c) => c === 'tudo')) return;
     const d = arm.d, r = right(d), n = neg(d), hw = hwAlong(d), u = eAlong(d) + CW + 1;
     const at = (b) => [-u * d[0] + b * r[0], -u * d[1] + b * r[1]];
-    const [gx, gz] = at((hw + 1.2) / 2), gia = new THREE.Mesh(new THREE.BoxGeometry(hw + 1.6, 0.16, 0.16), MAT_GIA);
+    const [gx, gz] = at((hw + loVao(d) + 1.2) / 2), gia = new THREE.Mesh(new THREE.BoxGeometry(hw - loVao(d) + 1.6, 0.16, 0.16), MAT_GIA);
     gia.position.set(gx, 6.1, gz); gia.rotation.y = Math.atan2(-r[1], r[0]); DEN_LAN.add(gia);
     h.lan.forEach((cn, i) => {
-      const [l0, l1] = lanKhoang(h, i, hw), [x, z] = at((l0 + l1) / 2);
+      const [l0, l1] = lanKhoang(h, i, hw, loVao(d)), [x, z] = at((l0 + l1) / 2);
       const qs = cn === 'tudo' ? ['trai', 'thang', 'phai'] : cn.split('-');
       const c = document.createElement('canvas'); c.width = 64 * qs.length; c.height = 64;
       const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
@@ -1834,10 +1858,11 @@ function capNhatDenLan() {
 function veLan() {
   const A = [];
   ARMS.forEach((arm, ia) => {
-    const h = CAI.lanCfg[ia], d = arm.d, r = right(d), hw = hwAlong(d), e0 = eAlong(d) + CW;
+    if (arm.mot === 'ra') return; // đường ra một chiều: không có làn vào
+    const h = CAI.lanCfg[ia], d = arm.d, r = right(d), hw = hwAlong(d), e0 = eAlong(d) + CW, lo = loVao(d);
     const at = (u, b) => [-u * d[0] + b * r[0], -u * d[1] + b * r[1]];
     for (let k = 1; k < h.soLan; k++) {
-      const b = (k * hw) / h.soLan;
+      const b = lo + (k * (hw - lo)) / h.soLan;
       if (h.vach === 'lien') { const [x, z] = at(e0 + h.dai / 2, b); vach(A, x, z, d[0], d[1], h.dai, 0.15, TRANG_V); }
       for (let u = e0 + 1; u < L; u += 6) {
         if (u < e0 + h.dai && h.vach !== 'dut') continue;
@@ -1846,7 +1871,7 @@ function veLan() {
     }
     h.lan.forEach((cn, i) => {
       if (cn === 'tudo') return;
-      const [l0, l1] = lanKhoang(h, i, hw), c = (l0 + l1) / 2;
+      const [l0, l1] = lanKhoang(h, i, hw, lo), c = (l0 + l1) / 2;
       for (const k of h.dai >= 16 ? [6, h.dai - 6] : [6]) {
         const [x, z] = at(e0 + k, c);
         for (const q of cn.split('-')) muiTen(A, x, z, d, q === 'thang' ? null : q === 'phai' ? r : neg(r));
@@ -2132,10 +2157,11 @@ function trungDat([x, z]) {
   if (Math.abs(x) < HW_NS && Math.abs(z) < HW_EW) return { loai: 'nga' };
   for (let ia = 0; ia < ARMS.length; ia++) {
     const d = ARMS[ia].d, r = right(d), hw = hwAlong(d), t = x * d[0] + z * d[1], b = x * r[0] + z * r[1];
-    if (t > -eAlong(d) || b < 0 || b > hw) continue;
-    const h = CAI.lanCfg[ia], w = hw / h.soLan, k = Math.round(b / w);
+    const lo = loVao(d);
+    if (ARMS[ia].mot === 'ra' || t > -eAlong(d) || b < lo || b > hw) continue;
+    const h = CAI.lanCfg[ia], w = (hw - lo) / h.soLan, k = Math.round((b - lo) / w);
     if (k > 0 && k < h.soLan && Math.abs(b - k * w) < 0.45) return { loai: 'vach', ia, i: k };
-    return { loai: 'lan', ia, i: Math.min(h.soLan - 1, Math.floor(b / w)) };
+    return { loai: 'lan', ia, i: Math.min(h.soLan - 1, Math.floor((b - lo) / w)) };
   }
   return null;
 }
@@ -2145,7 +2171,7 @@ function toVung(m, t) {
   if (t.loai === 'nga') { m.position.set(0, m.position.y, 0); m.scale.set(2 * HW_NS, 1, 2 * HW_EW); m.visible = true; return; }
   const h = CAI.lanCfg[t.ia], d = ARMS[t.ia].d, r = right(d), hw = hwAlong(d), e0 = eAlong(d) + CW;
   if (t.loai === 'lan' && t.i >= h.soLan) t.i = h.soLan - 1;
-  const [l0, l1] = t.loai === 'lan' ? lanKhoang(h, t.i, hw) : [(t.i * hw) / h.soLan - 0.3, (t.i * hw) / h.soLan + 0.3];
+  const lo = loVao(d), [l0, l1] = t.loai === 'lan' ? lanKhoang(h, t.i, hw, lo) : [lo + (t.i * (hw - lo)) / h.soLan - 0.3, lo + (t.i * (hw - lo)) / h.soLan + 0.3];
   const dai = Math.max(h.dai, 12), u = e0 + dai / 2, c = (l0 + l1) / 2;
   m.position.set(-u * d[0] + c * r[0], m.position.y, -u * d[1] + c * r[1]);
   m.scale.set(d[0] ? dai : l1 - l0, 1, d[0] ? l1 - l0 : dai); m.visible = true;

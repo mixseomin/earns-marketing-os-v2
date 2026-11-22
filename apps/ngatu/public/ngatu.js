@@ -2146,7 +2146,7 @@ function capNhatNet() {
   }
 }
 cv.addEventListener('pointerdown', (e) => {
-  if (!SUA || cong !== 've' || e.button > 0) return;
+  if (cong !== 've' || e.button > 0) return;
   const a = chonXe(e);
   if (!a || a.loai === 'bo' || a.nhac) return; // bấm ra chỗ trống → vẫn xoay máy quay như thường
   e.stopImmediatePropagation(); e.preventDefault();
@@ -2187,11 +2187,11 @@ cv.addEventListener('pointerup', xongVe);
 cv.addEventListener('pointercancel', xongVe);
 cv.addEventListener('pointerdown', (e) => (xuong = [e.clientX, e.clientY]));
 cv.addEventListener('pointerup', (e) => {
-  if (!SUA || !xuong || Math.hypot(e.clientX - xuong[0], e.clientY - xuong[1]) > 6) return;
+  if (!xuong || Math.hypot(e.clientX - xuong[0], e.clientY - xuong[1]) > 6) return;
   const a = chonXe(e);
   if (cong === 'chuoi') { const d = diemDat(e); if (d) thaChuoi(d[0], d[1]); return; }
   if (cong === 'nuoc') { const d = a ? [a.x, a.z] : diemDat(e); if (d) doiNuoc(d[0], d[1], a); return; }
-  if (!a) { moChinh(e); return; }
+  if (!a) { if (SUA) moChinh(e); return; } // chỉnh làn / vạch / lòng ngã tư = điều tiết → chỉ khi bật 🛠
   dongChinh();
   if (cong === 'nhac') nhac(a);
   else if (cong === 'nga') dayNga(a);
@@ -2240,12 +2240,12 @@ function reVao() {
   if (!e) { cv.style.cursor = ''; return; }
   const a = chonXe(e);
   if (a && !a.het) { reXe = a; cv.style.cursor = 'pointer'; return; }
-  const P = diemDat(e), t = P && trungDat(P);
+  const P = SUA && diemDat(e), t = P && trungDat(P); // tô làn / vạch chỉ khi đang điều tiết
   if (t && !(chinh && JSON.stringify(t) === JSON.stringify(chinh))) toVung(RE, t);
   cv.style.cursor = t ? 'pointer' : '';
 }
 cv.addEventListener('pointermove', (e) => {
-  if (!SUA) { reE = null; } else if (e.pointerType === 'touch' || e.buttons) { reE = null; } else reE = e;
+  if (e.pointerType === 'touch' || e.buttons) { reE = null; } else reE = e;
   if (!reCho) reCho = setTimeout(reVao, 60);
 });
 cv.addEventListener('pointerleave', () => { reE = null; if (!reCho) reCho = setTimeout(reVao, 0); });
@@ -2300,12 +2300,13 @@ function moChinh(e) {
 }
 function dongChinh() { chinh = null; veChinh(); }
 addEventListener('keydown', (e) => { if (e.key === 'Escape') dongChinh(); });
+// Nút troll (Túm, Đẩy ngã, Dội nước, Vỏ chuối, Vẽ) LUÔN hiện + bấm được (anh 23/11/2026); 🛠 chỉ là ĐIỀU TIẾT giao thông: bấm làn / vạch / lòng ngã tư.
 // Chế độ chỉnh sửa (anh 22/11/2026): mặc định chỉ XEM — bấm vào xe / người / đường không làm gì, chỉ xoay máy quay.
 // Bật ✏️ Chỉnh sửa mới hiện hàng công cụ (Túm, Đẩy ngã, Dội nước, Vỏ chuối, Vẽ) và cho bấm vào đối tượng. Nhớ trên URL ?sua.
 let SUA = new URLSearchParams(location.search).has('sua');
 function datSua(on) {
   SUA = on; ben.classList.toggle('sua', on);
-  const b = $('sua'); if (b) { b.classList.toggle('on', on); b.title = on ? 'Đang CHỈNH SỬA — bấm để về chế độ chỉ xem' : 'Bật chỉnh sửa: túm, đẩy ngã, dội nước, vỏ chuối, vẽ đường, bấm vào làn để chỉnh'; }
+  const b = $('sua'); if (b) { b.classList.toggle('on', on); b.title = on ? 'Đang ĐIỀU TIẾT — bấm làn, vạch, lòng ngã tư để chỉnh; bấm lại để tắt' : 'Bật điều tiết giao thông: bấm vào làn, vạch, lòng ngã tư để chỉnh'; }
   if (!on) { dongChinh(); reE = null; cv.style.cursor = ''; }
   const u = new URL(location.href); if (on) u.searchParams.set('sua', '1'); else u.searchParams.delete('sua'); history.replaceState(null, '', u);
 }

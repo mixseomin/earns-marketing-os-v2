@@ -87,7 +87,8 @@ export function taoMua({ renderer, scene, camera }) {
   let bat = false;
   // Bóng lúc khô: lượt soi vẽ lại CẢ thành phố, nên chỉ vẽ khi máy quay ở tầm phố (dưới 60 m, tắt dần từ 25 m), ảnh nhỏ bằng 1/4 và
   // 6 khung mới vẽ lại một lần (bóng nhoè nên không thấy trễ; uMatPhan đi cùng ảnh nên bóng vẫn nằm đúng chỗ). Vẽ mỗi khung = card đồ hoạ làm gấp đôi, quạt rú.
-  const KHO = 0.55, CAO_KHO = [25, 60], NHIP_KHO = 6; let demKho = 0;
+  // TẮT 23/11/2026: bóng khô soi gương tới ~50% ở góc xiên → anh thấy "tưởng mặt nước", và ảnh soi 6 khung mới vẽ lại nên bóng giật = mặt đường nháy. Nhựa khô thật gần như không soi gương. Muốn bật lại thì nâng KHO (≤ 0.1) và vẽ ảnh soi mỗi khung.
+  const KHO = 0, CAO_KHO = [25, 60], NHIP_KHO = 6; let demKho = 0;
   return { uot, get bat() { return bat; },
     dat(b, dam = 1) { bat = !!b; U.uMua.value = bat ? 1 : 0; U.uDamPhan.value = dam; hat.visible = bat; },
     khung(dt, y0, an, troi) {

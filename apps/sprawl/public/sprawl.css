@@ -25,3 +25,15 @@ button:disabled { opacity: .45; cursor: default; }
 body.sach .o, body.sach #nap, body.sach #bao-nho { display: none !important; }
 #bao-nho { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 9; padding: 8px 14px; border-radius: 8px; background: rgba(0,0,0,.7); color: #fff; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; }
 #bao-nho.hien { opacity: 1; }
+
+/* bản đồ: bando.js dùng chung của castle (chung/bando.js) */
+#bd { position: fixed; left: 12px; bottom: 40px; width: 150px; height: 150px; padding: 0; border-radius: 50%; overflow: hidden; border: 2px solid var(--vien); box-shadow: 0 4px 18px rgba(0,0,0,.5); cursor: zoom-in; z-index: 3; }
+#bd canvas { width: 100%; height: 100%; display: block; }
+#bd.lon { border-radius: 14px; cursor: crosshair; z-index: 6; }
+#bd .bd-phu { position: absolute; inset: 0; pointer-events: none; }
+#bd .bd-phu button { pointer-events: auto; border: 1px solid var(--vien); background: rgba(14,16,20,.85); color: var(--chu); border-radius: 7px; font: 600 12px system-ui, sans-serif; padding: 3px 7px; cursor: pointer; }
+#bd .bd-dong { position: absolute; top: 6px; right: 6px; }
+#bd .bd-nhac { position: absolute; top: 9px; left: 10px; right: 40px; font: 600 12px system-ui, sans-serif; color: #e8f1ff; text-shadow: 0 1px 2px #000; }
+#bd .bd-diem { position: absolute; left: 6px; right: 6px; top: 30px; display: flex; flex-wrap: wrap; gap: 4px; }
+@media (max-width: 640px) { #bd { left: auto; right: 8px; bottom: auto; top: 50px; width: 110px; height: 110px; } }
+@media (hover: none) { #bd.lon { left: 12px; right: auto; top: 60px; } }

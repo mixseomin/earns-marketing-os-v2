@@ -312,7 +312,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
     for (let i = 0; i < n; i++) uKhoet.uThap.value[i].copy(src[i]); uKhoet.uSoKhoet.value = n;
     if (src.length > MAX_KHOET) console.warn(`[sprawl] khoét ${src.length} tháp, quá trần ${MAX_KHOET}: tháp thừa đứng lẫn nhà PLATEAU`); }
   napKhoet();
-  const vatPho = new THREE.MeshLambertMaterial({ color: '#7f93a3' });
+  const vatPho = new THREE.MeshLambertMaterial({ color: '#7f93a3', side: THREE.DoubleSide }); // hai mặt: tường PLATEAU lật pháp tuyến không thành tường tàng hình (vẫn va chạm)
   vatPho.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, uKhoet, U_DEN, uSang);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;')
@@ -381,7 +381,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
   // LONG = nửa bề rộng LÒNG ĐƯỜNG nhựa: một nguồn cho hình vẽ (shader), chỗ đứng của người / sạp, và làn xe chạy (song.js) → không còn cảnh xe chạy giữa chợ.
   // mỗi đỉnh mang aR = (s lệch ngang m, v dọc đường m, dA / dB = khoảng cách tới mép đường cắt ở nút trước / sau).
   // dA, dB tuyến tính trong mỗi đoạn chạy giữa hai nút → shader vẽ giao lộ sạch, ngựa vằn, vạch dừng đúng chỗ.
-  const D = TL.duong, LOP = { lon: { hw: D.lon, u: -14 }, dibo: { hw: D.dibo, u: -12 }, vua: { hw: D.vua, u: -10 }, tau: { hw: D.tau, u: -8 }, pho: { hw: D.pho, u: -6 } }; // u: độ lệch sâu, cách nhau 2 nấc (lượt phủ vua = -11)
+  const D = TL.duong, LOP = { lon: { hw: D.lon, u: -14 }, dibo: { hw: D.dibo, u: -12 }, vua: { hw: D.vua, u: -10 }, tau: { hw: 2.4, u: -8 }, pho: { hw: D.pho, u: -6 } }; // u: độ lệch sâu, cách nhau 2 nấc (lượt phủ vua = -11)
   const RONG = { lon: 2 * D.lon, vua: 2 * D.vua, dibo: 2 * D.dibo }, LONG = { lon: 7, vua: 5.6 };
   // khuôn ngang MỖI tuyến xe (k): raP / raM = mép lòng nhựa phía s dương / âm, hwP / hwM = mép ngoài dải, lan = số làn, mot = một chiều (xe đi theo thứ tự g),
   // giua = phía có dải phân cách (+1 / -1 / 0). OSM vẽ đường đôi thành hai tuyến một chiều (doi = khoảng cách tới nửa kia, có dấu) → mỗi nửa chỉ có vỉa hè phía ngoài,
@@ -394,7 +394,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
     const a = d.lan ? Math.min(12, Math.max(3, (d.lan * LAN_RONG + 0.8) / 2)) : LONG[d.lop];
     return { raP: a, raM: a, hwP: a + via, hwM: a + via, lan: d.lan || (d.lop === 'lon' ? 4 : 2), mot: 0, giua: 0 }; };
   for (const d of ql.daiLo) d.k = khuon(d);
-  const tuyen = [...ql.daiLo.map((d) => ({ lop: d.lop, g: d.g, k: d.k, hw: d.k ? Math.max(d.k.hwP, d.k.hwM) : LOP[d.lop].hw })), ...ql.pho.map((g) => ({ lop: 'pho', g, hw: D.pho })), ...ql.tau.map((g) => ({ lop: 'tau', g, hw: D.tau }))];
+  const tuyen = [...ql.daiLo.map((d) => ({ lop: d.lop, g: d.g, k: d.k, hw: d.k ? Math.max(d.k.hwP, d.k.hwM) : LOP[d.lop].hw })), ...ql.pho.map((g) => ({ lop: 'pho', g, hw: D.pho })), ...ql.tau.map((g) => ({ lop: 'tau', g, hw: LOP.tau.hw }))];
   const khoa = (p) => p[0].toFixed(1) + ',' + p[1].toFixed(1), nut = new Map(); // bậc mỗi điểm: giữa tuyến 2, đầu tuyến 1
   for (const t of tuyen) { if (t.lop === 'tau') continue; const hw = t.hw, xe = t.lop !== 'pho';
     t.g.forEach((p, i) => { const k = khoa(p); let n = nut.get(k); if (!n) nut.set(k, n = { xe: 0, tat: 0, hw: 0, hwXe: 0, hwlon: 0, hwvua: 0 });
@@ -431,7 +431,8 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
   const DAU = `float s = vR.x, as = abs(s), v = vR.y, dj = min(vR.z, vR.w);
       float ra = s >= 0.0 ? vK.x : vK.y, hs = s >= 0.0 ? vK.z : vK.w, nl = vL.x, mot = vL.z, giua = step(0.5, s * vL.y); // khuôn ngang của tuyến (xem khuon)
       float e = max(fwidth(s), 0.003) * 0.8, ro = 1.0 - smoothstep(0.07, 0.3, e);   // ro: vạch / mạch mờ dần ở xa, khỏi nhiễu răng cưa
-      float n1 = bam(floor(vWp.xz * 1.7)), n2 = bam(floor(vWp.xz / 7.0) + 3.1);
+      float fw = length(fwidth(vWp.xz)); // bề ngang một điểm ảnh trên mặt đường (m): chấm nhiễu nhỏ hơn ~2 điểm ảnh thì mờ về trung bình, không thì mỗi khung camera nhích là mỗi điểm ảnh bốc một chấm ngẫu nhiên khác = mặt đường lấp lánh (anh 23/11/2026)
+      float n1 = mix(bam(floor(vWp.xz * 1.7)), 0.5, smoothstep(0.12, 0.35, fw)), n2 = mix(bam(floor(vWp.xz / 7.0) + 3.1), 0.5, smoothstep(1.5, 4.0, fw));
       vec3 NHUA = vec3(0.045, 0.05, 0.057) * (0.86 + 0.18 * n1 + 0.16 * n2), TRANG = vec3(0.82, 0.82, 0.78), VIA = vec3(0.36, 0.34, 0.3);`;
   // vạch làn: hai chiều thì m làn mỗi chiều chia đều [0,3 .. ra − 0,3] hai bên tim; một chiều thì nl làn chia đều cả lòng [−raM .. raP]
   const VACH_LAN = `float vLan = 0.0;
@@ -468,7 +469,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
       c = mix(c, vec3(0.24, 0.22, 0.2), dai(as, 6.4, 8.0, e));`,
     vua: `float giao = 1.0 - step(0.0, dj);                     // giao: đang trong lòng đường cắt
       vec2 q = vWp.xz / 0.9, f = abs(fract(q) - 0.5);
-      vec3 he = vec3(0.56, 0.53, 0.46) * (0.9 + 0.12 * bam(floor(q))) * (1.0 - 0.12 * smoothstep(0.44, 0.48, max(f.x, f.y)) * ro);
+      vec3 he = vec3(0.56, 0.53, 0.46) * (0.9 + 0.12 * mix(bam(floor(q)), 0.5, smoothstep(0.2, 0.5, fw))) * (1.0 - 0.12 * smoothstep(0.44, 0.48, max(f.x, f.y)) * ro);
       ${DAI_GIUA}
       float leDuong = smoothstep(ra - e, ra + e, as) * (1.0 - giao);
       vec3 c = mix(NHUA, he, leDuong);
@@ -486,10 +487,10 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
       c = mix(c, vec3(0.27, 0.26, 0.23), smoothstep(3.0 - e, 3.0 + e, as) * step(0.0, dj));            // rãnh bê tông mép
       c = mix(c, TRANG, dai(as, 2.75, 2.9, e) * step(0.6, dj) * ro);                                     // vạch trắng mép phố`,
     tau: `vec3 c = vec3(0.15, 0.12, 0.1) * (0.75 + 0.45 * n1);
-      float tr = abs(as - 2.0);
-      c = mix(c, vec3(0.07, 0.045, 0.03), dai(tr, -1.0, 1.15, e) * step(fract(v / 0.62), 0.4) * ro); // tà vẹt
-      c = mix(c, vec3(0.38, 0.4, 0.43), dai(abs(tr - 0.53), -1.0, 0.045, e) * ro);                  // ray
-      c = mix(c, vec3(0.3, 0.29, 0.27), dai(as, 4.0, 5.0, e));                                       // vai nền`,
+      // MỖI tuyến OSM là MỘT đường ray (bãi ga vẽ từng đường riêng) → ray nằm giữa tuyến; trước đây vẽ hai đường ray lệch ±2 m khỏi tuyến = bãi ga lệch, chồng đôi (anh 23/11/2026)
+      c = mix(c, vec3(0.07, 0.045, 0.03), dai(as, -1.0, 1.0, e) * step(fract(v / 0.62), 0.4) * ro);  // tà vẹt 2 m (khổ hẹp 1.067 m)
+      c = mix(c, vec3(0.05, 0.045, 0.04), dai(abs(as - 0.53), -1.0, 0.09, e) * ro);                  // bóng chân ray 3D
+      c = mix(c, vec3(0.3, 0.29, 0.27), dai(as, 1.8, 2.5, e));                                       // vai nền`,
   };
   // phu = lượt phủ lòng đường: cùng hình, bỏ vỉa hè, nằm trên mọi vỉa hè cùng lớp → đường đôi / dải chồng nhau không còn vỉa hè dải này đè lòng đường dải kia (răng cưa)
   const vatDuong = (k, phu) => { const m = new THREE.MeshLambertMaterial({ depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: phu ? LOP.lon.u - 2 - (k === 'lon' ? 1 : 0) : LOP[k].u }); m.userData.thuTu = -m.polygonOffsetUnits; // dải đường KHÔNG ghi chiều sâu, vẽ sau mọi vật đặc theo thứ tự lớp cố định (lớp trên vẽ sau): dải chồng nhau (bãi ray ga, nút giao, đường song song) không còn giành điểm ảnh → hết nháy; đất/nhà/xe đã ghi chiều sâu nên vẫn che đường đúng // phu: lượt vẽ riêng phần lòng nhựa, nằm trên MỌI vỉa hè (kể cả vỉa hè của đại lộ chạy song song đè sang) → lòng đường không bị vỉa hè tuyến bên cạnh che
@@ -515,6 +516,22 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
     duongMesh[k] = new THREE.Mesh(g, vatDuong(k)); duongMesh[k].frustumCulled = false; duongMesh[k].renderOrder = duongMesh[k].material.userData.thuTu; goc.add(duongMesh[k]);
     if (LONG[k]) { const m2 = new THREE.Mesh(g, vatDuong(k, true)); m2.frustumCulled = false; m2.renderOrder = m2.material.userData.thuTu; goc.add(m2); } }
 
+  // ---------- ray thép 3D: hai thanh ray khổ 1.067 m (JR) nổi 16 cm trên nền đá, đúng tâm mỗi tuyến OSM → nhìn ra đường ray thật, không chỉ vạch sơn ----------
+  // mỗi điểm tuyến (chia ≤ 8 m như dải đường) sinh 6 đỉnh mỗi thanh: hông trong, mặt trên, hông ngoài; độ cao gắn trong datLai theo cùng mặt đất của dải
+  const RAY = { xz: [], dy: [], n: [], idx: [] }, KHO = 0.5335, RR = 0.036, RC = 0.16;
+  for (const g0 of ql.tau) { const g = [g0[0]];
+    for (let i = 1; i < g0.length; i++) { const q = g[g.length - 1], l = Math.hypot(g0[i][0] - q[0], g0[i][1] - q[1]); if (l <= 0.5) continue;
+      const n = Math.ceil(l / 8); for (let c = 1; c < n; c++) g.push([q[0] + (g0[i][0] - q[0]) * c / n, q[1] + (g0[i][1] - q[1]) * c / n]); g.push(g0[i]); }
+    if (g.length < 2) continue;
+    for (const ben of [-1, 1]) { const b = RAY.xz.length / 2;
+      g.forEach((p, i) => { const a = g[Math.max(0, i - 1)], c = g[Math.min(g.length - 1, i + 1)], dx = c[0] - a[0], dz = c[1] - a[1], l = Math.hypot(dx, dz) || 1, nx = -dz / l, nz = dx / l; // pháp tuyến ngang
+        const cx = p[0] + nx * KHO * ben, cz = p[1] + nz * KHO * ben;
+        for (const [o, y, vx, vy, vz] of [[-RR, 0, -nx, 0, -nz], [-RR, RC, -nx, 0, -nz], [-RR, RC, 0, 1, 0], [RR, RC, 0, 1, 0], [RR, RC, nx, 0, nz], [RR, 0, nx, 0, nz]]) { RAY.xz.push(cx + nx * o, cz + nz * o); RAY.dy.push(y); RAY.n.push(vx, vy, vz); } });
+      for (let i = 0; i + 1 < g.length; i++) for (let f = 0; f < 3; f++) { const a = b + i * 6 + f * 2, c = b + (i + 1) * 6 + f * 2; RAY.idx.push(a, c, a + 1, a + 1, c, c + 1); } } }
+  const rayMesh = (() => { const gm = new THREE.BufferGeometry(), n = RAY.xz.length / 2;
+    gm.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); gm.setAttribute('normal', new THREE.Float32BufferAttribute(RAY.n, 3)); gm.setIndex(RAY.idx);
+    const m = new THREE.Mesh(gm, new THREE.MeshStandardMaterial({ color: '#8d9298', metalness: 0.55, roughness: 0.38, side: THREE.DoubleSide })); m.frustumCulled = false; goc.add(m); return m; })();
+
   // ---------- vườn: vẽ đa giác công viên OSM vào mặt nạ 1024² (3 m / điểm ảnh), đất Red Spires đọc mặt nạ để tô cỏ ----------
   const NUA_V = 1536, cv = document.createElement('canvas'); cv.width = cv.height = 1024;
   { const c2 = cv.getContext('2d'); c2.fillStyle = '#000'; c2.fillRect(0, 0, 1024, 1024); c2.fillStyle = '#fff';
@@ -531,7 +548,8 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
         .replace('#include <color_fragment>', `#include <color_fragment>
       if (uDo > 0.5) {
         float m = smoothstep(0.35, 0.65, texture2D(uVuon, vWd.xz / ${NUA_V * 2}.0 + 0.5).r);
-        float n = bamD(floor(vWd.xz * 0.6)) * 0.5 + bamD(floor(vWd.xz / 6.0) + 1.7) * 0.5;
+        float fwD = length(fwidth(vWd.xz)); // cùng lý do như mặt đường: chấm nhỏ hơn 2 điểm ảnh thì mờ về trung bình, hết lấp lánh
+        float n = mix(bamD(floor(vWd.xz * 0.6)), 0.5, smoothstep(0.35, 1.0, fwD)) * 0.5 + mix(bamD(floor(vWd.xz / 6.0) + 1.7), 0.5, smoothstep(3.0, 8.0, fwD)) * 0.5;
         vec3 co = vec3(0.13, 0.24, 0.07) * (0.75 + 0.5 * n);
         diffuseColor.rgb = mix(diffuseColor.rgb * (0.92 + 0.12 * n), co, m);
       }`); };
@@ -735,6 +753,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
     for (const k of Object.keys(LOP)) { const B = loDuong[k], pos = duongMesh[k].geometry.attributes.position; // dải đường bám đất
       for (let i = 0; i < B.xz.length / 2; i++) { const x = B.xz[i * 2], z = B.xz[i * 2 + 1]; pos.setXYZ(i, x, muot(x, z) + 0.6, z); }
       pos.needsUpdate = true; duongMesh[k].geometry.computeBoundingSphere(); }
+    { const pos = rayMesh.geometry.attributes.position; for (let i = 0; i < RAY.dy.length; i++) { const x = RAY.xz[i * 2], z = RAY.xz[i * 2 + 1]; pos.setXYZ(i, x, muot(x, z) + 0.6 + RAY.dy[i], z); } pos.needsUpdate = true; } // ray đứng trên nền đá của dải tàu
     for (const [i, p] of datNguoi.entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); _s.setScalar(p.s); boNguoi.dat(i, _m.compose(_p, _q, _s)); }
     _s.setScalar(1);
     for (const [i, p] of datQuay.entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); boQuay.dat(i, _m.compose(_p, _q, _s)); }

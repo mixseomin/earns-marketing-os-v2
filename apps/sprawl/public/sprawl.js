@@ -19,6 +19,7 @@ import { taoDiBo } from './chung/dibo.js';
 import { napNguoi3d, taoNguoi3d } from './chung/nguoi3d.js';
 import { taoCamUng, CHAM } from './chung/camung.js';
 import { ganGopY, chupCanvas } from './chung/gopy.js';
+import { taoBanDo } from './chung/bando.js';
 import { taoRedSpires } from './redspires.js';
 import { taoNhat2200 } from './nhat2200.js';
 import { taoMua } from './mua.js';
@@ -79,7 +80,7 @@ const KIEU = {
   nhat: { ten: 'Nhật 2200', nhom: 'Tương lai', nen: '#bcd6ec', suong: () => new THREE.FogExp2('#d3e2ee', 0.00028), bloom: 0, troi: 1.1, nang: 1.8, mu: 1.0, bauTroi: { duc: 2, ray: 3.6, mie: 0.003, g: 0.8, cao: 36, huong: -56, ds: 0.2, mt: 0.4 } }, // reel Japan 2200: nắng trong, tháp trắng xoắn, cao tốc trên cao, xe bay đĩa bạc
 };
 const uNeon = { uLit: { value: 0.7 }, uCuaA: { value: new THREE.Color() }, uCuaB: { value: new THREE.Color() } };
-const vatNeon = new THREE.MeshStandardMaterial({ color: '#2a1e16', roughness: 0.88, metalness: 0.1 });
+const vatNeon = new THREE.MeshStandardMaterial({ color: '#2a1e16', roughness: 0.88, metalness: 0.1, side: THREE.DoubleSide });
 vatNeon.onBeforeCompile = (sh) => { // cửa sổ sáng theo toạ độ thế giới (khuôn phobui.js), pháp tuyến tính trong mảnh nên mô hình thiếu normal vẫn đúng
   Object.assign(sh.uniforms, uNeon);
   sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;')
@@ -185,7 +186,8 @@ const dsTiles = VUNG.map((v) => {
     sc.traverse((o) => {
       if (!o.isMesh || !o.geometry?.attributes?.position) return;
       const cu = o.material, map = cu?.map || null;
-      o.userData.vatThuc = map ? new THREE.MeshBasicMaterial({ map }) : new THREE.MeshLambertMaterial({ color: '#d9d4ca' });
+      // HAI MẶT: nhiều toà PLATEAU có mặt tường lật pháp tuyến (hoặc thiếu mặt đối diện) → vẽ một mặt là tường tàng hình mà va chạm vẫn chặn (anh 23/11/2026)
+      o.userData.vatThuc = map ? new THREE.MeshBasicMaterial({ map, side: THREE.DoubleSide }) : new THREE.MeshLambertMaterial({ color: '#d9d4ca', side: THREE.DoubleSide });
       cu?.dispose?.(); o.material = vatCho(o);
       _m.identity(); for (let q = o; q; q = q.parent) { q.updateMatrix(); _m.premultiply(q.matrix); if (q === sc) break; } _m.premultiply(t.group.matrix).premultiply(goc.matrix);
       const pos = o.geometry.attributes.position, vs = new Float32Array(pos.count * 3);
@@ -244,11 +246,12 @@ if (toi) {
 }
 function diBo() { // đứng xuống mặt đất ngay dưới tâm nhìn, quay mặt theo hướng camera đang nhìn
   if (!di || !datY) return;
-  const x = orbit.target.x, z = orbit.target.z, h = Math.atan2(orbit.target.x - camera.position.x, orbit.target.z - camera.position.z);
-  const tia = world.castRay(new RAPIER.Ray({ x, y: datTai(x, z) + 1200, z }, { x: 0, y: -1, z: 0 }), 2400, true); // tháp đỏ cao tới ~450 m: thả từ trên đỉnh → đứng lên chóp / ban công nếu tâm nhìn trúng tháp
-  const y = tia ? datTai(x, z) + 1200 - tia.timeOfImpact : datTai(x, z);
+  const x = orbit.target.x, z = orbit.target.z, h = Math.atan2(orbit.target.x - camera.position.x, orbit.target.z - camera.position.z), y = matTren(x, z);
   di.vao(x, y + 0.3, z, h); xe?.goiNeuXa(x, y, z, h);
 }
+function matTren(x, z, tu = 1200) { // mặt cao nhất dưới điểm (x, z): tháp đỏ cao tới ~450 m → thả từ trên đỉnh, trúng tháp thì đứng lên chóp / ban công
+  const y0 = datTai(x, z) + tu, tia = world.castRay(new RAPIER.Ray({ x, y: y0, z }, { x: 0, y: -1, z: 0 }), tu * 2, true);
+  return tia ? y0 - tia.timeOfImpact : datTai(x, z); }
 $('b-di').onclick = diBo; $('b-bay').onclick = () => di?.ra();
 
 // ---------- bấm đúp = sà xuống chỗ đó ----------
@@ -369,8 +372,30 @@ function gocDung(ten) { // trả [cam xyz, đích xyz, fov]; góc theo dữ li�
   return [[500, 650, 900], [0, 60, 0], 60];
 }
 function datGoc() {
-  const c = qs.get('cam')?.split(',').map(Number), g = c?.length >= 6 && c.every(Number.isFinite) ? [c.slice(0, 3), c.slice(3, 6), c[6] || 60] : gocDung(qs.get('goc') || (kieu === 'nhat' ? '2200' : ''));
+  const c = qs.get('cam')?.split(',').map(Number), g = c?.length >= 6 && c.every(Number.isFinite) ? [c.slice(0, 3), c.slice(3, 6), c[6] || 60]
+    : choCu && !qs.has('goc') ? [choCu.cam, choCu.dich, choCu.fov || 60] : gocDung(qs.get('goc') || (kieu === 'nhat' ? '2200' : '')); // link có góc thì theo link, không thì về chỗ lần trước
   camera.position.set(...g[0]); orbit.target.set(...g[1]); camera.fov = g[2]; camera.updateProjectionMatrix(); orbit.update();
+}
+// ---------- nhớ chỗ qua F5 (khuôn castle ns-cho): mỗi giây + lúc rời trang ghi chế độ (bay / đi bộ), camera, chỗ chân + hướng ----------
+const KHOA_CHO = 'sprawl-cho';
+let choCu = null; try { choCu = JSON.parse(localStorage.getItem(KHOA_CHO) || 'null'); if (!Array.isArray(choCu?.cam) || !Array.isArray(choCu?.dich)) choCu = null; } catch {}
+let choCho = choCu?.di && !qs.has('cam') && !qs.has('goc') ? choCu : null, lucCho = performance.now(); // đang chờ đất + ô nhà quanh chỗ cũ nạp xong mới đặt người xuống
+function ghiCho() {
+  if (choCho) return; // chưa đặt lại xong thì không ghi đè chỗ cũ bằng góc tạm
+  const f = (v) => Math.round(v * 100) / 100, d = di?.dang ? di.viTri() : null;
+  const o = { cam: camera.position.toArray().map(f), dich: orbit.target.toArray().map(f), fov: camera.fov,
+    ...(d ? { di: { p: [f(d.x), f(d.y), f(d.z)], huong: f(di.huong), yaw: f(di.yaw), pitch: f(di.pitch) }, cam: [f(d.x + 40), f(d.y + 60), f(d.z + 70)], dich: [f(d.x), f(d.y), f(d.z)] } : {}) };
+  try { localStorage.setItem(KHOA_CHO, JSON.stringify(o)); } catch {}
+}
+addEventListener('pagehide', ghiCho);
+function datLaiCho(now) { // F5 lúc đang đi bộ: đứng lại đúng chỗ khi đất đã dựng và ô nhà quanh đó hết hàng đợi (tối đa 15 s)
+  if (!choCho || !di || !datY) return;
+  const ban = dsTiles.some((t) => t.stats.queued + t.stats.downloading + t.stats.parsing > 0);
+  if (ban && now - lucCho < 15000) return;
+  const { p, huong, yaw, pitch } = choCho.di; choCho = null;
+  const y = Math.max(p[1], matTren(p[0], p[2], Math.max(4, p[1] - datTai(p[0], p[2]) + 2)));
+  di.vao(p[0], y + 0.2, p[2], huong); if (Number.isFinite(yaw)) di.yaw = yaw; if (Number.isFinite(pitch)) di.pitch = pitch;
+  baoNho('Đã về chỗ đứng lần trước');
 }
 datGoc();
 function linkGoc() { const u = new URL(location.href), f = (v) => Math.round(v * 10) / 10;
@@ -421,6 +446,40 @@ addEventListener('keydown', (e) => { if (e.target.closest?.('input,textarea') ||
   else if (e.code === 'KeyP') chup4k();
   else if (e.code === 'KeyR') quayPhim(); else if (e.code === 'KeyM') doiMua(); });
 
+// ---------- bản đồ (bando.js dùng chung của castle): nhỏ đi theo người, bấm phóng to, bấm đâu tới đó + điểm đến nhanh ----------
+// toạ độ địa danh tra OpenStreetMap Nominatim 23/11/2026, đổi sang mét quanh TAM (X đông, Z nam)
+const xzCua = (lat, lon) => [(lon - TAM.lon) * 111320 * Math.cos(TAM.lat * Math.PI / 180), -(lat - TAM.lat) * 110950];
+const DIEM = [['🚉 Ga Shinjuku', 35.68888, 139.69872], ['🏛 Toà thị chính', 35.68950, 139.69171], ['🌃 Kabukichō', 35.69387, 139.70103], ['🌳 Shinjuku Gyoen', 35.68507, 139.70955],
+  ['🌲 Công viên Trung tâm', 35.69003, 139.68958], ['🚉 Ga Ōkubo', 35.70156, 139.69527], ['🚉 Ga Yoyogi', 35.68226, 139.70199]].map(([t, la, lo]) => [t, ...xzCua(la, lo)]);
+function diNhanh(x, z) {
+  if (Math.abs(x) > NUA - 20 || Math.abs(z) > NUA - 20) { baoNho('Ngoài vùng đã dựng (3 km quanh Nishi-Shinjuku)'); return false; }
+  if (di?.dang) { if (xe?.dangLai) xe.xuong(); const y = matTren(x, z); di.datCho({ x, y: y + 1.2, z }); return true; }
+  const lech = camera.position.clone().sub(orbit.target), y = datTai(x, z), dich = new THREE.Vector3(x, y, z); // bay: giữ góc nhìn, lượn tới
+  if (lech.length() > 400) lech.setLength(400);
+  sa = { t: 0, tu: [camera.position.clone(), orbit.target.clone()], toi: [dich.clone().add(lech), dich] }; gocTay = true; return true;
+}
+let banDo = null, lucBd = 0;
+try {
+  banDo = taoBanDo($('bd'), { phamVi: [260, NUA], tam: [0, 0], diem: DIEM, khiChon: diNhanh,
+    veNen(g, S, p, k) {
+      g.fillStyle = '#3a3d42'; g.fillRect(0, 0, S, S);
+      const ql = rs?.ql; if (!ql) return;
+      const net = (ds, mau, w) => { g.strokeStyle = mau; g.lineWidth = Math.max(1, w * k); g.lineCap = 'round'; g.beginPath(); for (const gg of ds) gg.forEach(([x, z], i) => { const [a, b] = p(x, z); i ? g.lineTo(a, b) : g.moveTo(a, b); }); g.stroke(); };
+      net(ql.pho, '#55595f', 6); net(ql.tau, '#8d6e63', 5);
+      net(ql.daiLo.filter((d) => d.lop === 'dibo').map((d) => d.g), '#6b7078', 6); net(ql.daiLo.filter((d) => d.lop === 'vua').map((d) => d.g), '#a8adb5', 12); net(ql.daiLo.filter((d) => d.lop === 'lon').map((d) => d.g), '#e7c27a', 18);
+      if (kieu === 'do' || kieu === 'nhat') { g.fillStyle = kieu === 'do' ? '#d8434f' : '#f0f3f6'; for (const t of ql.thap) { const [a, b] = p(...t.o); g.beginPath(); g.arc(a, b, Math.max(1.5, t.banKinh * k * 0.6), 0, 7); g.fill(); } }
+      g.font = `${Math.max(11, 5 * k)}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; for (const [t, x, z] of DIEM) g.fillText(t.split(' ')[0], ...p(x, z));
+    } });
+  // bando.js đánh dấu tâm cảnh bằng 🏰 (viết cho lâu đài) → ở Sprawl tâm là Nishi-Shinjuku: thay đúng ký tự đó, không đụng mã dùng chung
+  const g2 = $('bd').querySelector('canvas').getContext('2d'), ftCu = g2.fillText.bind(g2); g2.fillText = (t, ...r) => ftCu(t === '🏰' ? '🏙' : t, ...r);
+} catch (e) { console.warn('[sprawl] không dựng được bản đồ', e); $('bd').style.display = 'none'; }
+function veBanDo(now) {
+  if (!banDo || now - lucBd < 120) return; lucBd = now;
+  const nguoi = di?.dang ? (xe?.dangLai ? xe.than.translation() : di.viTri()) : orbit.target;
+  const huong = di?.dang ? (xe?.dangLai ? xe.huong() : di.huong) : Math.atan2(camera.position.x - orbit.target.x, camera.position.z - orbit.target.z) + Math.PI;
+  banDo.ve(nguoi, huong, []);
+}
+
 // ---------- vòng vẽ ----------
 let daGoc = false, lan = 0, tichLuy = 0, demKhung = 0, tFps = performance.now(), fps = 0, tDat = 0, tO = 0;
 const _camO = new THREE.Matrix4(), _chieuO = new THREE.Matrix4();
@@ -454,7 +513,8 @@ renderer.setAnimationLoop(() => {
     rs.nguoiGan.dayVatCan(vc); } // người gần đang băng qua lòng đường: xe dừng trước họ
   rs?.nguoiGan.datChoi(di?.dang && !xe?.dangLai ? di.viTri() : null); // người chơi đi bộ: người gần né
   ve(); demKhung++;
-  if (now - tFps > 1000) { fps = Math.round(demKhung * 1000 / (now - tFps)); demKhung = 0; tFps = now;
+  datLaiCho(now); veBanDo(now);
+  if (now - tFps > 1000) { fps = Math.round(demKhung * 1000 / (now - tFps)); demKhung = 0; tFps = now; ghiCho();
     const p = di?.dang ? di.viTri() : orbit.target, ll = laLatLon(p.x, p.z);
     $('tt').textContent = `${fps} khung/s · ${tk.o} ô nhà · ${renderer.info.render.triangles.toLocaleString('vi')} tam giác · ${renderer.info.render.calls} lượt vẽ · ${ll.lat.toFixed(4)}, ${ll.lon.toFixed(4)}`;
     if (!lan && tk.o) { lan = 1; $('nap').style.display = 'none'; } }

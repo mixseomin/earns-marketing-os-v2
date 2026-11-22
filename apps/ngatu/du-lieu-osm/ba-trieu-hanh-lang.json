@@ -1,0 +1,11 @@
+{
+  "nguon": "hoan-kiem-den.json (OSM, ODbL) — các phố cắt Phố Bà Triệu; toạ độ mét so với gốc lat 21.0189 lon 105.8494 (x Đông, y Bắc)",
+  "truc": { "ten": "Phố Bà Triệu", "mot_chieu": "Bắc → Nam", "lan": "2–4", "loai": "secondary" },
+  "nut": [
+    { "pho": "Lý Thường Kiệt",  "x": 148, "y": 482,  "lan": 4, "mot_chieu": false, "loai": "tertiary" },
+    { "pho": "Trần Hưng Đạo",   "x": 91,  "y": 296,  "lan": 4, "mot_chieu": false, "loai": "secondary" },
+    { "pho": "Nguyễn Du",       "x": -6,  "y": -17,  "lan": 2, "mot_chieu": false, "loai": "tertiary" },
+    { "pho": "Trần Nhân Tông",  "x": -15, "y": -212, "lan": 2, "mot_chieu": false, "loai": "tertiary" }
+  ],
+  "khoang_cach_m": [196, 327, 195]
+}

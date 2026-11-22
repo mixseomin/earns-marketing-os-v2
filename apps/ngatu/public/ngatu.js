@@ -18,14 +18,27 @@ import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 const L = 165, HW_EW = 10, HW_NS = 8, SW = 4, CW = 4;
 const right = (d) => [-d[1], d[0]];
 const neg = (d) => [-d[0], -d[1]];
-const hwAlong = (d) => (d[0] !== 0 ? HW_EW : HW_NS); // nửa mặt đường của con đường chạy theo hướng d
-const eAlong = (d) => (d[0] !== 0 ? HW_NS : HW_EW); // nửa lòng ngã tư đo theo hướng d
-const ARMS = [
-  { ten: 'Tây', d: [1, 0], g: 0, w: 0.3 },
-  { ten: 'Đông', d: [-1, 0], g: 0, w: 0.3 },
-  { ten: 'Bắc', d: [0, 1], g: 1, w: 0.2 },
-  { ten: 'Nam', d: [0, -1], g: 1, w: 0.2 },
-];
+// Đồ thị nút giao (bước 1 kế hoạch "ngã tư thật → thành phố", 22/11/2026): mỗi nhánh tự mang hình học của nó
+// (hướng vào d, nửa mặt đường hw, nửa lòng ngã tư e đo dọc nhánh) thay vì suy từ trục x/z. Nút giao thật từ OSM
+// sau này chỉ cần thay mảng NUT.nhanh; mọi chỗ đọc độ rộng đi qua hwAlong / eAlong.
+const NUT = {
+  id: 'n0', x: 0, z: 0,
+  nhanh: [
+    { ten: 'Tây', d: [1, 0], g: 0, w: 0.3, hw: HW_EW, e: HW_NS },
+    { ten: 'Đông', d: [-1, 0], g: 0, w: 0.3, hw: HW_EW, e: HW_NS },
+    { ten: 'Bắc', d: [0, 1], g: 1, w: 0.2, hw: HW_NS, e: HW_EW },
+    { ten: 'Nam', d: [0, -1], g: 1, w: 0.2, hw: HW_NS, e: HW_EW },
+  ],
+};
+const ARMS = NUT.nhanh;
+// nhánh nằm trên cùng con đường với hướng d (cùng chiều hoặc ngược chiều)
+const nhanhTheo = (d) => {
+  let tot = ARMS[0], m = -2;
+  for (const A of ARMS) { const c = Math.abs(A.d[0] * d[0] + A.d[1] * d[1]); if (c > m) { m = c; tot = A; } }
+  return tot;
+};
+const hwAlong = (d) => nhanhTheo(d).hw; // nửa mặt đường của con đường chạy theo hướng d
+const eAlong = (d) => nhanhTheo(d).e; // nửa lòng ngã tư đo theo hướng d
 const rnd = (a, b) => a + Math.random() * (b - a);
 const chon = (ds) => ds[(Math.random() * ds.length) | 0];
 

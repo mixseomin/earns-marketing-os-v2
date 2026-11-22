@@ -20,9 +20,21 @@ export function ganDanhGia({ THREE, scene, camera, dom, nut, dsKhoi, CUA, KIEM_K
   const day = (k) => Math.max(k.yDuoi ?? k.day, Math.min(...k.v.map(([x, z]) => datThat(x, z))) - 0.3);
   // ---- tầng 1: KHỐI (khung mô hình + khung thật)
   const posK = {}, posThat = [];
-  for (const k of dsK) { const t = tt(k.id)?.tt || 'khop', p = (posK[t] ??= []), y0 = day(k), y1 = k.yTren;
+  // Khung khối = ĐÚNG hình đã dựng: thân tới chân mái (_y1) + mép mái lấy từ tam giác mái thật (k._mai). Trước 22/11/2026 vẽ hộp thẳng từ chân lên MŨI chóp →
+  // tháp tròn mái nón trông như ống cao vượt cả tháp, lệch hẳn ảnh thật (anh chụp "Lệch thế này ?"). Đỉnh thật (xanh) của khối mái nhọn = dấu cộng ở mũi, không vòng nổi.
+  const mepMai = (m) => { const D = new Map(), k3 = (i) => `${Math.round(m[i] * 50)},${Math.round(m[i + 1] * 50)},${Math.round(m[i + 2] * 50)}`, ra = [];
+    for (let i = 0; i < m.length; i += 9) { const u = [m[i + 3] - m[i], m[i + 4] - m[i + 1], m[i + 5] - m[i + 2]], w = [m[i + 6] - m[i], m[i + 7] - m[i + 1], m[i + 8] - m[i + 2]];
+      const n = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]], L = Math.hypot(...n) || 1;
+      for (const [a, b] of [[i, i + 3], [i + 3, i + 6], [i + 6, i]]) { const ka = k3(a), kb = k3(b), key = ka < kb ? ka + '|' + kb : kb + '|' + ka; let e = D.get(key); if (!e) D.set(key, (e = { p: [m[a], m[a + 1], m[a + 2], m[b], m[b + 1], m[b + 2]], n: [] })); e.n.push(n.map((x) => x / L)); } }
+    for (const e of D.values()) if (e.n.length !== 2 || e.n[0][0] * e.n[1][0] + e.n[0][1] * e.n[1][1] + e.n[0][2] * e.n[1][2] < 0.985) ra.push(...e.p); // cạnh viền hoặc gãy > 10°
+    return ra; };
+  for (const k of dsK) { const t = tt(k.id)?.tt || 'khop', p = (posK[t] ??= []), y0 = day(k), mai = k._mai?.length ? k._mai : null, y1 = mai ? (k._y1 ?? k.yTren) : k.yTren;
     for (let i = 0; i < k.v.length; i++) { const [ax, az] = k.v[i], [bx, bz] = k.v[(i + 1) % k.v.length]; p.push(ax, y1, az, bx, y1, bz, ax, y0, az, bx, y0, bz, ax, y0, az, ax, y1, az); }
-    const d = tt(k.id); if (d?.dinh != null && !d.chong) for (let i = 0; i < k.v.length; i++) { const [ax, az] = k.v[i], [bx, bz] = k.v[(i + 1) % k.v.length]; posThat.push(ax, d.dinh, az, bx, d.dinh, bz); } }
+    if (mai) p.push(...mepMai(mai));
+    const d = tt(k.id); if (d?.dinh == null || d.chong) continue;
+    let mui = null; if (mai) for (let i = 1; i < mai.length; i += 3) if (!mui || mai[i] > mui[1]) mui = [mai[i - 1], mai[i], mai[i + 1]];
+    if (mui && mui[1] - y1 > 1.5) { const r = 1.2; posThat.push(mui[0] - r, d.dinh, mui[2], mui[0] + r, d.dinh, mui[2], mui[0], d.dinh, mui[2] - r, mui[0], d.dinh, mui[2] + r, mui[0], mui[1], mui[2], mui[0], d.dinh, mui[2]); } // dấu cộng ở đỉnh thật + vạch nối mũi mô hình
+    else for (let i = 0; i < k.v.length; i++) { const [ax, az] = k.v[i], [bx, bz] = k.v[(i + 1) % k.v.length]; posThat.push(ax, d.dinh, az, bx, d.dinh, bz); } }
   for (const [t, p] of Object.entries(posK)) { const l = net(p, MAU[t]); if (l) tang.khoi.add(l); }
   { const l = net(posThat, MAU.that, true, 1); if (l) tang.khoi.add(l); }
   // ---- tầng 2: MẶT tường ngoài

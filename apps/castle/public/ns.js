@@ -649,7 +649,7 @@ for (const k of dsKhoi) {
   if (k.vo && k.coPart) continue;
   const truoc = { mong: NHOM.mong.p.length, mat: NHOM.mat.p.length };
   const r = dungKhoi(k, NHOM);
-  k.yDuoi = r.y0; k.yTren = r.y2; TUONG_MT.push({ ten: k.tags.name || (k.la ? (() => { const [cx, cz] = tamDa(k.v); return dsKhoi.find((q) => q.vo && q.tags.name && trongDa(cx, cz, q.v))?.tags.name; })() : null), k, v: k.v, yMong: r.yMong, y1: r.y1, y2: r.y2, neoHang: NEO_HANG, lo: (i, x1, z1, x2, z2) => loCanh(k, i, x1, z1, x2, z2) });
+  k.yDuoi = r.y0; k.yTren = r.y2; k._mai = r.mai; TUONG_MT.push({ ten: k.tags.name || (k.la ? (() => { const [cx, cz] = tamDa(k.v); return dsKhoi.find((q) => q.vo && q.tags.name && trongDa(cx, cz, q.v))?.tags.name; })() : null), k, v: k.v, yMong: r.yMong, y1: r.y1, y2: r.y2, neoHang: NEO_HANG, lo: (i, x1, z1, x2, z2) => loCanh(k, i, x1, z1, x2, z2) });
   // hình từng khối: tường (móng + mặt tiền vừa thêm) + mái + nắp — cho va chạm và công cụ đo đối chiếu ảnh
   k.hinh = [[...NHOM.mong.p.slice(truoc.mong), ...NHOM.mat.p.slice(truoc.mat), ...r.da], r.mai];
   const pos = [...k.hinh[0], ...k.hinh[1]];
@@ -1759,11 +1759,11 @@ function apDungAnh3d() {
     t.addEventListener('load-model', ({ scene: sc }) => sc.traverse((o) => { if (o.isMesh && o.material?.map) { const m = new THREE.MeshBasicMaterial({ map: o.material.map }); o.material.dispose(); o.material = m; } }));
     t.setCamera(camera); t.setResolutionFromRenderer(camera, renderer);
     // ReorientationPlugin đặt tâm về gốc với X hướng TÂY, Z hướng BẮC (chú thích trong mã thư viện); khung cảnh này X đông, Z nam → bọc nhóm xoay 180° quanh trục đứng
-    const LECH = { x: cfg.lech?.x ?? 0, z: cfg.lech?.z ?? 0 }; // dời ngang ô 3D cho khớp bản đồ OSM (google3d.json)
-    const goc = new THREE.Group(); goc.rotation.y = Math.PI; goc.position.set(LECH.x, 0, LECH.z); goc.add(t.group); scene.add(goc);
+    const LECH = { x: cfg.lech?.x ?? 0, y: cfg.lech?.y ?? 0, z: cfg.lech?.z ?? 0 }; // dời ô 3D cho khớp bản đồ OSM (ngang) + DOM20 (đứng, đo bằng scripts/khop-google-dom20.py) — google3d.json
+    const goc = new THREE.Group(); goc.rotation.y = Math.PI; goc.position.set(LECH.x, LECH.y, LECH.z); goc.add(t.group); scene.add(goc);
     // VA CHẠM từ chính mặt mô hình (ô chi tiết, sai số ≤ cfg.loiVa m): người đi trên đất / bậc / mái thật thay lưới EU-DEM 25 m (lệch vài mét ngoài sân).
     // Bỏ tam giác nằm trong mặt bằng khối nhà OSM: nhà dùng va chạm OSM đã khoét cửa (lối vào tháp cầu thang, nội thất), tường ảnh chụp sẽ bịt mất.
-    const thanVa = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setRotation({ x: 0, y: 1, z: 0, w: 0 }).setTranslation(LECH.x, 0, LECH.z)); // cùng phép xoay 180° + dời ngang của nhóm goc
+    const thanVa = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setRotation({ x: 0, y: 1, z: 0, w: 0 }).setTranslation(LECH.x, LECH.y, LECH.z)); // cùng phép xoay 180° + dời ngang của nhóm goc
     const va = new Map(), _m = new THREE.Matrix4(), _v = new THREE.Vector3();
     const khoiNha = dsKhoi.filter((k) => k.vo || k.la).map((k) => { let a = 1e9, b = -1e9, c = 1e9, d = -1e9; for (const [x, z] of k.v) { a = Math.min(a, x); b = Math.max(b, x); c = Math.min(c, z); d = Math.max(d, z); } return { v: k.v, a, b, c, d }; });
     const trongNha = (x, z) => khoiNha.some((k) => x > k.a && x < k.b && z > k.c && z < k.d && trongDa(x, z, k.v));

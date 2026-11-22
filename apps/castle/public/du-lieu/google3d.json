@@ -5,8 +5,10 @@
  "geoid": 47.6,
  "errorTarget": 8,
  "lech": {
-  "x": -7,
-  "z": 0,
-  "ghi_chu": "dời NGANG ô 3D cho khớp bản đồ OSM: mái Google trùng mặt bằng nhà OSM 70% → 98% khi dời 7 m về phía tây (đo 15/11/2026 bằng dò lưới 0,5 m, 1.200 điểm; scripts/do-khoi-google.mjs đo lại được)"
+  "x": -7.0,
+  "z": 0.0,
+  "ghi_chu": "dời NGANG ô 3D cho khớp bản đồ OSM: mái Google trùng mặt bằng nhà OSM 70% → 98% khi dời 7 m về phía tây (đo 15/11/2026 bằng dò lưới 0,5 m, 1.200 điểm; scripts/do-khoi-google.mjs đo lại được)",
+  "y": 3.55,
+  "ghi_chu_y": "nâng ô 3D cho khớp DOM20: Google thấp hơn mặt thật 3.55 m (trung vị 19599 điểm lưới 1 m quanh lâu đài, scripts/khop-google-dom20.py)"
  }
 }

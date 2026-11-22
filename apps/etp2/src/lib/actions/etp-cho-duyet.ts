@@ -57,6 +57,17 @@ export async function duyetChoAnh(cr: number, ok: boolean): Promise<{ ok: true; 
   return lenCamp(id);
 }
 
+/** ✕ KHÔNG DUYỆT dòng ⏳ chờ anh duyệt ở bảng cây camp (anh 22/11/2026 "Nếu tao bấm ko duyệt thì sao"): ghi LOẠI (cham_duyet ok=false — cùng ✕ Loại ô vàng)
+ *  + bỏ creative khỏi sổ ★ ROAS len_cr_roas → dòng biến mất, lenh_cho.py / ▶ Lên không bao giờ lên. Không tạo camp, không gọi Ethopex, không tốn tiền. */
+export async function khongDuyetCr(cr: number): Promise<{ ok: true; chu: string } | { loi: string }> {
+  const id = Math.trunc(Number(cr));
+  const [c] = await run<{ x: number }>(sql`select 1 x from etp.camp where creative_id = ${id} limit 1`);
+  if (c) return { loi: `creative #${id} đã có camp — không còn ở hàng chờ duyệt (muốn dừng thì tắt camp)` };
+  const d = await duyetCham(id, false); if ('loi' in d) return d;
+  await getDb()!.execute(sql`update etp.cau_hinh set gia_tri = gia_tri - ${String(id)} where khoa = 'len_cr_roas' and gia_tri ? ${String(id)}`);
+  return { ok: true, chu: `đã KHÔNG DUYỆT creative #${id} — ghi loại, bỏ khỏi sổ ★ ROAS; không camp nào được tạo, dòng tự biến mất` };
+}
+
 /** lên camp cho creative đã duyệt (bấm lại sau khi lên hỏng / dừng khẩn) */
 export async function lenCamp(cr: number): Promise<{ ok: true; chu: string } | { loi: string }> {
   const id = Math.trunc(Number(cr));

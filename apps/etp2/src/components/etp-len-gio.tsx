@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { bayGioVn } from '@/lib/etp-nb';
 import { useRouter } from 'next/navigation';
 import { AnchoredPopover } from '@/components/ui';
-import { doiGioCamp, lenNgayCr, xemTruocLen, type KqNut, type XemTruoc } from '@/lib/actions/etp-cho-duyet';
+import { doiGioCamp, khongDuyetCr, lenNgayCr, xemTruocLen, type KqNut, type XemTruoc } from '@/lib/actions/etp-cho-duyet';
 
 const nut: React.CSSProperties = { fontSize: 12, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'inherit', cursor: 'pointer' };
 const o: React.CSSProperties = { fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'inherit' };
@@ -84,9 +84,9 @@ export function NutLenGio({ cr, camp, lich, nhan, anh, video }: { cr?: number | 
   const neo = useRef<HTMLButtonElement>(null);
   const [mo, setMo] = useState(false), [gio, setGio] = useState(''), [dang, setDang] = useState(false), [kq, setKq] = useState<KqNut | null>(null);
   const doiGio = camp != null && camp > 0;
-  const bam = async (g: string | null) => {
+  const bam = async (g: string | null, khong?: boolean) => {
     setDang(true); setKq(null);
-    try { setKq(doiGio ? await doiGioCamp(camp, g ?? '') : await lenNgayCr(Number(cr), g)); }
+    try { setKq(khong ? await khongDuyetCr(Number(cr)) : doiGio ? await doiGioCamp(camp, g ?? '') : await lenNgayCr(Number(cr), g)); }
     catch (e) { setKq({ loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` }); }
     setDang(false); router.refresh();
   };
@@ -107,6 +107,9 @@ export function NutLenGio({ cr, camp, lich, nhan, anh, video }: { cr?: number | 
         <div style={{ display: 'flex', gap: 6 }}>
           {doiGio ? null : <button disabled={dang} onClick={() => bam(null)} title="bỏ qua ô giờ, lên camp ngay" style={nutXanh}>{dang ? 'đang gửi…' : '▶ Lên ngay'}</button>}
           <button disabled={dang || !gio} onClick={() => bam(gio)} title="camp chạy đúng giờ VN trong ô" style={nutXanh}>{dang ? 'đang gửi…' : doiGio ? '🕒 Đặt giờ mới' : '🕒 Lên theo giờ này'}</button>
+          {doiGio ? null : <button data-khong-duyet="" disabled={dang} onClick={() => bam(null, true)}
+            title="ghi LOẠI creative + bỏ khỏi sổ ★ ROAS: không tạo camp, không gửi Ethopex, dòng biến mất khỏi bảng (anh 22/11/2026)"
+            style={{ ...nut, borderColor: '#ef4444', color: '#fca5a5', fontWeight: 600, cursor: dang ? 'wait' : 'pointer' }}>✕ Không duyệt</button>}
         </div>
         {kq && 'canh' in kq ? <div role="alert" style={{ padding: 6, border: '1px solid #f59e0b', borderRadius: 4, background: 'rgba(245,158,11,.12)', color: '#fde68a' }}>
           ⚠ Phanh đang áp: {kq.canh}<br />Bấm lại trong 30 phút là máy bỏ qua phanh và lên.</div> : null}

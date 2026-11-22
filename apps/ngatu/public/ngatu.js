@@ -1541,6 +1541,7 @@ function hopTheo(F, n, lx, ly, lz, sx, sy, sz, hex) {
   HOP.push([F[0] + t[0] * lx + n[0] * lz, ly, F[1] + t[1] * lx + n[1] * lz, sx, sy, sz, Math.atan2(n[0], n[1]), hex]);
 }
 function theo(F, n, lx, lz) { const t = [n[1], -n[0]]; return [F[0] + t[0] * lx + n[0] * lz, F[1] + t[1] * lx + n[1] * lz]; }
+const NHA_CT = []; // nhà đã dựng, để bản thật thêm chi tiết mặt tiền
 function dayNha(diemF, n, u0, u1) {
   let u = u0;
   while (u < u1) {
@@ -1549,6 +1550,7 @@ function dayNha(diemF, n, u0, u1) {
     const F = diemF(u + w / 2);
     const tang = Math.random() < 0.05 ? 7 + ((Math.random() * 3) | 0) : 2 + ((Math.random() * 4) | 0);
     const h = 4 + (tang - 1) * 3.4, sau = rnd(13, 18), mauNha = chon(NHA);
+    NHA_CT.push([F, n, w, tang, Math.random() * 1e9 | 0]);
     hopTheo(F, n, 0, h / 2, -sau / 2, w - 0.08, h, sau, mauNha);
     hopTheo(F, n, 0, 1.4, 0.04, w - 0.5, 2.7, 0.08, chon(CUA));
     hopTheo(F, n, 0, 3.3, 0.18, w - 0.3, 1.0, 0.3, '#d6d6d6');
@@ -2278,8 +2280,46 @@ function datXm(on) {
   mXm.visible = !XMT.on;
   for (const k of XMT.ds) { k.t.visible = k.f.visible = XMT.on; }
 }
+// Chi tiết mặt tiền nhà phố VN cho bản thật: máy lạnh, lan can sắt, cửa cuốn có gân, khung cửa sổ, chậu cây, đồ phơi, biển dọc.
+// Dựng một lần thành MỘT khối gộp (một lần vẽ), chỉ hiện khi bật 🧩. Hạt ngẫu nhiên theo từng nhà → bật/tắt không đổi dáng.
+function dungChiTiet() {
+  const ds = [], DT = !!DD;
+  for (const [F, n, w, tang, hat] of NHA_CT) {
+    let h0 = hat; const r = () => { h0 = (h0 * 1103515245 + 12345) & 0x7fffffff; return h0 / 0x7fffffff; };
+    const goc = Math.atan2(n[0], n[1]);
+    const b = (lx, ly, lz, sx, sy, sz, hex) => { const p = theo(F, n, lx, lz); ds.push([box(sx, sy, sz).rotateY(goc).translate(p[0], ly, p[1]), hex]); };
+    // cửa cuốn tầng trệt: gân ngang (nửa nhà kéo lên, nửa kéo xuống)
+    const cuon = r() < 0.4, cw = w - 0.5;
+    if (cuon) for (let k = 0; k < (DT ? 4 : 9); k++) b(0, 0.25 + k * 0.28, 0.1, cw, 0.05, 0.03, '#a7abb0');
+    b(-cw / 2, 1.4, 0.1, 0.08, 2.7, 0.1, '#5a5e63'); b(cw / 2, 1.4, 0.1, 0.08, 2.7, 0.1, '#5a5e63');
+    // biển dọc
+    if (r() < 0.3) { const sx = (r() < 0.5 ? -1 : 1) * (w / 2 - 0.3); b(sx, 5.2, 0.6, 0.12, 2.4, 0.6, ['#d32f2f', '#1565c0', '#f9a825', '#2e7d32'][(r() * 4) | 0]); }
+    for (let f = 1; f < tang; f++) {
+      const y0 = 4 + (f - 1) * 3.4, ww = w * 0.6;
+      // khung cửa sổ + song sắt
+      b(0, y0 + 2.48, 0.07, ww + 0.16, 0.08, 0.08, '#e8e6e0'); b(0, y0 + 0.92, 0.07, ww + 0.16, 0.08, 0.08, '#e8e6e0');
+      b(-ww / 2, y0 + 1.7, 0.07, 0.08, 1.6, 0.08, '#e8e6e0'); b(ww / 2, y0 + 1.7, 0.07, 0.08, 1.6, 0.08, '#e8e6e0');
+      if (!DT) for (let k = 1; k < 5; k++) b(-ww / 2 + (ww * k) / 5, y0 + 1.7, 0.12, 0.03, 1.5, 0.03, '#2b2b2b');
+      // lan can sắt ban công
+      if (r() < 0.8) {
+        const lw = w - 0.6, nb = DT ? 0 : Math.max(4, Math.round(lw / 0.25));
+        b(0, y0 + 1.05, 0.88, lw, 0.05, 0.05, '#2d2d2d');
+        for (let k = 0; k <= nb; k++) b(-lw / 2 + (lw * k) / Math.max(1, nb), y0 + 0.6, 0.88, 0.025, 0.9, 0.025, '#2d2d2d');
+        if (r() < 0.6) { const cx = (r() - 0.5) * (lw - 0.6); b(cx, y0 + 0.32, 0.7, 0.32, 0.3, 0.32, '#8d5a3b'); b(cx, y0 + 0.62, 0.7, 0.5, 0.42, 0.5, ['#3f7d3a', '#5c9a48', '#2f6b34'][(r() * 3) | 0]); }
+        if (r() < 0.35) { b(0, y0 + 1.95, 0.6, lw * 0.8, 0.02, 0.02, '#777'); for (let k = 0; k < 3; k++) b(-lw * 0.3 + k * lw * 0.3, y0 + 1.6, 0.6, 0.45, 0.6, 0.03, ['#e53935', '#fafafa', '#1e88e5', '#fdd835', '#8e24aa'][(r() * 5) | 0]); }
+      }
+      // cục nóng máy lạnh
+      if (r() < 0.6) { const ax = (r() < 0.5 ? -1 : 1) * (w / 2 - 0.55); b(ax, y0 + 2.2, 0.3, 0.8, 0.55, 0.3, '#eceff1'); b(ax + 0.12, y0 + 2.2, 0.46, 0.42, 0.42, 0.02, '#78858f'); }
+    }
+  }
+  const g = ghep(ds), m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, metalness: 0.05, envMapIntensity: 0.3 }));
+  m.receiveShadow = true; m.castShadow = !DT; m.matrixAutoUpdate = false; scene.add(m);
+  return m;
+}
 function datHinh(on) {
   THAT.on = on;
+  if (on && !THAT.ct) THAT.ct = dungChiTiet();
+  if (THAT.ct) THAT.ct.visible = on;
   if (on) taiXm(); datXm(on);
   if (on && !THAT.env) {
     const pm = new THREE.PMREMGenerator(renderer);

@@ -40,7 +40,7 @@ import { NenLam } from '@/components/etp-tu-van';
 import { TabInsight } from '@/components/etp-insight';
 import { TabLogs } from '@/components/etp-logs';
 import { ChoDuyetCr } from '@/components/etp-cho-duyet';
-import { NutLenGio } from '@/components/etp-len-gio';
+import { NutLenGio, OGioVn } from '@/components/etp-len-gio';
 import { dsCrMoiCamp, lenNgayCr } from '@/lib/actions/etp-cho-duyet';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLenCamp, datLichGio, datLichTong } from '@/lib/actions/etp-lich';
@@ -1028,7 +1028,7 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
                     {laMoi ? null : <button onClick={() => setChay('lich')} style={ch(chay === 'lich')} title="lịch lên camp của máy quyết (trong khung lên → chạy ngay khi đồng bộ, ngoài khung → 07:00 sáng)">theo lịch</button>}
                     <button onClick={() => setChay('ngay')} style={ch(chay === 'ngay')} title="lệnh trực tiếp — phanh đang áp thì cảnh báo một lần, bấm lại là lên">chạy ngay</button>
                     <button onClick={() => setChay('gio')} style={ch(chay === 'gio')} title="lệnh trực tiếp — camp chạy đúng giờ VN đặt">đặt giờ</button>
-                    {chay === 'gio' ? <input type="datetime-local" value={gioDat} onChange={(e) => setGioDat(e.target.value)} style={{ ...o2, width: 'auto' }} /> : null}</>}</div>
+                    {chay === 'gio' ? <OGioVn gio={gioDat} setGio={setGioDat} style={o2} /> : null}</>}</div>
                   {laRoasCu ? <>{nhan('Sau khi tạo')}<label style={{ ...dong, gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={tamDung} onChange={(e) => setTamDung(e.target.checked)} />để tạm dừng chờ review</label></> : null}
                 </> : null}
               </div>

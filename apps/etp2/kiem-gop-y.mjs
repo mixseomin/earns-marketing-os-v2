@@ -437,6 +437,12 @@ const LUAT = [
   { card: '1761', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function OBai({ c, kho }', vi: 'một ô Bài post dùng chung cho mọi bảng camp' },
   { card: '1761', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const baiCuaCamp = (c: CampEtpKho, kho: CampEtpKho[])', vi: 'một hàm tìm bài post của camp (Used post → bài của camp mẹ), cây gom nhóm và cột link cùng đọc' },
   { card: '1761', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'href={wrapHref(linkBai(x.bai))}', vi: 'link bài post đi qua href.li, không lộ trang nguồn' },
+  { card: '1762', tep: 'apps/etp2/src/components/etp-len-gio.tsx', mot: 'export function OGioVn(', vi: 'một ô giờ VN dùng chung cho mọi chỗ đặt giờ camp (tick hôm nay · mặc định lúc này · không trống)' },
+  { card: '1762', tep: 'apps/etp2/src/components/etp-len-gio.tsx', co: 'useEffect(() => { if (!gio) setGio(bayGioVn()); }', vi: 'ô giờ trống thì tự về lúc này, không để trống' },
+  { card: '1762', tep: 'apps/etp2/src/components/etp-len-gio.tsx', co: '/>hôm nay</label>', vi: 'ô tick "hôm nay" cạnh ô giờ' },
+  { card: '1762', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<OGioVn gio={gioDat} setGio={setGioDat}', vi: 'bảng điều khiển camp "đặt giờ" dùng ô giờ chung' },
+  { card: '1762', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'type="datetime-local"', vi: 'không còn ô ngày giờ tự chế trống trơn ở bảng camp' },
+  { card: '1762', tep: 'apps/etp2/src/lib/etp-nb.ts', mot: 'export const bayGioVn = ', vi: 'một hàm giờ VN lúc này cho giá trị sẵn của ô giờ' },
 ];
 
 const loi = [];

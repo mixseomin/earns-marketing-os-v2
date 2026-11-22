@@ -351,14 +351,16 @@ function duongXe(loai) {
     const rieng = ds.filter(([c]) => c !== 'tudo'), [cn, i] = (rieng.length ? rieng : ds)[Math.floor(Math.random() * (rieng.length || ds.length))];
     const [l0, l1] = lanKhoang(h, i, hw1), m0 = loai === 'xm' ? Math.min(0.5, (l1 - l0) / 2 - 0.45) : 0;
     o1 = loai === 'xm' ? rnd(l0 + m0 + (l0 ? 0 : 0.1), l1 - m0) : (l0 + l1) / 2;
-    o2 = loai === 'xm' ? (quay === 'phai' ? rnd(hw2 * 0.55, hw2 - 0.6) : rnd(0.8, hw2 - 0.6)) : loai === 'oto' ? (quay === 'phai' ? hw2 * 0.5 : 2.2) : hw2 * 0.55;
+    o2 = loai === 'xm' ? (quay === 'phai' ? rnd(hw2 * 0.55, hw2 - 0.6) : quay === 'trai' ? rnd(0.8, hw2 * 0.45) : rnd(0.8, hw2 - 0.6)) : loai === 'oto' ? (quay === 'phai' ? hw2 * 0.5 : 2.2) : hw2 * 0.55;
     const p = taoDuongXe(d, d2, o1, o2);
     if (cn !== 'tudo' && h.vach === 'lien') { p.lan = [l0, l1]; p.lanDai = h.dai; } // vạch liền: cấm chuyển làn trong đoạn đó
     return { arm, quay, p };
   }
   if (loai === 'xm') {
-    o1 = quay === 'phai' ? rnd(hw1 * 0.55, hw1 - 0.6) : quay === 'trai' ? rnd(0.8, hw1 * 0.75) : rnd(0.8, hw1 - 0.6);
-    o2 = quay === 'phai' ? rnd(hw2 * 0.55, hw2 - 0.6) : rnd(0.8, hw2 - 0.6);
+    // rẽ trái: đi sát tim đường từ trước vạch, ra vào nửa trong của làn đích — đường cong bám vạch dẫn. Trước o1 tới 3/4 nửa
+    // đường + o2 tới sát lề: đường cong bị đẩy tách luồng trái đối diện dạt hẳn ra góc, chạy dọc vạch đi bộ (anh 22/11/2026 khoanh ảnh)
+    o1 = quay === 'phai' ? rnd(hw1 * 0.55, hw1 - 0.6) : quay === 'trai' ? rnd(0.6, Math.min(3, hw1 * 0.4)) : rnd(0.8, hw1 - 0.6);
+    o2 = quay === 'phai' ? rnd(hw2 * 0.55, hw2 - 0.6) : quay === 'trai' ? rnd(0.8, hw2 * 0.45) : rnd(0.8, hw2 - 0.6);
   } else if (loai === 'oto') { o1 = quay === 'phai' ? hw1 * 0.5 : 2.2; o2 = quay === 'phai' ? hw2 * 0.5 : 2.2; }
   else o1 = o2 = hw1 * 0.55;
   return { arm, quay, p: taoDuongXe(d, d2, o1, o2) };

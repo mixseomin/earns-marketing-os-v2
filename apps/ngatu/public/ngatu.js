@@ -1620,7 +1620,11 @@ for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
   for (let u = 26; u < 160; u += 20) {
     for (const P of [[sx * u, sz * (HW_EW + 1.4)], [sx * (HW_NS + 1.4), sz * (u + 4)]]) {
       TRU.push([P[0], 1.7, P[1], 0.18, 3.4, '#6b4a2f']);
-      TAN.push([P[0], 4.4, P[1], rnd(1.8, 2.7), chon(LA)]);
+      // tán cây = cụm 7 chùm lá lệch nhau, đậm nhạt khác nhau (một quả cầu trơn nhìn như kẹo mút)
+      const R = rnd(1.8, 2.7), la = new THREE.Color(chon(LA));
+      for (let j = 0; j < 7; j++) { const g = (j / 7) * Math.PI * 2 + rnd(-0.4, 0.4), d = j ? R * rnd(0.45, 0.7) : 0, r = R * (j ? rnd(0.5, 0.72) : 0.75);
+        TAN.push([P[0] + Math.cos(g) * d, 4.3 + (j ? rnd(-0.5, 0.7) : 0.5), P[1] + Math.sin(g) * d, r, '#' + la.clone().offsetHSL(rnd(-0.02, 0.02), 0, rnd(-0.07, 0.06)).getHexString(), rnd(0, 6)]); }
+      TRU.push([P[0] + 0.5, 3.3, P[1], 0.07, 1.6, '#5a3d27']); TRU.push([P[0] - 0.45, 3.5, P[1] + 0.3, 0.06, 1.4, '#5a3d27']);
     }
   }
   // quán vỉa hè: xe đẩy + dù + ghế nhựa + khách ngồi
@@ -1723,7 +1727,12 @@ function tinh(geo, list, dat) {
 }
 const mHop = tinh(box(1, 1, 1), HOP, (b) => { Q.setFromAxisAngle(UP, b[6]); M4.compose(V.set(b[0], b[1], b[2]), Q, S3.set(b[3], b[4], b[5])); CL.set(b[7]); });
 tinh(new THREE.CylinderGeometry(1, 1, 1, 12), TRU, (b) => { M4.compose(V.set(b[0], b[1], b[2]), Q.identity(), S3.set(b[3], b[4], b[3])); CL.set(b[5]); });
-tinh(new THREE.IcosahedronGeometry(1, 1), TAN, (b) => { M4.compose(V.set(b[0], b[1], b[2]), Q.identity(), S3.set(b[3], b[3] * 0.85, b[3])); CL.set(b[4]); });
+{ // chùm lá: khối 20 mặt gồ ghề (đỉnh xô lệch ngẫu nhiên cố định) → bóng sáng tối lốm đốm như tán lá
+  const g = new THREE.IcosahedronGeometry(1, 2), p = g.attributes.position, mo = new Map();
+  for (let i = 0; i < p.count; i++) { const k = `${p.getX(i).toFixed(3)},${p.getY(i).toFixed(3)},${p.getZ(i).toFixed(3)}`; if (!mo.has(k)) mo.set(k, 0.82 + Math.random() * 0.3); const f = mo.get(k); p.setXYZ(i, p.getX(i) * f, p.getY(i) * f, p.getZ(i) * f); }
+  g.computeVertexNormals();
+  tinh(g, TAN, (b) => { Q.setFromAxisAngle(UP, b[5] || 0); M4.compose(V.set(b[0], b[1], b[2]), Q, S3.set(b[3], b[3] * 0.8, b[3])); CL.set(b[4]); });
+}
 tinh(new THREE.ConeGeometry(1, 1, 16), NON, (b) => { M4.compose(V.set(b[0], b[1], b[2]), Q.identity(), S3.set(b[3], b[4], b[3])); CL.set(b[5]); });
 {
   const g = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);

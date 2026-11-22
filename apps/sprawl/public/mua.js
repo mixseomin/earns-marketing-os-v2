@@ -67,9 +67,9 @@ export function taoMua({ renderer, scene, camera }) {
   // ---------- lượt vẽ soi bóng: máy quay lật qua mặt phẳng y = y0 (cách tính của three addons Reflector) ----------
   const may = new THREE.PerspectiveCamera(), _n = new THREE.Vector3(0, 1, 0), _P = new THREE.Vector3(), _v = new THREE.Vector3(), _t = new THREE.Vector3(), _cam = new THREE.Vector3(), _rot = new THREE.Matrix4();
   const _mp = new THREE.Plane(), _cp = new THREE.Vector4(), _q = new THREE.Vector4(), _co = new THREE.Vector2();
-  function vePhan(y0, an, troi) {
+  function vePhan(y0, an, troi, chia = 1) { // chia: thu nhỏ thêm ảnh soi (bóng khô đằng nào cũng làm nhoè)
     _cam.setFromMatrixPosition(camera.matrixWorld); if (_cam.y <= y0 + 0.3) return;
-    renderer.getDrawingBufferSize(_co); const w = Math.max(2, _co.x >> 1), h = Math.max(2, _co.y >> 1); if (dich.width !== w || dich.height !== h) dich.setSize(w, h);
+    renderer.getDrawingBufferSize(_co); const w = Math.max(2, (_co.x >> 1) / chia | 0), h = Math.max(2, (_co.y >> 1) / chia | 0); if (dich.width !== w || dich.height !== h) dich.setSize(w, h);
     _P.set(0, y0, 0); _v.subVectors(_P, _cam).reflect(_n).negate().add(_P);
     _rot.extractRotation(camera.matrixWorld); _t.set(0, 0, -1).applyMatrix4(_rot).add(_cam); _t.subVectors(_P, _t).reflect(_n).negate().add(_P);
     may.position.copy(_v); may.up.set(0, 1, 0).applyMatrix4(_rot).reflect(_n); may.lookAt(_t); may.near = camera.near; may.far = camera.far; may.updateMatrixWorld(); may.projectionMatrix.copy(camera.projectionMatrix);
@@ -85,11 +85,13 @@ export function taoMua({ renderer, scene, camera }) {
   }
 
   let bat = false;
-  const KHO = 0.55, CAO_KHO = [45, 140]; // độ bóng lúc khô · máy quay cao hơn mặt đất 45 → 140 m thì bóng tắt dần rồi thôi vẽ lượt soi (nhìn từ trên xuống không thấy bóng, khỏi tốn một lượt vẽ)
+  // Bóng lúc khô: lượt soi vẽ lại CẢ thành phố, nên chỉ vẽ khi máy quay ở tầm phố (dưới 60 m, tắt dần từ 25 m), ảnh nhỏ bằng 1/4 và
+  // 6 khung mới vẽ lại một lần (bóng nhoè nên không thấy trễ; uMatPhan đi cùng ảnh nên bóng vẫn nằm đúng chỗ). Vẽ mỗi khung = card đồ hoạ làm gấp đôi, quạt rú.
+  const KHO = 0.55, CAO_KHO = [25, 60], NHIP_KHO = 6; let demKho = 0;
   return { uot, get bat() { return bat; },
     dat(b, dam = 1) { bat = !!b; U.uMua.value = bat ? 1 : 0; U.uDamPhan.value = dam; hat.visible = bat; },
     khung(dt, y0, an, troi) {
       if (bat) { U.uGioM.value = (U.uGioM.value + dt) % 3600; hat.material.uniforms.uCam.value.copy(camera.position); vePhan(y0, an, troi); return; }
       const cao = camera.position.y - y0; U.uKho.value = KHO * (1 - THREE.MathUtils.smoothstep(cao, CAO_KHO[0], CAO_KHO[1]));
-      if (U.uKho.value > 0.001) vePhan(y0, an, troi); } };
+      if (U.uKho.value > 0.001) { if (demKho++ % NHIP_KHO === 0) vePhan(y0, an, troi, 2); } else demKho = 0; } };
 }

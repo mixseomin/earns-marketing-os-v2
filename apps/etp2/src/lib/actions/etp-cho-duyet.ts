@@ -87,7 +87,7 @@ export async function lenCamp(cr: number): Promise<{ ok: true; chu: string } | {
 // (cảnh báo MỘT lần), bấm lại trong 30 phút mới lên. Giờ = "YYYY-MM-DD HH:MM" giờ VN, rỗng = chạy ngay.
 const KHUON_CR: Record<string, number> = { en: 65110, es: 65734 };   // cùng sổ apps/etp/lenh_cho.py KHUON_CR
 const DIR_NB = () => `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/xuong-video/scripts/ethopex`;
-export type KqNut = { ok: true; chu: string } | { canh: string } | { loi: string };
+export type KqNut = { ok: true; chu: string; /** giờ máy chủ ghi dòng gửi (#1770: trình duyệt đánh dấu "đang lên" ngay) */ gui?: string | null } | { canh: string } | { loi: string };
 
 const ROAS_CR = [0.9, 1.4] as const, NS_CR = BANG_LUAT.hoi_cho.ns_khoang as [number, number];   // ★ ROAS creative mới: mức cùng nhan-ban.py ROAS_MIN/MAX · ngân sách sổ luật hoi_cho.ns_khoang
 
@@ -139,7 +139,7 @@ export async function lenNgayCr(cr: number, gio?: string | null, o?: { roas: num
   if (!('ma' in v)) return v;
   const log = moNhatKyLen(id, `anh (etp2 ${me.email})`);   // #1770: dòng gửi → bảng hiện "đang lên" ngay
   spawn('python3', [...L.args, '--that', '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
-  return { ok: true, chu: `đã gửi lệnh lên ${ro ? `★ ROAS ${ro.roas} · $${ro.ns}` : 'camp $1'} — ${chuGio(g)}` };
+  return { ok: true, chu: `đã gửi lệnh lên ${ro ? `★ ROAS ${ro.roas} · $${ro.ns}` : 'camp $1'} — ${chuGio(g)}`, gui: docNhatKyLen(id).gui };
 }
 
 export type XemTruoc = { ten: string | null; chay: string | null; canh: string[]; payload: Record<string, unknown> } | { loi: string };

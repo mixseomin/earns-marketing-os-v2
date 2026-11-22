@@ -13,6 +13,7 @@ import { PhamViLuu, useKhoaLuu } from '@/components/ui/table-prefs';
 import { catTokenEthopex, datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegram } from '@/lib/actions/etp-sua';
 import { campTay, nhanBanTay, xemNhanBan, type ChoAp, type KieuNb } from '@/lib/actions/etp-tay';
 import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
+import { useDangLenTam } from '@/lib/etp-dang-len-tam';   // #1770: dấu "đang lên" ngay sau ▶ Lên
 import { NS_ROAS_CHIP, NS_ROAS_KHOANG, NS_TAY_CHIP, NS_TAY_KHOANG, ROAS_BA, ROAS_CAP, ROAS_MUC } from '@/lib/etp-nb';   // mức bid / ngân sách nhân bản ★ ROAS — cùng sổ với server (etp-tay.ts)
 import type { TrangPhim } from '@/lib/etp-doc';
 import { moXet, type DuLieuEtpGui } from '@/lib/etp-xet-gon';
@@ -2495,9 +2496,11 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
       `· giờ chạy: ${chuGio}`, '',
       x && !x.cta ? '⚠ cổng sẽ bỏ qua khi anh bấm: creative chưa đạt luật CTA mới (dựng trước 22/10 — nút "TAP LEARN MORE" + mũi tên)' : '✓ creative đã đạt luật CTA mới',
       x?.truoc ? `⚠ lần thử trước: ${x.truoc}` : ''].filter((l, i, a) => l || (i > 0 && a[i - 1])).join('\n').trim(); };
-  const ChoDuyetNgan = ({ c }: { c: CampEtpKho }) => { const x = c.xep, g = c.lich ? new Date(new Date(c.lich).getTime() + 7 * 3600_000) : null, ngay = !g || g.getTime() - 7 * 3600_000 <= Date.now() + 60_000;
-    return <span data-o="cho-duyet-ngan" title={chuChoDuyet(c)} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, fontSize: 10.5, lineHeight: 1.25, cursor: 'help' }}>
-      {x?.gui ? <span data-o="dang-len" style={{ color: 'var(--good, #17c964)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}><Den mau={MAU_DEN.cho} song t="đã gửi lệnh lên, chờ Ethopex tạo camp" />đang lên · {gioVn(x.gui)}</span>
+  const ChoDuyetNgan = ({ c }: { c: CampEtpKho }) => { const g = c.lich ? new Date(new Date(c.lich).getTime() + 7 * 3600_000) : null, ngay = !g || g.getTime() - 7 * 3600_000 <= Date.now() + 60_000;
+    // #1770 LẶP "đã gửi thì status này phải update ngay lập tức": ▶ Lên trả ok là dòng đổi "đang lên" liền (dấu tạm ở trình duyệt) — không chờ tải lại bộ số ~10 giây; bộ số dựng sau lúc gửi về thì số thật thắng
+    const tam = useDangLenTam(c.creative_id ?? -c.camp_id, du.luc), x = tam && c.xep && !c.xep.gui ? { ...c.xep, gui: tam, truoc: null } : c.xep;
+    return <span data-o="cho-duyet-ngan" title={chuChoDuyet({ ...c, xep: x })} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, fontSize: 10.5, lineHeight: 1.25, cursor: 'help' }}>
+      {x?.gui ? <span data-o="dang-len" data-tam={tam ? '1' : undefined} style={{ color: 'var(--good, #17c964)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}><Den mau={MAU_DEN.cho} song t="đã gửi lệnh lên, chờ Ethopex tạo camp" />đang lên · {gioVn(x.gui)}</span>
         : <span style={{ color: 'var(--warn, #f5a524)', fontWeight: 600 }}>chờ anh duyệt</span>}
       <span>{c.roas != null ? `★${c.roas}` : '$1'} · ${c.ngan_sach} · {ngay ? 'chạy ngay' : `${String(g!.getUTCHours()).padStart(2, '0')}:${String(g!.getUTCMinutes()).padStart(2, '0')} VN`}</span>
       {x && !x.cta ? <span style={{ color: 'var(--bad, #f31260)' }}>⚠ chưa đạt CTA</span> : x ? <span style={{ color: 'var(--good, #17c964)' }}>✓ CTA</span> : null}

@@ -4,6 +4,7 @@
 // ô VÀNG cảnh báo một lần, bấm lại là lên. Lỗi = ô ĐỎ ngay dưới nút. Camp đã đẩy lên Ethopex không sửa được giờ → camp mới đúng giờ, camp cũ tạm dừng.
 import { useEffect, useRef, useState } from 'react';
 import { bayGioVn } from '@/lib/etp-nb';
+import { danhDauDangLen } from '@/lib/etp-dang-len-tam';
 import { useRouter } from 'next/navigation';
 import { AnchoredPopover } from '@/components/ui';
 import { doiGioCamp, khongDuyetCr, lenNgayCr, xemTruocLen, type KqNut, type XemTruoc } from '@/lib/actions/etp-cho-duyet';
@@ -90,7 +91,7 @@ export function NutLenGio({ cr, camp, lich, nhan, anh, video }: { cr?: number | 
     try { r = khong ? await khongDuyetCr(Number(cr)) : doiGio ? await doiGioCamp(camp, g ?? '') : await lenNgayCr(Number(cr), g); }
     catch (e) { r = { loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` }; }
     setKq(r); setDang(null);
-    if (!khong && !doiGio && 'ok' in r) router.refresh();   // #1770 "đã gửi thì status này phải update ngay": ▶ Lên xong làm mới NGAY — dòng còn (camp chưa vào sổ) nên khung không mất, ô trạng thái thành "đang lên"
+    if (!khong && !doiGio && 'ok' in r) { danhDauDangLen(Number(cr), r.gui); router.refresh(); }   // #1770 LẶP: dòng đổi "đang lên" NGAY ở trình duyệt (lib/etp-dang-len-tam), không chờ tải lại ~7 MB × 2 — "đã gửi thì status này phải update ngay": ▶ Lên xong làm mới NGAY — dòng còn (camp chưa vào sổ) nên khung không mất, ô trạng thái thành "đang lên"
     else daGui.current = true;   // Không duyệt / đổi giờ: làm mới lúc ĐÓNG khung — làm mới ngay thì dòng biến mất, khung + kết quả mất theo
   };
   const daGui = useRef(false);

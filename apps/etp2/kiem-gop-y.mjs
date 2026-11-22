@@ -466,7 +466,10 @@ const LUAT = [
   { card: '1770', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', cam: 'openSync(`/tmp/etp-len-cr-', vi: 'không tự mở nhật ký lên camp mà bỏ dòng gửi' },
   { card: '1770', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'gui: nk.gui', vi: 'dòng chờ duyệt mang giờ đã gửi lên → bảng biết đang lên' },
   { card: '1770', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'data-o="dang-len"', vi: 'cột trạng thái hiện "đang lên" ngay khi đã gửi, không còn "chờ anh duyệt"' },
-  { card: '1770', tep: 'apps/etp2/src/components/etp-len-gio.tsx', co: "'ok' in r) router.refresh();", vi: 'gửi lên thành công thì làm mới bảng ngay, không chờ đóng khung' },
+  { card: '1770', tep: 'apps/etp2/src/components/etp-len-gio.tsx', co: "'ok' in r) { danhDauDangLen(Number(cr), r.gui); router.refresh(); }", vi: 'LẶP: gửi lên thành công thì đánh dấu "đang lên" NGAY ở trình duyệt rồi mới làm mới bảng (không chờ tải lại ~7 MB × 2)' },
+  { card: '1770', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'useDangLenTam(c.creative_id ?? -c.camp_id, du.luc)', vi: 'LẶP: ô trạng thái dòng chờ duyệt đọc dấu tạm, đổi "đang lên" liền sau ▶ Lên' },
+  { card: '1770', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: 'gui: docNhatKyLen(id).gui', vi: 'LẶP: lenNgayCr trả giờ máy chủ ghi dòng gửi cho trình duyệt' },
+  { card: '1770', tep: 'apps/etp2/src/lib/etp-dang-len-tam.ts', co: 'if (lucDu && Date.parse(lucDu) >= t) return null;', vi: 'LẶP: bộ số máy chủ dựng sau lúc gửi thì số thật thắng (hỏng nhanh về lại chờ duyệt)' },
 ];
 
 const loi = [];

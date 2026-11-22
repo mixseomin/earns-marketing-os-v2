@@ -1673,4 +1673,8 @@ export const LUAT = [
   { card: 'roas-nuoi-2211', tep: 'apps/cty/worker/ethopex.mjs', co: "['tang_roas', '↑ <b>RN — ★ ROAS NUÔI</b>", vi: 'worker có nhóm tin RN riêng (không gọi nhầm T30)' },
   { card: 'duyet-tay-2211', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'def bao_hay_chan(truc, kq, *cua):', vi: 'anh duyệt tay ở etp2 (vé trực tiếp): cổng creative chỉ cảnh báo, không chặn (anh 22/11/2026 "cấm từ chối vì bất kỳ lý do gì")' },
   { card: 'duyet-tay-2211', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'gio=gio, cu=cu, doi="--roas-doi" in a, truc=truc)', cam: 'if ly: raise ChanLuat(ly)\n            dem_dang_chay(cid)\n            if DEM_CR.get(int(moi["creative"]), 0) > 0 or q(f"select 1 from etp.camp where creative_id = {int(moi[\'creative\'])} limit 1") == "1":\n                raise ChanLuat', vi: 'roas_main nhận vé trực tiếp từ main' },
+  { card: 'qc-adsense-camp-2311', tep: 'apps/etp/dong-bo.py', co: '"supply_conversion_value", "page_views", "ad_requests"]', vi: 'phễu camp × ngày lấy thêm Page views + Ad requests AdSense trong cùng lượt report (etp.so_pheu luot_xem / xin_qc)' },
+  { card: 'qc-adsense-camp-2311', tep: 'apps/etp/dong-bo.py', co: '"luot_xem": int(v[2]), "xin_qc": int(v[3]), "qc_hien": int(v[4])', vi: 'phim × giờ ghi Page views / Ad requests / Impressions AdSense vào so_gio + so_gio_ngoai' },
+  { card: 'qc-adsense-camp-2311', tep: 'packages/db/migrations/0461_etp_qc_trang.sql', co: "gia_tri->'qc_trang'", vi: 'view chẩn đoán đọc ngưỡng từ sổ luật chung, không cứng trong mã' },
+  { card: 'qc-adsense-camp-2311', tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: '"qc_trang": {"yeu_kem": 0.2, "yeu_hien": 300, "fb_dat": 0.3', vi: 'ngưỡng trang yếu / FB đắt / trang hỏng nằm ở sổ luật' },
 ];

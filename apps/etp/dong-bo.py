@@ -285,14 +285,20 @@ def main():
     # ── PHỄU camp × ngày (đo điểm chạm creative, anh 28/10/2026) — bảng riêng etp.so_pheu, không đụng chi/thu ở trên; 3 ngày gần nhất ghi đè (số về trễ)
     try:
         tu_p = "2026-10-19" if day_du or q("select count(*) from etp.so_pheu") == "0" else (nay - dt.timedelta(days=3)).isoformat()
-        cot_p = ["impressions", "clicks", "conversions", "supply_impressions", "supply_clicks", "supply_conversions", "supply_conversion_value"]
+        # + page_views / ad_requests (anh 23/11/2026 "làm đi" — chẩn đoán trang phim vs Facebook, view etp.qc_camp_v): cùng lượt report, không thêm lượt gọi;
+        # cột mới chưa có số 14 ngày gần nhất → lấp ngược 14 ngày một lần
+        tu_14 = (nay - dt.timedelta(days=14)).isoformat()
+        if tu_p > tu_14 and q(f"select count(*) from etp.so_pheu where ngay >= '{tu_14}' and luot_xem is not null") == "0": tu_p = tu_14
+        cot_p = ["impressions", "clicks", "conversions", "supply_impressions", "supply_clicks", "supply_conversions", "supply_conversion_value", "page_views", "ad_requests"]
         gp = {}
         for x in bc(["campaign_name", "date"] + cot_p, ["campaign_name", "date"], tu_p, nay.isoformat()):
             if not x.get("campaign_id"): continue
             e = gp.setdefault((x["campaign_id"], str(x["report_date"])[:10]), [0.0] * len(cot_p))
             for i, c in enumerate(cot_p): e[i] += float(x.get(c) or 0)
-        kq["so_dong_pheu"] = ghi("so_pheu", [{"camp_id": c, "ngay": d, "hien": int(v[0]), "nhap": int(v[1]), "chuyen": int(v[2]), "s_hien": int(v[3]), "s_nhap": int(v[4]), "s_chuyen": int(v[5]), "s_gt": round(v[6], 4)}
-            for (c, d), v in gp.items()], ["camp_id", "ngay"], {"camp_id": "int", "ngay": "date", "hien": "int", "nhap": "int", "chuyen": "int", "s_hien": "int", "s_nhap": "int", "s_chuyen": "int", "s_gt": "numeric"})
+        kq["so_dong_pheu"] = ghi("so_pheu", [{"camp_id": c, "ngay": d, "hien": int(v[0]), "nhap": int(v[1]), "chuyen": int(v[2]), "s_hien": int(v[3]), "s_nhap": int(v[4]), "s_chuyen": int(v[5]), "s_gt": round(v[6], 4),
+                                                   "luot_xem": int(v[7]), "xin_qc": int(v[8])}
+            for (c, d), v in gp.items()], ["camp_id", "ngay"], {"camp_id": "int", "ngay": "date", "hien": "int", "nhap": "int", "chuyen": "int", "s_hien": "int", "s_nhap": "int", "s_chuyen": "int", "s_gt": "numeric",
+                                                              "luot_xem": "int", "xin_qc": "int"})
     except Exception as e: loi.append(f"so_pheu: {e}")
     # ── NƯỚC GIAO THẬT của camp, 7 ngày gần nhất (anh 29/10/2026 "các camp hãy thêm icon quốc gia target"): camp đều nhắm cùng 39 nước, nước GIAO mới cho biết
     # camp chạy ở đâu. Report gom campaign_name + geo (gom geo trần trả 1 dòng / nước cho mọi team, không tách được nhà) → etp.camp_nuoc, ghi đè cả bảng mỗi lượt
@@ -316,26 +322,29 @@ def main():
         q("""create table if not exists etp.cpm_gio (ngay date not null, gio smallint not null, nha boolean not null, chi numeric not null default 0, thu numeric not null default 0,
                hien_thi numeric not null default 0, bam numeric not null default 0, cap_nhat timestamptz not null default now(), primary key (ngay, gio, nha))""")
         du_gio = day_du or q("select count(*) from etp.so_gio_camp") == "0" or q("select count(*) from etp.cpm_gio") == "0"   # bảng giờ mới / trống → nạp lại từ 20/10 một lần
-        for d in ([(nay - dt.timedelta(days=i)).isoformat() for i in range((nay - dt.date(2026, 10, 20)).days, -1, -1)] if du_gio else [(nay - dt.timedelta(days=1)).isoformat(), nay.isoformat()]):
+        # + page_views / ad_requests / impressions AdSense theo phim × giờ (anh 23/11/2026): cột mới trống 14 ngày gần nhất → lấp ngược 14 ngày một lần
+        lui_gio = 14 if not du_gio and q(f"select count(*) from etp.so_gio where ngay >= '{(nay - dt.timedelta(days=14)).isoformat()}' and xin_qc > 0") == "0" else 1
+        for d in ([(nay - dt.timedelta(days=i)).isoformat() for i in range((nay - dt.date(2026, 10, 20)).days, -1, -1)] if du_gio else [(nay - dt.timedelta(days=i)).isoformat() for i in range(lui_gio, -1, -1)]):
             # tách nhà / ngoài theo tài khoản: report phim × giờ không mang tài khoản → nhóm thêm theo camp (dòng có external_account_id) rồi cộng lại theo phim × giờ
             gg = {True: {}, False: {}}; gc = {}; gm = {}
-            for x in bc(["content_name", "hour", "campaign_name", "cost", "revenue", "supply_impressions", "clicks"], ["content_name", "hour", "campaign_name"], d, d):
+            for x in bc(["content_name", "hour", "campaign_name", "cost", "revenue", "supply_impressions", "clicks", "page_views", "ad_requests", "impressions"], ["content_name", "hour", "campaign_name"], d, d):
                 if x.get("campaign_id"):
                     e = gm.setdefault((str(x.get("external_account_id") or "") in EA.EXT, int(x["hour"])), [0.0, 0.0, 0.0, 0.0])
                     e[0] += float(x.get("cost") or 0); e[1] += float(x.get("revenue") or 0); e[2] += float(x.get("supply_impressions") or 0); e[3] += float(x.get("clicks") or 0)
                 if x.get("campaign_id"):   # camp × giờ (biểu đồ diễn biến trong ngày trên ô ngày của Cây camp)
                     e = gc.setdefault((int(x["campaign_id"]), int(x["hour"])), [0.0, 0.0]); e[0] += float(x.get("cost") or 0); e[1] += float(x.get("revenue") or 0)
                 if x.get("content_group_id") is None: continue
-                e = gg[str(x.get("external_account_id") or "") in EA.EXT].setdefault((x["content_group_id"], int(x["hour"])), [0.0, 0.0]); e[0] += float(x.get("cost") or 0); e[1] += float(x.get("revenue") or 0)
-            q(f"update etp.so_gio set chi = 0, thu = 0, cap_nhat = now() where ngay = '{d}'")   # số cũ của ngày này có thể lẫn tài khoản ngoài → tính lại từ đầu
+                e = gg[str(x.get("external_account_id") or "") in EA.EXT].setdefault((x["content_group_id"], int(x["hour"])), [0.0] * 5)
+                for i, c in enumerate(("cost", "revenue", "page_views", "ad_requests", "impressions")): e[i] += float(x.get(c) or 0)
+            q(f"update etp.so_gio set chi = 0, thu = 0, luot_xem = 0, xin_qc = 0, qc_hien = 0, cap_nhat = now() where ngay = '{d}'")   # số cũ của ngày này có thể lẫn tài khoản ngoài → tính lại từ đầu
             q(f"update etp.so_gio_camp set chi = 0, thu = 0, cap_nhat = now() where ngay = '{d}'")
             ghi("so_gio_camp", [{"camp_id": c, "ngay": d, "gio": h, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, h), v in gc.items() if v[0] or v[1]],
                 ["camp_id", "ngay", "gio"], {"camp_id": "bigint", "ngay": "date", "gio": "smallint", "chi": "numeric", "thu": "numeric"})
             ghi("cpm_gio", [{"ngay": d, "gio": h, "nha": n_, "chi": round(v[0], 4), "thu": round(v[1], 4), "hien_thi": v[2], "bam": v[3]} for (n_, h), v in gm.items() if any(v)],
                 ["ngay", "gio", "nha"], {"ngay": "date", "gio": "smallint", "nha": "boolean", "chi": "numeric", "thu": "numeric", "hien_thi": "numeric", "bam": "numeric"})
             for nha, bang in ((True, "so_gio"), (False, "so_gio_ngoai")):
-                ghi(bang, [{"content_id": c, "ngay": d, "gio": h, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, h), v in gg[nha].items()],
-                    ["content_id", "ngay", "gio"], {"content_id": "int", "ngay": "date", "gio": "smallint", "chi": "numeric", "thu": "numeric"})
+                ghi(bang, [{"content_id": c, "ngay": d, "gio": h, "chi": round(v[0], 4), "thu": round(v[1], 4), "luot_xem": int(v[2]), "xin_qc": int(v[3]), "qc_hien": int(v[4])} for (c, h), v in gg[nha].items()],
+                    ["content_id", "ngay", "gio"], {"content_id": "int", "ngay": "date", "gio": "smallint", "chi": "numeric", "thu": "numeric", "luot_xem": "int", "xin_qc": "int", "qc_hien": "int"})
     except Exception as e: loi.append(f"so_gio: {e}")
     # ── CHỤP ĐÊM (anh 18/11/2026, bước 1 — chỉ ghi sổ, không cắt camp): khung 0h–7h59 VN ghi một dòng etp.dem_chup = ROI cộng dồn camp nhà máy đang THẤY (apps/etp/dem_chup.py)
     try:

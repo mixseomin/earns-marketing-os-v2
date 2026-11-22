@@ -1846,7 +1846,7 @@ function ve() {
       V.set(a.x, a.y + Math.abs(Math.sin(a.buoc)) * 0.04, a.z);
       if (a.lac) { Q.multiply(Q2.setFromAxisAngle(TRUC_X, a.lac)); V.y += 0.12 * Math.abs(Math.sin(a.lac)); }
       veBo[ip] = a;
-      if (NG.on) veNguoi(V, Q, a, ip, uot(a.c2, a));
+      if (NG.on) { if (NGT.ok) { const k = NGT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % NGT.ds.length], di = a.sp > 0.05 && !a.nga; const m = k.m[di ? Math.floor((((a.buoc / (Math.PI * 2)) % 1) + 1) % 1 * NGT.buoc) % NGT.buoc : NGT.buoc]; datMa(m, m.userData.n++, V, Q, MOT, uot(a.c2, a)); } else veNguoi(V, Q, a, ip, uot(a.c2, a)); }
       datMa(mBo, ip, V, Q, MOT, uot(a.c2, a)); datMa(mDau, ip, V, Q, MOT, uot(a.c3, a)); datMa(mNon, ip, V, Q, a.non ? MOT : KHONG, NON_MAU);
       ip++; continue;
     }
@@ -1858,6 +1858,7 @@ function ve() {
       if (ix >= MAX_XM) continue;
       Q2.setFromAxisAngle(TRUC_X, a.nghieng); Q.multiply(Q2);
       if (XMT.on) { const k = XMT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % XMT.ds.length]; datMa(k.t, k.n, V, Q, MOT, uot(a.c1, a)); datMa(k.f, k.n++, V, Q, MOT); }
+      if (NG.on && NGT.ok) { const m = NGT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % NGT.ds.length].m[NGT.buoc + 1]; datMa(m, m.userData.n++, V, Q, MOT, uot(a.c2, a)); }
       datMa(mXm, ix, V, Q, MOT, uot(a.c1, a)); datMa(mNguoi, ix, V, Q, MOT, uot(a.c2, a)); datMa(mMu, ix, V, Q, MOT, uot(a.c3, a));
       datMa(mCho, ix, V, Q, a.cho ? MOT : KHONG, a.c4); datMa(mHang, ix, V, Q, a.hang ? MOT : KHONG, a.c5);
       if (ben) datMa(XN.xm, nx.xm++, V, Q, SXN.set(1, 1, ben));
@@ -1865,6 +1866,7 @@ function ve() {
     } else if (a.loai === 'oto') { veOto[io] = a; datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, uot(a.c1, a)); if (OTT.on) { const k = a.taxi && OTT.taxi ? OTT.taxi : OTT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % OTT.ds.length]; datMa(k.t, k.n, V, Q, MOT, uot(a.c1, a)); datMa(k.f, k.n++, V, Q, MOT); } if (ben) datMa(XN.oto, nx.oto++, V, Q, SXN.set(1, 1, ben)); }
     else { veBus[ib] = a; datMa(mBus, ib++, V, Q, MOT, uot(a.c1, a)); if (ben) datMa(XN.bus, nx.bus++, V, Q, SXN.set(1, 1, ben)); }
   }
+  if (NG.on && NGT.ok) for (const k of NGT.ds) for (const m of k.m) { m.count = m.userData.n; m.userData.n = 0; m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; }
   if (NG.on) { for (const [m, c] of [[NG.than, ip], [NG.tay, ip * 2], [NG.chan, ip * 2]]) { m.count = c; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; } }
   if (OTT.on) for (const k of OTT.tat) { for (const m of [k.t, k.f]) { m.count = k.n; m.instanceMatrix.needsUpdate = true; } k.t.instanceColor.needsUpdate = true; k.n = 0; }
   if (XMT.on) for (const k of XMT.ds) { for (const m of [k.t, k.f]) { m.count = k.n; m.instanceMatrix.needsUpdate = true; } k.t.instanceColor.needsUpdate = true; k.n = 0; }
@@ -2438,10 +2440,46 @@ function veNguoi(V, Q, a, ip, mau) {
     NG_L.makeTranslation(0, 1.4, z * 2.6).multiply(NG_R.makeRotationAxis(NG_Z, -g * 0.8)); tay.setMatrixAt(ip * 2 + k, NG_L.premultiply(NG_M)); tay.setColorAt(ip * 2 + k, mau);
   }
 }
+// Người thật (bản thật, thay khối hộp khi tải xong): Quaternius Modular Men/Women (CC0), nướng sẵn 8 khung bước + đứng + ngồi xe máy
+// bằng apps/ngatu/scripts/nuong-nguoi.mjs → mohinh/nguoi.bin (~120 KB). Mỗi (mẫu, dáng) là một InstancedMesh; khung bước chọn theo a.buoc.
+// Màu áo nhuộm theo từng người qua thuộc tính nhuom (1 = áo), phần còn lại giữ màu gốc của mẫu.
+const NGT = { ok: false, ds: [], tai: null, buoc: 8 };
+function taiNguoi() {
+  if (NGT.tai) return NGT.tai;
+  NGT.tai = fetch('mohinh/nguoi.bin?v=1').then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); }).then((buf) => {
+    const nj = new DataView(buf).getUint32(0, true), h = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 4, nj)));
+    let o = (4 + nj + 3) & ~3; const lay = (T, n) => { const a = new T(buf, o, n); o = (o + a.byteLength + 3) & ~3; return a; };
+    const vl = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, envMapIntensity: 0.35 });
+    vl.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace('void main() {', 'attribute float nhuom;\nvoid main() {').replace('#include <color_vertex>', '#include <color_vertex>\n#ifdef USE_INSTANCING_COLOR\nvColor.rgb = color.rgb * mix(vec3(1.0), instanceColor, nhuom);\n#endif'); };
+    vl.customProgramCacheKey = () => 'nguoiThat';
+    NGT.buoc = h.buoc;
+    NGT.ds = h.mau.map((md) => {
+      const idx = new THREE.BufferAttribute(lay(Uint16Array, md.ni), 1), mu = lay(Uint8Array, md.nv * 4);
+      const col = new Float32Array(md.nv * 3), nh = new Float32Array(md.nv), c = new THREE.Color();
+      for (let i = 0; i < md.nv; i++) { c.setRGB(mu[i * 4] / 255, mu[i * 4 + 1] / 255, mu[i * 4 + 2] / 255, THREE.SRGBColorSpace); col.set([c.r, c.g, c.b], i * 3); nh[i] = mu[i * 4 + 3] / 255; }
+      const aCol = new THREE.BufferAttribute(col, 3), aNh = new THREE.BufferAttribute(nh, 1);
+      const m = [];
+      for (let d = 0; d < md.dang; d++) {
+        const q = lay(Int16Array, md.nv * 3), g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(Float32Array.from(q, (x) => x / 10000), 3)); g.setAttribute('color', aCol); g.setAttribute('nhuom', aNh); g.setIndex(idx); g.computeVertexNormals();
+        const mm = new THREE.InstancedMesh(g, vl, d === md.dang - 1 ? MAX_XM : 400);
+        mm.instanceMatrix.setUsage(THREE.DynamicDrawUsage); mm.count = 0; mm.frustumCulled = false; mm.castShadow = !DD; mm.visible = NG.on; mm.userData.n = 0; mm.setColorAt(0, c.set(1, 1, 1)); scene.add(mm); m.push(mm);
+      }
+      return { m };
+    });
+    NGT.ok = true; datNguoi(NG.on);
+  }).catch((e) => console.warn('người thật', e));
+  return NGT.tai;
+}
 function datNguoi(on) {
   if (on && !NG.than) dungNguoi();
+  if (on) taiNguoi();
   NG.on = on; mBo.visible = !on;
-  if (NG.than) for (const m of [NG.than, NG.tay, NG.chan]) m.visible = on;
+  const that = on && NGT.ok;
+  if (NG.than) for (const m of [NG.than, NG.tay, NG.chan]) m.visible = on && !that;
+  if (that) for (const m of [NG.than, NG.tay, NG.chan]) m.count = 0;
+  mDau.visible = !that; mNguoi.visible = !that;
+  for (const k of NGT.ds) for (const m of k.m) m.visible = that;
 }
 function datHinh(on) {
   THAT.on = on; datNguoi(on);

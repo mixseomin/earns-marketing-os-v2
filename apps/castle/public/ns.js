@@ -21,6 +21,7 @@ import { ganDanhGia } from './danhgia.js';
 import { taoCamUng, CHAM } from './camung.js';
 import { datAnhSang } from './anhsang.js';
 import { taoChieuAnh } from './chieuanh.js';
+import { trongDa, keMep } from './hinhhoc.js';
 import { datDuong } from './duong.js';
 import { datTrangTri, datCuaCong } from './trangtri.js';
 import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, caoTheoTia, diemTheoTia, thapTheoTia, tiLeDung, datChop, datChiTietDo, cuaDiDuoc, loTrung, cachMat, SAU_CUA, oCum, boTriDo, datMai, banDoMat, datMatRieng, xMatRieng } from './mattien.js';
@@ -131,7 +132,7 @@ const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 }), tinh = world.createRig
 // ---------- khối nhà
 const so = (v) => { const x = parseFloat(String(v ?? '').replace(',', '.')); return Number.isFinite(x) ? x : null; };
 const dienTich = (v) => { let a = 0; for (let i = 0; i < v.length; i++) { const [x1, z1] = v[i], [x2, z2] = v[(i + 1) % v.length]; a += x1 * z2 - x2 * z1; } return a / 2; };
-const trongDa = (x, z, v) => { let c = false; for (let i = 0, j = v.length - 1; i < v.length; j = i++) { const [xi, zi] = v[i], [xj, zj] = v[j]; if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) c = !c; } return c; };
+// trongDa / keMep: hinhhoc.js (khung bao — gọi hàng triệu lần khi dựng đường, sân)
 const tamDa = (v) => v.reduce((s, p) => [s[0] + p[0] / v.length, s[1] + p[1] / v.length], [0, 0]);
 const mauOSM = (s, md) => { if (!s) return md; try { return new THREE.Color(s.trim().toLowerCase() === 'tan' ? '#d2b48c' : s.trim()); } catch { return md; } };
 const MAU_MAI = new THREE.Color('#3a4150');
@@ -174,7 +175,7 @@ const NEN_LUOI = (() => {
   const sanV = D.khoi.find((k) => k.tags.building === 'courtyard')?.ngoai?.[0];
   // DẢI SÁT TƯỜNG quanh sân (anh 17/11/2026, ảnh mặt Palas hướng sân: mặt lát gợn sóng cao tới bậu cửa): đa giác sân OSM dừng cách chân tường vài mét, dải giữa
   // bám mặt đất ảnh 3D (lẫn chân tường → gồ lên 0,6–1,3 m). Trong sân, và ô cách đa giác sân ≤ 6 m VÀ cách tường một khối nhà ≤ 2,5 m: đúng mức sân (lệch > 3 m thì giữ).
-  const kcCanh = (x, z, v) => { let m = 1e9; for (let q = 0; q < v.length; q++) { const [ax, az] = v[q], [bx, bz] = v[(q + 1) % v.length], dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1))); m = Math.min(m, Math.hypot(x - ax - dx * t, z - az - dz * t)); } return m; };
+  const kcCanh = keMep;
   const nhaSan = sanV ? dsKhoi.filter((k) => k.tags.building !== 'courtyard' && kcCanh(...tamDa(k.v), sanV) < 40) : [];
   // gọi HAI lần: ở đây và CUỐI CÙNG (sau san nền dưới đường / dốc 12 % — các bước đó chỉ NÂNG theo tim lối đi bộ trong sân, kéo dải sát tường gồ lại)
   const sanPhangHoa = () => { if (sanV && Number.isFinite(NEN.san)) for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const x = x0 + i * B, z = z0 + j * B, trong = trongDa(x, z, sanV);
@@ -189,7 +190,6 @@ const NEN_LUOI = (() => {
   // SÂN LÁT KHÉP KÍN (OSM pedestrian khép kín, vd "Unterer Hof"): mặt sân là một MẶT PHẲNG nghiêng nhẹ — khớp mặt phẳng (bình phương nhỏ nhất, bỏ điểm lệch > 1,5 m,
   // chỉ lấy điểm đo cách mép sân ≥ 3 m) rồi đặt cả sân theo đó. Sát tường ảnh 3D lẫn mái / tường → đo ra gò 3–4 m ngay sau vòm cổng Torbau (anh 16/11/2026).
   // Sân trên (building=courtyard) đã phẳng theo NEN.san ở trên — bỏ qua.
-  const keMep = (x, z, v) => { let m = 1e9; for (let i = 0; i < v.length; i++) { const [ax, az] = v[i], [bx, bz] = v[(i + 1) % v.length], dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1))); m = Math.min(m, Math.hypot(x - ax - dx * t, z - az - dz * t)); } return m; };
   for (const d of DUONG?.duong || []) { if (!['pedestrian', 'footway'].includes(d.loai) || d.v.length < 4 || Math.hypot(d.v[0][0] - d.v.at(-1)[0], d.v[0][1] - d.v.at(-1)[1]) > 0.3) continue;
     const v = d.v.slice(0, -1), xs = v.map((p) => p[0]), zs = v.map((p) => p[1]); if (Math.max(...xs) < x0 || Math.min(...xs) > x1 || Math.max(...zs) < z0 || Math.min(...zs) > z1) continue;
     const trong = [], loi = [];

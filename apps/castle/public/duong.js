@@ -7,6 +7,7 @@
 // vungLat: vùng lát nhựa thêm (sân trước cổng ngoài, ns.js NEN_LUOI.sanCong)
 // tuongSan: nền sân xây cao hơn đất quanh nó [{ v: đa giác, mat: (x, z) → mặt sân }] (sân trên Neuschwanstein, góp ý #1633): mép nào đất ngoài tụt thì xây tường chắn
 //   đá thẳng đứng từ đất ngoài lên + lan can (ảnh 3D Google: vách trắng có lan can giữa sân trên và sân dưới — trước là lưới đất đo dốc tô màu đá tự nhiên), chừa lối ở đầu cầu thang
+import { trongDa, keMep } from './hinhhoc.js';
 export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao, vl, trongNha = null, vungLat = [], tuongSan = [] }) { // eslint-disable-line no-param-reassign
   const LAT = new Set(['footway', 'pedestrian', 'steps', 'service', 'residential', 'unclassified']); // đường lát / nhựa; còn lại (track, path) là đất
   const OTO = new Set(['service', 'residential', 'unclassified']); // đường ô tô: mặt nhựa (vl.oto) — đường lên cổng ngoài đời là nhựa xám sáng, không lát đá
@@ -46,8 +47,7 @@ export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao,
       // ≤ 1,5 m = ô lưới đất mịn; xa lâu đài (> 130 m) đất là lưới thô — không chia (tam giác điện thoại)
       if (Math.max(d2(A, Bq), d2(Bq, C), d2(C, A)) <= 2.25 || Math.hypot(A[0], A[1]) > 130) { nho.push(A, Bq, C); continue; } const m = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2], ab = m(A, Bq), bc = m(Bq, C), ca = m(C, A); tg.push([A, ab, ca], [ab, Bq, bc], [ca, bc, C], [ab, bc, ca]); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(nho.flatMap(([x, z]) => [x, 0, z]), 3)); return g; };
-  const keMep = (x, z, v) => { let m = 1e9; for (let i = 0; i < v.length; i++) { const [ax, az] = v[i], [bx, bz] = v[(i + 1) % v.length], dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1))); m = Math.min(m, Math.hypot(x - ax - dx * t, z - az - dz * t)); } return m; };
-  const trongDaV = (x, z, v) => { let c = false; for (let i = 0, j = v.length - 1; i < v.length; j = i++) { const [xi, zi] = v[i], [xj, zj] = v[j]; if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) c = !c; } return c; };
+  const trongDaV = trongDa; // hinhhoc.js
   const trongVung = (x, z) => vungLat.some(({ v }) => trongDaV(x, z, v) || keMep(x, z, v) < 0.6);
   const OTO_DS = ds.filter((d) => ['unclassified', 'service', 'residential'].includes(d.loai) && !d.cau && !d.ham), cat = (a, b, c, e) => { const f = (p, q, r) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]); return f(a, b, c) * f(a, b, e) < 0 && f(c, e, a) * f(c, e, b) < 0; },
     // tim đường xe CẮT QUA mép (không phải chỉ nằm gần: đường chạy dọc mép sân trong sân → cả mép mất lan can); nới mỗi phía nửa bề rộng đường

@@ -181,7 +181,9 @@ for (const [k, K] of Object.entries(KENH)) {
   // tập dài nào (tap/<may tắt>-dai-*.json tạo trong 7 ngày) và không có lượt làm tập đang chạy → giay/lam-dai.mjs tự chọn đề, dựng, nạp máy đăng; trần chi truyền --tran
   const LD = K.mau_dai?.lich;
   if (LD && thu === LD.thu && gioNay >= (LD.gio ?? '00:00') && !dangChay && !process.argv.includes('--ep')) {
-    const tien_to = K.mau_dai.tien_to ?? 'ynt-dai-', moi = readdirSync(join(DIR, 'tap')).filter((f) => f.startsWith(tien_to) && Date.now() - statSync(join(DIR, 'tap', f)).birthtimeMs < 7 * 86_400_000);
+    const tien_to = K.mau_dai.tien_to ?? 'ynt-dai-', moi = readdirSync(join(DIR, 'tap')).filter((f) => { const m = f.startsWith(tien_to) && f.slice(tien_to.length).match(/^(\d{4})(\d{2})(\d{2})\.json$/); return m && Date.now() - Date.parse(`${m[1]}-${m[2]}-${m[3]}T00:00:00+07:00`) < 7 * 86_400_000; });
+    // tuần đã có tập = NGÀY trong mã tập (<tien_to>YYYYMMDD, đúng mã máy đặt ở dưới), KHÔNG phải ngày tạo tệp: tệp mẫu tay ynt-dai-nga-1812.json bị git / phiên khác ghi lại
+    // là birthtime mới → mỗi thứ Sáu máy tưởng "tuần này đã có" rồi bỏ qua, kênh chỉ có đúng một tập dài (anh hỏi 22/11/2026)
     if (moi.length) bao.push(`tập dài tuần này đã có (${moi.join(', ')}) — bỏ qua`);
     else { const idD = `${tien_to}${hom.replace(/-/g, '')}`, logD = join(homedir(), '.cache', 'lich-su', `${idD}.log`); writeFileSync(khoa, String(process.pid)); danhDau(K.may, idD, { id: idD, luc: new Date().toISOString() });
       const fd = openSync(logD, 'a'), rD = spawnSync(process.execPath, [join(DIR, 'giay', 'lam-dai.mjs'), '--id', idD, '--kenh', k, '--tran', String(LD.tran_vnd)], { cwd: join(DIR, 'giay'), stdio: ['ignore', fd, fd], env: { ...process.env, DUYET_SINH_1_LAN: '1' }, timeout: 5 * 3600_000, killSignal: 'SIGKILL' });

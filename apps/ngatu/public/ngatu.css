@@ -12,7 +12,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #bcd3e6; fon
 .den { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.06); }
 .den i { width: 10px; height: 10px; border-radius: 50%; }
 .den.x i { background: #2bff5e; box-shadow: 0 0 8px #2bff5e; } .den.v i { background: #ffc21a; box-shadow: 0 0 8px #ffc21a; } .den.d i { background: #ff2a1f; box-shadow: 0 0 8px #ff2a1f; }
-.ben { top: 76px; right: 12px; width: 270px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 88px); }
+.ben { top: 76px; right: 12px; width: 270px; overflow-x: hidden; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 88px); }
 #so { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; color: var(--mo); }
 #so b { color: var(--chu); font-size: 15px; }
 label { display: flex; flex-direction: column; gap: 4px; color: var(--mo); }
@@ -23,7 +23,7 @@ label.chk { flex-direction: row; align-items: center; gap: 8px; color: var(--chu
 label select { font: inherit; color: var(--chu); background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; padding: 5px 6px; }
 label select option { background: #222; }
 .den.ai { font-weight: 700; color: #7fd4ff; }
-input[type=range] { width: 100%; accent-color: var(--nhan); }
+input[type=range] { width: 100%; margin: 0; accent-color: var(--nhan); }
 .nut { display: flex; flex-wrap: wrap; gap: 6px; }
 button { flex: 1 1 auto; font: inherit; font-size: 12px; color: var(--chu); background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 6px 8px; cursor: pointer; }
 button:hover { background: rgba(255,255,255,0.16); }
@@ -32,7 +32,7 @@ button.on { background: var(--nhan); color: #1a1a1a; border-color: var(--nhan); 
 .nut.cong span { flex: 1 0 100%; color: var(--mo); font-size: 12px; }
 .goiy { margin: 0; color: var(--mo); font-size: 12px; }
 #mo { display: none; flex: 0 0 auto; }
-#than { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; overflow: auto; }
+#than { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; }
 .nut.cam { flex-wrap: nowrap; }
 #soThem { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; color: var(--mo); }
 #soThem b { color: var(--chu); }
@@ -72,10 +72,11 @@ button:disabled { opacity: .6; cursor: progress; }
   .ben { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; gap: 8px; }
   .nut.cam { flex-wrap: nowrap; gap: 4px; }
   .nut.cam button, .nut.cong button { padding: 6px 4px; font-size: 11px; }
-  .nut.cong { flex-wrap: nowrap; gap: 4px; }
-  .nut.cong span { flex: 0 0 auto; font-size: 11px; }
+  .nut.cong { flex-wrap: wrap; gap: 4px; }
+  .nut.cong span { flex: 1 0 100%; font-size: 11px; }
+  .nut.cong button { flex: 1 1 0; min-width: 0; }
   #mo { display: block; padding: 6px 10px; font-size: 14px; }
-  #than { display: none; flex-direction: column; gap: 8px; max-height: 38vh; overflow: auto; }
+  #than { display: none; flex-direction: column; gap: 8px; max-height: 38vh; overflow-y: auto; overflow-x: hidden; }
   .ben.mo-ra #than { display: flex; }
   .ben.mo-ra #mo { background: var(--nhan); color: #1a1a1a; }
   #so { grid-template-columns: 1fr 1fr 1fr; font-size: 11px; }

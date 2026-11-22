@@ -2515,12 +2515,14 @@ function datHinh(on) {
   });
   if (on && !THAT.vanHop) { const vh = THAT.vl.get(mHop.userData.vlCu || mHop.material); if (vh) { vanThe(vh); THAT.vanHop = true; } }
   const vd = THAT.vl.get(mat0.userData.vlCu || mat0.material);
-  if (vd) { vd.map = on ? THAT.duong : null; vd.color = new THREE.Color(0.62, 0.62, 0.64); vd.roughness = 0.95; vd.envMapIntensity = 0.04; vd.needsUpdate = true; }
+  if (vd) { vd.map = on ? THAT.duong : null; vd.color = new THREE.Color(0.40, 0.40, 0.42); vd.roughness = 0.95; vd.envMapIntensity = 0.04; vd.needsUpdate = true; }
   scene.environment = on ? THAT.env : null;
   if (!THAT.nenCu) THAT.nenCu = scene.background; scene.background = on && THAT.troi ? THAT.troi : THAT.nenCu;
   renderer.toneMapping = on ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
   renderer.toneMappingExposure = on ? 0.7 : 1;
   troi.intensity = on ? 0.5 : 1.1; sun.intensity = on ? 2.6 : 1.9;
+  // bản thật: nắng gần trung tính + đất dội xám — nắng vàng 2,6 cộng đất dội nâu biến mặt nhựa gần thành kaki (22/11/2026)
+  sun.color.set(on ? '#fff8ee' : '#fff1dc'); troi.groundColor.set(on ? '#6e6c68' : '#8a7a66');
   if (on && !THAT.composer && !DD) {
     const c = new EffectComposer(renderer);
     c.addPass(new RenderPass(scene, camera));

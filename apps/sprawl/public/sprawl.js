@@ -232,6 +232,10 @@ datKieu(kieu);
 // ---------- đi bộ (castle dibo.js) ----------
 let toi = null, di = null, camUng = null, xe = null;
 try { await napNguoi3d('./chung/tai-san/nguoi.glb'); toi = taoNguoi3d(); toi.goc.visible = false; scene.add(toi.goc); } catch (e) { console.warn('[sprawl] không nạp được người 3D', e); }
+// các xe ĐỘNG có thể đâm người / đồ phố: xe người chơi + xác xe trên phố đang văng · nua = nửa hộp thân, oy = tâm hộp cao hơn gốc thân
+const NUA_XE = { x: 0.95, y: 0.9, z: 2.25 }, NUA_XAC = { x: 0.9, y: 0.72, z: 2.2 };
+function dsXe() { const ds = []; if (xe?.than && xe.than.translation().y > -300) ds.push({ than: xe.than, va: xe.than.collider(0), nua: NUA_XE, oy: 0 });
+  for (const x of xeDuong?.xac || []) ds.push({ than: x.than, va: x.va, nua: NUA_XAC, oy: 0.72 }); return ds; }
 const xeDuong = rs ? taoXeDuongVa({ RAPIER, world, gt: rs.song.gt }) : null; // 2f nhịp B: xe trên phố có thân thật quanh người chơi, đâm mạnh thì văng khỏi làn
 if (toi) {
   xe = taoXe({ RAPIER, world, scene, toi, layDi: () => di, datTai, bao: (c) => baoNho(c) }); // xe lái được (ô phố mẫu, bước 1)
@@ -519,7 +523,8 @@ renderer.setAnimationLoop(() => {
   { const t = performance.now(), yen = !di?.dang && !ghi && t - tDong > 2000;
     if (t - tVe < (yen ? 30 : 14)) return; tVe = t; }
   const dt = Math.min(0.05, dongHo.getDelta());
-  if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); xe?.buoc(1 / 60); xeDuong?.buoc(rs.goc.visible ? di.viTri() : null, 1 / 60); world.step(); tichLuy -= 1 / 60; } xe?.khung(); xeDuong?.khung(); di.khung(dt); }
+  if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); xe?.buoc(1 / 60); xeDuong?.buoc(rs.goc.visible ? di.viTri() : null, 1 / 60); if (rs?.goc.visible) rs.doVo.buoc(dsXe(), rs.monCua); world.step(); tichLuy -= 1 / 60; } xe?.khung(); xeDuong?.khung(); di.khung(dt);
+    if (rs?.goc.visible) { rs.nguoiGan.vaXe(dsXe()); rs.doVo.khung(dt, di.viTri()); } } // 2f nhịp C + D: xe đâm người ngã, đâm đồ phố / quầy hàng thì vỡ
   else { bayTien(dt); orbit.update(); }
   saKhung(dt);
   rs?.khung(dt, camera); n2?.khung(dt, camera);

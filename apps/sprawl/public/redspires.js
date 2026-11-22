@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { taoSong } from './song.js';
 import { TL, batTang } from './khop.js';
 import { taoNguoiGan } from './nguoi-gan.js';
+import { taoDoVo } from './do-vo.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const MAU_NGUOI = ['#2b2f36', '#4a3b33', '#c9b8a0', '#6d7f8c', '#8a3b2e', '#d8d2c4', '#3e5566', '#9b8a6a'];
@@ -739,7 +740,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
   // ---------- phố sống: sương thành lớp, xe bay, xe đường, tàu, cầu + vườn treo (song.js) ----------
   const song = taoSong({ goc, ql, dsThap, nuaNut, LONG });
   // người gần camera né xe + né nhau (recast crowd) — bước 2 ô phố mẫu
-  const nguoiGan = taoNguoiGan({ tuyen, LOP, LONG, nuaNut, nguoi: datNguoi, bo: boNguoi, geos: [G_QUAN, G_AO, G_DA, G_TOC], vatLieu: vNguoi(true), song, goc, bao,
+  const nguoiGan = taoNguoiGan({ RAPIER, world, tuyen, LOP, LONG, nuaNut, nguoi: datNguoi, bo: boNguoi, geos: [G_QUAN, G_AO, G_DA, G_TOC], vatLieu: vNguoi(true), song, goc, bao,
     vatTinh: [[datQuay, 1.6], [datDo[0].slice(0, 3000), 0.3], [datDo[1].slice(0, 3000), 0.9], [datDo[2].slice(0, 3000), 0.9], [datDo[3].slice(0, 3000), 1.0], [datDo[4].slice(0, 3000), 1.0], [datDo[5].slice(0, 3000), 0.4], [datNguoi.filter((_, i) => aDi.getX(i) < 0.01), 0.35]] });
 
   function datLai(datMuot) { // gắn mọi thứ xuống mặt đất mới dựng (gọi sau mỗi lần dungDat)
@@ -822,15 +823,55 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
   ];
   const KHOI_QUAY = [['h', 1.55, 0.5, 0.6, 0, 0.5, 0.55]]; // quầy sạp (mái cao, đi dưới mái được)
   let vaGan = [], vaTam = null, muotVa = null; const _qv = new THREE.Quaternion(), TRUC_Y = new THREE.Vector3(0, 1, 0);
-  function boVaGan() { for (const c of vaGan) world.removeCollider(c, false); vaGan = []; vaTam = null; }
-  function dungVaGan(x0, z0) { boVaGan(); vaTam = [x0, z0]; const muot = muotVa || datTai;
-    const dat = (p, khoi) => { if ((p.x - x0) ** 2 + (p.z - z0) ** 2 > VA_R * VA_R) return; const s = p.s || 1, y = muot(p.x, p.z) + 0.6, c = Math.cos(p.h), sn = Math.sin(p.h);
-      _qv.setFromAxisAngle(TRUC_Y, p.h);
-      for (const k of khoi) { const [lx, ly, lz] = k[0] === 'h' ? k.slice(4) : k.slice(3), wx = p.x + (lx * c + lz * sn) * s, wz = p.z + (-lx * sn + lz * c) * s;
-        const d = k[0] === 'h' ? RAPIER.ColliderDesc.cuboid(k[1] * s, k[2] * s, k[3] * s) : RAPIER.ColliderDesc.cylinder(k[1] * s, k[2] * s);
-        vaGan.push(world.createCollider(d.setTranslation(wx, y + ly * s, wz).setRotation(_qv), tinh)); } };
-    for (const p of datQuay) dat(p, KHOI_QUAY);
-    for (const [k, ds] of datDo.entries()) for (const p of ds.slice(0, 3000)) dat(p, KHOI[k]); }
+  const vaMon = new Map(), monVa = new Map(); // `${k}:${i}` → khối va của món · handle khối va → [k, i] (k = 'q' quầy, 0..5 đồ phố) — để đồ vỡ biết xe vừa đâm món nào
+  function boVaGan() { for (const c of vaGan) world.removeCollider(c, false); vaGan = []; vaTam = null; vaMon.clear(); monVa.clear(); }
+  function datMon(k, i) { const [x0, z0] = vaTam, p = k === 'q' ? datQuay[i] : datDo[k][i], khoi = k === 'q' ? KHOI_QUAY : KHOI[k];
+    if ((p.x - x0) ** 2 + (p.z - z0) ** 2 > VA_R * VA_R || doVo?.vo(k, i)) return; const muot = muotVa || datTai, s = p.s || 1, y = muot(p.x, p.z) + 0.6, c = Math.cos(p.h), sn = Math.sin(p.h), ds = [];
+    _qv.setFromAxisAngle(TRUC_Y, p.h);
+    for (const kh of khoi) { const [lx, ly, lz] = kh[0] === 'h' ? kh.slice(4) : kh.slice(3), wx = p.x + (lx * c + lz * sn) * s, wz = p.z + (-lx * sn + lz * c) * s;
+      const d = kh[0] === 'h' ? RAPIER.ColliderDesc.cuboid(kh[1] * s, kh[2] * s, kh[3] * s) : RAPIER.ColliderDesc.cylinder(kh[1] * s, kh[2] * s);
+      const va = world.createCollider(d.setTranslation(wx, y + ly * s, wz).setRotation(_qv), tinh); vaGan.push(va); ds.push(va); monVa.set(va.handle, [k, i]); }
+    vaMon.set(`${k}:${i}`, ds); }
+  function boMon(k, i) { const ds = vaMon.get(`${k}:${i}`); if (!ds) return; vaMon.delete(`${k}:${i}`);
+    for (const va of ds) { monVa.delete(va.handle); world.removeCollider(va, false); } vaGan = vaGan.filter((va) => !ds.includes(va)); }
+  function dungVaGan(x0, z0) { boVaGan(); vaTam = [x0, z0];
+    for (let i = 0; i < datQuay.length; i++) datMon('q', i);
+    for (const [k, ds] of datDo.entries()) for (let i = 0; i < Math.min(3000, ds.length); i++) datMon(k, i); }
+  // ---- đồ vỡ khi bị xe đâm (do-vo.js): mỗi món tách thành các mảnh khớp đúng lưới G_* ở trên; ngưỡng tốc độ xe (m/s) + phần đà xe mất theo độ nặng ----
+  const manh = (o, ds, va, kg, mau) => ({ o, geo: gop(ds).translate(-o[0], -o[1], -o[2]), va, kg, mau });
+  const mauMai = (i) => { const a = boQuay.mau[1]; return a ? _c.setRGB(a[i * 3], a[i * 3 + 1], a[i * 3 + 2]).getHex() : null; };
+  const maiManh = { o: [0, 2.7, 0.08], geo: G_MAI.clone().translate(0, -2.7, -0.08), va: ['h', 1.7, 0.04, 1.36, -0.22], kg: 8, mau: mauMai };
+  const LOAI_VO = {
+    q: { bo: boQuay, ds: datQuay, nguong: 3, giam: 0.25, manh: [ // quầy sạp: thân quầy, 4 cột, mái bạt, bảng hiệu, 4 khay, 2 bao + thùng tròn; trái cây + đèn lồng thành hạt
+      manh([0, 0.5, 0.55], [hop(3, 0.95, 1.1, 0, 0.475, 0.55, '#7a5a3e'), hop(3.06, 0.07, 1.2, 0, 0.98, 0.55, '#9b7a55'), hop(3, 0.12, 1.1, 0, 0.06, 0.55, '#3a2e26')], ['h', 1.4, 0.5, 0.5], 60),
+      ...[[-1.45, 1.1], [1.45, 1.1], [-1.45, -1.0], [1.45, -1.0]].map(([x, z]) => { const L = z > 0 ? 2.5 : 2.85, y = z > 0 ? 1.25 : 1.42; return manh([x, y, z], [tru(0.05, 0.05, L, x, y, z, '#4a3b30')], ['t', L / 2 - 0.12, 0.06], 4); }),
+      maiManh,
+      manh([0.6, 2.35, 1.2], [hop(1.2, 0.5, 0.06, 0.6, 2.25, 1.2, '#efe6cf'), hop(0.06, 0.6, 0.06, 0.6, 2.55, 1.2, '#4a3b30')], ['h', 0.6, 0.3, 0.04], 3),
+      ...[-1.05, -0.35, 0.35, 1.05].map((x) => manh([x, 1.12, 0.62], [hop(0.6, 0.22, 0.5, x, 1.12, 0.62, '#8a6a46')], ['h', 0.3, 0.11, 0.25], 5)),
+      manh([-1.0, 0.27, -0.55], [hop(0.5, 0.55, 0.45, -1.0, 0.27, -0.55, '#b89a6a')], ['h', 0.25, 0.27, 0.22], 10),
+      manh([-0.45, 0.2, -0.6], [hop(0.45, 0.4, 0.45, -0.45, 0.2, -0.6, '#9b7a55')], ['h', 0.22, 0.2, 0.22], 8),
+      manh([1.0, 0.27, -0.55], [tru(0.22, 0.26, 0.55, 1.0, 0.27, -0.55, '#d8cdb0', 8)], ['t', 0.27, 0.24], 15)],
+      hat: [...[-1.05, -0.35, 0.35, 1.05].flatMap((x, k) => [0, 1, 2].map((j) => ({ o: [x - 0.16 + j * 0.16, 1.27, 0.55 + (j % 2) * 0.12], mau: HANG[(k * 3 + j) % HANG.length], r: 0.1 }))),
+        { o: [-0.9, 2.05, 1.05], mau: '#d93b2b', r: 0.16 }, { o: [0.9, 2.05, 1.05], mau: '#e8b04a', r: 0.16 }] },
+    0: { bo: boDo[0], ds: datDo[0], nguong: 6, giam: 0.35, do: true, manh: [{ o: [0, 3, 0], geo: G_DEN.clone().translate(0, -3, 0), va: ['t', 3, 0.14], kg: 150 }] }, // cột đèn: cả cột đổ theo hướng xe
+    1: { bo: boDo[1], ds: datDo[1], nguong: 2.5, giam: 0.1, manh: [ // ghế: mặt, lưng, hai chân rời ra
+      manh([0, 0.45, 0], [hop(1.8, 0.07, 0.45, 0, 0.45, 0, '#8a6a46')], ['h', 0.9, 0.035, 0.22], 8),
+      manh([0, 0.72, -0.22], [hop(1.8, 0.4, 0.06, 0, 0.72, -0.22, '#8a6a46')], ['h', 0.9, 0.2, 0.03], 6),
+      ...[-0.75, 0.75].map((x) => manh([x, 0.2, 0], [hop(0.07, 0.45, 0.42, x, 0.22, 0, '#2f3338')], ['h', 0.035, 0.2, 0.21], 4))] },
+    3: { bo: boDo[3], ds: datDo[3], nguong: 1.5, giam: 0.05, manh: [ // thùng hàng: 3 thùng + thùng phuy văng ra
+      manh([0, 0.3, 0], [hop(0.8, 0.6, 0.6, 0, 0.3, 0, '#9b7a55')], ['h', 0.4, 0.3, 0.3], 12),
+      manh([0.15, 0.86, 0.05], [hop(0.7, 0.5, 0.55, 0.15, 0.85, 0.05, '#b89a6a')], ['h', 0.35, 0.24, 0.27], 8),
+      manh([0.9, 0.22, 0.1], [hop(0.6, 0.45, 0.5, 0.9, 0.22, 0.1, '#7a5a3e')], ['h', 0.3, 0.22, 0.25], 8),
+      manh([-0.9, 0.45, 0.1], [tru(0.3, 0.3, 0.9, -0.9, 0.45, 0.1, '#5d6d78', 10)], ['t', 0.45, 0.3], 25)] },
+    4: { bo: boDo[4], ds: datDo[4], nguong: 2, giam: 0.12, manh: [ // xe đẩy: thùng xe, ô che, hai bánh lăn đi
+      manh([0, 0.78, 0], [hop(1.5, 0.5, 0.9, 0, 0.75, 0, '#c9483a'), hop(1.5, 0.06, 0.9, 0, 1.02, 0, '#d9d2c2'), hop(0.06, 0.06, 0.9, 0.9, 1.05, 0, '#3a3a3a')], ['h', 0.75, 0.26, 0.45], 30),
+      manh([-0.7, 2.1, -0.4], [tru(0.03, 0.03, 1.7, -0.7, 1.85, -0.4, '#3a3a3a'), mauG(new THREE.ConeGeometry(1.2, 0.5, 10).translate(-0.7, 2.75, -0.4), '#e0a83c')], ['t', 0.85, 0.3], 4),
+      ...[-0.55, 0.55].map((x) => manh([x, 0.32, 0.56], [mauG(new THREE.CylinderGeometry(0.32, 0.32, 0.08, 10).rotateX(Math.PI / 2).translate(x, 0.32, 0.5), '#2a2a2a')], ['t', 0.04, 0.3, 'x'], 3))] },
+  };
+  const doVo = taoDoVo({ RAPIER, world, goc, loai: LOAI_VO, layDat: (x, z) => (muotVa || datTai)(x, z),
+    an: (k, i, bat) => { const b = LOAI_VO[k].bo; if (!b.an) b.an = new Uint8Array(b.n); b.an[i] = bat ? 1 : 0; },
+    hien: () => { canLoc = true; }, boVa: boMon, datVa: (k, i) => { if (vaTam) datMon(k, i); }, hoang: (x, z) => nguoiGan.tan(x, z) });
+  const monCua = (va) => monVa.get(va.handle);
   function khung(dt, cam) {
     if (!goc.visible) { if (vaTam) boVaGan(); return; }
     if (cam && (!vaTam || Math.hypot(cam.position.x - vaTam[0], cam.position.z - vaTam[1]) > VA_DOI)) dungVaGan(cam.position.x, cam.position.z);
@@ -840,5 +881,5 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
     if (cam && nguoiGan.khung(dt, cam)) canLoc = true;
   }
 
-  return { goc, vatPho, khoacDat, duong: goc.children.filter((o) => o.isMesh && o.material.customProgramCacheKey?.().startsWith('duong-')), datLai, hien, khoet, khung, loc, ql, song, nguoiGan, sang: (v) => { uSang.uSang.value = v; }, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), get vaGan() { return vaGan.length; }, get vaCau() { return vaCau.length; }, ...song.tk } };
+  return { goc, vatPho, khoacDat, duong: goc.children.filter((o) => o.isMesh && o.material.customProgramCacheKey?.().startsWith('duong-')), datLai, hien, khoet, khung, loc, ql, song, nguoiGan, doVo, monCua, sang: (v) => { uSang.uSang.value = v; }, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), get vaGan() { return vaGan.length; }, get vaCau() { return vaCau.length; }, ...song.tk } };
 }

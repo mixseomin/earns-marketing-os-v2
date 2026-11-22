@@ -5,13 +5,17 @@
 // chờ đèn đỏ cho xe + khoảng trống, và xe dừng trước người đang ở trên lòng đường (đẩy vào song.vatCan).
 // Lưới đi được dựng từ CHÍNH dữ liệu vẽ đường (tuyen, LONG, nuaNut) → khớp đúng vỉa hè / vạch ngựa vằn trên màn.
 // Xa hơn R_THA người trở lại shader (rẻ). Không nạp được thư viện → kêu to + giữ người shader.
+// 2f nhịp C: bị xe (xe người chơi, xác xe văng) đâm → rời crowd, thành viên nhộng Rapier 70 kg văng theo đà xe, lăn, nằm 4–8 s rồi đứng dậy (1 s) và đi tiếp.
+// Hình người instanced không có khớp nên không dùng ragdoll nhiều khúc (rapierjs-ragdoll / advanced-ragdoll đã tra, ROADMAP 2f): cả thân xoay theo viên nhộng.
+// Đâm / đồ vỡ gần → người quanh đó chạy tán ra (tan).
 import * as THREE from 'three';
 
 const O = 0.5, NUA = 150, N = (NUA * 2) / O; // ô lưới 0,5 m · lưới 300 × 300 m quanh tâm C
 const R_NHAN = 65, R_THA = 80, MAX = 280, DOI_TAM = 60;
+const MAX_NGA = 24, NAM_MIN = 4, NAM_MAX = 8, NGA_TOI_DA = 40, R_TAN = 14;
 const B_DUONG = 1, B_LONG = 2, B_VACH = 4, B_CAN = 8;
 
-export function taoNguoiGan({ tuyen, LOP, LONG, nuaNut, vatTinh, nguoi, bo, geos, vatLieu, song, goc, bao }) {
+export function taoNguoiGan({ RAPIER, world, tuyen, LOP, LONG, nuaNut, vatTinh, nguoi, bo, geos, vatLieu, song, goc, bao }) {
   let core = null, gen = null, loi = null;
   const nap = Promise.all([import('@recast-navigation/core'), import('@recast-navigation/generators')])
     .then(async ([c, g]) => { await c.init(); core = c; gen = g; })
@@ -89,7 +93,7 @@ export function taoNguoiGan({ tuyen, LOP, LONG, nuaNut, vatTinh, nguoi, bo, geos
     for (const [k, m] of lop.entries()) { const a = bo.mau[k]; if (a) m.setColorAt(ta.length, _c.setRGB(a[i * 3], a[i * 3 + 1], a[i * 3 + 2])); }
     ta.push(t); an[i] = 1; doi = true; return true;
   }
-  function tha(k) { const t = ta[k]; crowd.removeAgent(t.ag); an[t.i] = 0; doi = true;
+  function tha(k) { const t = ta[k]; if (t.ag) crowd.removeAgent(t.ag); if (t.nga?.than) world.removeRigidBody(t.nga.than); an[t.i] = 0; doi = true;
     const cuoi = ta.pop(); if (k < ta.length) { ta[k] = cuoi; for (const m of lop) if (m.instanceColor) for (let j = 0; j < 3; j++) m.instanceColor.array[k * 3 + j] = m.instanceColor.array[ta.length * 3 + j]; } }
   function thaHet() { while (ta.length) tha(ta.length - 1); if (agChoi) { crowd.removeAgent(agChoi); agChoi = null; } for (const m of lop) m.count = 0; }
 
@@ -99,9 +103,10 @@ export function taoNguoiGan({ tuyen, LOP, LONG, nuaNut, vatTinh, nguoi, bo, geos
     try { kq = gen.generateSoloNavMesh(P, I, { cs: 0.4, ch: 0.2, walkableSlopeAngle: 45, walkableHeight: 9, walkableClimb: 2, walkableRadius: 1, maxEdgeLen: 30, maxSimplificationError: 1.3, minRegionArea: 8, mergeRegionArea: 20, maxVertsPerPoly: 6, detailSampleDist: 6, detailSampleMaxError: 1 }); }
     catch (e) { kq = { success: false, error: e }; }
     if (!kq.success) { console.error('[sprawl] dựng lưới đi bộ hỏng:', kq.error); bao?.('Người đi bộ né xe: dựng lưới đi bộ hỏng — xem console'); return false; }
-    const cu = ta.map((t) => ({ ...t, p: t.ag.position(), vt: t.ag.velocity() }));
+    const nga = ta.filter((t) => t.nga), cu = ta.filter((t) => !t.nga).map((t) => ({ ...t, p: t.ag.position(), vt: t.ag.velocity() }));
     if (crowd) { crowd.destroy(); navMesh.destroy(); }
     ta.length = 0; agChoi = null; navMesh = kq.navMesh; crowd = new core.Crowd(navMesh, { maxAgents: MAX + 4, maxAgentRadius: 0.6 }); q = crowd.navMeshQuery;
+    for (const t of nga) ta.push(t); // người đang ngã không có tác tử: giữ nguyên, đứng dậy thì vào crowd mới
     for (const t of cu) { const p = ganLuoi(t.p.x, t.p.z); an[t.i] = 0; if (!p) { doi = true; continue; }
       t.ag = crowd.addAgent(p, thamSo(t.v)); if (!t.ag) { doi = true; continue; } an[t.i] = 1; if (t.dich) t.ag.requestMoveTarget(t.dich); t.cho = -1; ta.push(t); }
     for (const [k, m] of lop.entries()) { const a = bo.mau[k]; if (a) ta.forEach((t, j) => m.setColorAt(j, _c.setRGB(a[t.i * 3], a[t.i * 3 + 1], a[t.i * 3 + 2]))); }
@@ -117,6 +122,43 @@ export function taoNguoiGan({ tuyen, LOP, LONG, nuaNut, vatTinh, nguoi, bo, geos
       const toi = (mx - o.x) * o.dx + (mz - o.z) * o.dz; if (toi > -3 && toi < o.v * 3.5 + 6) return false; });
   }
 
+  const viTri = (t) => t.nga ? (t.nga.than ? t.nga.than.translation() : t.nga.p1) : t.ag.position();
+  const _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _v2 = new THREE.Vector3(), CHAN = new THREE.Vector3(0, -0.85, 0), TRUC_Y = new THREE.Vector3(0, 1, 0);
+  function nga(t, v) { // tác tử → viên nhộng động, văng theo đà xe
+    let dangNga = ta.filter((o) => o.nga); if (dangNga.length >= MAX_NGA) { const cu = dangNga.sort((a, b) => b.nga.t - a.nga.t)[0]; dungDay(cu, true); }
+    const p = t.ag.position(), y = (muot ? muot(p.x, p.z) : 0) + 0.6 + 0.9, sp = Math.hypot(v.x, v.z), k = 1 + Math.random() * 0.3;
+    crowd.removeAgent(t.ag); t.ag = null; t.cho = -1;
+    const than = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(p.x, y, p.z).setRotation(_qa.setFromAxisAngle(TRUC_Y, t.h)).setCcdEnabled(true).setLinearDamping(0.3).setAngularDamping(0.8)
+      .setLinvel(v.x * k, 2 + sp * 0.25, v.z * k).setAngvel({ x: (Math.random() - 0.5) * 8, y: (Math.random() - 0.5) * 4, z: (Math.random() - 0.5) * 8 }));
+    world.createCollider(RAPIER.ColliderDesc.capsule(0.55, 0.28).setMass(70).setFriction(0.9).setRestitution(0.05), than);
+    t.nga = { than, t: 0, nam: 0, can: NAM_MIN + Math.random() * (NAM_MAX - NAM_MIN), dung: -1 }; doi = true; tan(p.x, p.z); }
+  function dungDay(t, ngay) { // bắt đầu đứng dậy: bỏ thân vật lý, nội suy 1 s từ tư thế nằm về đứng thẳng ở điểm gần nhất trên lưới
+    const n = t.nga, p = n.than.translation(), r = n.than.rotation(), g = ganLuoi(p.x, p.z) || q.findClosestPoint({ x: p.x, y: 0, z: p.z }, { halfExtents: { x: 8, y: 4, z: 8 } }).point;
+    _qa.set(r.x, r.y, r.z, r.w); n.q0 = _qa.clone(); n.p0 = _v2.copy(CHAN).applyQuaternion(_qa).add(p).clone(); n.p1 = { x: g.x, y: 0, z: g.z };
+    world.removeRigidBody(n.than); n.than = null; n.dung = ngay ? 1 : 0; }
+  function dayXong(t) { const n = t.nga; t.nga = null; const ag = crowd.addAgent(n.p1, thamSo(t.v)); if (!ag) return false; t.ag = ag; dichMoi(t, n.p1); return true; }
+  // xe đâm: dsXe = [{ than, nua: {x,y,z}, oy }] — người trong hộp thân xe (nới 0,3 m) khi xe chạy > 2,5 m/s về phía họ
+  function vaXe(dsXe) { if (!bat || !crowd) return;
+    for (const x of dsXe) { const v = x.than.linvel(), sp = Math.hypot(v.x, v.z); if (sp < 2.5) continue; const c = x.than.translation(), r = x.than.rotation(); _qa.set(r.x, r.y, r.z, r.w).invert();
+      for (const t of ta) { if (t.nga) continue; const p = t.ag.position(), py = (muot ? muot(p.x, p.z) : 0) + 1.5;
+        if ((p.x - c.x) * v.x + (p.z - c.z) * v.z <= 0 || Math.hypot(p.x - c.x, p.z - c.z) > 6) continue;
+        _v2.set(p.x - c.x, py - c.y - x.oy, p.z - c.z).applyQuaternion(_qa);
+        if (Math.abs(_v2.x) < x.nua.x + 0.3 && Math.abs(_v2.z) < x.nua.z + 0.3 && Math.abs(_v2.y) < x.nua.y + 1) nga(t, v); } } }
+  // người quanh (x, z) chạy tán ra xa R_TAN m, nhanh gấp đôi, 4 s
+  function tan(x, z) { if (!crowd) return;
+    for (const t of ta) { if (t.nga) continue; const p = t.ag.position(), dx = p.x - x, dz = p.z - z, d = Math.hypot(dx, dz); if (d > R_TAN) continue;
+      const ux = d > 0.1 ? dx / d : Math.random() - 0.5, uz = d > 0.1 ? dz / d : Math.random() - 0.5, l = Math.hypot(ux, uz) || 1;
+      const r = q.findClosestPoint({ x: p.x + ux / l * R_TAN, y: 0, z: p.z + uz / l * R_TAN }, { halfExtents: { x: 6, y: 4, z: 6 } }); if (!r.success) continue;
+      t.cho = -1; t.dich = r.point; t.ag.requestMoveTarget(r.point); t.ag.updateParameters({ maxSpeed: 3.2, maxAcceleration: 8 }); t.chay = 4; } }
+  function khungNga(dt) { for (const t of ta) { const n = t.nga;
+      if (!n) { if (t.chay > 0 && (t.chay -= dt) <= 0) t.ag.updateParameters({ maxSpeed: t.v, maxAcceleration: 4 }); continue; }
+      n.t += dt;
+      if (n.than) { const vl = n.than.linvel(), p = n.than.translation();
+        if (p.y < (muot ? muot(p.x, p.z) : 0) - 6) n.than.setTranslation({ x: p.x, y: (muot ? muot(p.x, p.z) : 0) + 1.6, z: p.z }, true); // lọt qua đất: đặt lại lên mặt đất
+        n.nam = Math.hypot(vl.x, vl.y, vl.z) < 0.4 ? n.nam + dt : 0;
+        if (n.nam > n.can || n.t > NGA_TOI_DA) dungDay(t, false); }
+      else if ((n.dung += dt) >= 1) dayXong(t); } }
+
   function khung(dt, cam) {
     if (loi || !core) return false; doi = false;
     const y0 = muot ? muot(cam.position.x, cam.position.z) : 0, canBat = goc.visible && cam.position.y - y0 < 80;
@@ -128,7 +170,7 @@ export function taoNguoiGan({ tuyen, LOP, LONG, nuaNut, vatTinh, nguoi, bo, geos
     const kx = cam.position.x, kz = cam.position.z;
     // nhận / thả 10 lần mỗi giây
     tNhan += dt; if (tNhan > 0.1) { tNhan = 0;
-      for (let k = ta.length - 1; k >= 0; k--) { const t = ta[k], d = nguoi[t.i], p = t.ag.position();
+      for (let k = ta.length - 1; k >= 0; k--) { const t = ta[k], d = nguoi[t.i], p = viTri(t);
         if (Math.hypot(d.x - kx, d.z - kz) > R_THA && Math.hypot(p.x - kx, p.z - kz) > R_THA) tha(k); }
       if (ta.length < MAX) { const ung = [];
         for (const i of dsDi) { if (an[i]) continue; const d = nguoi[i], k2 = (d.x - kx) ** 2 + (d.z - kz) ** 2; if (k2 < R_NHAN * R_NHAN && Math.abs(d.x - cx) < NUA - 20 && Math.abs(d.z - cz) < NUA - 20) ung.push([k2, i]); }
@@ -138,27 +180,35 @@ export function taoNguoiGan({ tuyen, LOP, LONG, nuaNut, vatTinh, nguoi, bo, geos
       else if (agChoi) { crowd.removeAgent(agChoi); agChoi = null; }
       // qua đường: sắp bước từ vỉa hè xuống vạch → chờ tới khi an toàn
       demCho = 0;
-      for (const t of ta) { const p = t.ag.position(), vl = t.ag.velocity(), sp = Math.hypot(vl.x, vl.z);
+      for (const t of ta) { if (t.nga) continue; const p = t.ag.position(), vl = t.ag.velocity(), sp = Math.hypot(vl.x, vl.z);
         if (t.cho >= 0) { demCho++; if (anToan(t.cho, t.v)) { t.cho = -1; t.ag.requestMoveTarget(t.dich); } continue; }
         if (sp > 0.2) { const lx = p.x + vl.x / sp * 0.9, lz = p.z + vl.z / sp * 0.9, bL = bitTai(lx, lz), bP = bitTai(p.x, p.z);
           if ((bL & B_VACH) && !(bP & (B_VACH | B_LONG))) { const id = vid[oCua(lx, lz)]; if (id >= 0 && !anToan(id, t.v)) { t.cho = id; t.ag.requestMoveVelocity({ x: 0, y: 0, z: 0 }); continue; } } }
         if (t.dich && (Math.hypot(p.x - t.dich.x, p.z - t.dich.z) < 1.5 || (sp < 0.05 && (t.tKet += 0.1) > 3))) dichMoi(t, p); else if (sp >= 0.05) t.tKet = 0; } }
     if (agChoi && choi) agChoi.teleport({ x: choi.x, y: 0, z: choi.z });
     crowd.update(1 / 30, Math.min(dt, 0.1), 3);
+    khungNga(Math.min(dt, 0.1));
+    for (let k = ta.length - 1; k >= 0; k--) if (ta[k].nga === null && !ta[k].ag) tha(k); // đứng dậy mà crowd đầy: trả về shader
     // vẽ
-    for (const [k, t] of ta.entries()) { const p = t.ag.interpolatedPosition, vl = t.ag.velocity(), sp = Math.hypot(vl.x, vl.z);
+    for (const [k, t] of ta.entries()) { const d = nguoi[t.i], n = t.nga;
+      if (n) { _s.setScalar(d.s); aDi.setXY(k, 0, t.ph);
+        if (n.than) { const p = n.than.translation(), r = n.than.rotation(); _q.set(r.x, r.y, r.z, r.w); _v.copy(CHAN).applyQuaternion(_q).add(p); } // chân = đáy viên nhộng
+        else { const a = Math.min(1, n.dung), e = a * a * (3 - 2 * a); _q.slerpQuaternions(n.q0, _qb.setFromAxisAngle(TRUC_Y, t.h), e);
+          _v.set(n.p1.x, (muot ? muot(n.p1.x, n.p1.z) : 0) + 0.6, n.p1.z).sub(n.p0).multiplyScalar(e).add(n.p0); }
+        lop[0].setMatrixAt(k, _m.compose(_v, _q, _s)); continue; }
+      const p = t.ag.interpolatedPosition, vl = t.ag.velocity(), sp = Math.hypot(vl.x, vl.z);
       if (sp > 0.1) { let dh = Math.atan2(vl.x, vl.z) - t.h; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); t.h += dh * Math.min(1, dt * 8); }
       t.ph += sp * 5.2 * dt; aDi.setXY(k, sp > 0.1 ? sp : 0, t.ph);
-      const d = nguoi[t.i]; _v.set(p.x, (muot ? muot(p.x, p.z) : 0) + 0.6, p.z); _q.setFromEuler(_e.set(0, t.h, 0)); _s.setScalar(d.s); lop[0].setMatrixAt(k, _m.compose(_v, _q, _s)); }
+      _v.set(p.x, (muot ? muot(p.x, p.z) : 0) + 0.6, p.z); _q.setFromEuler(_e.set(0, t.h, 0)); _s.setScalar(d.s); lop[0].setMatrixAt(k, _m.compose(_v, _q, _s)); }
     for (const m of lop) { m.count = ta.length; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
     lop[0].instanceMatrix.needsUpdate = true; aDi.needsUpdate = true;
     const d = doi; doi = false; return d;
   }
   // người đang ở trên lòng đường (đang qua) → xe dừng trước họ
-  function dayVatCan(vc) { if (!bat) return; for (const t of ta) { const p = t.ag.position(); if (bitTai(p.x, p.z) & B_LONG) vc.push({ x: p.x, z: p.z, r: 0.4 }); } }
-  return { khung, dayVatCan, datMuot: (m) => { muot = m; }, datChoi: (p) => { choi = p; }, nap,
+  function dayVatCan(vc) { if (!bat) return; for (const t of ta) { const p = viTri(t); if (bitTai(p.x, p.z) & B_LONG) vc.push({ x: p.x, z: p.z, r: t.nga ? 1 : 0.4 }); } } // người nằm trên đường: xe trên làn dừng lại
+  return { khung, dayVatCan, vaXe, tan, get nga() { return ta.filter((t) => t.nga).length; }, datMuot: (m) => { muot = m; }, datChoi: (p) => { choi = p; }, nap,
     tk: () => ({ tacTu: ta.length, cho: demCho, dungMs: Math.round(dungMs), bat, loi: loi ? String(loi.message || loi) : null, vach: vach.length }),
     // cho bài thử: vị trí người gần + xe
     _vach: () => vach.map((c) => ({ x: c.nx + c.ux * (c.h + 3.2), z: c.nz + c.uz * (c.h + 3.2), lg: c.lg })),
-    _ds: () => ta.map((t) => { const p = t.ag.position(); return { x: p.x, z: p.z, b: bitTai(p.x, p.z), cho: t.cho }; }) };
+    _ds: () => ta.map((t) => { const p = viTri(t); return { x: p.x, z: p.z, b: bitTai(p.x, p.z), cho: t.cho, nga: !!t.nga }; }) };
 }

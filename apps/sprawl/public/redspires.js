@@ -623,7 +623,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
   }
 
   // trongLong: điểm có nằm trong lòng đường nhựa của một đường xe nào không (kể cả đường CẮT NGANG ở nút giao) — người, sạp, đồ phố không được đặt ở đó
-  const luoiXe = luoiTuyen(ql), trongLong = (x, z, du = 0.6) => luoiXe.xa(x, z, 24, ['lon']).d + D.lon < LONG.lon + du || luoiXe.xa(x, z, 24, ['vua']).d + D.vua < LONG.vua + du;
+  const luoiXe = luoiTuyen(ql), trongLong = (x, z, du = 0.6) => luoiXe.xa(x, z, 24, ['lon']).d + D.lon < LONG.lon + du || luoiXe.xa(x, z, 24, ['vua']).d + D.vua < LONG.vua + du || luoiXe.xa(x, z, 24, ['tau']).d < du; // cả đường tàu: không bày sạp / người đứng trên ray (góp ý #1771)
   // rải dọc đại lộ: hai mép có cột đèn + bồn cây xen kẽ, quầy chợ kèm người bán; giữa lối là người đi; ghế, thùng, xe đẩy lác đác
   for (const d of diem) {
     const huong = Math.atan2(d.ux, d.uz), mep = d.w / 2;

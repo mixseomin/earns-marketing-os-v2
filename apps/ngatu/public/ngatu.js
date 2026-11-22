@@ -2454,7 +2454,7 @@ function veNguoi(V, Q, a, ip, mau) {
 const NGT = { ok: false, ds: [], tai: null, buoc: 8 };
 function taiNguoi() {
   if (NGT.tai) return NGT.tai;
-  NGT.tai = fetch('mohinh/nguoi.bin?v=1').then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); }).then((buf) => {
+  NGT.tai = fetch('mohinh/nguoi.bin?v=2').then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); }).then((buf) => {
     const nj = new DataView(buf).getUint32(0, true), h = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 4, nj)));
     let o = (4 + nj + 3) & ~3; const lay = (T, n) => { const a = new T(buf, o, n); o = (o + a.byteLength + 3) & ~3; return a; };
     const vl = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, envMapIntensity: 0.35 });

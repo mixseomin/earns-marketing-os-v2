@@ -331,6 +331,7 @@ const AO = ['#f2f2f2', '#2a2f3a', '#c0392b', '#2f5d8a', '#e1b12c', '#7f8c8d', '#
 const MU = ['#f5f5f5', '#d7263d', '#1b1b1b', '#f9c80e', '#2e86ab', '#e94e77', '#ffffff', '#3c3c3c', '#ff8c42'];
 const SON_OTO = ['#f4f4f4', '#f4f4f4', '#1d1d1f', '#9aa0a6', '#c0c4c8', '#7b0f12', '#1f3b73', '#00a650', '#ffffff', '#2b2b2e'];
 const XANH_GRAB = '#00a650';
+const SON_BUS = ['#14934a', '#14934a', '#14934a', '#e8611a']; // xe buýt Sài Gòn xanh lá, Hà Nội cam
 const SON_TAXI = ['#f4f4f4', '#f4f4f4', '#0b8a3e', '#0b8a3e', '#f2c200'];
 const HANG = ['#a0764a', '#3f7fbf', '#c9b48a', '#d9d9d9'];
 let idDem = 0;
@@ -1864,7 +1865,7 @@ function ve() {
       if (ben) datMa(XN.xm, nx.xm++, V, Q, SXN.set(1, 1, ben));
       veXm[ix] = a; ix++;
     } else if (a.loai === 'oto') { veOto[io] = a; datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, uot(a.c1, a)); if (OTT.on) { const k = a.taxi && OTT.taxi ? OTT.taxi : OTT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % OTT.ds.length]; datMa(k.t, k.n, V, Q, MOT, uot(a.c1, a)); datMa(k.f, k.n++, V, Q, MOT); } if (ben) datMa(XN.oto, nx.oto++, V, Q, SXN.set(1, 1, ben)); }
-    else { veBus[ib] = a; datMa(mBus, ib++, V, Q, MOT, uot(a.c1, a)); if (ben) datMa(XN.bus, nx.bus++, V, Q, SXN.set(1, 1, ben)); }
+    else { veBus[ib] = a; datMa(mBus, ib++, V, Q, MOT, uot(a.c1, a)); if (OTT.on && OTT.bus) { const k = OTT.bus; datMa(k.t, k.n, V, Q, MOT, uot(a.cb ??= new THREE.Color(chon(SON_BUS)), a)); datMa(k.f, k.n++, V, Q, MOT); } if (ben) datMa(XN.bus, nx.bus++, V, Q, SXN.set(1, 1, ben)); }
   }
   if (NG.on && NGT.ok) for (const k of NGT.ds) for (const m of k.m) { m.count = m.userData.n; m.userData.n = 0; m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; }
   if (NG.on) { for (const [m, c] of [[NG.than, ip], [NG.tay, ip * 2], [NG.chan, ip * 2]]) { m.count = c; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; } }
@@ -2308,7 +2309,7 @@ function taiXm() {
 // Màu nằm trong ảnh bảng màu (colormap) → lấy mẫu ảnh theo UV ra màu đỉnh; mảng màu chiếm nhiều đỉnh nhất của "body" là sơn xe → nhuộm theo a.c1.
 const OTT = { on: false, ds: [], tai: null, taxi: null };
 const OTO_MAU = ['sedan', 'sedan', 'suv', 'van', 'hatchback-sports', 'delivery', 'truck', 'suv-luxury', 'sedan'];
-function geoOtoGlb(goc) {
+function geoOtoGlb(goc, dai = 4.4, sonMoiManh = false) {
   goc.updateMatrixWorld(true);
   const T = [], F = [], cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true });
   let anh = null, W = 0, H = 0;
@@ -2326,7 +2327,7 @@ function geoOtoGlb(goc) {
     }
     for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k);
     let son = null;
-    if (/body/i.test(o.name)) { let m = 0; for (const [k, c] of dem) { const [r, gg, b] = k.split(',').map(Number); if (r + gg + b > 12 && c > m) { m = c; son = k; } } }
+    if (sonMoiManh || /body/i.test(o.name)) { let m = 0; for (const [k, c] of dem) { const [r, gg, b] = k.split(',').map(Number); if (r + gg + b > 12 && c > m) { m = c; son = k; } } }
     // tách tam giác: sơn xe → T (trắng, nhuộm), còn lại → F (giữ màu ảnh)
     const ps = g.attributes.position.array, nt = [], nf = [], ct = [], cf = [];
     for (let i = 0; i < n; i += 3) {
@@ -2344,7 +2345,7 @@ function geoOtoGlb(goc) {
   const sz = bb.getSize(new THREE.Vector3()), tam = bb.getCenter(new THREE.Vector3());
   const M = new THREE.Matrix4().makeTranslation(-tam.x, -bb.min.y, -tam.z);
   if (sz.z > sz.x) M.premultiply(new THREE.Matrix4().makeRotationY(Math.PI / 2));
-  const k = 4.4 / Math.max(sz.x, sz.z); M.premultiply(new THREE.Matrix4().makeScale(k, k, k));
+  const k = dai / Math.max(sz.x, sz.z); M.premultiply(new THREE.Matrix4().makeScale(k, k, k));
   for (const g of [gt, gf]) if (g.attributes.position) { g.applyMatrix4(M); g.computeVertexNormals(); }
   return [gt, gf];
 }
@@ -2360,13 +2361,20 @@ function taiOto() {
     return { ten: t, t: t1, f, n: 0 };
   }).catch((e) => { console.warn('ô tô thật', t, e); return null; }))).then((ds) => {
     const ok = ds.filter(Boolean); OTT.taxi = ok.find((k) => k.ten === 'taxi') || null;
-    OTT.ds = OTO_MAU.map((t) => ok.find((k) => k.ten === t)).filter(Boolean); OTT.tat = ok; datOto(THAT.on);
+    OTT.ds = OTO_MAU.map((t) => ok.find((k) => k.ten === t)).filter(Boolean); OTT.tat = ok;
+    // xe buýt thành phố (Poly by Google, CC BY): một lưới có vân, sơn = màu sáng chiếm nhiều nhất → nhuộm xanh Sài Gòn / cam Hà Nội
+    return ld.loadAsync('mohinh/xe-buyt.glb?v=1').then((g) => {
+      const [gt, gf] = geoOtoGlb(g.scene, 10.5, true);
+      const t1 = new THREE.InstancedMesh(gt, vl, 16), f = new THREE.InstancedMesh(gf, vl, 16);
+      for (const m of [t1, f]) { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.visible = false; m.castShadow = !DD; scene.add(m); }
+      t1.setColorAt(0, new THREE.Color()); OTT.bus = { ten: 'xe-buyt', t: t1, f, n: 0 }; OTT.tat.push(OTT.bus);
+    }).catch((e) => console.warn('xe buýt thật', e)).then(() => datOto(THAT.on));
   });
   return OTT.tai;
 }
 function datOto(on) {
   OTT.on = on && OTT.ds.length > 0;
-  mOto.visible = mMui.visible = !OTT.on;
+  mOto.visible = mMui.visible = !OTT.on; mBus.visible = !(OTT.on && OTT.bus);
   for (const k of OTT.tat || []) k.t.visible = k.f.visible = OTT.on;
 }
 function datXm(on) {
@@ -2523,7 +2531,7 @@ function datHinh(on) {
   }
   if (THAT.composer) THAT.composer.setSize(innerWidth, innerHeight);
   renderer.shadowMap.needsUpdate = true;
-  const b = $('hinh'); if (b) { b.classList.toggle('on', on); b.title = on ? 'Đang xem BẢN THẬT — bấm để về bản hiện tại' : 'Xem BẢN THẬT (vật liệu PBR, ánh sáng môi trường, che bóng góc, xe máy thật) để so với bản hiện tại. Mô hình xe: poly.pizza, CC BY'; }
+  const b = $('hinh'); if (b) { b.classList.toggle('on', on); b.title = on ? 'Đang xem BẢN THẬT — bấm để về bản hiện tại' : 'Xem BẢN THẬT (vật liệu PBR, ánh sáng môi trường, che bóng góc, xe máy thật) để so với bản hiện tại. Mô hình: xe máy + xe buýt poly.pizza (CC BY, xe buýt của Poly by Google), ô tô Kenney (CC0), người Quaternius (CC0)'; }
   const u = new URL(location.href); if (on) u.searchParams.set('hinh', 'that'); else u.searchParams.delete('hinh'); history.replaceState(null, '', u);
 }
 $('hinh')?.addEventListener('click', () => datHinh(!THAT.on));

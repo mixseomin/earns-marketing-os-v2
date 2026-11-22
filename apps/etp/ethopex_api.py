@@ -225,7 +225,7 @@ class ChanCua(NgoaiNha, ValueError): pass
 # CAMP TẠO TRƯỚC 20/11/2026 DỪNG TRIỆT ĐỂ (anh 23/11/2026 "các thứ từ trước 20/11 phải dừng triệt để"): máy không ghi gì vào camp cũ nữa — không bật lại, không tăng /
 # giảm, không đổi creative (máy luật bỏ camp cũ khỏi danh sách nên cũng không nhân bản camp cũ thắng). Camp MỚI tạo từ khuôn cũ vẫn lên. Chỉ còn TẠM DỪNG (dừng thêm thì luôn được) và lệnh TRỰC TIẾP của anh (vé truc_tiep). Một cửa ở đây:
 # mọi script (luat-ethopex, thay-tu-choi, sua-cta, soat_doan, lich-gio, nhan-ban…) đi qua api(). Người đọc (máy luật, hàng chờ) lọc thêm bằng camp_cu() để khỏi báo / thử.
-MOC_CU = f"{CG.LUAT_CU_MOC} 00:00+07"   # một mốc: sổ luật luat_cu.moc (etp-bang-luat.json) — cùng mốc "luật cũ dừng" của cong.py
+MOC_CU, MOC_CU_CHU = f"{CG.LUAT_CU_MOC} 00:00+07", f"{CG.LUAT_CU_MOC[8:10]}/{CG.LUAT_CU_MOC[5:7]}"   # một mốc: sổ luật luat_cu.moc (etp-bang-luat.json) — cùng mốc "luật cũ dừng" của cong.py
 _CU = None
 def camp_cu(ids=None):
     """camp nhà tạo trước MOC_CU (etp.camp.tao) — ids=None: cả bộ; có ids: phần giao. Lỗi đọc → coi mọi id hỏi tới là cũ (chặn cho an toàn)."""
@@ -310,7 +310,7 @@ def cua(duong, body):
         v = l["viec"]
         cu = camp_cu([l["camp_id"]]) if v != "tat" and l.get("camp_id") else set()   # chỉ camp BỊ GHI; tạo camp mới từ khuôn cũ (▶ Lên etp2, nhan-ban <khuôn>) không chạm camp cũ → vẫn đi
         if cu and not CG.truc_tiep(v, sorted(cu), l.get("content_id")):   # camp trước 20/11: chỉ tạm dừng / lệnh trực tiếp của anh (anh 23/11/2026)
-            ly = f"camp #{', #'.join(map(str, sorted(cu)))} tạo trước 20/11 — dừng triệt để, máy không {v} (anh 23/11/2026)"
+            ly = f"camp #{', #'.join(map(str, sorted(cu)))} tạo trước {MOC_CU_CHU} — dừng triệt để, máy không {v} (anh 23/11/2026)"
             _ghi_cua(l, False, ly); raise ChanCua(f"cửa API chặn {v}: {ly}")
         if v not in CG.TANG: ra.append((l, None)); continue
         ids = [x for x in (l.get("camp_id"), l.get("goc")) if x]
@@ -387,7 +387,7 @@ def api(duong, body=None, timeout=90):
         _ad = sorted({int(a.get("ad_id")) for a in (body.get("ads") or []) if isinstance(a, dict) and str(a.get("ad_id") or "").isdigit()}) if isinstance(body, dict) else []
         _dung = _id_cham(duong, body if not isinstance(body, list) else {"x": body}) | ({int(x) for x in _q(f"select camp_id from etp.camp where ad_id in ({','.join(map(str, _ad))})").split() if x.isdigit()} if _ad else set())
         _con = camp_cu(_dung) - {int(l["camp_id"]) for l, _ in lenh if l.get("camp_id")}
-        if _con: raise ChanCua(f"cửa API chặn {duong}: camp #{', #'.join(map(str, sorted(_con)[:5]))} tạo trước 20/11 — dừng triệt để, máy không ghi gì vào camp cũ (anh 23/11/2026)")
+        if _con: raise ChanCua(f"cửa API chặn {duong}: camp #{', #'.join(map(str, sorted(_con)[:5]))} tạo trước {MOC_CU_CHU} — dừng triệt để, máy không ghi gì vào camp cũ (anh 23/11/2026)")
     if body is not None and isinstance(body, dict) and body.get("ads") and not duong.endswith("/campaigns/facebook"):
         # CHỈ ĐỔI CREATIVE CHO AD ĐANG BỊ META TỪ CHỐI (anh 03/11/2026: "Đổi creative khác cho ad bị meta từ chối. Cấm tự ý đổi creative.") — sau khi
         # thay-tu-choi đổi luôn 10 camp chưa bị từ chối (cùng creative) trong đó 4 camp ACTIVE. Mọi đường (thay-tu-choi, sua-cta, soat_doan) đi qua đây:

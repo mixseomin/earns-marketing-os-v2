@@ -17,6 +17,8 @@ const kq = await pg.evaluate((TEN) => {
   for (const d of bo.dieMVom || []) them('diềm vòm', d.ten, (d.tu + d.den) / 2, d.tu, d.den, d.y0, d.y1);
   for (const c of bo.cuaDi || []) them('cửa đi', c.ten, (c.o[0] + c.o[1]) / 2, c.o[0], c.o[1], c.vien[2], c.dinhO);
   if (bo.loGia) them('lô-gia', bo.loGia.ten, (bo.loGia.hop[0] + bo.loGia.hop[1]) / 2, bo.loGia.hop[0], bo.loGia.hop[1], bo.loGia.maiTren, bo.loGia.conXon[1]);
+  for (const v of bo.vomMu || []) them('vòm mù', v.ten, (v.x0 + v.x1) / 2, v.x0, v.x1, v.dinh, Math.max(v.dayTrai, v.dayPhai));
+  for (const t of bo.cauThang || []) them('cầu thang', t.ten, (t.chan[0] + t.chieuNghi[1]) / 2, t.chan[0], t.chieuNghi[1], t.dinh[1], t.chan[1]);
   if (bo.dongHo) them('đồng hồ', bo.dongHo.ten, bo.dongHo.x, bo.dongHo.x - bo.dongHo.r, bo.dongHo.x + bo.dongHo.r, bo.dongHo.y - bo.dongHo.r, bo.dongHo.y + bo.dongHo.r);
   // toạ độ KHUNG (u trái → phải nhìn từ ngoài, v chân → mái hiên — cùng cách scripts/kiem-ke.mjs) của từng chi tiết đã ghi sổ trên các mặt bị khoá
   const kk = window.__ns.kiemKe().filter((e) => M.khoa.includes(e.mat) && e.x != null).map((e) => { const f = window.__ns.matTuong(e.mat), [nx, nz] = f.n, rx = nz, rz = -nx;

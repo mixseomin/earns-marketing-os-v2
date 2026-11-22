@@ -1,0 +1,37 @@
+{
+ "ghi_chu": "BỐ CỤC MẶT NGOÀI WINTERGARTEN (way/223179003, cạnh #0 hướng bắc-tây bắc) — BƯỚC 4 roadmap 23/11/2026. Số đo ĐIỂM ẢNH trên ẢNH ĐÃ NẮN (nan-25193660816-wintergarten.jpg): ảnh gốc Commons 25193660816 (1280 × 853) được nắn phối cảnh bằng scripts tạm b4/nan*.py — tìm hai điểm tụ bằng đoạn thẳng LSD của OpenCV (đứng: 73 đoạn → (636, −164); ngang theo gờ / bậu mặt này: 106 đoạn → (2506, 1249), hai hướng vuông góc khi tiêu cự 702 px) rồi đưa cả hai ra vô cực. Trên ảnh nắn mặt tường là ảnh AFFIN của mặt thật: x ∝ s, y ∝ độ cao, cột đứng thẳng, gờ nằm ngang — nên ánh xạ một chiều x → s của banDoMat đúng cả trên lẫn dưới (ảnh gốc ngước 50°, đo thẳng trên ảnh gốc lệch 1–1,5 m theo độ cao). Kiểm: python3 apps/castle/scripts/kiem-mat-tien.py <tệp này> --luoi x0,y0,x1,y1 ra.png",
+ "anh": {
+  "tep": "public/du-lieu/anh/web/nan-25193660816-wintergarten.jpg",
+  "rong": 1368,
+  "cao": 1044,
+  "nguon": "https://commons.wikimedia.org/wiki/File:Neuschwanstein_Castle_(25193660816).jpg",
+  "tacGia": "Ștefan Jurcă",
+  "giayPhep": "CC BY 2.0",
+  "ghi_chu": "ảnh phái sinh (nắn phối cảnh) của ảnh gốc cùng giấy phép; không có camera vì ảnh đã nắn"
+ },
+ "mat": {
+  "ghi_chu": "s = 0 ở ống máng (góc trong giáp bay way/223179004, x 910), tăng sang TRÁI. Đầu kia s 8,95 (way/223179003 đỉnh 1) không thấy cạnh rõ trên ảnh: tầng dưới tường chạy liền sang trái tới ~530 rồi lùi vào, hộp kính trên mái thì dừng ở ~640 — lấy x 623 theo camera do-anh của chính ảnh này (chiếu góc s 9 ở độ cao 20 / 40 / 57,2 m đều rơi x 623–624 trên ảnh nắn). Mốc thứ ba way/223069513 đỉnh 1 (s 13,81, cùng mặt phẳng theo OSM) SUY TUYẾN TÍNH trên ảnh đã nắn (x ∝ s) — chỉ để banDoMat đủ ba mốc, không phần tử nào đặt ngoài s 0–8,95.",
+  "khung": "way/223179003#0",
+  "vGo": 0.514,
+  "ly_do_vGo": "gờ đá chạy ngang dưới hàng cặp cửa vòm (y 718 trên ảnh nắn). Tỉ lệ đứng: bề ngang 8,95 m ↔ 287 px = 32,1 px/m, đổi qua tỉ lệ hai trục của phép nắn (đo mét bằng tiêu cự 702 px: 475 / 262 px mỗi đơn vị) → 17,7 px/m đứng; mái hiên hộp kính y 398 ↔ đỉnh khung 57,2 m → gờ 57,2 − 320 / 17,7 = 39,1 m → v = (39,1 − 19,8) / 37,4 = 0,514. Camera do-anh cho ~18,5 px/m (lệch 5 %)",
+  "ngang": [[910, "way/223179003", 0, "ống máng — góc trong giáp bay way/223179004"], [623, "way/223179003", 1, "góc tây hộp kính / tường (theo camera do-anh, xem ghi_chu)"], [471, "way/223069513", 1, "suy tuyến tính trên ảnh đã nắn: x = 910 − 13,81 × 31,8 px/m"]],
+  "go": [[500, 718], [1000, 718]],
+  "ly_do_go": "đỉnh gờ đá ngang dưới hàng cặp cửa vòm, nằm ngang trên ảnh nắn (lưới 620–930 / 380–920)",
+  "maiHien": [[500, 398], [1000, 398]],
+  "ly_do_maiHien": "mép trên tấm mái phẳng của hộp kính Wintergarten, nằm ngang trên ảnh nắn"
+ },
+ "cum": [
+  {"ten": "hộp kính Wintergarten — 6 ô kính", "o": [[678, 710], [715, 746], [751, 781], [786, 817], [822, 851], [856, 892]], "dinhO": 463, "bau": 515},
+  {"ten": "cặp cửa vòm dưới hộp kính", "o": [[760, 779], [787, 809]], "dinhO": 578, "bau": 602, "vom": [752, 820, 560]},
+  {"ten": "cặp cửa vòm hàng 1 — giữa", "o": [[716, 734], [742, 765]], "dinhO": 675, "bau": 700, "vom": [707, 780, 652]},
+  {"ten": "cặp cửa vòm hàng 1 — phải", "o": [[830, 848], [855, 879]], "dinhO": 675, "bau": 700, "vom": [822, 892, 652]},
+  {"ten": "cặp cửa hàng 2 — giữa", "o": [[717, 737], [746, 768]], "dinhO": 752, "bau": 787},
+  {"ten": "cặp cửa hàng 2 — phải", "o": [[843, 864], [872, 891]], "dinhO": 752, "bau": 787},
+  {"ten": "cửa đơn hàng 3 — giữa", "o": [[735, 754]], "dinhO": 818, "bau": 849},
+  {"ten": "cửa đơn hàng 3 — phải", "o": [[862, 880]], "dinhO": 818, "bau": 849}
+ ],
+ "be": [
+  {"ten": "gờ đá dưới hộp kính", "tu": 640, "den": 905, "tren": 516, "duoi": 528, "nho": 0.2},
+  {"ten": "gờ đá chia tầng trên hàng 1", "tu": 625, "den": 905, "tren": 598, "duoi": 606, "nho": 0.15}
+ ]
+}

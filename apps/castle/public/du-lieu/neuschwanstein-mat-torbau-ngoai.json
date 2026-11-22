@@ -1,0 +1,36 @@
+{
+ "ghi_chu": "BỐ CỤC MẶT TORBAU NGOÀI — mặt ĐÔNG cổng chính (23/11/2026). Số đo ĐIỂM ẢNH THÔ trên ảnh gốc 1280 × 1280 chụp gần thẳng từ quảng trường trước cổng, đọc bằng lưới: python3 apps/castle/scripts/kiem-mat-tien.py <tệp này> --luoi x0,y0,x1,y1 ra.png. Ảnh ngẩng lên nên cạnh đứng chụm vào nhau ở trên: mốc ngang đo ở tầm y ≈ 650 (vùng cửa sổ), chi tiết đặt trong dải y 500–1190; phần đỉnh (răng cưa, chòi góc, đầu hồi bậc) KHÔNG đặt từ tệp này — đã có: thap_canh cua-so.json way/223110823#3/#4, hoi_bac mái way/951894999, huy hiệu trangtri.js, vòm cổng VOM_CONG. Sửa mặt tiền = sửa tệp này; soát cả tệp: … --ve-tep ra.png",
+ "anh": {"tep": "public/du-lieu/anh/web/commons-Entering-the-Neuschwanstein-Castle-25121020852-.jpg", "rong": 1280, "cao": 1280, "nguon": "https://commons.wikimedia.org/wiki/File:Entering_the_Neuschwanstein_Castle_(25121020852).jpg", "tacGia": "Ștefan Jurcă from Munich, Germany", "giayPhep": "CC BY 2.0"},
+ "mat": {
+  "ghi_chu": "MỐC QUY ĐỔI. Trục mặt = cạnh way/223110820#14 (s = 0 ở góc bắc v14, tăng về nam = sang TRÁI ảnh). #13 (vai bắc) và #0 (vai nam) cùng mặt phẳng với #14 (lệch < 0,1 m) nên mốc đầu mút lấy đỉnh v13 / v1 của chúng. ĐỨNG: gờ = đường ngang đỉnh lòng vòm cổng (y 735 px ↔ đáy vòm 19,09 + CAO_CONG 6,2 = 25,29 m); mái hiên = đỉnh tường khung 36,6 m ngoại suy theo tỉ lệ đứng đo được ở vòm (lòng vòm 450 px / 6,2 m = 72,6 px/m; kiểm lại: rộng lòng vòm 365 px ↔ 5 m = 73 px/m, đỉnh răng mảng cổng 272 px ↔ 31,6 m theo tỉ lệ này 277 px) → y = 735 − 11,31 × 72,6 = −86 px (trên mép ảnh, chỉ để quy đổi)",
+  "khung": "way/223110820#14",
+  "vGo": 0.355,
+  "ly_do_vGo": "v sao cho khung.y(v) = 25,29 m (đỉnh lòng vòm cổng mô hình) — tính lại từ 'gờ chia tầng' của xem-mat-rieng.mjs",
+  "ngang": [
+   [1095, "way/223110820", 13, "góc bắc vai gạch (chỗ dải đá góc gặp gờ đá trơn của cánh bắc lùi sau), đo ở y 650 — lưới 900–1280 / 400–850"],
+   [945, "way/223110823", 3, "mép bắc mảng sa thạch nhô (giáp gạch), y 650"],
+   [634, "cong", null, "tâm vòm cổng: lòng vòm 452–817 px ở chân, đỉnh 735 px — lưới 300–1000 / 550–1250"],
+   [322, "way/223110823", 5, "mép nam mảng sa thạch nhô, y 650 — lưới 0–380 / 400–850"],
+   [185, "way/223110820", 1, "góc nam vai gạch, y 650"]
+  ],
+  "go": [[0, 735], [1280, 735]],
+  "ly_do_go": "ảnh gần như không xoay ngang (chân cổng 1185 px cả hai bên, gờ trên vòm 652–662 px nằm ngang) → đường ngang qua đỉnh lòng vòm",
+  "maiHien": [[0, -86], [1280, -86]],
+  "ly_do_maiHien": "xem mat.ghi_chu — ngoại suy, đỉnh tường khung bị răng cưa / đầu hồi che ngoài khung ảnh"
+ },
+ "cum": [
+  {"ten": "cửa sổ đơn vai gạch bắc", "o": [[966, 1012]], "dinhO": 572, "bau": 650},
+  {"ten": "cửa sổ đơn vai gạch nam", "o": [[275, 304]], "dinhO": 572, "bau": 647},
+  {"ten": "ô vuông nhỏ trái trên huy hiệu", "o": [[455, 472]], "dinhO": 515, "bau": 560},
+  {"ten": "ô vuông nhỏ phải trên huy hiệu", "o": [[800, 820]], "dinhO": 515, "bau": 560},
+  {"ten": "khe sáng trái cạnh vòm cổng", "o": [[442, 455]], "dinhO": 681, "bau": 710},
+  {"ten": "khe sáng phải cạnh vòm cổng", "o": [[817, 827]], "dinhO": 682, "bau": 712}
+ ],
+ "khungTam": [
+  {"ten": "khung đá cửa vai bắc", "tu": 950, "den": 1029, "tren": 562, "duoi": 662},
+  {"ten": "khung đá cửa vai nam", "tu": 247, "den": 318, "tren": 560, "duoi": 660}
+ ],
+ "be": [
+  {"ten": "gờ đá dưới huy hiệu", "tu": 552, "den": 718, "tren": 612, "duoi": 622, "nho": 0.15, "ly_do_nho": "gờ có tuyết phủ mặt trên ~8 px → nhô ~0,15 m"}
+ ]
+}

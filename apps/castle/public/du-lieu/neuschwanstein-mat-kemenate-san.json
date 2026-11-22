@@ -1,0 +1,663 @@
+{
+ "ghi_chu": "BỐ CỤC MẶT KEMENATE HƯỚNG SÂN TRÊN (bước 7 roadmap, 23/11/2026) — số đo ĐIỂM ẢNH THÔ trên ảnh gốc 1280 × 960 (Commons 'Dvorac Neuschwanstein - gornje dvorište', chụp từ sân trên, máy ảnh khớp bằng khop-camera.mjs), đọc bằng lưới: python3 apps/castle/scripts/kiem-mat-tien.py <tệp này> --luoi x0,y0,x1,y1 ra.png. mattien.js banDoMat đổi ra (s dọc tường, y tuyệt đối) có phối cảnh, datMatRieng dựng hoàn toàn từ tệp — không số đo viết tay trong mã. Mặt gồm: cánh trái hai tầng (x 60–544), khối lồi giữa có đầu hồi + lô-gia (oriel) trên con-xon + cửa vào (x 555–828), phần phải hai tầng (828–1065) và khúc thấp có cầu thang ngoài lên cửa chiếu nghỉ (1065–1262).",
+ "anh": {
+  "tep": "public/du-lieu/anh/web/c-Dvorac-Neuschwanstein-gornje-dvori-te.jpg",
+  "rong": 1280,
+  "cao": 960,
+  "nguon": "https://commons.wikimedia.org/wiki/File:Dvorac_Neuschwanstein_-_gornje_dvori%C5%A1te.jpg",
+  "tacGia": "Silverije",
+  "giayPhep": "CC BY-SA 4.0",
+  "camera": {
+   "x": -16.5,
+   "z": -2.1,
+   "y": 31.76,
+   "yaw": 3.1095,
+   "pitch": 0.1511,
+   "roll": 0.0041,
+   "fov": 52
+  }
+ },
+ "mat": {
+  "ghi_chu": "MỐC QUY ĐỔI. Trục mặt = cạnh khung way/1573767740#7 (đỉnh 7 (-15,35; 17,41) → đỉnh 8 (-8,11; 14,29); s tăng sang TRÁI ảnh). NGANG: [x ảnh, khối, chỉ số đỉnh OSM] đo ở tầm gờ chia tầng. ĐỨNG: gờ chia tầng trệt / tầng giữa ↔ v = vGo của khung, gờ mái hiên dưới lan can mái ↔ đỉnh tường khung.",
+  "khung": "way/1573767740#7",
+  "vGo": 0.39,
+  "ly_do_vGo": "cột x 544: gờ 626 px, mái hiên 210 px, ~40 px/m dọc cột (chiều cao cửa tầng giữa 98 px ≈ 2,45 m) → gờ thấp hơn mái hiên (626 − 210) / 40 ≈ 10,4 m → 41,8 − 10,4 = 31,4 m trên khung chân 26,49 / đỉnh 41,8 → v ≈ 0,32–0,39; chọn 0,39 vì đỉnh tầng trệt khớp đỉnh cửa vào (680 px) và cửa tầng trệt cánh trái",
+  "ngang": [
+   [
+    60,
+    "way/1573767740",
+    8,
+    "góc trái mặt (đỉnh 8)"
+   ],
+   [
+    555,
+    "way/1573767742",
+    4,
+    "mép trái mặt trước khối lồi giữa"
+   ],
+   [
+    828,
+    "way/1573767742",
+    3,
+    "mép phải mặt trước khối lồi giữa"
+   ],
+   [
+    1065,
+    "way/1573767740",
+    4,
+    "hết phần phải hai tầng, bắt đầu khúc thấp (đỉnh 4 = way/223071829 đỉnh 1)"
+   ],
+   [
+    1240,
+    "way/223071829",
+    0,
+    "góc phải khúc thấp giáp tháp tròn, ở tầm gờ (chân 1258 / đỉnh 1220 theo máy ảnh) — không có mốc này phép ngoại suy đẩy cửa chiếu nghỉ ra ngoài mép tường"
+   ]
+  ],
+  "go": [
+   [
+    60,
+    650
+   ],
+   [
+    350,
+    640
+   ],
+   [
+    540,
+    626
+   ],
+   [
+    560,
+    620
+   ],
+   [
+    830,
+    610
+   ],
+   [
+    850,
+    602
+   ],
+   [
+    1100,
+    595
+   ],
+   [
+    1200,
+    592
+   ]
+  ],
+  "ly_do_go": "tâm dải gờ đá giữa tầng trệt và tầng giữa (lưới (kiem-mat-tien.py --luoi) trên ảnh 1280 × 960): cánh trái 650 → 626, khối lồi nhô ~1,2 m nên gờ nhảy ở 540–560 và 830–850",
+  "maiHien": [
+   [
+    60,
+    170
+   ],
+   [
+    300,
+    183
+   ],
+   [
+    540,
+    210
+   ],
+   [
+    850,
+    250
+   ],
+   [
+    1060,
+    272
+   ],
+   [
+    1200,
+    290
+   ]
+  ],
+  "ly_do_maiHien": "đỉnh gờ mái hiên ngay dưới lan can mái, dốc xuống phải theo phối cảnh (máy ảnh thấp hơn mái hiên ~10 m)"
+ },
+ "cum": [
+  {
+   "ten": "cửa vòm tầng trên cánh trái — A",
+   "o": [
+    [
+     240,
+     278
+    ]
+   ],
+   "dinhO": 233,
+   "bau": 335,
+   "vom": [
+    220,
+    296,
+    220
+   ]
+  },
+  {
+   "ten": "cửa vòm tầng trên cánh trái — B",
+   "o": [
+    [
+     453,
+     487
+    ]
+   ],
+   "dinhO": 254,
+   "bau": 347,
+   "vom": [
+    442,
+    505,
+    241
+   ]
+  },
+  {
+   "ten": "cặp cửa tầng giữa cánh trái — 1",
+   "o": [
+    [
+     200,
+     248
+    ],
+    [
+     262,
+     311
+    ]
+   ],
+   "dinhO": 480,
+   "bau": 578
+  },
+  {
+   "ten": "cặp cửa tầng giữa cánh trái — 2",
+   "o": [
+    [
+     427,
+     470
+    ],
+    [
+     480,
+     520
+    ]
+   ],
+   "dinhO": 480,
+   "bau": 571
+  },
+  {
+   "ten": "cửa tầng trệt cánh trái — G1",
+   "o": [
+    [
+     233,
+     277
+    ]
+   ],
+   "dinhO": 728,
+   "bau": 827,
+   "vom": [
+    222,
+    290,
+    713
+   ]
+  },
+  {
+   "ten": "cửa tầng trệt cánh trái — G2",
+   "o": [
+    [
+     459,
+     493
+    ]
+   ],
+   "dinhO": 708,
+   "bau": 798,
+   "vom": [
+    453,
+    498,
+    703
+   ]
+  },
+  {
+   "ten": "cặp cửa tầng trên khối lồi (dưới đầu hồi)",
+   "o": [
+    [
+     655,
+     679
+    ],
+    [
+     707,
+     727
+    ]
+   ],
+   "dinhO": 260,
+   "bau": 347,
+   "vom": [
+    648,
+    755,
+    219
+   ]
+  },
+  {
+   "ten": "cửa vòm tầng trên phần phải — W1",
+   "o": [
+    [
+     837,
+     857
+    ]
+   ],
+   "dinhO": 292,
+   "bau": 370,
+   "vom": [
+    830,
+    877,
+    280
+   ]
+  },
+  {
+   "ten": "cửa vòm tầng trên phần phải — W2",
+   "o": [
+    [
+     970,
+     990
+    ]
+   ],
+   "dinhO": 305,
+   "bau": 380,
+   "vom": [
+    963,
+    1008,
+    293
+   ]
+  },
+  {
+   "ten": "cặp cửa tầng giữa phần phải — P3",
+   "o": [
+    [
+     835,
+     852
+    ],
+    [
+     863,
+     890
+    ]
+   ],
+   "dinhO": 483,
+   "bau": 558
+  },
+  {
+   "ten": "cặp cửa tầng giữa phần phải — P4",
+   "o": [
+    [
+     963,
+     985
+    ],
+    [
+     993,
+     1015
+    ]
+   ],
+   "dinhO": 485,
+   "bau": 557
+  },
+  {
+   "ten": "cặp cửa tầng giữa khúc thấp — P5",
+   "o": [
+    [
+     1090,
+     1107
+    ],
+    [
+     1120,
+     1138
+    ]
+   ],
+   "dinhO": 488,
+   "bau": 555
+  },
+  {
+   "ten": "cửa tầng trệt phần phải — G3",
+   "o": [
+    [
+     850,
+     880
+    ]
+   ],
+   "dinhO": 675,
+   "bau": 750,
+   "vom": [
+    843,
+    885,
+    672
+   ]
+  },
+  {
+   "ten": "cửa tầng trệt phần phải — G4",
+   "o": [
+    [
+     990,
+     1007
+    ]
+   ],
+   "dinhO": 665,
+   "bau": 737,
+   "vom": [
+    985,
+    1013,
+    662
+   ]
+  }
+ ],
+ "ly_do_cum": "đo trên lưới các vùng 0–560, 540–840, 820–1280 (ảnh b7-L*, b7-C*, b7-R*): tầng trên mỗi ô một cửa vòm đơn có viền đá + cột nhỏ hai bên; tầng giữa mỗi ô một CẶP cửa vòm trong khung đá, diềm vòm nhỏ trên và dưới; tầng trệt cửa đơn viền đá dày",
+ "dieMVom": [
+  {
+   "ten": "diềm vòm trên cặp 1",
+   "tu": 183,
+   "den": 327,
+   "y0": 438,
+   "y1": 448,
+   "n": 8
+  },
+  {
+   "ten": "diềm vòm dưới cặp 1",
+   "tu": 180,
+   "den": 330,
+   "y0": 593,
+   "y1": 600,
+   "n": 8
+  },
+  {
+   "ten": "diềm vòm trên cặp 2",
+   "tu": 413,
+   "den": 535,
+   "y0": 440,
+   "y1": 450,
+   "n": 8
+  },
+  {
+   "ten": "diềm vòm dưới cặp 2",
+   "tu": 413,
+   "den": 535,
+   "y0": 587,
+   "y1": 593,
+   "n": 8
+  },
+  {
+   "ten": "diềm vòm trên P3",
+   "tu": 830,
+   "den": 900,
+   "y0": 452,
+   "y1": 460,
+   "n": 8
+  },
+  {
+   "ten": "diềm vòm dưới P3",
+   "tu": 830,
+   "den": 900,
+   "y0": 573,
+   "y1": 580,
+   "n": 8
+  },
+  {
+   "ten": "diềm vòm trên P4",
+   "tu": 953,
+   "den": 1030,
+   "y0": 453,
+   "y1": 462,
+   "n": 8
+  },
+  {
+   "ten": "diềm vòm dưới P4",
+   "tu": 953,
+   "den": 1030,
+   "y0": 570,
+   "y1": 577,
+   "n": 8
+  },
+  {
+   "ten": "diềm vòm trên P5",
+   "tu": 1080,
+   "den": 1147,
+   "y0": 458,
+   "y1": 465,
+   "n": 8
+  },
+  {
+   "ten": "diềm vòm dưới P5",
+   "tu": 1080,
+   "den": 1147,
+   "y0": 567,
+   "y1": 573,
+   "n": 8
+  },
+  {
+   "ten": "diềm vòm nhỏ trên cửa chiếu nghỉ",
+   "tu": 1190,
+   "den": 1210,
+   "y0": 463,
+   "y1": 470,
+   "n": 3
+  }
+ ],
+ "khungTam": [
+  {
+   "ten": "khung cặp 1",
+   "tu": 183,
+   "den": 327,
+   "tren": 425,
+   "duoi": 600
+  },
+  {
+   "ten": "khung cặp 2",
+   "tu": 413,
+   "den": 535,
+   "tren": 428,
+   "duoi": 593
+  },
+  {
+   "ten": "khung P3",
+   "tu": 830,
+   "den": 900,
+   "tren": 442,
+   "duoi": 580
+  },
+  {
+   "ten": "khung P4",
+   "tu": 953,
+   "den": 1030,
+   "tren": 445,
+   "duoi": 577
+  },
+  {
+   "ten": "khung P5",
+   "tu": 1080,
+   "den": 1147,
+   "tren": 450,
+   "duoi": 573
+  }
+ ],
+ "cuaDi": [
+  {
+   "ten": "cửa vào Kemenate (dưới lô-gia)",
+   "o": [
+    676,
+    734
+   ],
+   "dinhO": 708,
+   "vom": [
+    676,
+    734,
+    680
+   ],
+   "vien": [
+    662,
+    766,
+    662
+   ],
+   "nen": 845,
+   "ly_do": "lưới 600–800 / 600–860: lòng cửa 676–734, đỉnh vòm 680 → chân vòm ~708 (bán kính ~29 px), viền đá 662–766 đỉnh 662, ngưỡng cửa 845 (mặt sân); nen = ngưỡng đo trên ảnh, không kéo xuống mặt đất mô hình"
+  },
+  {
+   "ten": "cửa chiếu nghỉ cầu thang ngoài",
+   "o": [
+    1195,
+    1217
+   ],
+   "dinhO": 545,
+   "vom": [
+    1195,
+    1217,
+    535
+   ],
+   "vien": [
+    1190,
+    1228,
+    525
+   ],
+   "nen": 640,
+   "ly_do": "lưới 1100–1280 / 450–700: cửa trên chiếu nghỉ, ngưỡng 640 (mặt chiếu nghỉ) — KHÔNG xuống mặt sân"
+  }
+ ],
+ "loGia": {
+  "ten": "lô-gia (oriel) hai vòm trên con-xon, trên cửa vào",
+  "o": [
+   [
+    672,
+    728
+   ],
+   [
+    747,
+    802
+   ]
+  ],
+  "dinhO": 460,
+  "bau": 567,
+  "hop": [
+   630,
+   826
+  ],
+  "maiTren": 400,
+  "maiDuoi": 430,
+  "maiRong": [
+   630,
+   825
+  ],
+  "lanCan": [
+   570,
+   615
+  ],
+  "day": 617,
+  "conXon": [
+   617,
+   687
+  ],
+  "nConXon": 2,
+  "matBen": [
+   800,
+   826
+  ],
+  "ly_do": "lưới 600–840 / 380–700: hai vòm lớn 672–728 / 747–802 đỉnh ~460, bậu 567; lan can đặc 570–615, đáy sàn 617, hai con-xon hai đầu 617–687 (ôm hai bên đỉnh cửa vào); mái một mái 400–430; mặt bên phải thấy 800–826 → độ nhô tính từ ảnh (nhoTuAnh)"
+ },
+ "vomMu": [
+  {
+   "ten": "vòm mù đầu hồi — A",
+   "x0": 615,
+   "x1": 630,
+   "dinh": 160,
+   "dayTrai": 172,
+   "dayPhai": 172
+  },
+  {
+   "ten": "vòm mù đầu hồi — B",
+   "x0": 635,
+   "x1": 650,
+   "dinh": 141,
+   "dayTrai": 155,
+   "dayPhai": 155
+  },
+  {
+   "ten": "vòm mù đầu hồi — C",
+   "x0": 655,
+   "x1": 670,
+   "dinh": 122,
+   "dayTrai": 137,
+   "dayPhai": 137
+  },
+  {
+   "ten": "vòm mù đầu hồi — D",
+   "x0": 675,
+   "x1": 690,
+   "dinh": 105,
+   "dayTrai": 120,
+   "dayPhai": 120
+  },
+  {
+   "ten": "vòm mù đầu hồi — E (giữa)",
+   "x0": 693,
+   "x1": 707,
+   "dinh": 89,
+   "dayTrai": 102,
+   "dayPhai": 102
+  },
+  {
+   "ten": "vòm mù đầu hồi — F",
+   "x0": 712,
+   "x1": 727,
+   "dinh": 111,
+   "dayTrai": 122,
+   "dayPhai": 122
+  },
+  {
+   "ten": "vòm mù đầu hồi — G",
+   "x0": 732,
+   "x1": 747,
+   "dinh": 135,
+   "dayTrai": 147,
+   "dayPhai": 147
+  },
+  {
+   "ten": "vòm mù đầu hồi — H",
+   "x0": 752,
+   "x1": 767,
+   "dinh": 159,
+   "dayTrai": 170,
+   "dayPhai": 170
+  },
+  {
+   "ten": "vòm mù đầu hồi — I",
+   "x0": 770,
+   "x1": 785,
+   "dinh": 182,
+   "dayTrai": 192,
+   "dayPhai": 192
+  }
+ ],
+ "ly_do_vomMu": "đầu hồi khối lồi: đỉnh (702, 65), chân trái (607, 135), chân phải (790, 150), ống khói 672–718 / 27–65; chín hốc vòm mù xếp bậc theo hai mái dốc (lưới (kiem-mat-tien.py --luoi) trên ảnh 1280 × 960 590–810 / 20–200)",
+ "cauThang": [
+  {
+   "ten": "cầu thang ngoài lên cửa chiếu nghỉ",
+   "chan": [
+    967,
+    817
+   ],
+   "dinh": [
+    1165,
+    650
+   ],
+   "chieuNghi": [
+    1165,
+    1262
+   ],
+   "lanCan": [
+    [
+     1070,
+     790
+    ],
+    [
+     1262,
+     660
+    ]
+   ],
+   "matCuoi": [
+    1240,
+    1262
+   ],
+   "chanTuong": 830,
+   "ly_do": "lưới 940–1280 / 600–860: bậc chạy dọc tường từ mặt sân (967, 817) lên chiếu nghỉ (1165, 650), chiếu nghỉ 1165–1262 ở ~640–650; đỉnh tường lan can ngoài (1070, 790) → (1262, 660), chân tường cầu thang chạm sân ~830; mặt cuối thấy 1240–1262 → bề sâu cầu thang tính từ ảnh như mặt bên lô-gia"
+  }
+ ]
+}

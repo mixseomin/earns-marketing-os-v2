@@ -479,6 +479,7 @@ export function xMatRieng(bo) {
   for (const c of bo.cuaDi || []) { d(c.o); d(c.vom); d(c.vien); }
   for (const v of bo.vomMu || []) xs.push(v.x0, v.x1);
   if (bo.loGia) { d(bo.loGia.hop); d(bo.loGia.maiRong); }
+  for (const t of bo.cauThang || []) { d(t.chan, 1); d(t.dinh, 1); d(t.chieuNghi); for (const q of t.lanCan || []) d(q, 1); }
   return xs.filter(Number.isFinite);
 }
 
@@ -522,9 +523,9 @@ export function datMatRieng({ THREE, mergeGeometries, bo, bd, viTri, datTai, nhe
   // BỆ ĐÁ NHÔ
   for (const b of bo.be || []) { const xc = (b.tu + b.den) / 2, s = bd.s(xc), L = bd.m(b.tu, b.den), yT = bd.y(xc, b.tren), yD = bd.y(xc, b.duoi), p = choTuong(b.ten, s, yD, yT); if (!p) continue;
     dat('da', hop(L, yT - yD, b.nho, 0, (yT + yD) / 2, b.nho / 2), p, 0); const B = HV.xo(); HV.phao(B, { rong: L + 0.12, cao: 0.12, nho: b.nho + 0.08, y: yT - 0.06 }); datB(B, p, 0); }
-  // CỬA ĐI: cánh gỗ từ mặt đất tới lanh tô, lunette (bán nguyệt đá chạm) trên lanh tô, viền đá vòm bao ngoài + hai má xuống đất
+  // CỬA ĐI: cánh gỗ từ mặt đất (hoặc ngưỡng nen đo trên ảnh — cửa trên chiếu nghỉ cầu thang) tới lanh tô, lunette (bán nguyệt đá chạm) trên lanh tô, viền đá vòm bao ngoài + hai má xuống đất
   for (const c of bo.cuaDi || []) { const xc = (c.o[0] + c.o[1]) / 2, s = bd.s(xc), w = bd.m(c.o[0], c.o[1]), yL = bd.y(xc, c.dinhO), rT = bd.m(c.vom[0], c.vom[1]) / 2, rV = bd.m(c.vien[0], c.vien[1]) / 2;
-    const p0 = viTri(s, yL - 0.5); if (!p0) { boQua.push(c.ten); continue; } const yD = datTai(p0.x + p0.nx * 1.5, p0.z + p0.nz * 1.5), p = choTuong(c.ten, s, yD + 0.3, yL + rT); if (!p) continue;
+    const p0 = viTri(s, yL - 0.5); if (!p0) { boQua.push(c.ten); continue; } const yD = c.nen != null ? bd.y(xc, c.nen) : datTai(p0.x + p0.nx * 1.5, p0.z + p0.nz * 1.5), p = choTuong(c.ten, s, yD + 0.3, yL + rT); if (!p) continue;
     dat('go', hop(w, yL - yD, 0.06, 0, (yL + yD) / 2, -0.02), p, 0);
     const B = HV.xo(); HV.phao(B, { rong: w + 0.2, cao: 0.18, nho: 0.3, y: yL + 0.09 }); // lanh tô
     const lu = new THREE.CircleGeometry(rT, nhe ? 8 : 16, 0, Math.PI); lu.translate(0, yL + 0.18, 0.04); dat('mat', lu, p, 0);
@@ -563,6 +564,20 @@ export function datMatRieng({ THREE, mergeGeometries, bo, bd, viTri, datTai, nhe
     const o = Math.min(0.06, R * 0.15); { const B = HV.xo(); HV.vomCuon(B, { R: R - o, day: 2 * o, nho: 0.08, n: 1, y: yC }); datB(B, p, 0); }
     dat('da', hop(o * 2, yC - yL, o * 2, -R, (yC + yL) / 2, 0.04), p, 0); dat('da', hop(o * 2, yC - yR, o * 2, R, (yC + yR) / 2, 0.04), p, 0);
     kk.push({ mat: p.mat, loai: 'vom_mu', y: (yT + Math.min(yL, yR)) / 2, x: p.x, z: p.z }); }
+  // CẦU THANG NGOÀI áp tường (mặt Kemenate sân trên): bậc đặc chạy dọc tường từ chân (chan [x, y] ảnh) lên chiếu nghỉ (dinh), khối chiếu nghỉ chieuNghi [x0, x1],
+  // tường lan can ngoài đỉnh theo đường lanCan [[x, y], [x, y]] ảnh, chân tường chanTuong (y ảnh); bề sâu từ mặt cuối thấy trên ảnh (matCuoi, cùng cách mặt bên lô-gia) hoặc rong (m) — số đo từ tệp
+  for (const t of bo.cauThang || []) { const xa = Math.min(t.chan[0], t.chieuNghi[0]), xb = Math.max(t.dinh[0], t.chieuNghi[1]), xc = (xa + xb) / 2, s = bd.s(xc), lx = (x) => s - bd.s(x); // trục x cục bộ sang phải ảnh = s giảm
+    const yC = bd.y(t.chan[0], t.chan[1]), yN = bd.y(t.dinh[0], t.dinh[1]), yNen = (x) => bd.y(x, t.chanTuong), N = t.matCuoi ? nhoTuAnh(t.chieuNghi[1], t.dinh[1], t.matCuoi) : t.rong;
+    if (!(yN > yC) || !(N > 0.3)) { boQua.push(t.ten); continue; } const p = choTuong(t.ten, s, Math.max(yNen(xc), yC - 0.3), yN); if (!p) continue; boQua.nhoCauThang = +N.toFixed(2);
+    const [l0, l1] = t.lanCan || [], yLC = (x) => (l0 ? bd.y(x, l0[1] + (l1[1] - l0[1]) * (x - l0[0]) / (l1[0] - l0[0])) : null);
+    const n = Math.max(3, Math.round((yN - yC) / 0.18)), x0 = lx(t.chan[0]), x1 = lx(t.dinh[0]), dx = (x1 - x0) / n;
+    for (let i = 0; i < n; i++) { const xm = x0 + (i + 0.5) * dx, xA = t.chan[0] + (t.dinh[0] - t.chan[0]) * (i + 0.5) / n, yT = yC + (i + 1) * (yN - yC) / n, yB = Math.min(yNen(xA), yC) - 0.05;
+      dat('da', hop(Math.abs(dx) + 0.02, yT - yB, N - 0.25, xm, (yT + yB) / 2, (N - 0.25) / 2), p, 0);
+      const yL = yLC(xA); if (yL != null && yL > yT) dat('da', hop(Math.abs(dx) + 0.02, yL - yB, 0.25, xm, (yL + yB) / 2, N - 0.125), p, 0); } // tường lan can ngoài theo từng bậc
+    const n0 = lx(t.chieuNghi[0]), n1 = lx(t.chieuNghi[1]), xN = (t.chieuNghi[0] + t.chieuNghi[1]) / 2, yBN = yNen(xN) - 0.05, yLN = yLC(xN);
+    dat('da', hop(Math.abs(n1 - n0), yN - yBN, N, (n0 + n1) / 2, (yN + yBN) / 2, N / 2), p, 0); // khối chiếu nghỉ
+    if (yLN != null && yLN > yN) dat('da', hop(Math.abs(n1 - n0), yLN - yN, 0.25, (n0 + n1) / 2, (yLN + yN) / 2, N - 0.125), p, 0);
+    kk.push({ mat: p.mat, loai: 'cau_thang', y: (yC + yN) / 2, x: p.x, z: p.z }); }
   // ĐỒNG HỒ: vành đá, mặt số sáng, hai kim
   const H = bo.dongHo;
   if (H) { const s = bd.s(H.x), y = bd.y(H.x, H.y), r = bd.m(H.x - H.r, H.x + H.r) / 2, p = choTuong(H.ten, s, y - r, y + r); if (p) {

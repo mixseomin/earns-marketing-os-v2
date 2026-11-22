@@ -53,7 +53,7 @@ if ve_tep:
         for a, b in o.get('u', []): dv.rectangle([a, o['dinh'], b, o['vai']], outline=(0, 255, 160), width=2)
     for o in B.get('oTron', []): dv.ellipse([o['x'] - o['r'], o['y'] - o['r'], o['x'] + o['r'], o['y'] + o['r']], outline=(255, 0, 255), width=4)
     for d in B.get('dieMVom', []): dv.rectangle([d['tu'], d['y0'], d['den'], d['y1']], outline=(255, 140, 0), width=4)
-    for d in B.get('cuaDi', []): dv.rectangle([d['o'][0], d['dinhO'], d['o'][1], ve0.size[1]], outline=(255, 60, 60), width=4); dv.rectangle([d['vien'][0], d['vien'][2], d['vien'][1], d['dinhO']], outline=(255, 60, 60), width=2)
+    for d in B.get('cuaDi', []): dv.rectangle([d['o'][0], d['dinhO'], d['o'][1], d.get('nen', ve0.size[1])], outline=(255, 60, 60), width=4); dv.rectangle([d['vien'][0], d['vien'][2], d['vien'][1], d['dinhO']], outline=(255, 60, 60), width=2)
     for d in B.get('khungTam', []): dv.rectangle([d['tu'], d['tren'], d['den'], d['duoi']], outline=(120, 255, 120), width=2)
     for d in B.get('be', []): dv.rectangle([d['tu'], d['tren'], d['den'], d['duoi']], outline=(255, 255, 255), width=3)
     if B.get('loGia'):
@@ -61,6 +61,11 @@ if ve_tep:
         for a, b in g['o']: dv.rectangle([a, g['dinhO'], b, g['bau']], outline=(0, 200, 255), width=4)
         dv.rectangle([g['hop'][0], g['maiDuoi'], g['hop'][1], g['day']], outline=(255, 255, 255), width=3)
         dv.line([g['maiRong'][0], g['maiDuoi'], g['maiRong'][1], g['maiDuoi']], fill=(80, 80, 80), width=4)
+    for t in B.get('cauThang', []):  # cầu thang ngoài: đường bậc chân → chiếu nghỉ, chiếu nghỉ, đỉnh lan can, mặt cuối
+        dv.line([*t['chan'], *t['dinh']], fill=(255, 120, 200), width=4); dv.line([t['chieuNghi'][0], t['dinh'][1], t['chieuNghi'][1], t['dinh'][1]], fill=(255, 120, 200), width=4)
+        if t.get('lanCan'): dv.line([tuple(q) for q in t['lanCan']], fill=(255, 255, 255), width=3)
+        if t.get('matCuoi'): dv.rectangle([t['matCuoi'][0], t['dinh'][1], t['matCuoi'][1], t['chanTuong']], outline=(255, 120, 200), width=2)
+    for v in B.get('vomMu', []): dv.arc([v['x0'], v['dinh'], v['x1'], v['dinh'] + v['x1'] - v['x0']], 180, 360, fill=(255, 200, 120), width=3)
     if B.get('dongHo'):
         o = B['dongHo']; dv.ellipse([o['x'] - o['r'], o['y'] - o['r'], o['x'] + o['r'], o['y'] + o['r']], outline=(255, 255, 255), width=4)
     M = B.get('mat', {})

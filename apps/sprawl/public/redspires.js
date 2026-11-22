@@ -3,6 +3,7 @@
 // có chợ + người · phố thấp xanh xám, vườn mái · khối khổng lồ mờ xa · xe bay theo làn trên đại lộ lớn.
 // Nhà PLATEAU giữ nguyên bố cục thật, khoác chất liệu xanh xám; nhà thật ≥ 90 m bị khoét bỏ trong shader để tháp đỏ đứng thay.
 import * as THREE from 'three';
+import { taoSong } from './song.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const MAU_NGUOI = ['#2b2f36', '#4a3b33', '#c9b8a0', '#6d7f8c', '#8a3b2e', '#d8d2c4', '#3e5566', '#9b8a6a'];
@@ -65,16 +66,20 @@ function khiaGan(geo, than, n, bien) {
   geo.computeVertexNormals(); return geo;
 }
 
+// cửa sổ sáng đèn: ô kính ngẫu nhiên bật đèn ấm, vài ô đổi trạng thái mỗi ~10 giây (dùng chung tháp đỏ + nhà PLATEAU)
+const U_DEN = { uDen: { value: 0.85 }, uTg: { value: 0 } };
+const DEN_EMIT = '#include <emissivemap_fragment>\n      totalEmissiveRadiance += vec3(1.0, 0.74, 0.46) * den * uDen;';
+
 function vatThap(gen) {
   const v = new THREE.MeshStandardMaterial({ color: gen.mau, roughness: 0.74 + gen.r * 0.12, metalness: 0.05 });
   const u = { uVien: { value: new THREE.Color(gen.vien) }, uNhip: { value: new THREE.Vector4(gen.oRong, gen.tang, gen.bang, gen.tron) }, uKieu: { value: new THREE.Vector2(gen.soc, gen.than) } };
   v.customProgramCacheKey = () => 'thap-do'; v.userData.than = true;
   v.onBeforeCompile = (sh) => { // tấm ốp + cửa sổ + cửa tròn + vệt bẩn + sọc viền, theo toạ độ trong thân; nhịp riêng mỗi tháp qua uniform
-    Object.assign(sh.uniforms, u);
+    Object.assign(sh.uniforms, u, U_DEN);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vLo;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvLo = position;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-      varying vec3 vLo; uniform vec3 uVien; uniform vec4 uNhip; uniform vec2 uKieu;
+      varying vec3 vLo; uniform vec3 uVien; uniform vec4 uNhip; uniform vec2 uKieu; uniform float uDen, uTg;
       float bam(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }`)
       .replace('#include <color_fragment>', `#include <color_fragment>
       float rr = length(vLo.xz), cung = atan(vLo.z, vLo.x) * max(rr, 1.0), goc = atan(vLo.z, vLo.x);
@@ -117,7 +122,9 @@ function vatThap(gen) {
       diffuseColor.rgb = mix(diffuseColor.rgb, uVien * 0.8, max(khungCua, 0.0) * 0.55 * gan);
       vec3 kinh = mix(vec3(0.11, 0.14, 0.17), vec3(0.36, 0.44, 0.5), smoothstep(0.32, 0.78, f.y) * 0.7 + 0.3 * bam(o + 2.2));
       diffuseColor.rgb = mix(diffuseColor.rgb, kinh, cua * mix(0.4, 0.9, xa)); // xa: lưới cửa nhạt bớt cho khỏi răng cưa
-      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.22, 0.27, 0.3), tron);`);
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.22, 0.27, 0.3), tron);
+      float den = cua * step(0.8, bam(o + 4.4 + floor(uTg * 0.1 + h * 9.0))) * (0.55 + 0.45 * bam(o + 8.8)) * (0.35 + 0.65 * xa);`)
+      .replace('#include <emissivemap_fragment>', DEN_EMIT);
   };
   return v;
 }
@@ -294,11 +301,11 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
   const uKhoet = { uThap: { value: thap.map((t) => new THREE.Vector4(t.o[0], t.o[1], t.banKinh * 1.25, 0)) } };
   const vatPho = new THREE.MeshLambertMaterial({ color: '#7f93a3' });
   vatPho.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, uKhoet);
+    Object.assign(sh.uniforms, uKhoet, U_DEN);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWp = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-      varying vec3 vWp; uniform vec4 uThap[${thap.length}];
+      varying vec3 vWp; uniform vec4 uThap[${thap.length}]; uniform float uDen, uTg;
       float bam(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }`)
       .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
       for (int i = 0; i < ${thap.length}; i++) { vec4 t = uThap[i]; float d = length(vWp.xz - t.xy);
@@ -311,6 +318,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
       vec3 m0 = vec3(0.50, 0.58, 0.64), m1 = vec3(0.74, 0.71, 0.64), m2 = vec3(0.40, 0.45, 0.50), m3 = vec3(0.50, 0.60, 0.57), m4 = vec3(0.68, 0.56, 0.50);
       vec3 mk = hm < 0.42 ? m0 : hm < 0.6 ? m2 : hm < 0.76 ? m1 : hm < 0.9 ? m3 : m4;
       diffuseColor.rgb = mk * (0.85 + 0.25 * hk);
+      float den = 0.0;
       if (abs(nw.y) > 0.6) {                                                   // mái: vườn mái hoặc bê tông, có bồn nước / máy lạnh rải
         if (hk > 0.55) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.33, 0.46, 0.28), 0.75 * step(0.3, bam(floor(vWp.xz / 3.0))));
         else diffuseColor.rgb *= 0.9 + 0.15 * step(0.85, bam(floor(vWp.xz / 2.0)));
@@ -323,8 +331,10 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
         else if (hs < 0.7) cua = step(0.35, f.y) * step(f.y, 0.8);                                            // dải kính ngang
         else { cua = step(0.15, fract(u / 1.1)) * step(0.2, f.y); diffuseColor.rgb *= 0.9 + 0.12 * step(0.85, fract(u / 1.1)); } // vây dọc
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.2, 0.25, 0.3), cua * 0.6);
+        vec2 oc = floor(g) + k * 31.0; den = cua * step(0.84, bam(oc + floor(uTg * 0.08 + bam(oc) * 9.0))) * (0.5 + 0.5 * bam(oc + 2.0)) * 0.8;
         diffuseColor.rgb *= 1.0 - 0.18 * step(fract(vWp.y / 3.4), 0.08) * step(0.5, hk);                     // gờ tầng
-      }`);
+      }`)
+      .replace('#include <emissivemap_fragment>', DEN_EMIT);
   };
 
   // ---------- tháp đỏ: mỗi tháp một bộ gen ----------
@@ -617,18 +627,8 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
     goc.add(g);
   }
 
-  // ---------- xe bay theo làn ----------
-  const lan = ql.lanBay.map((l) => {
-    const g = l.g.map(([x, z]) => new THREE.Vector3(x, 0, z)), dai = [0];
-    for (let i = 1; i < g.length; i++) dai.push(dai[i - 1] + g[i].distanceTo(g[i - 1]));
-    return { cao: l.cao, g, dai, L: dai[dai.length - 1] };
-  }).filter((l) => l.L > 150);
-  const xe = []; for (const [i, l] of lan.entries()) { const n = Math.max(1, Math.round(l.L / 500)); for (let k = 0; k < n; k++) xe.push({ l, s: (k / n) * l.L + i * 37, v: (24 + (i * 13 + k * 7) % 22) * (k % 2 ? -1 : 1), y: l.cao + (k % 2) * 8 }); }
-  const xeMesh = new THREE.InstancedMesh(new THREE.CapsuleGeometry(1.3, 4.5, 3, 8).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#2f3a44', roughness: 0.35, metalness: 0.6 }), xe.length);
-  xeMesh.frustumCulled = false; goc.add(xeMesh);
-  const den = new THREE.InstancedMesh(new THREE.SphereGeometry(0.55, 6, 4), new THREE.MeshBasicMaterial({ color: '#ffd9a0' }), xe.length);
-  den.frustumCulled = false; goc.add(den);
-  let yXe = 40;
+  // ---------- phố sống: sương thành lớp, xe bay, xe đường, tàu, cầu + vườn treo (song.js) ----------
+  const song = taoSong({ goc, ql, dsThap });
 
   function datLai(datMuot) { // gắn mọi thứ xuống mặt đất mới dựng (gọi sau mỗi lần dungDat)
     const muot = datMuot || datTai;
@@ -637,7 +637,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
       y0 = Math.min(y0, datTai(d.t.o[0], d.t.o[1])) - 1;
       d.g.position.y = y0; uKhoet.uThap.value[i].w = y0; d.y0 = y0;
     }
-    yXe = datTai(0, 0);
+    song.datLai(muot, datTai(0, 0));
     for (const k of Object.keys(LOP)) { const B = loDuong[k], pos = duongMesh[k].geometry.attributes.position; // dải đường bám đất
       for (let i = 0; i < B.xz.length / 2; i++) { const x = B.xz[i * 2], z = B.xz[i * 2 + 1]; pos.setXYZ(i, x, muot(x, z) + 0.6, z); }
       pos.needsUpdate = true; duongMesh[k].geometry.computeBoundingSphere(); }
@@ -673,17 +673,8 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
     if (!goc.visible) return;
     if (cam) loc(cam);
     uNguoi.uT.value += dt;
-    for (const [i, c] of xe.entries()) {
-      const l = c.l; c.s = ((c.s + c.v * dt) % l.L + l.L) % l.L;
-      let k = 1; while (k < l.dai.length - 1 && l.dai[k] < c.s) k++;
-      const a = l.g[k - 1], b = l.g[k], f = (c.s - l.dai[k - 1]) / Math.max(0.01, l.dai[k] - l.dai[k - 1]);
-      _p.lerpVectors(a, b, f); _p.y = yXe + c.y; _a.subVectors(b, a); if (c.v < 0) _a.negate();
-      _q.setFromEuler(_e.set(0, Math.atan2(_a.x, _a.z), 0)); _s.setScalar(1);
-      xeMesh.setMatrixAt(i, _m.compose(_p, _q, _s));
-      _a.set(0, 0, 3.4).applyQuaternion(_q).add(_p); den.setMatrixAt(i, _m.compose(_a, _q, _s));
-    }
-    xeMesh.instanceMatrix.needsUpdate = true; den.instanceMatrix.needsUpdate = true;
+    U_DEN.uTg.value += dt; song.khung(dt);
   }
 
-  return { goc, vatPho, khoacDat, datLai, hien, khung, loc, ql, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), xe: xe.length } };
+  return { goc, vatPho, khoacDat, datLai, hien, khung, loc, ql, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), ...song.tk } };
 }

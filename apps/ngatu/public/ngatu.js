@@ -1470,7 +1470,7 @@ const mBong = (() => {
   m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.renderOrder = 1;
   scene.add(m); return m;
 })();
-const SB = new THREE.Vector3();
+const SB = new THREE.Vector3(), VY = new THREE.Vector3();
 const MUI_TAXI = new THREE.Color('#ffd84a'), DEN_DON = new THREE.Color('#ff5a2a');
 
 // ── mặt đất, vỉa hè, vạch kẻ
@@ -1859,7 +1859,8 @@ function ve() {
       if (ix >= MAX_XM) continue;
       Q2.setFromAxisAngle(TRUC_X, a.nghieng); Q.multiply(Q2);
       if (XMT.on) { const k = XMT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % XMT.ds.length]; datMa(k.t, k.n, V, Q, MOT, uot(a.c1, a)); datMa(k.f, k.n++, V, Q, MOT); }
-      if (NG.on && NGT.ok) { const m = NGT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % NGT.ds.length].m[NGT.buoc + 1]; datMa(m, m.userData.n++, V, Q, MOT, uot(a.c2, a)); }
+      if (NG.on && NGT.ok) { const m = NGT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % NGT.ds.length].m[NGT.buoc + 1], yen = XMT.on ? XMT.ds[a.mau % XMT.ds.length].yen : null;
+        if (yen) { VY.copy(yen).applyQuaternion(Q).add(V); datMa(m, m.userData.n++, VY, Q, MOT, uot(a.c2, a)); } else datMa(m, m.userData.n++, V, Q, MOT, uot(a.c2, a)); }
       datMa(mXm, ix, V, Q, MOT, uot(a.c1, a)); datMa(mNguoi, ix, V, Q, MOT, uot(a.c2, a)); datMa(mMu, ix, V, Q, MOT, uot(a.c3, a));
       datMa(mCho, ix, V, Q, a.cho ? MOT : KHONG, a.c4); datMa(mHang, ix, V, Q, a.hang ? MOT : KHONG, a.c5);
       if (ben) datMa(XN.xm, nx.xm++, V, Q, SXN.set(1, 1, ben));
@@ -2301,7 +2302,12 @@ function taiXm() {
     const t = new THREE.InstancedMesh(gt, vl, MAX_XM), f = new THREE.InstancedMesh(gf, vl, MAX_XM);
     for (const m of [t, f]) { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.visible = false; scene.add(m); }
     t.setColorAt(0, new THREE.Color());
-    return { t, f, n: 0 };
+    // yên = điểm cao nhất của dải giữa-sau thân xe (không tính ghi-đông phía trước) → hông người ngồi đặt vào đây, mỗi mẫu một chỗ
+    let yx = 0, yy = 0, n = 0; const L = XM_DAI / 2, cao = [];
+    for (const g of [gt, gf]) { const p = g.attributes.position; if (!p) continue; for (let j = 0; j < p.count; j++) { const x = p.getX(j), z = p.getZ(j); if (x > -0.6 * L && x < -0.08 * L && Math.abs(z) < 0.15) cao.push([p.getY(j), x]); } }
+    cao.sort((u, v) => v[0] - u[0]); for (const [y, x] of cao.slice(0, Math.max(8, cao.length * 0.03 | 0))) { yy += y; yx += x; n++; }
+    const yen = n ? new THREE.Vector3(yx / n - 0.02, Math.min(0.05, yy / n + 0.06 - 0.9), 0) : new THREE.Vector3(); // trần 0,05: mẫu có kính chắn / tựa lưng cao bị đo nhầm làm yên
+    return { t, f, n: 0, yen };
   }).catch((e) => { console.warn('xe máy thật', i, e); return null; }))).then((ds) => { XMT.ds = ds.filter(Boolean); datXm(THAT.on); });
   return XMT.tai;
 }

@@ -563,7 +563,8 @@ function dungKhoi(k, G) {
   for (let i = 0; i < v.length; i++) {
     const [x1, z1] = v[i], [x2, z2] = v[(i + 1) % v.length];
     const mm = CUA_SO?.[k.id + '#' + i]?.mau, mauMat = mm ? { duoi: new THREE.Color(mm.duoi), tren: new THREE.Color(mm.tren), y: mm.v != null ? khungMat(k, i, y1).y(+mm.v) : +mm.y } : mauT; // mau.v: gờ đổi màu theo khung
-    tuongCoLo(G, x1, z1, x2, z2, y0, hMin > 0 ? yMong : mongCanh(k, x1, z1, x2, z2, y0, y1, yMong), y1, s0, k, mauMat, loCanh(k, i, x1, z1, x2, z2));
+    const y1i = L2?.canh?.[i] ?? y1; // cạnh nằm trên sàn thấp (ban công Wintergarten): tường chỉ lên tới lan can (mai-lod2.py "canh")
+    tuongCoLo(G, x1, z1, x2, z2, y0, hMin > 0 ? yMong : mongCanh(k, x1, z1, x2, z2, y0, y1i, yMong), y1i, s0, k, mauMat, y1i < y1 ? [] : loCanh(k, i, x1, z1, x2, z2));
     s0 += Math.hypot(x2 - x1, z2 - z1);
   }
   chanXoe(k, G, y0);
@@ -574,7 +575,10 @@ function dungKhoi(k, G) {
       for (const [i, j, l] of tg) { const A = m[i], B = m[j], C = m[l], len = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]); // >0: (x, z) ngược kim → pháp tuyến hướng xuống trong three (y lên, z nam)
         const P = (q) => [q[0], q[2], q[1]]; if (len > 0) tamGiac(mai, P(A), P(C), P(B)); else tamGiac(mai, P(A), P(B), P(C)); } }
     for (const [x1, z1, d1, t1, x2, z2, d2, t2] of L2.tuong) tamGiac(da, [x1, d1, z1], [x2, d2, z2], [x2, t2, z2], [x1, d1, z1], [x2, t2, z2], [x1, t1, z1], [x1, d1, z1], [x2, t2, z2], [x2, d2, z2], [x1, d1, z1], [x1, t1, z1], [x2, t2, z2]); // hai mặt: hướng ra ngoài không ghi trong tệp
-    napPhang(Math.min(y1, L2.y0 ?? y1), da); // lấp chỗ mặt mái LoD2 không phủ (≤ 15% mặt bằng) — ở mái THẤP nhất: nắp ở máng xối đè lên mái phụ thấp hơn (Torbau 223110818 cao hơn DOM20 4 m, 20/11/2026)
+    const phang = (m, y) => { const tg = THREE.ShapeUtils.triangulateShape(m.map(([x, z]) => new THREE.Vector2(x, z)), []); // đa giác (x, z) nằm ngang ở y, pháp tuyến lên
+      for (const [i, j, l] of tg) { const A = m[i], B = m[j], C = m[l], len = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]); const P = (q) => [q[0], y, q[1]]; if (len > 0) tamGiac(da, P(A), P(C), P(B)); else tamGiac(da, P(A), P(B), P(C)); } };
+    if (L2.san) { for (const m of L2.san.p) phang(m, L2.san.y); for (const m of L2.nap ?? []) phang(m, Math.min(y1, L2.y0 ?? y1)); } // sàn thấp: lát đá ở độ cao DOM20 (đứng được — da có va chạm), nắp mái thấp nhất chỉ phần còn lại
+    else napPhang(Math.min(y1, L2.y0 ?? y1), da); // lấp chỗ mặt mái LoD2 không phủ (≤ 15% mặt bằng) — ở mái THẤP nhất: nắp ở máng xối đè lên mái phụ thấp hơn (Torbau 223110818 cao hơn DOM20 4 m, 20/11/2026)
   } else if (kieu === 'pyramidal' || kieu === 'cone' || kieu === 'dome' || kieu === 'onion') {
     const [cx, cz] = tamDa(v);
     for (let i = 0; i < v.length; i++) { const [x1, z1] = v[i], [x2, z2] = v[(i + 1) % v.length]; tamGiac(mai, [x1, y1, z1], [x2, y1, z2], [cx, y2, cz]); }

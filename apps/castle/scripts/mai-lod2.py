@@ -52,6 +52,8 @@ def khop_mat(G2, zd):  # mặt phẳng bền z = a·E' + b·N' + c (lặp bỏ �
         cf, *_ = np.linalg.lstsq(A[w], zd[w], rcond=None); r = zd - A @ cf; sd = max(1.4826 * np.median(np.abs(r[w])), 0.15); w = np.abs(r) < 2.5 * sd
         if w.sum() < 8: return None
     return cf
+def muc_san(lo):  # độ cao sàn thấp từ DOM20 các điểm thấp (đã bỏ mép vách): ≥ 4 điểm lưới 1 m (≥ 4 m²) cùng một mặt (IQR ≤ 2 m) → trung vị, không thì None
+    return float(np.median(lo)) if len(lo) >= 4 and float(np.subtract(*np.percentile(lo, [75, 25]))) <= 2 else None
 def tu_kiem():
     sq = [(0, 0), (4, 0), (4, 4), (0, 4)]; assert abs(dien_tich(sq) - 16) < 1e-9
     L = [(0, 0), (4, 0), (4, 2), (2, 2), (2, 4), (0, 4)]; tg = tam_giac(L); assert len(tg) == 4 and abs(sum(abs(dien_tich([L[i] for i in t])) for t in tg) - 12) < 1e-9
@@ -61,6 +63,9 @@ def tu_kiem():
     x = np.random.default_rng(1).uniform(0, 10, (200, 2)); z = 0.3 * x[:, 0] - 0.2 * x[:, 1] + 5; z[:20] += 9
     cf = khop_mat(x, z); assert np.allclose(cf, [0.3, -0.2, 5], atol=1e-6), cf
     E, N = utm(12.3, -4.5); assert np.allclose(loc(E, N), (12.3, -4.5), atol=1e-6)
+    assert muc_san([47.0, 48.4, 45.8, 47.0, 45.7]) == 47.0  # ban công Wintergarten
+    assert muc_san([47.0, 48.4, 45.8]) is None  # < 4 m²
+    assert muc_san([34.2, 47.0, 39.6, 48.4, 30.0]) is None  # sườn vách dốc, không phải một mặt sàn
     print('tự kiểm: đạt')
 if '--tu-kiem' in sys.argv: tu_kiem(); sys.exit(0)
 
@@ -129,16 +134,20 @@ for k in K['ds']:
         if math.hypot(pl3[0], pl3[1]) > 3: continue  # mặt dốc > 72°: tường / vách LoD2 lẫn vào mái (nhà chân Viereckturm có mảnh sát chân tường → nắp rơi xuống móng, 20/11/2026)
         manh.append((q, pl3))
     if not manh: continue
-    em, el, co, sau, ngoai = [], [], 0, [], 0
+    em, el, co, sau, ngoai, lap, thapD = [], [], 0, [], 0, 0, []
     thap = min(float(np.min(q[:, 0] * pl3[0] + q[:, 1] * pl3[1] + pl3[2])) for q, pl3 in manh)  # mặt mái LoD2 thấp nhất trong mặt bằng
+    yk0 = min(y for _, _, y in k['d'])
     for x, z, y in k['d']:
         d = cao_dom(x, z); h = cao_mai(x, z, manh)
-        if h is None:
-            if d < thap - 3: ngoai += 1  # mặt bằng OSM chìa ra ngoài nhà thật (DOM20 rơi xuống đất / mái dưới): không tính là LoD2 thiếu mái (223110824: mép nam thừa 1 m → phủ 0,77, 20/11/2026)
+        if h is None:  # LoD2 không phủ điểm này — xếp loại để PHỦ = phần mặt bằng mô hình cuối giải thích được (Wintergarten 223179003: phủ 0,40 vì nửa đông là ban công thấp, mép nam chìa vào Palas, 22/11/2026)
+            if d < thap - 3: ngoai += 1; thapD.append((x, z, d))  # DOM20 rơi xuống đất / sàn thấp: mặt bằng OSM chìa ra ngoài nhà thật (223110824, 20/11/2026) hoặc ban công / sân thượng (dựng "san" bên dưới)
+            elif y > yk0 + 3: ngoai += 1  # khối KHÁC đứng trên điểm này: mái của nó, không phải của khối này
+            elif cao_mai(x, z, TG) is not None: ngoai += 1  # điểm thuộc mái LoD2 của nhà KHÁC: mặt bằng OSM chìa sang nhà bên cạnh, LoD2 mới là nguồn chia nhà (Wintergarten mép nam ↔ Palas: DOM20 nhoè mép lệch 1,5–2 m so mái đó)
+            elif abs(d - thap) <= 1.5: lap += 1  # LoD2 hở nhưng nắp ở mái thấp nhất trùng DOM20
             continue
         co += 1; em.append(d - y); el.append(d - h)
         if cach_mep(x, z, v) >= 1.5: sau.append(d - h)
-    phu = co / max(1, len(k['d']) - ngoai)
+    phu = (co + lap) / max(1, len(k['d']) - ngoai)
     if co < 6: continue
     am, al = np.abs(em), np.abs(el); r = {'id': k['id'], 'ten': k.get('ten'), 'diem': len(k['d']), 'phu': round(phu, 2), 'mh': round(float(np.median(am)), 2), 'l2': round(float(np.median(al)), 2),
                                          'mh90': round(float(np.percentile(am, 90)), 2), 'l290': round(float(np.percentile(al, 90)), 2)}
@@ -168,6 +177,17 @@ for k in K['ds']:
             if h is not None: vien.append(h)
     y1 = float(np.median(vien)) if len(vien) >= 4 else min(ys)  # phân vị 25 thử 20/11: tường thấp dưới hàng cửa đo theo ảnh (cửa lơ lửng) — trung vị đúng hơn
     mat = [[[round(x, 3), round(z, 3), round(pl3[0] * x + pl3[1] * z + pl3[2], 3)] for x, z in p] for p, pl3 in manh]
+    # SÀN THẤP trong mặt bằng (ban công, sân thượng): điểm LoD2 không phủ mà DOM20 thấp hơn mái thấp nhất ≥ 3 m, cùng một mặt (IQR ≤ 2 m, bỏ mép vách < 0,6 m; ≥ 4 điểm lưới 1 m = ≥ 4 m²)
+    # → lát sàn đá ở trung vị DOM20, tường mặt bằng cạnh nào nằm trên sàn chỉ lên tới lan can 1 m; nắp mái thấp nhất chỉ lấp phần còn lại (trước nắp + tường bọc kín cả ban công, 22/11/2026)
+    ysan = muc_san([d for x, z, d in thapD if cach_mep(x, z, v) >= 0.6]); san = None
+    if ysan is not None:
+        la_san = lambda x, z: cao_mai(x, z, manh) is None and cao_dom(x, z) < thap - 3; P, NP = [], []
+        for xc in np.arange(math.floor(bx0), bx1, 1.0):
+            for zc in np.arange(math.floor(bz0), bz1, 1.0):
+                for tri in (((xc, zc), (xc + 1, zc), (xc + 1, zc + 1)), ((xc, zc), (xc + 1, zc + 1), (xc, zc + 1))):
+                    q = cat(v, list(tri))
+                    if q: (P if la_san(*np.mean(q, 0)) else NP).append([[round(a, 3), round(b, 3)] for a, b in q])
+        if len(P) >= 4: san = {'y': round(ysan, 3), 'p': P, 'nap': NP}
     tuong = []  # dải tường đứng: mép mảnh mà ngay bên ngoài thấp hơn (mép khối → xuống y1; bậc giữa hai mặt → xuống mặt thấp)
     for p, pl3 in manh:
         ar = dien_tich(p); n = len(p)
@@ -176,12 +196,19 @@ for k in K['ds']:
             if L < 0.05: continue
             ux, uz = (bx_ - ax) / L, (bz_ - az) / L; nx, nz = (uz, -ux) if ar > 0 else (-uz, ux)  # pháp tuyến ra ngoài mảnh
             def ngoai(t):
-                x, z = ax + ux * t + nx * 0.05, az + uz * t + nz * 0.05; h = cao_mai(x, z, manh); return y1 if h is None else h
+                x, z = ax + ux * t + nx * 0.05, az + uz * t + nz * 0.05; h = cao_mai(x, z, manh); return h if h is not None else san['y'] if san and cao_dom(x, z) < thap - 3 else y1
             ya, yb = pl3[0] * ax + pl3[1] * az + pl3[2], pl3[0] * bx_ + pl3[1] * bz_ + pl3[2]; t0, t1 = min(0.05, L / 3), max(L - 0.05, 2 * L / 3)
             da, db = ngoai(t0), ngoai(t1)
             if ya - da > 0.05 or yb - db > 0.05: tuong.append([round(ax, 3), round(az, 3), round(min(da, ya), 3), round(ya, 3), round(bx_, 3), round(bz_, 3), round(min(db, yb), 3), round(yb, 3)])
     ra[k['id']] = {'y0': round(min(vien) if len(vien) >= 4 else min(ys), 3),  # y0 = mái thấp nhất ĐO ở viền trong 0,3 m, không lấy đỉnh mảnh: mảnh dốc chạm chân tường (nhà chân Viereckturm 21,45 m) kéo sàn khối xuống thấp hơn thật 2 m
                    'y1': round(y1, 3), 'y2': round(y2, 3), 'mat': mat, 'tuong': tuong, 'mh': r['mh'], 'l2': r['l2']}
+    if san:  # cạnh mặt bằng phần lớn nằm trên sàn thấp: đỉnh tường = lan can
+        canh = []
+        for i in range(len(vv)):
+            (ax, az), (bx_, bz_) = vv[i], vv[(i + 1) % len(vv)]; L = math.hypot(bx_ - ax, bz_ - az); ux, uz = ((bx_ - ax) / L, (bz_ - az) / L) if L else (0, 0); nx, nz = (-uz, ux) if ar_v > 0 else (uz, -ux)
+            ts = np.arange(0.3, L - 0.29, 0.5) if L >= 0.6 else []; tr_ = [cao_mai(ax + ux * s_ + nx * 0.3, az + uz * s_ + nz * 0.3, manh) is None and cao_dom(ax + ux * s_ + nx * 0.3, az + uz * s_ + nz * 0.3) < thap - 3 for s_ in ts]
+            canh.append(round(san['y'] + 1.0, 3) if len(tr_) and np.mean(tr_) >= 0.5 else None)
+        ra[k['id']].update(san={'y': san['y'], 'p': san['p']}, nap=san['nap'], canh=canh); print(k['id'], f"sàn thấp {san['y']:.1f} m · {len(san['p'])} mảnh · cạnh lan can {sum(c is not None for c in canh)}/{len(canh)}")
     # cửa mái / chóp nhỏ đo trên ảnh 3D (do-mai.mjs) đặt lên mái LoD2: giữ chỉ khi DOM20 thấy khối nhô (trung vị DOM20 − mái LoD2 trong vết ≥ 0,35 m; DOM lấy trung vị 1 m nên cửa mái nhỏ chỉ còn nhô ~0,4–0,6 m).
     # Mái LoD2 đã mang dáng thật (mái hông nhiều mặt) nên cửa mái đo ảnh trên đó thường là chính mặt mái bị đo nhầm → nhô 1,5–2,8 m mà DOM20 phẳng
     # (tháp đa giác 223179004 bắc Palas lệch −2,2 m, trọng tài chặn, 21/11/2026)

@@ -45,14 +45,16 @@ export function cotQc<T>(f: (r: T) => GopQc | null | undefined): DataColumn<T>[]
     <span style={{ fontVariantNumeric: 'tabular-nums', color: v == null ? MO : mauLech(lech) }}>{v == null ? '—' : `${tien ? '$' : ''}${so(v, d)}`}</span>;
   const tt = (r: T) => { const x = cs(r); return x ? moTa(x.s, x.g) : 'Chưa có số AdSense trong khoảng này'; };
   const sv = (k: keyof ChiSoQc) => (r: T) => { const v = cs(r)?.s[k]; return typeof v === 'number' ? v : -1e9; };
-  return [
+  // bề rộng đủ cho "$88,33" / "+120%" / chip "trang hỏng" — không đặt thì bảng nhiều cột ép mất số
+  const W: Record<string, number> = { qc_irpm: 72, qc_fill: 58, qc_prpm: 78, qc_xem: 62, qc_roi: 60, qc_nhan: 92 };
+  const ds: DataColumn<T>[] = [
     { key: 'qc_irpm', group: 'qc', header: 'IRPM', title: 'Impression RPM — tiền AdSense trên 1.000 QC hiện; đỏ = thấp hơn chợ cùng ngày', align: 'right', cellTitle: (r) => tt(r), sortValue: sv('irpm'),
       cell: (r) => { const x = cs(r); return o(x?.s.irpm ?? null, 2, true, x?.s.irpmLech ?? null); } },
     { key: 'qc_fill', group: 'qc', header: 'Fill', title: 'Tỉ lệ lấp — QC hiện trên lượt xin QC (%)', align: 'right', cellTitle: (r) => tt(r), sortValue: sv('fill'),
       cell: (r) => { const x = cs(r); return o(x?.s.fill ?? null, 1, false, x?.s.fillLech ?? null); } },
     { key: 'qc_prpm', group: 'qc', header: 'Page RPM', title: 'Tiền AdSense trên 1.000 lượt xem trang', align: 'right', cellTitle: (r) => tt(r), sortValue: sv('prpm'),
       cell: (r) => { const x = cs(r); return o(x?.s.prpm ?? null, 2, true, x?.s.prpmLech ?? null); } },
-    { key: 'qc_xem', group: 'qc', header: 'QC/lượt xem', title: 'Số QC hiện trên mỗi lượt xem trang', align: 'right', cellTitle: (r) => tt(r), sortValue: sv('qcXem'),
+    { key: 'qc_xem', group: 'qc', header: 'QC/xem', title: 'Số QC hiện trên mỗi lượt xem trang', align: 'right', cellTitle: (r) => tt(r), sortValue: sv('qcXem'),
       cell: (r) => o(cs(r)?.s.qcXem ?? null, 2) },
     { key: 'qc_roi', group: 'qc', header: 'ROI', title: 'ROI % của đúng các ngày có số AdSense', align: 'right', cellTitle: (r) => tt(r), sortValue: sv('roi'),
       cell: (r) => { const v = cs(r)?.s.roi ?? null; return <span style={{ fontVariantNumeric: 'tabular-nums', color: v == null ? MO : v >= 0 ? 'var(--neon-lime, #4ade80)' : '#f87171' }}>{v == null ? '—' : `${v > 0 ? '+' : ''}${Math.round(v)}%`}</span>; } },
@@ -60,6 +62,7 @@ export function cotQc<T>(f: (r: T) => GopQc | null | undefined): DataColumn<T>[]
       sortValue: (r) => { const n = cs(r)?.s.nhan; return n === 'trang hỏng' ? 3 : n === 'trang yếu' ? 2 : n === 'FB đắt' ? 1 : 0; },
       cell: (r) => { const x = cs(r); return x ? <ChipQc s={x.s} g={x.g} /> : <span style={{ color: MO }}>—</span>; } },
   ];
+  return ds.map((c) => ({ ...c, width: W[c.key] }));
 }
 
 type Diem = { d: string; irpm: number | null; fill: number | null; choI: number | null; choF: number | null };

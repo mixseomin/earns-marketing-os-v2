@@ -119,17 +119,24 @@ scene.add(datMesh);
 function ghiChan(x, y, z) { const i = Math.floor((x + NUA) / LUOI_O), j = Math.floor((z + NUA) / LUOI_O); if (i < 0 || j < 0 || i >= LUOI_N || j >= LUOI_N) return; const k = j * LUOI_N + i; if (y < chan[k]) { chan[k] = y; chanDoi = true; } }
 function dungDat() { // lấp ô trống theo ô có dữ liệu gần nhất (loang nhiều nguồn), rồi dựng lưới hiện + va chạm
   chanDoi = false;
-  const h = new Float32Array(chan), xong = new Uint8Array(h.length); let hang = [];
-  for (let k = 0; k < h.length; k++) if (h[k] < Infinity) { xong[k] = 1; hang.push(k); }
-  if (!hang.length) return;
-  while (hang.length) { const moi = []; for (const k of hang) { const i = k % LUOI_N, j = (k / LUOI_N) | 0;
-    for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const x = i + a, z = j + b; if (x < 0 || z < 0 || x >= LUOI_N || z >= LUOI_N) continue; const q = z * LUOI_N + x; if (xong[q]) continue; xong[q] = 1; h[q] = h[k]; moi.push(q); } } hang = moi; }
-  // ô nằm trọn trong lòng một toà chỉ có đỉnh mái → gò nhọn. Lọc MIN bán kính 6 ô (~100 m) xoá mái, rồi làm mượt hộp 2 ô
+  const h = new Float32Array(chan);
+  const loang = () => { const xong = new Uint8Array(h.length); let hang = []; // lấp ô trống theo ô có dữ liệu gần nhất
+    for (let k = 0; k < h.length; k++) if (h[k] < Infinity) { xong[k] = 1; hang.push(k); }
+    while (hang.length) { const moi = []; for (const k of hang) { const i = k % LUOI_N, j = (k / LUOI_N) | 0;
+      for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const x = i + a, z = j + b; if (x < 0 || z < 0 || x >= LUOI_N || z >= LUOI_N) continue; const q = z * LUOI_N + x; if (xong[q]) continue; xong[q] = 1; h[q] = h[k]; moi.push(q); } } hang = moi; }
+    return hang; };
+  if (!h.some((v) => v < Infinity)) return;
+  loang();
   const loc = (src, r, f) => { const t = new Float32Array(src.length), o = new Float32Array(src.length);
     for (let j = 0; j < LUOI_N; j++) for (let i = 0; i < LUOI_N; i++) { let v = f === 'min' ? Infinity : 0, n = 0; for (let d = -r; d <= r; d++) { const x = i + d; if (x < 0 || x >= LUOI_N) continue; const s = src[j * LUOI_N + x]; if (f === 'min') v = Math.min(v, s); else { v += s; n++; } } t[j * LUOI_N + i] = f === 'min' ? v : v / n; }
     for (let j = 0; j < LUOI_N; j++) for (let i = 0; i < LUOI_N; i++) { let v = f === 'min' ? Infinity : 0, n = 0; for (let d = -r; d <= r; d++) { const z = j + d; if (z < 0 || z >= LUOI_N) continue; const s = t[z * LUOI_N + i]; if (f === 'min') v = Math.min(v, s); else { v += s; n++; } } o[j * LUOI_N + i] = f === 'min' ? v : v / n; }
     return o; };
-  h.set(loc(loc(h, 6, 'min'), 2, 'tb'));
+  // ô nằm trọn trong lòng một toà chỉ có đỉnh mái → gò nhọn. CHỈ xoá đúng các ô gò đó (cao hơn chỗ thấp nhất trong ~100 m quá GO_MAI) rồi lấp lại theo ô lân cận;
+  // ô thường giữ nguyên chân tường của chính nó. Trước đây lọc MIN cả lưới nên đất dốc bị kéo xuống chân nhà thấp nhất quanh đó → nhà trên cao hở chân vài mét
+  const GO_MAI = 9, day = loc(h, 6, 'min'); let go = 0;
+  for (let k = 0; k < h.length; k++) if (h[k] - day[k] > GO_MAI) { h[k] = Infinity; go++; }
+  if (go) loang();
+  h.set(loc(h, 1, 'tb'));
   datY = h;
   const vs = new Float32Array(LUOI_N * LUOI_N * 3), idx = [];
   for (let j = 0; j < LUOI_N; j++) for (let i = 0; i < LUOI_N; i++) { const k = j * LUOI_N + i; vs[k * 3] = -NUA + (i + 0.5) * LUOI_O; vs[k * 3 + 1] = h[k] - 0.05; vs[k * 3 + 2] = -NUA + (j + 0.5) * LUOI_O; }
@@ -425,7 +432,7 @@ renderer.setAnimationLoop(() => {
   if (!camera.matrixWorld.equals(_camO) || !camera.projectionMatrix.equals(_chieuO) || now - tO > 500 || dsTiles.some((t) => t.stats.queued + t.stats.downloading + t.stats.parsing > 0)) {
     _camO.copy(camera.matrixWorld); _chieuO.copy(camera.projectionMatrix); tO = now;
     for (const t of dsTiles) { t.setCamera(camera); t.setResolutionFromRenderer(camera, renderer); t.update(); } }
-  if (chanDoi && now - tDat > (datY ? 2500 : 600)) { tDat = now; dungDat(); }
+  if (chanDoi && now - tDat > (datY ? 2500 : 600)) { tDat = now; dungDat(); if (!di?.dang && qs.has('goc') && !qs.has('bay')) daGoc = false; } // đất đổi cao độ khi ô nhà nạp thêm → góc dựng sẵn đặt lại theo (chỉ khi anh chưa tự xoay)
   bauTroi.position.copy(camera.position);
   if (mua.bat) { const pM = di?.dang ? di.viTri() : orbit.target; mua.khung(dt, datTai(pM.x, pM.z), dsUot, bauTroi.visible ? bauTroi : null); }
   ve(); demKhung++;

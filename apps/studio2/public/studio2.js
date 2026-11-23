@@ -569,7 +569,7 @@ async function apUvMoi() { const cho = E.thayUv || {}; let doi = 0;
     delete cho[c.id]; if (uv.at(-1) !== c.keyframe_url) { try { await ghiSv('chonKeyframe', c.id, uv.at(-1)); doi++; } catch {} } }
   return doi; }
 const BUOC_SV = {
-  brief: (t) => { if (t.coCachKe && E.coSo === undefined) throw new Error('đang đọc cơ sở Astrolas của video, bấm lại sau vài giây'); return ghiSv('suaTap', t.tap, { brief: t.coCachKe ? briefDayDu() : E.kb.brief.trim() }); },
+  brief: (t) => { if (t.coCachKe && E.coSo === undefined) throw new Error('đang đọc cơ sở Astrolas của video, bấm lại sau vài giây'); return ghiSv('suaTap', t.tap, { brief: t.coCachKe ? briefDayDu() : E.kb.brief.trim(), thoi_luong_s: E.kb.giay }); },   // độ dài lưu cùng ý tưởng vào tập: mở lại video không về 45s
   astro: async (t) => { const q = (E.cs.cauHoi || E.kb.brief).trim(); if (q.length < 8) throw new Error('gõ điều bạn muốn Astrolas phân tích'); E.coSo = await ghiSv('phanTichAstrolasS2', t.tap, { cauHoi: q, nguoi: E.cs.nguoi, ngonNgu: t.kt.ngon_ngu || 'vi' }); },
   viet: (t) => { if (!E.kb.brief.trim()) throw new Error('chưa có ý tưởng: gõ video nói về gì, cho ai xem'); return ghiSv('vietKichBanTap', t.tap, laChiemTinh(t) ? briefDayDu() : E.kb.brief.trim(), E.kb.giay); },
   tach: (t) => ghiSv('tachCanhTap', t.tap, 0, E.kb.giay),
@@ -696,7 +696,7 @@ const tenTuY = (y) => { const c = String(y || '').trim().split(/[\n.!?]/)[0].tri
 async function taoVideo(mau) { const o = E.tao; if (!o || o.dang) return; if (!mau && !o.ten.trim() && !(nguoiMoi() && o.y.trim())) { o.loi = nguoiMoi() ? 'gõ vài dòng: video nói về gì' : 'chưa đặt tên video'; return vePhu(); } o.dang = true; o.loi = ''; vePhu();
   try { let id, tap;
     if (mau) { id = await ghiSv('taoPhimMau', mau); tap = (await goi('docPhim', id))?.tap[0]?.id; }
-    else { ({ phim: id, tap } = await ghiSv('taoPhimS2', { ten: o.ten.trim() || tenTuY(o.y), loai: o.loai, goi: o.goi, brief: o.y.trim() })); if (o.y.trim()) E.kb = { brief: o.y.trim(), giay: E.kb.giay }; }
+    else { ({ phim: id, tap } = await ghiSv('taoPhimS2', { ten: o.ten.trim() || tenTuY(o.y), loai: o.loai, goi: o.goi, brief: o.y.trim(), giay: E.kb.giay })); if (o.y.trim()) E.kb = { brief: o.y.trim(), giay: E.kb.giay }; }
     if (!tap) throw new Error(`đã tạo phim #${id} nhưng chưa có tập; mở phim trong menu tên phim`);
     E.tao = null; E.bcUrl = 'lam'; E.kq = undefined; vePhu(); await moPhimThat(id, tap); }
   catch (e) { o.dang = false; o.loi = e.message; vePhu(); } }
@@ -866,7 +866,7 @@ function veQt() {
     <div class="qt-buoc"><h3>3 · Kịch bản</h3>${kb || '<span class="nho">Chưa có kịch bản. Máy viết theo góc nhìn của bạn, lấy phần Astrolas phân tích làm căn cứ, rồi tự chấm.</span>'}${nut(['viet'])}</div>
     <div class="qt-buoc"><h3>4 · Tách thành cảnh</h3>` : `<div class="qt-buoc"><h3>1 · Ý tưởng</h3>${yTuong}${nut(['brief'])}${astro}</div>
     <div class="qt-buoc"><h3>2 · Kịch bản</h3>${kb || '<span class="nho">Chưa có kịch bản. Máy viết theo ý tưởng và độ dài bạn chọn, rồi tự chấm.</span>'}${nut(['viet'])}</div>
-    <div class="qt-buoc"><h3>3 · Tách thành cảnh</h3><span class="nho">Máy chia kịch bản thành từng cảnh có hình, lời, cỡ máy. Xong thì cảnh hiện lên timeline và các bước kế mở ra ở đây.</span>${t.kichBan ? nut(['tach']) : '<span class="nho">Cần có kịch bản trước.</span>'}</div>${lk}`;
+    <div class="qt-buoc"><h3>3 · Tách thành cảnh</h3><span class="nho">Máy chia kịch bản thành từng cảnh có hình, lời, cỡ máy. Xong thì cảnh hiện lên timeline và các bước kế mở ra ở đây.</span>${t.kichBan ? nut(['tach']) : '<span class="nho">Cần có kịch bản trước.</span>'}</div>${laQuanTri() ? lk : ''}`;
   else if (!E.qt?.ds) h += '<span class="nho">Đang đọc quy trình từ studio…</span>';
   else { const ds = E.qt.ds, mo = E.qtMo || ds.find((m) => !m.ok)?.key || '', coClip = canhThat().filter((c) => c.video_url || c.video_cuoi_url).length, CONG = { keyframe: 'vẽ ảnh', video: 'dựng clip', xuat: 'xuất' };
     for (const nhom of ['Tiền kỳ', 'Sản xuất', 'Hậu kỳ']) { h += `<h3>${nhom}</h3>`;

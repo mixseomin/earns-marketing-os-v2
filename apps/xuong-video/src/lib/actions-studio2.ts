@@ -315,7 +315,7 @@ export async function dsTemplateS2(): Promise<{ id: number; ten: string; mo_ta: 
 
 /** Tạo phim cho Studio 2 trong một lượt: phim (loại theo gói thể loại nếu chọn gói) + gắn gói vào kinh thánh (gói · thể loại · khung hình — đúng ba khoá
  *  form Kinh thánh của studio đặt khi chọn gói) + tập 1 + ý tưởng + chủ phim = người bấm. 0đ. */
-export async function taoPhimS2(d: { ten?: string; loai?: string; goi?: string; brief?: string }): Promise<{ ok: true; data: { phim: number; tap: number } } | { ok: false; loi: string }> {
+export async function taoPhimS2(d: { ten?: string; loai?: string; goi?: string; brief?: string; giay?: number }): Promise<{ ok: true; data: { phim: number; tap: number } } | { ok: false; loi: string }> {
   const db = getDb(), me = await getCurrentUser();
   if (!db || !me || !(await laAdmin())) return { ok: false, loi: 'không có quyền' };
   const g = goiTheoKey(d.goi), loai = (g?.loai ?? d.loai ?? 'short') as LoaiPhim;
@@ -327,6 +327,8 @@ export async function taoPhimS2(d: { ten?: string; loai?: string; goi?: string; 
   let tap = Number(((await db.execute(sql`SELECT id FROM xv_tap WHERE phim_id = ${id} ORDER BY so LIMIT 1`)) as unknown as Row[])[0]?.id ?? 0);
   if (!tap) { const t = await taoTap(id, 'Tập 1'); if (!t.ok) return t; tap = t.data; }
   if (String(d.brief ?? '').trim()) await db.execute(sql`UPDATE xv_tap SET brief = ${String(d.brief).trim()}, updated_at = now() WHERE id = ${tap}`);
+  const giay = Math.round(Number(d.giay));   // độ dài người tạo chọn trong hộp tạo: lưu vào tập để Quy trình / viết kịch bản đọc đúng, không về 45s mặc định
+  if (giay >= 10 && giay <= 600) await db.execute(sql`UPDATE xv_tap SET thoi_luong_s = ${giay}, updated_at = now() WHERE id = ${tap}`);
   return { ok: true, data: { phim: id, tap } };
 }
 

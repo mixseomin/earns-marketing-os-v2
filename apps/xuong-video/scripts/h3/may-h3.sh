@@ -49,19 +49,22 @@ thue_vast() {   # máy một card ≥ 24GB, đời card ≥ 8.0 (INT8 ConvRot �
   local DS i g gia noi R N
   # VAST HẾT TIỀN (20/11/2026, lượt thử phim #7999: số dư −0,05$): vẫn thuê được, vài phút sau Vast tự DỪNG máy giữa lúc tải mô hình, iMac chờ suông.
   # Số dư (credit + balance) không quá XV_H3_VAST_SO_DU (mặc định 0,3$) → bỏ qua Vast, sang nhà kế (RunPod).
+  # PHÍ TẢI VỀ (anh 23/11/2026, hoá đơn Vast máy 61054518: GPU 0,09$ mà tải về 41,6 GB × 0,04$/GB = 1,63$): dph_total của Vast KHÔNG gồm phí mạng,
+  # mỗi lượt kéo ~42 GB (image + mô hình) → lọc máy phí tải ≤ XV_H3_GIA_TAI $/GB (mặc định 0,005) và xếp theo giá THẬT một lượt
+  # = giá giờ × XV_H3_GIO_UOC (mặc định 0,5) + XV_H3_GB_TAI (mặc định 45) × phí tải. Máy phí tải 0$ (có ở UAE, Tây Ban Nha…) thường lên đầu.
   local SD; SD=$(VAPI GET "/users/current/" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(round(float(d.get("credit") or 0) + float(d.get("balance") or 0), 3))' 2>/dev/null)
   python3 -c "import sys; sys.exit(0 if float('${SD:-0}') > float('${XV_H3_VAST_SO_DU:-0.3}') else 1)" 2>/dev/null || { echo "  Vast: số dư ${SD:-?}\$ không đủ (cần hơn ${XV_H3_VAST_SO_DU:-0.3}\$) → bỏ qua Vast, sang nhà kế. Nạp tiền Vast thì lượt sau tự dùng lại (rẻ hơn RunPod ~2,5 lần)" >&2; return 1; }
-  DS=$(VAPI GET "/bundles/?q=$(python3 -c 'import json,urllib.parse,sys; print(urllib.parse.quote(json.dumps({"verified":{"eq":True},"rentable":{"eq":True},"num_gpus":{"eq":1},"gpu_frac":{"gte":0.99},"cuda_max_good":{"gte":13.0},"disk_space":{"gte":int(sys.argv[3])},"reliability2":{"gte":0.97},"inet_down":{"gte":500},"gpu_ram":{"gte":int(sys.argv[2])},"compute_cap":{"gte":800},"dph_total":{"lte":float(sys.argv[1])},"type":"on-demand","order":[["dph_total","asc"]],"limit":8})))' "${XV_H3_GIA_TOI_DA:-0.6}" "${XV_H3_VRAM:-23000}" "${XV_H3_O:-70}")" \
-    | python3 -c 'import json,sys; [print("%s|%s|%.3f|%s" % (o["id"], o["gpu_name"], o["dph_total"], o.get("geolocation") or "")) for o in json.load(sys.stdin).get("offers",[])]' 2>/dev/null)
-  [ -n "$DS" ] || { echo "  Vast: không có máy hợp (≤ \$${XV_H3_GIA_TOI_DA:-0.6}/giờ, driver CUDA 13)" >&2; return 1; }
-  while IFS='|' read -r i g gia noi; do
+  DS=$(VAPI GET "/bundles/?q=$(python3 -c 'import json,urllib.parse,sys; print(urllib.parse.quote(json.dumps({"verified":{"eq":True},"rentable":{"eq":True},"num_gpus":{"eq":1},"gpu_frac":{"gte":0.99},"cuda_max_good":{"gte":13.0},"disk_space":{"gte":int(sys.argv[3])},"reliability2":{"gte":0.97},"inet_down":{"gte":500},"gpu_ram":{"gte":int(sys.argv[2])},"compute_cap":{"gte":800},"dph_total":{"lte":float(sys.argv[1])},"inet_down_cost":{"lte":float(sys.argv[4])},"type":"on-demand","order":[["dph_total","asc"]],"limit":40})))' "${XV_H3_GIA_TOI_DA:-0.6}" "${XV_H3_VRAM:-23000}" "${XV_H3_O:-70}" "${XV_H3_GIA_TAI:-0.005}")" \
+    | python3 -c 'import json,sys,os; t=float(os.environ.get("XV_H3_GB_TAI","45")); h=float(os.environ.get("XV_H3_GIO_UOC","0.5")); ds=json.load(sys.stdin).get("offers",[]); ds.sort(key=lambda o: o["dph_total"]*h + (o.get("inet_down_cost") or 0)*t); [print("%s|%s|%.3f|%s|%.4f|%.3f" % (o["id"], o["gpu_name"], o["dph_total"], o.get("geolocation") or "", o.get("inet_down_cost") or 0, o["dph_total"]*h + (o.get("inet_down_cost") or 0)*t)) for o in ds[:8]]' 2>/dev/null)
+  [ -n "$DS" ] || { echo "  Vast: không có máy hợp (≤ \$${XV_H3_GIA_TOI_DA:-0.6}/giờ, tải về ≤ \$${XV_H3_GIA_TAI:-0.005}/GB, driver CUDA 13)" >&2; return 1; }
+  while IFS='|' read -r i g gia noi tai uoc; do
     case "$g" in CMP*) echo "  bỏ $g (card đào coin — 17/11/2026 thuê được mà không lên SSH)" >&2; continue ;; GB10*) echo "  bỏ $g (máy chip ARM — image x86 không chạy, 20/11/2026)" >&2; continue ;; esac
     # vùng không kéo nổi image ghcr (20/11/2026: máy Shanghai, CN rẻ nhất, thuê được nhưng không bao giờ lên SSH) — XV_H3_BO_VUNG="CN RU" để đổi
     case " ${XV_H3_BO_VUNG:-CN} " in *" ${noi##*, } "*) echo "  bỏ máy ở $noi (vùng không kéo được image)" >&2; continue ;; esac
     R=$(VAPI PUT "/asks/$i/" "$(python3 -c 'import json,sys; print(json.dumps({"client_id":"me","image":sys.argv[1],"disk":int(sys.argv[2]),"runtype":"ssh_direc ssh_proxy","onstart":"touch /root/.no_auto_tmux","label":"xv-h3-thu"}))' "$ANH" "${XV_H3_O:-70}")")
     N=$(echo "$R" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("new_contract") or "")' 2>/dev/null)
     [ -n "$N" ] || { echo "  Vast $g ($noi): không thuê được $(echo "$R" | head -c 100)" >&2; continue; }
-    MAY=$N; LOAI=vast; GIA=$gia; echo "máy vast $MAY · $g · $noi · $gia\$/giờ" >&2
+    MAY=$N; LOAI=vast; GIA=$gia; echo "máy vast $MAY · $g · $noi · $gia\$/giờ · tải về $tai\$/GB · ước một lượt ~$uoc\$" >&2
     HOST=$(cho_ssh cong_vast); [ -n "$HOST" ] && return 0
   done <<< "$DS"; return 1; }
 thue_runpod() {

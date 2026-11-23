@@ -262,12 +262,7 @@ echo "set \$sprawl_ban \"$SP_BAN\";" > /tmp/sprawl-ban.conf
 if ! cmp -s /tmp/sprawl-ban.conf /etc/nginx/snippets/sprawl-ban.conf || ! cmp -s apps/sprawl/deploy/sprawl.on.tc.nginx /etc/nginx/sites-enabled/sprawl.on.tc; then
   cp /tmp/sprawl-ban.conf /etc/nginx/snippets/sprawl-ban.conf && cp apps/sprawl/deploy/sprawl.on.tc.nginx /etc/nginx/sites-enabled/sprawl.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx sprawl.on.tc cài/cập nhật (bản $SP_BAN)" || { echo "✗ nginx sprawl.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/sprawl.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
 fi
-# 5e7. WORLDS (apps/worlds/public, worlds.on.tc) — Sổ Thế Giới: nhiều thế giới giả tưởng dạng OnlyWorlds, tệp tĩnh sau SSO mos2 (anh 23/11/2026). Cùng khuôn 5e6.
-WD_BAN=$(cat apps/worlds/public/*.js apps/worlds/public/*.css | md5sum | cut -c1-12)
-echo "set \$worlds_ban \"$WD_BAN\";" > /tmp/worlds-ban.conf
-if ! cmp -s /tmp/worlds-ban.conf /etc/nginx/snippets/worlds-ban.conf || ! cmp -s apps/worlds/deploy/worlds.on.tc.nginx /etc/nginx/sites-enabled/worlds.on.tc; then
-  cp /tmp/worlds-ban.conf /etc/nginx/snippets/worlds-ban.conf && cp apps/worlds/deploy/worlds.on.tc.nginx /etc/nginx/sites-enabled/worlds.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx worlds.on.tc cài/cập nhật (bản $WD_BAN)" || { echo "✗ nginx worlds.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/worlds.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
-fi
+# 5e7. WORLDS đã tách repo riêng mixseomin/worlds (23/11/2026): box3 /opt/worlds, lên bản bằng scripts/day.sh của repo đó → /opt/worlds/deploy/len.sh. KHÔNG cài vhost worlds ở đây.
 
 # 5z. vhost etp.on.tc cài từ repo (có trang "đang cập nhật" tự tải lại khi mos2-web khởi động lại) — chỉ khi tệp đổi
 if ! cmp -s apps/etp/deploy/etp.on.tc.nginx /etc/nginx/sites-enabled/etp.on.tc; then

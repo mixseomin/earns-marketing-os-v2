@@ -18,26 +18,33 @@ type MucSo = { ma: string; ten: string; loai: string; trang_thai: string; may?: 
 /** ô thành phần của mẫu (sổ › o): mỗi ô gắn một QUY TẮC chọn từ một thư viện (sổ › thu_vien), không gắn cứng tệp */
 export type OMau = { ma: string; ten: string; thu_vien: string; luat: string };
 export type ThuVienSo = { ten: string; nguon: string; co: boolean };
-const THU_VIEN = (SO_MAU as unknown as { thu_vien: Record<string, ThuVienSo> }).thu_vien;
+const THU_VIEN = (SO_MAU as unknown as { thu_vien: Record<string, ThuVienSo & { cau?: Record<string, string[][]> }> }).thu_vien;
+/** một món ghim vào ô (cũng là một món của thư viện bên phải): nguon = bảng gốc, id = khoá trong bảng đó, anh = ảnh xem trên trang, src = ảnh gốc máy dựng tải, chu = chữ (câu giọng) */
+export type Ghim = { nguon: string; id: string; ten: string; anh: string | null; src: string | null; chu?: string | null };
+/** thư viện theo khoá sổ (khung_phim, poster, giong, anh_tv…) — chỉ món của đúng phim đang soạn */
+export type ThuVienO = Record<string, Ghim[]>;
 /** mẫu máy dựng được (cùng điều kiện chonPhimMau: có hàm trong dung-mau.py, không phải công thức, không ở trạng thái chưa) */
 const MAU_DUNG = (SO_MAU.mau as MucSo[]).filter((x) => x.loai !== 'cong_thuc' && x.trang_thai !== 'chua' && (x.may ?? '').startsWith('dung-mau.py'));
 
 export type MauChon = { ma: string; ten: string; mo_ta: string; anh: string | null; anh_phim: string | null; nhom: string | null; cau_nhu: boolean;
   /** ô thành phần đã khai (rỗng = mẫu chưa khai, máy tự chọn theo luật mẫu) — kèm tên + nguồn thư viện của ô */ o: (OMau & { tv: ThuVienSo | null })[] };
 export type SoanCr = { id: number; mau: string | null; cau: string | null; nhan: string | null; chu_dau: string | null; trang_thai: 'nhap' | 'dung' | 'xong' | 'loi'; ghi: string | null;
-  creative_id: number | null; cap_nhat: string; /** việc dựng đang ở bước nào (etp.mau_dung) khi trang_thai = dung */ buoc: string | null };
+  creative_id: number | null; cap_nhat: string; /** việc dựng đang ở bước nào (etp.mau_dung) khi trang_thai = dung */ buoc: string | null;
+  /** ô đã ghim (mã ô → món thư viện); ô vắng = máy chọn theo quy tắc */ o: Record<string, Ghim> | null };
 export type CrCuaPhim = { creative_id: number; dang: string | null; lang: string | null; anh: string | null; video: string | null; luc: string | null; mau: string | null;
   camp_id: number | null; camp_tt: string | null; duyet: boolean | null; tu_choi: string | null };
 export type DuCrPhim = { phim: string | null; mau: MauChon[]; soan: SoanCr[]; cr: CrCuaPhim[]; con: number };
 
 const BANG = sql`create table if not exists etp.cr_soan (id serial primary key, content_id integer not null, mau text, cau text, nhan text, chu_dau text,
-  trang_thai text not null default 'nhap', ghi text, tv_id integer, creative_id integer, ai text, tao timestamptz not null default now(), cap_nhat timestamptz not null default now())`;
+  trang_thai text not null default 'nhap', ghi text, tv_id integer, creative_id integer, ai text, tao timestamptz not null default now(), cap_nhat timestamptz not null default now(), o jsonb)`;
+/** bảng + cột ô ghim (migration 0467) — chạy được cả khi deploy chưa áp migration */
+const damBang = async () => { await getDb()!.execute(BANG); await getDb()!.execute(sql`alter table etp.cr_soan add column if not exists o jsonb`); };
 
 /** số creative + bản đang soạn của các phim (chip "🎬 N" trên hàng phim) */
 export async function demCrPhim(ids: number[]): Promise<Record<number, { cr: number; soan: number }>> {
   if (!(await laChu())) return {};
   const ds = [...new Set(ids.map((x) => Math.trunc(Number(x))).filter((x) => x > 0))].slice(0, 2000); if (!ds.length) return {};
-  await getDb()!.execute(BANG);
+  await damBang();
   const arr = sql.raw(`array[${ds.join(',')}]::int[]`);
   const r = await run<{ k: number; cr: number; soan: number }>(sql`select k, coalesce(c.n, 0)::int cr, coalesce(s.n, 0)::int soan from unnest(${arr}) k
     left join (select content_id, count(*) n from etp.creative where content_id = any(${arr}) group by 1) c on c.content_id = k
@@ -49,9 +56,9 @@ export async function demCrPhim(ids: number[]): Promise<Record<number, { cr: num
 export async function docCrPhim(contentId: number): Promise<DuCrPhim | { loi: string }> {
   if (!(await laChu())) return { loi: 'không có quyền' };
   const cid = Math.trunc(Number(contentId)); if (!(cid > 0)) return { loi: 'mã phim không hợp lệ' };
-  await getDb()!.execute(BANG);
+  await damBang();
   const [f] = await run<{ ten: string | null }>(sql`select ten from etp.phim where content_id = ${cid}`);
-  const soan = await run<SoanCr>(sql`select s.id, s.mau, s.cau, s.nhan, s.chu_dau, s.trang_thai, s.ghi, s.creative_id, s.cap_nhat::text cap_nhat,
+  const soan = await run<SoanCr>(sql`select s.id, s.mau, s.cau, s.nhan, s.chu_dau, s.trang_thai, s.ghi, s.creative_id, s.cap_nhat::text cap_nhat, s.o,
       case when s.trang_thai = 'dung' then d.buoc end buoc
     from etp.cr_soan s left join etp.mau_dung d on d.mau = s.mau and d.content_id = s.content_id
     where s.content_id = ${cid} and (s.trang_thai <> 'xong' or s.cap_nhat > now() - interval '2 days') order by s.cap_nhat desc limit 30`);
@@ -69,22 +76,60 @@ export async function docCrPhim(contentId: number): Promise<DuCrPhim | { loi: st
     cr: cr.map((x) => ({ ...x, creative_id: Number(x.creative_id), camp_id: x.camp_id == null ? null : Number(x.camp_id) })) };
 }
 
+/** ảnh tương đối của Ethopex: trang xem qua /api/ethopex/anh (cùng miền), máy dựng tải thẳng CDN gốc */
+const anhXem = (p: string | null) => (!p ? null : /^https?:\/\//.test(p) ? p : `/api/ethopex/anh?p=${encodeURIComponent(p.replace(/^\/+/, ''))}`);
+const anhGoc = (p: string | null) => (!p ? null : /^https?:\/\//.test(p) ? p : `https://acdn.dofez.com/${p.replace(/^\/+/, '')}`);
+
+/** THƯ VIỆN CHO BƯỚC THÀNH PHẦN: mọi món của đúng phim, gom theo khoá thư viện của sổ (ô nào dùng khoá nào: sổ › mau[].o[].thu_vien).
+ *  khung_phim = khung creative đã cắt của phim (etp.anh_cr) + ảnh bìa phim · poster = poster gốc (etp.phim_poster) + ảnh bìa · anh_tv = bản đã dựng trong etp.thu_vien
+ *  · giong = câu đọc theo ngôn ngữ phim (sổ › thu_vien.giong.cau, cùng nguồn anh-tinh.py). Khung trích từ tập 1–3 chỉ có trên iMac → ô để trống thì máy tự chọn từ đó. */
+export async function docThuVienO(contentId: number): Promise<ThuVienO | { loi: string }> {
+  if (!(await laChu())) return { loi: 'không có quyền' };
+  const cid = Math.trunc(Number(contentId)); if (!(cid > 0)) return { loi: 'mã phim không hợp lệ' };
+  const [f] = await run<{ ten: string | null; lang: string | null; bia: string | null }>(sql`select coalesce(p.ten, v.ten) ten, coalesce(p.locale, v.locale) lang, v.anh bia
+    from (select ${cid}::bigint content_id) k left join etp.phim p using (content_id) left join etp.thu_vien_phim v using (content_id)`);
+  const bia: Ghim[] = f?.bia ? [{ nguon: 'thu_vien_phim', id: String(cid), ten: 'ảnh bìa phim', anh: anhXem(f.bia), src: anhGoc(f.bia) }] : [];
+  const khung = await run<{ id: number; anh: string; nguon: string | null }>(sql`select a.creative_id id, a.anh, a.nguon from etp.anh_cr a join etp.creative c using (creative_id)
+    where c.content_id = ${cid} and a.anh is not null order by a.creative_id desc limit 60`);
+  const poster = await run<{ url: string | null }>(sql`select url from etp.phim_poster where content_id = ${cid} and url is not null`).catch(() => []);
+  const tv = await run<{ id: number; anh: string; dang: string | null; ghi: string | null }>(sql`select id, anh, dang, ghi from etp.thu_vien
+    where content_id = ${cid} and anh is not null and trang_thai not in ('loai', 'loi_may') order by id desc limit 60`);
+  const lang = (f?.lang ?? 'en').slice(0, 2).toLowerCase(), cau = THU_VIEN.giong?.cau ?? {}, ds = cau[lang] ?? cau.en ?? [], ten = f?.ten ?? 'tên phim';
+  return {
+    khung_phim: [...khung.map((x) => ({ nguon: 'anh_cr', id: String(x.id), ten: `khung creative #${x.id}${x.nguon ? ` · ${x.nguon}` : ''}`, anh: x.anh, src: x.anh })), ...bia],
+    poster: [...poster.map((x, i) => ({ nguon: 'phim_poster', id: `${cid}-${i}`, ten: 'poster gốc (trang phim)', anh: x.url, src: x.url })), ...bia],
+    anh_tv: tv.map((x) => ({ nguon: 'thu_vien', id: String(x.id), ten: `${x.dang ?? 'thư viện'} #${x.id}`, anh: anhXem(x.anh), src: anhGoc(x.anh) })),
+    giong: ds.map((m, i) => ({ nguon: 'cau_giong', id: `${cau[lang] ? lang : 'en'}:${i}`, ten: `câu đọc ${i + 1}${cau[lang] ? '' : ' (tiếng Anh — sổ chưa có câu cho ' + lang + ')'}`, anh: null, src: null,
+      chu: m.map((v) => v.replace('{t}', ten)).join(' ') })),
+  };
+}
+
+/** ô ghim hợp lệ: chỉ ô của mẫu đang chọn, món đủ khoá, chữ gọn — món lạ bị bỏ (không tin trình duyệt) */
+const sachO = (mau: string | null, o: Record<string, Ghim> | null | undefined) => {
+  if (o == null) return null;
+  const ma = new Set((MAU_DUNG.find((x) => x.ma === mau)?.o ?? []).map((x) => x.ma)), r: Record<string, Ghim> = {};
+  for (const [k, g] of Object.entries(o)) if (ma.has(k) && g && g.nguon && g.id)
+    r[k] = { nguon: String(g.nguon).slice(0, 30), id: String(g.id).slice(0, 60), ten: String(g.ten ?? '').slice(0, 120), anh: g.anh ? String(g.anh).slice(0, 600) : null,
+      src: g.src ? String(g.src).slice(0, 600) : null, chu: g.chu ? String(g.chu).slice(0, 400) : null };
+  return r;
+};
+
 const gon = (s: unknown, max: number) => { const t = String(s ?? '').replace(/\s+/g, ' ').trim(); return t ? t.slice(0, max) : null; };
 
 /** TỰ LƯU bản soạn (gõ tới đâu lưu tới đó) — id rỗng = bản mới. Bản đang dựng / đã xong thì không sửa. */
-export async function luuSoan(o: { id?: number | null; contentId: number; mau?: string | null; cau?: string | null; nhan?: string | null; chu_dau?: string | null }): Promise<{ id: number } | { loi: string }> {
+export async function luuSoan(o: { id?: number | null; contentId: number; mau?: string | null; cau?: string | null; nhan?: string | null; chu_dau?: string | null; o?: Record<string, Ghim> | null }): Promise<{ id: number } | { loi: string }> {
   const me = await laChu(); if (!me) return { loi: 'không có quyền' };
   const cid = Math.trunc(Number(o.contentId)); if (!(cid > 0)) return { loi: 'mã phim không hợp lệ' };
   if (o.mau && !MAU_DUNG.some((x) => x.ma === o.mau)) return { loi: 'mẫu này không có máy dựng' };
-  await getDb()!.execute(BANG);
-  const v = { mau: o.mau || null, cau: gon(o.cau, 120), nhan: gon(o.nhan, 30), chu: gon(o.chu_dau, 400) };
+  await damBang();
+  const v = { mau: o.mau || null, cau: gon(o.cau, 120), nhan: gon(o.nhan, 30), chu: gon(o.chu_dau, 400) }, oj = sachO(o.mau || null, o.o), ojs = oj ? JSON.stringify(oj) : null;
   if (o.id) {
-    const r = await run<{ id: number }>(sql`update etp.cr_soan set mau = ${v.mau}, cau = ${v.cau}, nhan = ${v.nhan}, chu_dau = ${v.chu}, cap_nhat = now()
+    const r = await run<{ id: number }>(sql`update etp.cr_soan set mau = ${v.mau}, cau = ${v.cau}, nhan = ${v.nhan}, chu_dau = ${v.chu}${o.o === undefined ? sql`` : sql`, o = ${ojs}::jsonb`}, cap_nhat = now()
       where id = ${Math.trunc(Number(o.id))} and content_id = ${cid} and trang_thai in ('nhap', 'loi') returning id`);
     if (!r[0]) return { loi: 'bản này đang dựng hoặc đã xong — không sửa được nữa (tạo bản mới)' };
     return { id: Number(r[0].id) };
   }
-  const [r] = await run<{ id: number }>(sql`insert into etp.cr_soan (content_id, mau, cau, nhan, chu_dau, ai) values (${cid}, ${v.mau}, ${v.cau}, ${v.nhan}, ${v.chu}, ${me.displayName ?? me.email ?? 'chủ'}) returning id`);
+  const [r] = await run<{ id: number }>(sql`insert into etp.cr_soan (content_id, mau, cau, nhan, chu_dau, o, ai) values (${cid}, ${v.mau}, ${v.cau}, ${v.nhan}, ${v.chu}, ${ojs}::jsonb, ${me.displayName ?? me.email ?? 'chủ'}) returning id`);
   if (!r) return { loi: 'không ghi được bản soạn — máy chủ không trả mã' };
   return { id: Number(r.id) };
 }
@@ -99,8 +144,8 @@ export async function boSoan(id: number): Promise<{ ok: true } | { loi: string }
 /** 💾 LƯU VÀO THƯ VIỆN: đưa bản soạn cho máy dựng theo mẫu (iMac lấy hàng mỗi 2 phút) — cùng khuôn hàng chờ chonPhimMau + tuỳ chọn của anh. */
 export async function dungSoan(id: number): Promise<{ ok: true; chu: string } | { loi: string }> {
   const me = await laChu(); if (!me) return { loi: 'không có quyền' };
-  const [s] = await run<{ id: number; content_id: number; mau: string | null; cau: string | null; nhan: string | null; chu_dau: string | null; trang_thai: string }>(
-    sql`select id, content_id, mau, cau, nhan, chu_dau, trang_thai from etp.cr_soan where id = ${Math.trunc(Number(id))}`);
+  const [s] = await run<{ id: number; content_id: number; mau: string | null; cau: string | null; nhan: string | null; chu_dau: string | null; trang_thai: string; o: Record<string, Ghim> | null }>(
+    sql`select id, content_id, mau, cau, nhan, chu_dau, trang_thai, o from etp.cr_soan where id = ${Math.trunc(Number(id))}`);
   if (!s) return { loi: 'không thấy bản soạn' };
   if (!['nhap', 'loi'].includes(s.trang_thai)) return { loi: 'bản này đã gửi máy dựng rồi' };
   const mau = MAU_DUNG.find((x) => x.ma === s.mau); if (!mau) return { loi: 'chưa chọn mẫu (bước Mẫu)' };
@@ -111,7 +156,7 @@ export async function dungSoan(id: number): Promise<{ ok: true; chu: string } | 
   const [dang] = await run<{ tt: string }>(sql`select trang_thai tt from etp.mau_dung where mau = ${mau.ma} and content_id = ${s.content_id}
     and (trang_thai in ('dang', 'cho', 'cho_nang_cap') and (tuy_chon is not null or trang_thai = 'dang'))`);
   if (dang) return { loi: `mẫu "${mau.ten}" đang dựng cho phim này (${dang.tt === 'dang' ? 'đang làm' : 'đang chờ máy'}) — chờ xong rồi lưu bản này` };
-  const tc = JSON.stringify({ soan: s.id, cau: s.cau ?? '', nhan: s.nhan ?? '', chu_dau: s.chu_dau ?? '' });
+  const tc = JSON.stringify({ soan: s.id, cau: s.cau ?? '', nhan: s.nhan ?? '', chu_dau: s.chu_dau ?? '', o: sachO(mau.ma, s.o) ?? {} });   // o = ô anh ghim; ô vắng → máy chọn theo quy tắc ô
   await getDb()!.execute(sql`alter table etp.mau_dung add column if not exists tuy_chon jsonb`);
   const r = await run<{ mau: string }>(sql`insert into etp.mau_dung (mau, content_id, buoc, trang_thai, ghi, ten_mau, tuy_chon) values (${mau.ma}, ${s.content_id}, 'cho', 'cho', ${`bản soạn #${s.id} — chờ máy dựng theo mẫu (iMac) nhận`}, ${mau.ten}, ${tc}::jsonb)
     on conflict (mau, content_id) do update set buoc = 'cho', trang_thai = 'cho', ten_mau = excluded.ten_mau, tuy_chon = excluded.tuy_chon, cap_nhat = now(), ghi = excluded.ghi

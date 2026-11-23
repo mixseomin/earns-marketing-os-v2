@@ -10,7 +10,7 @@ import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties 
 import { Drawer, GuardedButton } from '@/components/ui';
 import { BadgeDangNgan, MO_SO } from '@/components/etp-so';
 import { openEntityDrawer } from '@/lib/entity-drawer';
-import { boSoan, docCrPhim, dungSoan, lenCampCrPhim, luuSoan, type DuCrPhim, type SoanCr } from '@/lib/actions/etp-cr-phim';
+import { boSoan, docCrPhim, docThuVienO, dungSoan, lenCampCrPhim, luuSoan, type DuCrPhim, type Ghim, type SoanCr, type ThuVienO } from '@/lib/actions/etp-cr-phim';
 import { DO, XANH } from './etp-doi-thu';
 
 const VANG = '#fbbf24', LAM = '#60a5fa';
@@ -38,10 +38,11 @@ const O: CSSProperties = { fontSize: 13, padding: '6px 8px', borderRadius: 6, bo
 const loiChu = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const baoDoi = () => window.dispatchEvent(new Event('etp-cr-phim'));   // chip "🎬 N" trên hàng phim đếm lại
 
-type Ban = { id: number | null; mau: string | null; cau: string; nhan: string; chu_dau: string };
+type Ban = { id: number | null; mau: string | null; cau: string; nhan: string; chu_dau: string; /** ô đã ghim (mã ô → món thư viện) */ o: Record<string, Ghim> };
+const KEO = 'application/x-etp-ghim';   // kiểu dữ liệu kéo thả: { tv: khoá thư viện, g: món }
 /** các bước soạn (khuôn wizard) — mẫu → chữ → thành phần từ thư viện → gửi máy dựng */
 const BUOC_SOAN = ['Mẫu', 'Chữ', 'Thành phần', 'Gửi máy dựng'] as const;
-const BAN_TRONG: Ban = { id: null, mau: null, cau: '', nhan: '', chu_dau: '' };
+const BAN_TRONG: Ban = { id: null, mau: null, cau: '', nhan: '', chu_dau: '', o: {} };
 
 export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () => void }) {
   const [cidS = '', che] = khoa.split(':'); const cid = Number(cidS);
@@ -58,13 +59,16 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
   // chip 🎬 N → 'ds' (chỉ creative đã có) · chip +nháp / ＋ → 'soan' (chỉ bản nháp / bản đang soạn)
   const [tab, setTab] = useState<'ds' | 'soan'>(che === 'moi' || che === 'nhap' ? 'soan' : 'ds');
   const [buocSoan, setBuocSoan] = useState<1 | 2 | 3 | 4>(1);
+  // THƯ VIỆN của bước Thành phần (đọc một lần khi tới bước 3) · ô đang chọn (bấm món = ghim vào ô này) · ô đang được kéo món ngang qua
+  const [tv, setTv] = useState<ThuVienO | null>(null), [tvLoi, setTvLoi] = useState<string | null>(null), [oDang, setODang] = useState<string | null>(null), [tha, setTha] = useState<string | null>(null);
+  useEffect(() => { if (buocSoan === 3 && !tv && !tvLoi) docThuVienO(cid).then((r) => { if ('loi' in r && typeof r.loi === 'string') setTvLoi(r.loi); else setTv(r as ThuVienO); }).catch((e) => setTvLoi(loiChu(e))); }, [buocSoan, tv, tvLoi, cid]);  // lỗi → tvLoi, không đọc lại vòng lặp (tv vẫn null nhưng tvLoi chặn hiển thị)
   const [luu, setLuu] = useState<'' | 'dang' | 'da'>(''), [kqLuu, setKqLuu] = useState<Kq>(null), [gui, setGui] = useState(false);
   const banRef = useRef(ban); banRef.current = ban;
   const hen = useRef<ReturnType<typeof setTimeout> | null>(null);
   const luuNgay = useCallback(async () => {
     const b = banRef.current; if (!b) return null;
     setLuu('dang');
-    const r = await luuSoan({ id: b.id, contentId: cid, mau: b.mau, cau: b.cau, nhan: b.nhan, chu_dau: b.chu_dau }).catch((e) => ({ loi: loiChu(e) }));
+    const r = await luuSoan({ id: b.id, contentId: cid, mau: b.mau, cau: b.cau, nhan: b.nhan, chu_dau: b.chu_dau, o: b.o }).catch((e) => ({ loi: loiChu(e) }));
     if ('loi' in r) { setLuu(''); setKqLuu({ ok: false, chu: r.loi }); return null; }
     if (banRef.current && banRef.current.id == null) { banRef.current = { ...banRef.current, id: r.id }; setBan(banRef.current); baoDoi(); }
     setLuu('da'); return r.id;
@@ -74,7 +78,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
     thoiHen(); hen.current = setTimeout(() => { hen.current = null; void luuNgay(); }, 700); };   // gõ tới đâu tự lưu nháp tới đó
   useEffect(() => () => { if (thoiHen()) void luuNgay(); }, [luuNgay]);   // đóng ngăn giữa lúc chờ lưu → vẫn lưu
   const gap = () => { if (thoiHen()) void luuNgay(); setBan(null); void tai(); };
-  const moBan = (s: SoanCr) => { if (thoiHen()) void luuNgay(); setXemDung(null); setKqLuu(null); setBan({ id: s.id, mau: s.mau, cau: s.cau ?? '', nhan: s.nhan ?? '', chu_dau: s.chu_dau ?? '' }); setBuocSoan(s.mau ? 2 : 1); };
+  const moBan = (s: SoanCr) => { if (thoiHen()) void luuNgay(); setXemDung(null); setKqLuu(null); setBan({ id: s.id, mau: s.mau, cau: s.cau ?? '', nhan: s.nhan ?? '', chu_dau: s.chu_dau ?? '', o: s.o ?? {} }); setBuocSoan(s.mau ? 2 : 1); };
   const guiDung = async () => {
     setGui(true); setKqLuu(null);
     try {
@@ -201,25 +205,72 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
               <textarea value={ban.chu_dau} onChange={(e) => sua({ chu_dau: e.target.value })} rows={4} maxLength={400} placeholder="dòng chữ hiện phía trên video quảng cáo"
                 style={{ ...O, width: '100%', resize: 'vertical', padding: 8 }} /></div>
           </> : null}
-          {buocSoan === 3 ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ fontWeight: 600 }}>Thành phần lấy từ thư viện</div>
-            {/* ô thành phần khai trong sổ mẫu (etp-mau-cr.json › o): mỗi ô một quy tắc chọn từ thư viện — chưa ghim thì máy chọn theo quy tắc khi dựng */}
-            {mauChon.o.length ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 8 }}>
-              {mauChon.o.map((o) => <div key={o.ma} style={{ border: '1px dashed var(--line)', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <div style={{ fontWeight: 600 }}>{o.ten}</div>
-                <div style={{ fontSize: 12 }}>Thư viện: {o.tv?.ten ?? o.thu_vien}<span style={{ color: MO_SO }}> · {o.tv?.nguon ?? 'chưa khai thư viện'}</span></div>
-                <div style={{ fontSize: 12, color: MO_SO }}>Máy tự chọn: {o.luat}</div>
-              </div>)}
-            </div> : <div style={{ color: MO_SO, padding: 12, border: '1px dashed var(--line)', borderRadius: 8 }}>Mẫu này chưa khai ô thành phần — máy tự chọn theo luật của mẫu khi dựng.</div>}
-            <div style={{ color: MO_SO, fontSize: 12 }}>Kéo thả ghim từ thư viện vào ô: đang làm (bước kế). Hiện máy dựng theo quy tắc từng ô.</div>
-          </div> : null}
+          {buocSoan === 3 ? (() => {
+            // KHUÔN KÉO THẢ (anh 23/11/2026: "các input, rồi chọn thư viện… kéo thả"): ô của mẫu bên trái, thư viện của ô đang chọn bên phải — kéo món thả vào ô,
+            // hoặc bấm món để ghim vào ô đang chọn. Ô không ghim = máy chọn theo quy tắc của ô (sổ mẫu › o[].luat), không gắn cứng tệp.
+            const oA = mauChon.o.find((x) => x.ma === oDang) ?? mauChon.o[0] ?? null, tvOk = tv, mon = oA && tvOk ? tvOk[oA.thu_vien] ?? [] : [];
+            const ghim = (ma: string, g: Ghim) => sua({ o: { ...ban.o, [ma]: g } });
+            const goGhim = (ma: string) => { const n = { ...ban.o }; delete n[ma]; sua({ o: n }); };
+            if (!mauChon.o.length) return <div style={{ color: MO_SO, padding: 12, border: '1px dashed var(--line)', borderRadius: 8 }}>Mẫu này chưa khai ô thành phần — máy tự chọn theo luật của mẫu khi dựng.</div>;
+            return <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <div style={{ width: 360, flex: '0 0 360px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ fontWeight: 600 }}>Ô thành phần <span style={{ color: MO_SO, fontWeight: 400, fontSize: 12 }}>— kéo món bên phải thả vào ô, hoặc chọn ô rồi bấm món</span></div>
+                {mauChon.o.map((o) => { const g = ban.o[o.ma], on = oA?.ma === o.ma, keo = tha === o.ma, vien = keo ? LAM : on ? XANH : 'var(--line)';
+                  return <div key={o.ma} onClick={() => setODang(o.ma)}
+                    onDragOver={(e) => { if (e.dataTransfer.types.includes(KEO)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; if (tha !== o.ma) setTha(o.ma); } }}
+                    onDragLeave={() => setTha(null)}
+                    onDrop={(e) => { e.preventDefault(); setTha(null); setODang(o.ma);
+                      let d: { tv?: string; g?: Ghim } = {}; try { d = JSON.parse(e.dataTransfer.getData(KEO)); } catch { /* không phải món thư viện */ }
+                      if (!d.g) return;
+                      if (d.tv !== o.thu_vien) { setKqLuu({ ok: false, chu: `ô "${o.ten}" chỉ nhận món của thư viện ${o.tv?.ten ?? o.thu_vien} — món vừa thả thuộc thư viện khác` }); return; }
+                      ghim(o.ma, d.g); }}
+                    style={{ border: `${g ? '1px solid' : '1px dashed'} ${vien}`, borderRadius: 8, padding: 8, display: 'flex', gap: 10, cursor: 'pointer',
+                      background: keo ? `color-mix(in srgb, ${LAM} 12%, transparent)` : on ? `color-mix(in srgb, ${XANH} 8%, transparent)` : 'transparent' }}>
+                    <div style={{ width: 56, height: 100, flex: '0 0 56px', borderRadius: 6, background: '#000', display: 'grid', placeItems: 'center', overflow: 'hidden', color: MO_SO, fontSize: 20 }}>
+                      {g?.anh ? <img src={g.anh} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : g?.chu ? '🔊' : '+'}</div>
+                    <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12 }}>
+                      <b style={{ fontSize: 13 }}>{o.ten}</b>
+                      {g ? <>
+                        <span style={{ color: XANH }}>📌 {g.ten}</span>
+                        {g.chu ? <span style={{ fontStyle: 'italic' }}>{g.chu}</span> : null}
+                        <a style={{ cursor: 'pointer', color: DO }} onClick={(e) => { e.stopPropagation(); goGhim(o.ma); }}>✕ bỏ ghim — trả về máy tự chọn</a>
+                      </> : <span style={{ color: MO_SO }}>Máy tự chọn: {o.luat}</span>}
+                      <span style={{ color: MO_SO, fontSize: 11 }}>thư viện: {o.tv?.ten ?? o.thu_vien}</span>
+                    </div>
+                  </div>; })}
+              </div>
+              <div style={{ flex: 1, minWidth: 0, border: '1px solid var(--line)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {oA ? <>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                    <b style={{ fontSize: 14 }}>Thư viện · {oA.tv?.ten ?? oA.thu_vien}</b>
+                    <span style={{ color: MO_SO, fontSize: 12 }}>{oA.tv?.nguon}</span><span style={{ flex: 1 }} />
+                    <span style={{ fontSize: 12 }}>đang chọn cho ô <b style={{ color: XANH }}>{oA.ten}</b></span>
+                  </div>
+                  {tvLoi ? <div style={{ color: DO }}>Không đọc được thư viện: {tvLoi}</div>
+                    : !tv ? <div style={{ color: MO_SO }}>đang đọc thư viện…</div>
+                    : oA.tv && !oA.tv.co ? <div style={{ color: MO_SO }}>Thư viện này chưa có — ô để trống, máy tự chọn theo quy tắc.</div>
+                    : !mon.length ? <div style={{ color: MO_SO }}>Thư viện này chưa có món nào của phim — ô để trống, máy tự chọn theo quy tắc ({oA.luat}).</div>
+                    : <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${mon[0]?.anh ? 120 : 260}px, 1fr))`, gap: 8 }}>
+                      {mon.map((g) => { const da = ban.o[oA.ma]?.nguon === g.nguon && ban.o[oA.ma]?.id === g.id;
+                        return <div key={`${g.nguon}:${g.id}`} draggable onDragStart={(e) => { e.dataTransfer.setData(KEO, JSON.stringify({ tv: oA.thu_vien, g })); e.dataTransfer.effectAllowed = 'copy'; }}
+                          onClick={() => ghim(oA.ma, g)} title="kéo thả vào ô bên trái, hoặc bấm để ghim vào ô đang chọn"
+                          style={{ border: `2px solid ${da ? XANH : 'var(--line)'}`, borderRadius: 8, overflow: 'hidden', cursor: 'grab', display: 'flex', flexDirection: 'column' }}>
+                          {g.anh ? <div style={{ aspectRatio: '9 / 16', background: '#000' }}><img src={g.anh} alt="" draggable={false} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /></div>
+                            : <div style={{ padding: 8, fontSize: 12.5, minHeight: 60 }}>🔊 {g.chu}</div>}
+                          <div style={{ fontSize: 11, padding: '3px 6px', color: da ? XANH : MO_SO }}>{da ? '📌 ' : ''}{g.ten}</div>
+                        </div>; })}
+                    </div>}
+                </> : null}
+              </div>
+            </div>; })() : null}
           {buocSoan === 4 ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ fontWeight: 600 }}>Kiểm lại rồi gửi máy dựng</div>
             <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '4px 12px' }}>
               <span style={{ color: MO_SO }}>Mẫu</span><span>{mauChon.ten}</span>
               {mauChon.cau_nhu ? <><span style={{ color: MO_SO }}>Câu nhử</span><span>{ban.cau.trim() || <i style={{ color: MO_SO }}>máy tự viết</i>}{ban.nhan.trim() ? ` · tô nổi: ${ban.nhan}` : ''}</span></> : null}
               <span style={{ color: MO_SO }}>Chữ QC Meta</span><span style={{ whiteSpace: 'pre-wrap' }}>{ban.chu_dau.trim() || <i style={{ color: MO_SO }}>chữ mặc định của mẫu</i>}</span>
-              <span style={{ color: MO_SO }}>Thành phần</span><span>máy chọn theo luật của mẫu</span>
+              <span style={{ color: MO_SO }}>Thành phần</span><span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>{mauChon.o.length ? mauChon.o.map((o) => { const g = ban.o[o.ma];
+                return <span key={o.ma}>{o.ten}: {g ? <b style={{ color: XANH }}>📌 {g.ten}{g.chu ? ` — "${g.chu}"` : ''}</b> : <i style={{ color: MO_SO }}>máy tự chọn ({o.luat})</i>}</span>; }) : 'máy chọn theo luật của mẫu'}</span>
             </div>
             <div style={{ color: MO_SO, fontSize: 12 }} title={`AI chọn khung${mauChon.cau_nhu && !ban.cau.trim() ? ' + viết câu nhử' : ''} · máy iMac lấy hàng mỗi 2 phút`}>
               Máy trên iMac dựng (~176₫ / bản), xong tự sang thẻ "Creative đã có".</div>

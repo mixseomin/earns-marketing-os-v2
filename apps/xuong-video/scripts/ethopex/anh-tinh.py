@@ -28,11 +28,9 @@ XV = f"{ENV}; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../.
 DANG, NGUON, NGAY_MOI, GIAY_MIN, W, H = "ảnh tĩnh", "anh_tinh", 14, 9.0, 1080, 1920
 # MẪU CÂU GIỌNG — mỗi mẫu 3 vế (vế nào cũng được chứa {t} = tên phim · c = câu chốt, thẻ hét đặt trước nó) để KIEU_GIONG chèn thẻ cách đọc. Mỗi creative BỐC NGẪU NHIÊN một mẫu của ngôn ngữ
 # (anh 06/11/2026 "Thêm các mẫu voice này vào AT !!! Khi lên camp dạng AT, switch random giữa chúng"), số mẫu ghi vào etp.diem_cham.cham.voice.mau để đo. Chữ giữ nguyên văn anh đưa.
-CAU = {"en": [("Watch {t}", "for Free Now.", "Watch More Now!"),   # form anh chốt 05/11/2026
-              ("Watch the entire series: {t}", "for free.", "“Watch More” to continue the story!"),   # câu đầu phải là tên phim — cấm mở bằng "For Free" (anh 21/11/2026)
-              ("Watch the {t}", "for free.", "“Learn More” to enjoy the series!"),
-              ("Watch the series {t}", "for free now.", "“See more” to continue watching!")],
-       "es": [("¡Mira {t}", "gratis ahora!", "¡Mira más ahora!")]}
+# Câu nằm trong SỔ MẪU apps/etp2/src/lib/etp-mau-cr.json › thu_vien.giong.cau (23/11/2026: ngăn soạn creative etp2 cho ghim câu đọc vào ô Giọng — một nguồn cho cả trang lẫn máy).
+CAU = {k: [tuple(m) for m in v] for k, v in json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp2", "src", "lib", "etp-mau-cr.json"), encoding="utf-8"))["thu_vien"]["giong"]["cau"].items()}
+assert len(CAU.get("en", [])) >= 1 and all(len(m) == 3 for l in CAU.values() for m in l), "sổ mẫu thiếu câu giọng (thu_vien.giong.cau) hoặc câu không đủ 3 vế"
 assert not [m for l in CAU.values() for m in l if re.match(r"\W*(for\s+free|free|gratis)\b", m[0], re.I)], "mẫu giọng mở bằng Free/gratis — câu đầu phải là tên phim (anh 21/11/2026)"
 # GIỌNG THEO PHIM (anh 05/11/2026: "giọng kỳ dị, gào thét, ấn tượng … tuỳ theo film"): kiểu đọc chọn theo thể loại phim (etp.phim.the_loai);
 # chữ giữ nguyên form, chỉ chèn thẻ cách đọc ElevenLabs v3 ([shouting]…) — thẻ không thành tiếng. Thể loại chưa có → giọng thường.

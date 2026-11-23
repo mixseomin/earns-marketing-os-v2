@@ -547,6 +547,12 @@ const LUAT = [
   { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: 'sua({ mau: m.ma }); setBuocSoan(2);', vi: 'chọn mẫu xong tự sang bước Chữ (anh 23/11/2026)' },
   { card: '1784', tep: 'apps/etp2/src/lib/etp-mau-cr.json', co: '"o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim"', vi: 'mẫu dt_* khai ô thành phần, mỗi ô một quy tắc chọn từ thư viện (anh 23/11/2026)' },
   { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: 'mauChon.o.map((o) =>', vi: 'bước Thành phần hiện ô đã khai của mẫu (anh 23/11/2026)' },
+  { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: 'docThuVienO(cid)', vi: 'bước Thành phần mở thư viện của phim bên phải để kéo thả vào ô (anh 23/11/2026 "chọn thư viện… kéo thả")' },
+  { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: 'e.dataTransfer.setData(KEO,', vi: 'món thư viện kéo được (HTML5 kéo thả), thả vào ô cùng thư viện thì ghim' },
+  { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', cam: 'đang làm (bước kế)', vi: 'không quay về ô chú thích "kéo thả: đang làm" thay cho kéo thả thật' },
+  { card: '1784', tep: 'apps/etp2/src/lib/actions/etp-cr-phim.ts', co: 'sql`, o = ${ojs}::jsonb`', vi: 'ghim ô lưu vào cột etp.cr_soan.o; lần lưu không gửi ô thì giữ ghim cũ' },
+  { card: '1784', tep: 'apps/etp2/src/lib/actions/etp-cr-phim.ts', co: 'o: sachO(mau.ma, s.o) ?? {}', vi: 'gửi máy dựng mang ghim ô trong tuy_chon.o' },
+  { card: '1784', tep: 'packages/db/migrations/0467_etp_cr_soan_o.sql', co: 'add column if not exists o jsonb', vi: 'cột ghim ô của bản soạn' },
   { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: '<TienDung buoc={s.buoc} />', vi: 'bản đang dựng hiện dải tiến độ theo bước máy' },
   { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', cam: "` (${BUOC_DUNG[s.buoc] ?? 'đang làm'})`", vi: 'không quay về chữ bước dựng trong ngoặc thay cho tiến độ' },
   // #1786 (anh 23/11/2026 'Ngu thế ai hiểu' — nút bản dở chỉ ghi "<tên mẫu> · nháp"): nút ghi việc + số bản, tên mẫu vào chữ rê

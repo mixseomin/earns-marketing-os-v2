@@ -86,8 +86,12 @@ def main(lo_f, ma, dang):
     XG.bao("day", ma, "đẩy video lên kho xong · viết chữ QC", 0, len(lo), ep=True)
     # 2. chữ QC
     ids = ",".join(sorted({str(x["content_id"]) for x in lo}))
-    tsv = f"{ra}/chu.tsv"; sh(f"""ssh {B} '. /root/.secrets/spy.env; psql "$DATABASE_URL" -v ids={ids} -tA -F"\t" -f -' < {D}/qc-spy-phim.sql > {tsv}""")
-    cr_f = f"{ra}/creative.json"; sh(f"python3 {D}/chu-qc.py {ra}/lo.json {tsv} {ma} {GOC} {cr_f} - '{dang}'")
+    # chu.tsv = QC app gốc (qc-spy-phim.sql, ghép theo landing) + QC đối thủ cùng mã phim / nhắc đúng tên (qc-spy-ten.sql, có số ngày chạy + nút) — hook/tiêu đề/CTA
+    # nguyên văn từ QC chạy lâu nhất (23/11/2026: thiếu tệp thứ hai thì chu-qc.py rơi xuống câu chung, anh gọi là "nội dung tự bịa")
+    tsv = f"{ra}/chu.tsv"; sh(f"""(ssh {B} '. /root/.secrets/spy.env; psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v ids={ids} -tA -F"\t" -f -' < {D}/qc-spy-phim.sql; ssh {B} '. /root/.secrets/spy.env; psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v ids={ids} -tA -F"\t" -f -' < {D}/qc-spy-ten.sql) > {tsv}""")
+    cr_f = f"{ra}/creative.json"; r = sh(f"python3 {D}/chu-qc.py {ra}/lo.json {tsv} {ma} {GOC} {cr_f} - '{dang}'")
+    if r.returncode: raise RuntimeError(f"chu-qc.py lỗi: {r.stderr[-400:]}")
+    if r.stderr.strip(): print(r.stderr.strip(), file=sys.stderr)   # ⚠ phim spy không có QC → chữ dự phòng, người duyệt phải thấy
     XG.bao("day", ma, "tạo creative trên Ethopex", 0, len(lo), ep=True)
     # 3. bulk-jobs
     subprocess.run(["scp", "-q", cr_f, f"{B}:/root/etp-kc/creative-{ma}.json"], check=True)

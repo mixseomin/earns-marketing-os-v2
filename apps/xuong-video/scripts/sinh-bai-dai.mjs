@@ -35,7 +35,7 @@ const goc_sp = JSON.parse(ssh(`cd /opt/earns-marketing-os-v2 && set -a && . ./.e
 if (!goc_sp.length) { console.error(`máy ${may} chưa gắn nhóm góc spy (xv_may.goc_sp)`); process.exit(1); }
 const gocs = JSON.parse(ssh(`U=$(grep ^DATABASE_URL= /root/.secrets/spy.env | cut -d= -f2-); psql "$U" -tA -c "select coalesce(json_agg(json_build_object('sp', sp_id, 'id', id, 'loai', loai, 'ten', ten) order by id), '[]') from goc where sp_id = any(array[${goc_sp.map(Number).join(',')}])"`) || '[]');
 const bai = Object.entries(dsMay({ caLuuTru: true, may })).filter(([s, m]) => m.loai === 'bai' && s.startsWith('dai-')).map(([, m]) => m);
-const baiLai = bai.filter((m) => !m.da_dang && (m.cham?.ket === 'SUA_LAI' || m.cham?.ket === 'KHONG_DUYET'));
+const baiLai = bai.filter((m) => (!m.da_dang || Object.keys(m.da_dang).length === 0) && (m.cham?.ket === 'SUA_LAI' || m.cham?.ket === 'KHONG_DUYET'));
 const dsGocLai = new Map(baiLai.map((m) => [Number(m.goc?.id), m]));
 const daGoc = new Set(bai.filter((m) => !LAI || !dsGocLai.has(Number(m.goc?.id))).map((m) => Number(m.goc?.id)).filter(Boolean)), tieuDeCu = bai.map((m) => m.title).filter(Boolean), anhDaDung = bai.map((m) => idAnh(m.html)).filter(Boolean);
 // bài dài cần góc là NGƯỜI / TÌNH HUỐNG / NỖI ĐAU (viết được hướng dẫn); góc tiêu chí / phàn nàn app (quảng cáo, crash, phân số) để sau cùng — mổ kho militarycalc 19/11/2026

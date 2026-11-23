@@ -1005,13 +1005,30 @@ function veAm() { let o = document.getElementById('tlAm'); if (!o) { o = documen
   if (!el || (l !== 'nhac' && !g)) { o.hidden = true; o.innerHTML = ''; return; }
   const i = l === 'nhac' ? -1 : vt(id), c = i >= 0 ? D.canh[i] : null, k = l === 'nhac' ? 'nhac1' : `${l === 'td' ? 'td1' : 'giong1'}:${id}`;
   const dau = l === 'nhac' ? `Nhạc nền · ${D.that.nhacUrl ? 'đã có bản nhạc' : 'chưa có nhạc'}` : l === 'td' ? `Tiếng động cảnh ${i + 1} · ${g.am_thanh_url ? 'đã có' : 'chưa sinh'}` : `Lời đọc cảnh ${i + 1} · ${coGiong(g) ? 'đã có giọng' : 'chưa có giọng'}`;
-  const ta = l === 'giong' && c ? (c.thoai.length ? c.thoai.map((t) => `<b>${esc(t.ai)}:</b> ${esc(t.cau.slice(0, 70)) || '<i>chưa có câu</i>'}`).join('<br>') : esc(c.loi.slice(0, 120)) || 'Cảnh chưa có lời') : l === 'td' && c ? esc(c.td) : esc(D.nhac);
-  o.innerHTML = `<div class="tl-am-dau"><b>${esc(dau)}</b><button type="button" class="bt ic-bt" data-d="amDong" title="Đóng" aria-label="Đóng">✕</button></div><span class="nho">${ta}</span>`
+  const ta = l === 'giong' && c ? veAmLoi(g, c) : `<span class="nho">${l === 'td' && c ? esc(c.td) : esc(D.nhac)}</span>`;
+  o.innerHTML = `<div class="tl-am-dau"><b>${esc(dau)}</b><button type="button" class="bt ic-bt" data-d="amDong" title="Đóng" aria-label="Đóng">✕</button></div>${ta}`
     + `<div class="tl-am-nut">${nutBuoc(k)}${l === 'giong' ? '<button type="button" class="bt" data-d="lopLoi" data-g="mo" title="Thêm một người nói nữa ở cảnh này (lớp lời mới trên timeline)">＋ Lớp lời</button>' : ''}</div>`;
   o.hidden = false; datAm(); }
 function datAm() { const o = document.getElementById('tlAm'); if (!o || o.hidden) return; const el = amEl(); if (!el) { o.hidden = true; return; }
   const r = el.getBoundingClientRect(), cu = $('#tlCuon').getBoundingClientRect(), w = o.offsetWidth, h = o.offsetHeight;
   o.style.left = `${Math.max(8, Math.min(Math.max(r.left, cu.left + 90), window.innerWidth - w - 8))}px`; o.style.top = `${r.top - h - 8 > 8 ? r.top - h - 8 : Math.min(r.bottom + 8, window.innerHeight - h - 8)}px`; }
+/** Từng dòng lời trong hộp "Lời đọc cảnh N" (góp ý #1783): nút ▶ nghe tiếng đang dùng của dòng đó + ảnh nhân vật nói (nếu có trong mẫu của phim), bấm ảnh → mở ngăn chi tiết nhân vật.
+ *  Lấy từ bản ghi studio (tiếng đã đọc thật), cảnh mới sửa chưa lưu thì lùi về câu trên màn. */
+const nvTheoTen = (ten) => { const t = String(ten || '').trim().toLowerCase(); return t ? (D.that?.mau || []).find((m) => m.loai === 'nhan_vat' && String(m.ten || '').trim().toLowerCase() === t) : null; };
+function veAmLoi(g, c) {
+  const gt = (Array.isArray(g.thoai) ? g.thoai : []).filter((t) => t.loi);
+  const ds = gt.length ? gt.map((t) => ({ ai: t.nhan_vat || 'Lời dẫn', cau: t.loi, url: t.url })) : c.thoai.length ? c.thoai.map((t) => ({ ai: t.ai, cau: t.cau, url: '' })) : c.loi ? [{ ai: '', cau: c.loi, url: g.thoai_url }] : [];
+  if (!ds.length) return '<span class="nho">Cảnh chưa có lời</span>';
+  return `<div class="am-loi">${ds.map((d) => { const m = nvTheoTen(d.ai), dang = d.url && AM_NGHE.url === d.url && !AM_NGHE.a.paused;
+    const nv = m ? `<button type="button" class="am-nv" data-d="amNv" data-g="${m.id}" title="Mở chi tiết nhân vật ${esc(m.ten)}" aria-label="Mở chi tiết nhân vật ${esc(m.ten)}">${m.anh ? `<img src="${esc(nho(m.anh, 96))}" alt="">` : `<i>${esc(m.ten.slice(0, 1).toUpperCase())}</i>`}</button>` : '<span class="am-nv trong" aria-hidden="true"></span>';
+    const nghe = d.url ? `<button type="button" class="bt ic-bt am-nghe" data-d="amNghe" data-g="${esc(d.url)}" aria-pressed="${!!dang}" title="${dang ? 'Dừng' : 'Nghe giọng đang dùng của dòng này'}" aria-label="${dang ? 'Dừng' : 'Nghe giọng hiện tại'}">${dang ? '■' : '▶'}</button>` : '<button type="button" class="bt ic-bt am-nghe" disabled title="Dòng này chưa có tiếng">▶</button>';
+    return `<div class="am-dong">${nghe}${nv}<span>${d.ai ? `<b>${esc(d.ai)}:</b> ` : ''}${esc(d.cau.slice(0, 90)) || '<i>chưa có câu</i>'}</span></div>`; }).join('')}</div>`; }
+const AM_NGHE = { a: new Audio(), url: '' };
+AM_NGHE.a.addEventListener('ended', () => { AM_NGHE.url = ''; veAm(); });
+AM_NGHE.a.addEventListener('error', () => { if (AM_NGHE.url) bao('Không phát được tiếng của dòng này.'); AM_NGHE.url = ''; veAm(); });
+function ngheAm(url) { const a = AM_NGHE.a;
+  if (AM_NGHE.url === url && !a.paused) { a.pause(); AM_NGHE.url = ''; return veAm(); }
+  AM_NGHE.url = url; a.src = url; a.currentTime = 0; a.play().catch(() => {}).finally(veAm); veAm(); }
 document.addEventListener('input', (e) => { if (e.target.id === 'slYc' && E.sl) E.sl.yc = e.target.value; });   // gõ dở yêu cầu không mất khi trang vẽ lại
 /** "＋ Lớp lời" (anh 20/11/2026: "Giờ muốn thêm lớp voice thì làm thế nào ?"): thêm một người nói nữa vào cảnh — Lời dẫn, một nhân vật của phim, hoặc gõ tên mới.
  *  Câu mới là một dòng thoại trống của người đó; bản Pro hiện mỗi người nói thành một lớp riêng trên timeline. Gõ câu → Lưu về studio → bấm clip lời đó → Sinh. */
@@ -1547,7 +1564,9 @@ function lamD(a, d = {}, nut) {
     case 'dung3d': { const y = c || canhTai(Math.min(E.t, tong() - 0.001)).c; bao('Bản thật dựng lại khung 3D theo mặt bằng mới trong vài giây.'); setTimeout(() => { y.ban3 = false; veD(); }, 1200); return; }
     case 'boSoi': return doi(() => { c.soi.splice(+g, 1); });
     case 'chuThoai': return doi(() => { c.chu = giongThoai(c) ? '' : c.loi.trim(); });
-    case 'amDong': E.amL = null; return veAm();
+    case 'amDong': E.amL = null; if (!AM_NGHE.a.paused) AM_NGHE.a.pause(); AM_NGHE.url = ''; return veAm();
+    case 'amNghe': return ngheAm(g);
+    case 'amNv': return toiDt(`m:${g}`);
     case 'lopLoi': if (g === 'mo') { E.themAi = true; E.ttTab = 'thoai'; E.amL = null; veAm(); if (pro()) { const ds = E.bc[D.loai]; if (ds && !ds.includes('tt')) { ds.push('tt'); luu(); } } veD(); return void setTimeout(() => $('#iAiMoi')?.focus(), 60); }
       E.themAi = !E.themAi; veTt(); return void $('#iAiMoi')?.focus();
     case 'themAi': { const ai = (g || $('#iAiMoi')?.value || '').trim().slice(0, 40); if (!c) return; if (!ai) return bao('Gõ tên người nói mới, hoặc bấm chọn một người có sẵn.'); E.themAi = false;

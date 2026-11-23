@@ -31,6 +31,7 @@ const NEN = lay('--nen') ?? 'substack', SO = Math.max(1, Math.min(7, Number(lay(
 const { studio, dsMay, thongTinMay } = await import(`${PB}/day-studio.mjs`), { napBai } = await import(`${PB}/nap-bai.mjs`);
 if (!thongTinMay(may).dang.some((d) => d.nen === NEN)) { console.error(`máy ${may} không có nền ${NEN} trong xv_may.dang`); process.exit(1); }
 const ssh = (lenh) => execFileSync('ssh', ['-o', 'ControlMaster=no', '-o', 'ConnectTimeout=15', 'root@167.233.241.16', lenh], { encoding: 'utf8', timeout: 120_000 }).trim();
+const sshPsql = (sql) => execFileSync('ssh', ['-o', 'ControlMaster=no', '-o', 'ConnectTimeout=15', 'root@167.233.241.16', 'cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -v ON_ERROR_STOP=1'], { input: sql, encoding: 'utf8', timeout: 120_000 }).trim();
 const goc_sp = JSON.parse(ssh(`cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -tA -c "select coalesce(json_agg(x), '[]') from unnest((select goc_sp from xv_may where ma = '${may}')) x"`) || '[]');
 if (!goc_sp.length) { console.error(`máy ${may} chưa gắn nhóm góc spy (xv_may.goc_sp)`); process.exit(1); }
 const gocs = JSON.parse(ssh(`U=$(grep ^DATABASE_URL= /root/.secrets/spy.env | cut -d= -f2-); psql "$U" -tA -c "select coalesce(json_agg(json_build_object('sp', sp_id, 'id', id, 'loai', loai, 'ten', ten) order by id), '[]') from goc where sp_id = any(array[${goc_sp.map(Number).join(',')}])"`) || '[]');
@@ -57,7 +58,7 @@ for (const g of gocs.filter((x) => !daGoc.has(Number(x.id)) && (!chiGoc || chiGo
   const cu = dsGocLai.get(Number(g.id));
   if (cu && cu.slug !== slug) {
     const q = `UPDATE xv_may_video SET luu_tru = true, dang = coalesce(dang, '{}'::jsonb) || jsonb_build_object('thay_bang', '${slug.replace(/'/g, "''")}'::text), updated_at = now() WHERE id = ${Number(cu.id)} AND coalesce(da_dang, '{}'::jsonb) = '{}'::jsonb`;
-    ssh(`cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c '${q}'`);
+    sshPsql(q);
   }
   napBai({ may, tep, noiDung: vb.html, goc: g, truy: vb.truy, slug, anh: vb.anh });
   console.log(`✓ ${slug} (${vb.model}, ${Math.round(vb.vnd)}₫) → Phòng Nội dung chấm · ${tep}`);

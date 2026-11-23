@@ -62,7 +62,7 @@ const kiemDich = (d) => { if (Array.isArray(d)) return null; if (typeof d !== 's
   if (vg && ![2, 4].includes(vg.split(',').map(Number).filter(Number.isFinite).length)) return `"${d}" sai cú pháp — viết "ISO@lon0,lat0,lon1,lat1" (khung) hoặc "ISO@lon,lat" (điểm)`;
   try { dichCua(d); } catch { return `"${d}": nước ${iso} không có mảnh đất nào trong khung ${vg} — chọn khung có đất của đúng nước đó hôm nay (chủ thời xưa ghi ở to.chu)`; } return null; };
 // gọi mạng có thử lại (Wikimedia hay cắt kết nối giữa chừng: EPIPE / 429)
-const tai = async (url, lan = 4) => { for (let i = 1; ; i++) { try { const r = await fetch(url, { headers: { 'User-Agent': 'studio-lich-su/1.0 (studio.on.tc; admin@mixseo.net)' } }); if (r.status === 429 || r.status >= 500) throw new Error(`HTTP ${r.status}`); return r; }
+const tai = async (url, lan = 4) => { for (let i = 1; ; i++) { try { const r = await fetch(url, { headers: { 'User-Agent': 'studio-lich-su/1.0 (studio.on.tc)' } }); if (r.status === 429 || r.status >= 500) throw new Error(`HTTP ${r.status}`); return r; }
   catch (e) { if (i >= lan) throw e; await new Promise((ok) => setTimeout(ok, 1500 * i)); } } };
 const phang = (t) => boDau(t).toLowerCase().replace(/[‘’´`]/g, "'").replace(/[“”«»]/g, '"').replace(/\s+/g, ' ').trim();
 const commons = async (ten) => { const r = await (await tai(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', titles: ten, prop: 'imageinfo', iiprop: 'url', iiurlwidth: '640', format: 'json', formatversion: '2' })}`)).json();

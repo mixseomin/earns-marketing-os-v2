@@ -38,7 +38,7 @@ const kho = JSON.parse(readFileSync(arg('kho') ?? new URL('./kho.json', import.m
 // ---------- nguồn Wikipedia (0đ) ----------
 const WIKI = `https://${nn}.wikipedia.org/w/api.php`;
 // Wikipedia trả 429 "too many requests" (chữ, không JSON) khi gọi dồn → thử lại có giãn, tối đa 5 lần
-const goiWiki = async (q: Record<string, string>): Promise<any> => { for (let i = 1; ; i++) { const r = await fetch(`${WIKI}?${new URLSearchParams({ format: 'json', formatversion: '2', ...q })}`, { headers: { 'User-Agent': 'studio-lich-su/1.0 (studio.on.tc; admin@mixseo.net)' } });
+const goiWiki = async (q: Record<string, string>): Promise<any> => { for (let i = 1; ; i++) { const r = await fetch(`${WIKI}?${new URLSearchParams({ format: 'json', formatversion: '2', ...q })}`, { headers: { 'User-Agent': 'studio-lich-su/1.0 (studio.on.tc)' } });
   const t = await r.text(); try { if (r.ok) return JSON.parse(t); } catch { /* thử lại */ } if (i >= 5) throw new Error(`Wikipedia ${r.status}: ${t.slice(0, 120)}`); await new Promise((ok) => setTimeout(ok, 3000 * i)); } };
 let tua = arg('nguon')?.split('|').filter(Boolean) ?? [];
 // CHỌN ĐỀ THEO GÓC (lượt chữ nhỏ, vài chục đồng): chưa có chủ đề → máy chọn một chuyện lịch sử CÓ THẬT hợp góc + bài Wikipedia nguồn + hook QC + tiêu đề

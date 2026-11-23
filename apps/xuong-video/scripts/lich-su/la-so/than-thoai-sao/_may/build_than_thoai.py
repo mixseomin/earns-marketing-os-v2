@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from than_thoai_data import SAO
 
 OUT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # la-so/than-thoai-sao/
-UA = {"User-Agent": "AstrolasResearch/1.0 (admin@mixseo.net)"}
+UA = {"User-Agent": "AstrolasResearch/1.0"}
 CHI_KIEM = "--chi-kiem" in sys.argv
 
 def get(url):

@@ -10,7 +10,7 @@ import { sinhJson } from '../../../src/lib/xuong-video/claude';
 const arg = (k: string) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : undefined; };
 const ra = process.argv[2], chuDe = arg('chu-de'), id = arg('id'), tuDich = Number(arg('tu') ?? 1650), tua = (arg('nguon') ?? '').split('|').filter(Boolean);
 if (!ra || !chuDe || !id || !tua.length) { console.error('tsx viet-dai.mts <ra.json> --chu-de … --nguon "A|B" --id …'); process.exit(2); }
-const UA = { 'User-Agent': 'studio-lich-su/1.0 (studio.on.tc; admin@mixseo.net)' }, API = 'https://en.wikipedia.org/w/api.php?format=json&formatversion=2&';
+const UA = { 'User-Agent': 'studio-lich-su/1.0 (studio.on.tc)' }, API = 'https://en.wikipedia.org/w/api.php?format=json&formatversion=2&';
 const json = async (u: string): Promise<any> => { for (let i = 1; ; i++) { const r = await fetch(u, { headers: UA }); const t = await r.text(); try { if (r.ok) return JSON.parse(t); } catch { /* thử lại */ } if (i >= 5) throw new Error(`Wikipedia ${r.status}`); await new Promise((o) => setTimeout(o, 3000 * i)); } };
 const phang = (s: string) => s.toLowerCase().replace(/[“”"'‘’]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 

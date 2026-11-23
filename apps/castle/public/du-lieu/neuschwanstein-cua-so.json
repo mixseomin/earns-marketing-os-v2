@@ -3743,7 +3743,13 @@
     ]
    }
   ],
-  "ly_do": "mặt bắc khối Torbau (nhìn ra 337°): ảnh Mapillary 336577534524508 + 2852680028317489 (gpsvid, CC BY-SA 4.0, đã nắn méo; đọc bằng mắt 24/11/2026 — chưa định vị camera chắc, vị trí cửa ước theo khung) — toàn mặt đá vôi trắng (OSM ghi gạch đỏ #f44e25 cho cả khối, sai ở mặt này), hai cửa vòm nhỏ so le theo cầu thang trong; bát neo sắt chữ thập chưa dựng"
+  "ly_do": "mặt bắc khối Torbau (nhìn ra 337°): ảnh Mapillary 336577534524508 + 2852680028317489 (gpsvid, CC BY-SA 4.0, đã nắn méo; đọc bằng mắt 24/11/2026 — chưa định vị camera chắc, vị trí cửa ước theo khung) — toàn mặt đá vôi trắng (OSM ghi gạch đỏ #f44e25 cho cả khối, sai ở mặt này), hai cửa vòm nhỏ so le theo cầu thang trong; bát neo sắt chữ thập chưa dựng",
+    "rang_cua": 0,
+    "ly_do_rang": "góp ý #1652 (24/11/2026): ảnh Mapillary 170611085036166 (gpsvid, CC BY-SA 4.0), máy do-anh.mjs định vị camera LightGlue + PnP, thấy 97% mặt — đỉnh mặt bắc là mái hiên có dải vòm nhỏ đỡ, mái đá phiến lộ ngay trên, KHÔNG có răng cưa (máy không thấy viền trời nên chốt bằng mắt)",
+    "vom_nho": 7,
+    "ly_do_vom_nho": "góp ý #1652 (24/11/2026): đếm bằng mắt trên ảnh Mapillary 170611085036166 (gpsvid, CC BY-SA 4.0, camera định vị bằng do-anh.mjs): dải vòm nhỏ dưới mái hiên từ chân tháp tới gờ trụ đầu tiên đếm được 7–8 vòm, sát tháp bị thân tháp che một phần — ghi 7 (nhịp ~0,6 m trên cạnh 4,2 m, nằm giữa nhịp 0,29 m của cạnh #0 và 0,75 m của cạnh #7)",
+    "da_goc": 0,
+    "ly_do_da_goc": "góp ý #1652 (24/11/2026): ảnh Mapillary 170611085036166 + 336577534524508 (gpsvid, CC BY-SA 4.0): cả mặt xây đá vôi khối đều một màu, góc cạnh không có đá góc khác màu/khác cỡ; máy do-anh.mjs cũng không thấy dải đá xen ở đầu cạnh (0 đoạn)"
  },
  "way/223110818#5": {
   "mau": {

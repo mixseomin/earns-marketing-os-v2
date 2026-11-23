@@ -51,7 +51,7 @@ export async function docCrPhim(contentId: number): Promise<DuCrPhim | { loi: st
     from etp.cr_soan s left join etp.mau_dung d on d.mau = s.mau and d.content_id = s.content_id
     where s.content_id = ${cid} and (s.trang_thai <> 'xong' or s.cap_nhat > now() - interval '2 days') order by s.cap_nhat desc limit 30`);
   const cr = await run<CrCuaPhim>(sql`select r.creative_id, r.dang, r.lang, r.anh, r.video, r.cap_nhat::text luc, r.tu_choi,
-      (select substring(v.ghi from 'mẫu:([a-z_0-9]+)') from etp.thu_vien v where v.creative_id = r.creative_id) mau,
+      (select substring(v.ghi from 'mẫu:([a-z_0-9]+)') from etp.thu_vien v where v.creative_id = r.creative_id order by v.id desc limit 1) mau,
       k.camp_id, k.trang_thai camp_tt, u.ok duyet
     from etp.creative r left join etp.cham_duyet u on u.creative_id = r.creative_id
       left join lateral (select c.camp_id, c.trang_thai from etp.camp c where c.creative_id = r.creative_id order by c.camp_id desc limit 1) k on true

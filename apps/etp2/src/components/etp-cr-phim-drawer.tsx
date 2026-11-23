@@ -175,12 +175,12 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
           {ok.cr.map((c) => { const duoc = !c.camp_id && !c.tu_choi, tich = chon.includes(c.creative_id), dangXem = xem === c.creative_id;
             return <div key={c.creative_id} style={{ border: `2px solid ${dangXem ? XANH : tich ? VANG : 'var(--line)'}`, borderRadius: 8, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'var(--bg-2)' }}>
               <div style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', cursor: 'pointer' }} onClick={() => setXem(c.creative_id)} title="bấm xem to · rê chuột để xem trước">
-                {c.video ? <video src={`${c.video}#t=1`} muted playsInline preload="metadata" onMouseEnter={(e) => void e.currentTarget.play().catch(() => {})} onMouseLeave={(e) => e.currentTarget.pause()}
+                {c.video ? <video src={`${c.video}#t=3`} muted playsInline preload="metadata" onMouseEnter={(e) => void e.currentTarget.play().catch(() => {})} onMouseLeave={(e) => e.currentTarget.pause()}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   : c.anh ? <img src={c.anh} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}
-                <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', fontSize: 22, color: '#fff', opacity: 0.8, pointerEvents: 'none', textShadow: '0 0 6px #000' }}>▶</span>
+                <span style={{ position: 'absolute', right: 5, bottom: 5, fontSize: 11, padding: '1px 6px', borderRadius: 5, background: 'rgba(0,0,0,.65)', color: '#fff', pointerEvents: 'none' }}>▶ xem</span>
                 {duoc ? <label onClick={(e) => e.stopPropagation()} title="chọn để lên camp cùng lúc"
-                  style={{ position: 'absolute', top: 4, left: 4, background: 'rgba(0,0,0,.6)', borderRadius: 5, padding: '1px 4px', display: 'flex' }}>
+                  style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,.65)', borderRadius: 5, padding: '1px 4px', display: 'flex' }}>
                   <input type="checkbox" checked={tich} onChange={() => setChon((x) => (tich ? x.filter((y) => y !== c.creative_id) : [...x, c.creative_id]))} /></label> : null}
               </div>
               <div style={{ padding: '5px 6px', display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5 }}>

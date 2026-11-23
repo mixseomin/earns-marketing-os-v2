@@ -464,7 +464,7 @@ const thoatHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
 /** HTML bài Substack: cảnh mở · lời hứa · ảnh 1 · mục 1-2 · khung ví dụ (class mock) · video · mục còn lại · ảnh 2 · "nếu đã lỡ" · ảnh 3 · FAQ · kết + nút CTA.
  *  {LINK} thành thẻ a + chữ link thuần (nap-bai lấy link đích từ chữ). Thuần. */
 export function htmlBaiDai(d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua' | 'muc' | 'vi_du' | 'neu_da_lo' | 'faq' | 'ket' | 'checklist' | 'dan_cta'>, link: string, anh: string[], video: string | null): string {
-  const ds = d.checklist?.length ? `<h2 id="quick-checklist">Your quick checklist</h2><ul class="checklist">${d.checklist.map((x, i) => `<li><label><input type="checkbox" id="check-${i + 1}"> ${thoatHtml(x.trim())}</label></li>`).join('')}</ul>` : '';
+  const ds = d.checklist?.length ? `<h2 id="quick-checklist">Your quick checklist</h2><div class="mock checklist" role="group" aria-label="Interactive checklist"><ul>${d.checklist.map((x, i) => `<li><label><input type="checkbox" id="check-${i + 1}"> ${thoatHtml(x.trim())}</label></li>`).join('')}</ul></div>` : '';
   const L = thoatHtml(link), t = (x: string) => thoatHtml(x.trim()).split('{LINK}').join(`<a href="${L}">${L}</a>`), p = (x: string) => `<p>${t(x)}</p>`;
   const img = (i: number) => anh[i] ? `<p><img src="${thoatHtml(anh[i]!)}" alt="${thoatHtml(d.tieu_de.trim())} (${i + 1})"></p>` : '';
   const khung = (k?: string[]) => (k?.filter((x) => x.trim()).length ?? 0) >= 2 ? `<blockquote class="mock">${k!.filter((x) => x.trim()).map(p).join('')}</blockquote>` : '';
@@ -488,6 +488,7 @@ export const faqCoKhong = (faq: { hoi: string; dap?: string }[]) => faq.filter((
 /** Kiểm bài Substack (chặn cứng như kiemBaiViet, độ dài bài dài). Thuần. */
 export function kiemBaiDai(chu: string, link: string): string[] {
   const loi = kiemBaiViet(chu, link).filter((x) => !x.startsWith('độ dài'));
+  if (/\$\s*_{2,}|_{4,}/.test(chu)) loi.push('ví dụ còn ô trống / số tiền chưa điền');
   if (chu.length < 3500 || chu.length > 12000) loi.push(`độ dài ${chu.length} ký tự (cần 3500-12000)`);
   return loi;
 }
@@ -506,7 +507,8 @@ export async function vietBaiDai(o: { sp: SanPhamDe; goc: GocDe; link: string; u
     'Every FAQ question must start with How, What, When, or Which, and every FAQ answer must add information without starting with Yes or No. Do not use Does, Is, Can, Could, Will, Would, Should, Has, Have, Was, Were, Did, Am, May, or Must as the first word of a question.',
     // 19/11/2026 (astrolas substack, Phòng Nội dung 6/10 SỬA LẠI): ví dụ là các bước trừu tượng, thân bài kể giá gói / tính năng → luật chung mọi máy
     'Never use personal first names (no "Maya", "John"): people are "you" or a role ("a graduate student"); the example is labelled as a sample case.',
-    'The worked example must be ONE specific case with concrete values a reader can see (actual numbers, names of signs/ranks/items, dates), never abstract steps like "date: entered".',
+    'The worked example must be ONE specific case with concrete values a reader can see (actual numbers, names of signs/ranks/items, dates), never abstract steps like "date: entered". Never leave blanks, placeholder underscores, or empty dollar amounts such as "$____", "______", or "$___" in any example or body text.',
+    'Every checklist must be a visibly styled, interactive block with checkboxes, not a plain text list. Include a concrete sample message or statement line in the worked example, not only labels.',
     'Body sections teach, they do not sell: never mention prices, plan names, paid tiers or the product\'s feature list or claims ("X says its calculations…") in the body; the product appears only in "ket".',
     ...(o.suThat ? ['VERIFIED FACTS (use ONLY these for rules, rates, numbers and deadlines; anything not listed: tell the reader where to check officially):', o.suThat] : [])].join('\n');
   const trangs = trangSuThat(o.suThat ?? null);

@@ -20,7 +20,7 @@ assert.ok(h.indexOf('Imagine') < h.indexOf('<h2>'), 'cảnh mở đứng trướ
 assert.ok(chuBaiDai(d).includes('{LINK}') && chuBaiDai(d).includes('Q3?'), 'chữ kiểm gồm mọi khối');
 assert.equal((h.match(/class="cta"/g) || []).length, 2, 'nút giữa bài + cuối bài');
 const h2 = htmlBaiDai({ ...d, checklist: ['Check one', 'Check two', 'Check three', 'Check four'] }, L, [], null);
-assert.ok(h2.includes('<ul class="checklist"><li>☐ Check one</li>') && chuBaiDai({ ...d, checklist: ['Check one'] }).includes('Check one'), 'checklist thành danh sách ô tick');
+assert.ok(h2.includes('<div class="mock checklist"') && h2.includes('<input type="checkbox"') && chuBaiDai({ ...d, checklist: ['Check one'] }).includes('Check one'), 'checklist thành khối tương tác có ô tick');
 assert.ok(kiemBaiDai('x'.repeat(100), 'L').some((x) => x.startsWith('độ dài')), 'bài ngắn bị chặn');
 assert.ok(kiemBaiDai(`${'word '.repeat(900)} L`, 'L').length === 0, 'bài đủ dài, có link: qua');
 // khung từng mục + câu dẫn nút giữa bài (19/11/2026: Phòng Nội dung chê "chỉ 1 khung ví dụ", "nút giữa bài thiếu lời dẫn")

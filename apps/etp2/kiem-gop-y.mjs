@@ -492,6 +492,7 @@ const LUAT = [
   { card: '1778', tep: 'apps/etp2/src/lib/actions/etp-bai.ts', co: '(noiDung?.diem ?? []).map((d) => d.lyDo)', vi: 'dịch cả lý do chấm điểm' },
   { card: '1778', tep: 'apps/etp2/src/lib/actions/etp-bai.ts', co: 'dich: Object.fromEntries(canDich.map(', vi: 'thẻ creative nhận kèm bản dịch đã nhớ' },
   { card: '1778', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', mot: '<DongVi d={v(nd.hook)} />', vi: 'dòng 🇻🇳 dịch tiếng Việt nằm ngay dưới hook' },
+  { card: '1778', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: '(trungGoc(g, v) ? null : { vi: v })', vi: 'bản dịch y hệt chữ gốc (tên phim) không hiện dòng thừa' },
   { card: '1778', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', mot: '<DongVi d={v(nd.chuVideo)} hien={goiLai} />', vi: 'chữ trên video có dòng dịch' },
   { card: '1778', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', mot: '<DongVi d={v(loiSau)} dong={4} />', vi: 'lời đọc sau hook có dòng dịch' },
   { card: '1778', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', mot: '<DongVi d={v(chu)} dong={mo ? 40 : 3} sang />', vi: 'chữ QC trong khung bài có dòng dịch' },

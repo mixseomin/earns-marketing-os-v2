@@ -54,8 +54,11 @@ function useDich(b: BaiQc | null): LayVi {
       (e) => { if (song) setLoi(`không dịch được: ${String(e?.message ?? e)}`); });
     return () => { song = false; };
   }, [b]);
-  return (g) => { if (!g || !b || !(g in b.dich)) return null; const v = vi[g]; return v ? { vi: v } : loi ? { loi } : 'cho'; };
+  return (g) => { if (!g || !b || !(g in b.dich)) return null; const v = vi[g]; return v ? (trungGoc(g, v) ? null : { vi: v }) : loi ? { loi } : 'cho'; };
 }
+// bản dịch y hệt chữ gốc (tên phim, tên riêng: "Get Out of My Bugatti" → "Get Out of My Bugatti") = dòng thừa, không hiện (anh #1778 "trình bày cho hợp lý")
+const chuanSo = (s: string) => s.toLowerCase().normalize('NFC').replace(/[\s\p{P}\p{S}]+/gu, '');
+const trungGoc = (g: string, v: string) => chuanSo(g) === chuanSo(v);
 /** dòng dịch dưới chữ gốc — sang = nằm trong khung bài trắng (chữ xám tối) */
 function DongVi({ d, dong = 2, sang = false, hien }: { d: Dv; dong?: number; sang?: boolean; hien?: (s: string) => string }) {
   if (!d) return null;

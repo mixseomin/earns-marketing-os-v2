@@ -196,11 +196,14 @@ const cauObj = { DAI, theme: KENH.theme, nhan_dien: KENH.nhan_dien ?? null, hinh
   dia_hinh: tap.dia_hinh ? { ...tap.dia_hinh, anh: pathToFileURL(join(KHO, tap.dia_hinh.anh)).href } : null,
   nv: await (async () => { const nv = {}; for (const s of canh) for (const m of [...(s.c.nguoi || []), ...(s.c.xe || []), ...(s.c.co || [])]) {
     const ds = ['goc', ...(Array.isArray(m.dang) ? m.dang.map((x) => x[1]) : [])]; for (const d of ds) nv[`${m.anh}:${d}`] ??= pathToFileURL(await tepDang(m.anh, d)).href; }
-    // HƯỚNG MẶT từng dáng (huong-mat.swift, Vision yaw: dương = nhìn sang phải màn): đo dáng chưa có rồi ghi lại kho.json — máy dựng lật để mặt nhìn về MỤC TIÊU
+    // HƯỚNG MẶT từng dáng: Vision chỉ có trên iMac; box3 dùng hướng thẳng an toàn thay vì làm hỏng cả tập.
     const khoTep = join(DIR, 'kho.json'), khoJ = JSON.parse(readFileSync(khoTep, 'utf8')); let ghiKho = false; huong = {};
     for (const [key, url] of Object.entries(nv)) { const [id, dang] = key.split(':'); const ts = khoJ.tai_san[id]; if (!ts || ts.loai !== 'nhan_vat') continue;
-      ts.huong ||= {}; if (!(dang in ts.huong)) { const out = execFileSync('swift', [join(DIR, 'huong-mat.swift'), fileURLToPath(url)], { encoding: 'utf8' }).trim().split(' ').pop();
-        const y = Number(out); ts.huong[dang] = Number.isFinite(y) ? (y > 0.08 ? 'phai' : y < -0.08 ? 'trai' : 'thang') : 'thang'; ghiKho = true; }
+      ts.huong ||= {}; if (!(dang in ts.huong)) {
+        let huongDang = 'thang';
+        try { const out = execFileSync('swift', [join(DIR, 'huong-mat.swift'), fileURLToPath(url)], { encoding: 'utf8' }).trim().split(' ').pop(); const y = Number(out); huongDang = Number.isFinite(y) ? (y > 0.08 ? 'phai' : y < -0.08 ? 'trai' : 'thang') : 'thang'; } catch { /* box3 không có Vision */ }
+        ts.huong[dang] = huongDang; ghiKho = true;
+      }
       huong[key] = ts.huong[dang]; }
     if (ghiKho) writeFileSync(khoTep, JSON.stringify(khoJ, null, 1) + '\n');
     for (const s of canh) if (s.c.tranh) { nv[s.c.tranh.anh] = pathToFileURL(join(KHO, s.c.tranh.anh)).href; if (s.c.tranh.lop) nv[s.c.tranh.lop] = pathToFileURL(join(KHO, s.c.tranh.lop)).href; }

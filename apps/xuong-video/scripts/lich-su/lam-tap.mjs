@@ -326,7 +326,15 @@ await songSong((tap.tai_san_moi || []).filter((t) => !docKho().tai_san[t.id] && 
     const dang = t.loai === 'nhan_vat' ? docKho().dang_chuan.join(',') : 'goc', bt = `/tmp/kho-${t.id}`;
     const out = await boxA(`scripts/lich-su/kho-sinh.mts ${bt} ${q(`mota:${t.loai}:${t.mo_ta_en}`)} ${dang}`); console.log(out); tien += Number(out.match(/~(\d+)₫/)?.[1] ?? 0);
     await veA(`${bt}/.`, tam); await sshA(`rm -rf ${bt}`);
-    await Promise.all(readdirSync(tam).filter((x) => x.endsWith('.jpg')).map(async (f) => console.log((await chay('swift', [join(DIR, 'nen-trong.swift'), join(tam, f), join(png, f.replace(/\.jpg$/, '.png'))])).trim())));
+    const tachNen = async (f, o) => {
+      try { return (await chay('swift', [join(DIR, 'nen-trong.swift'), f, o])).trim(); }
+      catch (e) {
+        // box3 không có Vision/Swift của macOS: bỏ nền trắng bằng ffmpeg, giữ được PNG alpha để dựng tiếp.
+        execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', f, '-vf', 'format=rgba,colorkey=white:0.08:0.0', o]);
+        return `✓ ${o} (ffmpeg)`;
+      }
+    };
+    await Promise.all(readdirSync(tam).filter((x) => x.endsWith('.jpg')).map(async (f) => console.log(await tachNen(join(tam, f), join(png, f.replace(/\.jpg$/, '.png'))))));
   }
   const bt = `/tmp/kho-day-${t.id}`; await sshA(`rm -rf ${bt} && mkdir -p ${bt}`); await lenA(readdirSync(png).map((f) => join(png, f)), `${bt}/`);
   const kq = JSON.parse((await boxA(`scripts/lich-su/kho-day.mts ${bt} ${t.id} ${t.loai} ${q(t.ten)} ${q(t.mo_ta_en || t.ten)} ${t.tu} ${t.den}`)).split('\n').pop()); await sshA(`rm -rf ${bt}`);

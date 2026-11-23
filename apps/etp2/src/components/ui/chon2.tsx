@@ -16,7 +16,8 @@ const KHO_RONG = 'etp2-chon2-xem-rong';
 const O_TEN = 10 + 14 + 8 + 118;
 const NEN = 'var(--bg-0, #0b0d12)', NEN_TRO = 'linear-gradient(var(--hover, rgba(255,255,255,.07)), var(--hover, rgba(255,255,255,.07))), var(--bg-0, #0b0d12)';
 
-export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', title, minWidth, align = 'left', anRong, href, chan, nhieu, tatCa = '', cot, oRong }: {
+export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', title, minWidth, align = 'left', anRong, href, chan, nhieu, tatCa = '', cot, oRong, to }: {
+  /** CHỈ TÔ SÁNG (anh 23/11/2026 etp2 #1781): có prop này thì bảng nổi có công tắc 🖍 — bật = lựa chọn của RIÊNG ô này chỉ tô vàng mục khớp, không giấu gì; các ô khác vẫn lọc */ to?: { bat: boolean; doi: (v: boolean) => void };
   /** cột số cạnh nhãn của từng mục (Chon2Muc.o) — có cot thì bảng nổi rộng thêm theo tổng bề rộng cột */ cot?: Chon2Cot[];
   /** ô số của mục '' tự thêm (rong) */ oRong?: ReactNode[];
   value: string; onChange: (v: string) => void; options: Chon2Muc[];
@@ -64,12 +65,16 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
   };
   // SÁNG KHI KHÁC "TẤT CẢ" (anh 28/10/2026 góp ý #1457): mọi ô — kể cả ô có mục tất cả riêng (anRong, vd Lọc 'all') — đang chọn mục không phải "Tất cả" thì viền + nền nhấn
   const coLoc = nhieu ? daChon.size > 0 : !!dang && dang.value !== '' && (dang.ngan ?? dang.label) !== rong;
+  const toBat = !!to?.bat;   // ô đang ở chế độ chỉ tô sáng → nút viền / nền vàng + 🖍, khác hẳn màu xanh của ô đang lọc
+  const vien = chan ? '#f87171' : toBat ? '#facc15' : coLoc ? 'var(--accent, #60a5fa)' : 'var(--line)';
+  const nen = chan ? 'rgba(248,113,113,.15)' : toBat ? 'rgba(250,204,21,.16)' : coLoc ? 'var(--accent-soft, rgba(59,130,246,.15))' : 'var(--bg-1, #111)';
+  const titleTo = toBat ? 'Ô này đang CHỈ TÔ SÁNG: camp khớp được tô vàng, không camp nào bị giấu. Mở ô, tắt 🖍 để quay lại lọc.' : '';
   return (
     <>
-      <button ref={ref} type="button" data-comp="ui.Chon2" title={chan ? `${chan}${title ? `\n${title}` : ''}` : title} onClick={() => setMo((v) => !v)}
+      <button ref={ref} type="button" data-comp="ui.Chon2" title={[chan, titleTo, title].filter(Boolean).join('\n') || undefined} onClick={() => setMo((v) => !v)} data-to={toBat ? '1' : undefined}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap', minWidth, maxWidth: '100%', flex: 'none',
-          border: `1px solid ${chan ? '#f87171' : coLoc ? 'var(--accent, #60a5fa)' : 'var(--line)'}`, background: chan ? 'rgba(248,113,113,.15)' : coLoc ? 'var(--accent-soft, rgba(59,130,246,.15))' : 'var(--bg-1, #111)', color: 'inherit', boxShadow: chan ? '0 0 0 2px rgba(248,113,113,.35)' : undefined }}>
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>{nhan ? <span style={{ color: 'var(--fg-2)' }}>{nhan}: </span> : null}{nhanNhieu ?? dang?.ngan ?? dang?.label ?? rong}</span>
+          border: `1px solid ${vien}`, background: nen, color: 'inherit', boxShadow: chan ? '0 0 0 2px rgba(248,113,113,.35)' : undefined }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>{toBat ? '🖍 ' : null}{nhan ?<span style={{ color: 'var(--fg-2)' }}>{nhan}: </span> : null}{nhanNhieu ?? dang?.ngan ?? dang?.label ?? rong}</span>
         <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>▾</span>
       </button>
       <AnchoredPopover anchorRef={ref} open={mo} onClose={() => setMo(false)} align={align}>
@@ -87,6 +92,15 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
                 <button key={chu2} type="button" onClick={lam} style={{ flex: 1, fontSize: 11.5, padding: '3px 0', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit', cursor: 'pointer' }}>{chu2}{chu2 === 'Chọn hết' && q.trim() ? ' (đang tìm)' : ''}</button>))}
               <span style={{ alignSelf: 'center', fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{daChon.size ? `${daChon.size} đã chọn` : 'tất cả'}</span>
             </div> : null}
+            {to ? <button type="button" data-k="chon2-to" aria-pressed={toBat} onClick={() => to.doi(!toBat)}
+              title={'Bật: lựa chọn của ô này chỉ TÔ VÀNG camp khớp, không giấu camp nào. Danh sách đang xem giữ nguyên theo các ô lọc khác.\nTắt: ô này lọc như thường.'}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', marginTop: 6, fontSize: 11.5, padding: '4px 8px', borderRadius: 5, cursor: 'pointer', color: 'inherit', textAlign: 'left',
+                border: `1px solid ${toBat ? '#facc15' : 'var(--line)'}`, background: toBat ? 'rgba(250,204,21,.16)' : 'var(--bg-1, #111)' }}>
+              <span style={{ width: 26, height: 14, borderRadius: 7, flex: 'none', position: 'relative', background: toBat ? '#facc15' : 'var(--line)' }}>
+                <span style={{ position: 'absolute', top: 2, left: toBat ? 14 : 2, width: 10, height: 10, borderRadius: 5, background: 'var(--bg-0, #0b0d12)' }} />
+              </span>
+              🖍 Chỉ tô sáng, không lọc
+            </button> : null}
           </div>
           <div data-k="chon2-ds" style={{ maxHeight: xemRong ? '72vh' : 340, overflowY: 'auto', overflowX: cot ? 'auto' : undefined, overscrollBehavior: 'contain', padding: cot ? '0 0 4px' : '4px 0' }}>
            <div style={cot ? { minWidth: rongDong } : undefined}>

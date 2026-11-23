@@ -6,10 +6,11 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { noiDangXem } from './gop-y-loc-nguon';
 
-/** yêu cầu đến từ studio2: chính trang iframe (referer = trang studio2) hoặc lượt gọi bên trong iframe (referer = /nhung/gop-y?trang=studio2…) */
-export function tuStudio2(host: string | null | undefined, referer: string | null | undefined): boolean {
+/** yêu cầu là hòm góp ý nhúng trong studio2: chính khung iframe (Sec-Fetch-Dest iframe + referer = trang studio2) hoặc lượt gọi bên trong
+ *  khung (referer = mos2/nhung/gop-y?trang=studio2…). Bấm link từ studio2 sang mos2 (dest = document) KHÔNG tính. */
+export function tuStudio2(host: string | null | undefined, referer: string | null | undefined, dest: string | null | undefined): boolean {
   let refHost = ''; try { refHost = new URL(String(referer ?? '')).hostname; } catch { /* không có referer */ }
-  return refHost === 'studio2.on.tc' || noiDangXem(host, referer) === 'studio2.on.tc';
+  return (refHost === 'studio2.on.tc' && dest === 'iframe') || (refHost !== 'studio2.on.tc' && noiDangXem(host, referer) === 'studio2.on.tc');
 }
 
 export async function quyenGopYS2(userId: number | null | undefined): Promise<boolean> {

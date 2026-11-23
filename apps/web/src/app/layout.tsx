@@ -66,11 +66,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const u = await getCurrentUser();
   // nút góp ý: admin mọi host; etp.on.tc thêm người có quyền etp (anh 02/11/2026 "bật phần góp ý cho tk của Sơn")
   // + KHÁCH trang công khai (dantranh, người vào từ VN — middleware gắn mã khách vào khung nhúng /nhung/gop-y, lib/gop-y-khach.ts)
-  const coGopY = u?.role === 'admin' || (host === 'etp.on.tc' && !!(await quyenEtp(u)))
-    // hòm nhúng từ studio2.on.tc (iframe /nhung/gop-y): người có quyền Studio 2 (anh 24/11/2026, doanhoe)
-    || (!!u && tuStudio2(host, hd.get('referer')) && (await quyenGopYS2(u.id)));
+  // hòm nhúng từ studio2.on.tc (iframe /nhung/gop-y): người có quyền Studio 2 (anh 24/11/2026, doanhoe — vai viewer trên mos2 nên miễn đẩy sang user.on.tc trong khung này)
+  const hopS2 = !!u && u.role !== 'admin' && tuStudio2(host, hd.get('referer'), hd.get('sec-fetch-dest')) && (await quyenGopYS2(u.id));
+  const coGopY = u?.role === 'admin' || (host === 'etp.on.tc' && !!(await quyenEtp(u))) || hopS2;
   const hienGopY = coGopY || (!u && !!hd.get(HEADER_KHACH));
-  if (host === 'mos2.on.tc' && u && u.role === 'viewer') redirect('https://user.on.tc/review');
+  if (host === 'mos2.on.tc' && u && u.role === 'viewer' && !hopS2) redirect('https://user.on.tc/review');
   // Cột/sort/lọc của MỌI bảng — đọc ở đây để lần sơn đầu đã đúng (hết nháy khi F5).
   const tablePrefs = await readTablePrefs();
   return (

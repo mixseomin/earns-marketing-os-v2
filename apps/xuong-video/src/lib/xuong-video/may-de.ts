@@ -499,6 +499,7 @@ export async function vietBaiDai(o: { sp: SanPhamDe; goc: GocDe; link: string; u
     'Plain human voice, no hype, no em dashes (— or –), no hashtags, no markdown, never these words: ' + TU_MAY.join(', ') + '.',
     'Put the token {LINK} exactly once, only in "ket", in a sentence that says why that page helps this reader (do not write any URL yourself).',
     'Readers arrive from social media on a phone: open with a concrete scene (not a definition), keep paragraphs to 2-4 sentences, make the example visible as short pay-statement-like lines, include a section for readers who already made the decision or mistake, and FAQ answers that each add something new.',
+    'The opening hook must make the reader stop: it must contain a direct question with a question mark, a concrete number, or a specific situation the reader can recognize. Do not open with a generic definition or broad claim.',
     'Every body section shows, not only tells: give it a "khung" box with the exact lines the reader would see (statement rows, a notice, a message), so no section is only explanation.',
     'Every FAQ question must start with How, What, When, or Which, and every FAQ answer must add information without starting with Yes or No. Do not use Does, Is, Can, Could, Will, Would, Should, Has, Have, Was, Were, Did, Am, May, or Must as the first word of a question.',
     // 19/11/2026 (astrolas substack, Phòng Nội dung 6/10 SỬA LẠI): ví dụ là các bước trừu tượng, thân bài kể giá gói / tính năng → luật chung mọi máy

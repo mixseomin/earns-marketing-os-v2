@@ -4,7 +4,7 @@
 // (tên miền · tiêu đề · mô tả · nút CTA đúng loại của camp). Chữ THẬT từ kho (docBaiQc ← apps/etp/bai-qc.py), không chữ mẫu.
 // Chấm điểm / lý do chặn KHÔNG nằm trong khung — chỗ gọi đặt TheCr bên ngoài.
 import { useEffect, useState } from 'react';
-import { docBaiQc, dichHook, type BaiQc, type NoiDungCr } from '@/lib/actions/etp-bai';
+import { docBaiQc, dichChu, type BaiQc, type NoiDungCr } from '@/lib/actions/etp-bai';
 import { VideoXem } from '@/components/ui/video-xem';
 
 const CACHE = new Map<string, Promise<BaiQc | { loi: string }>>();
@@ -28,48 +28,74 @@ const MOT_DONG: React.CSSProperties = { whiteSpace: 'nowrap', overflow: 'hidden'
 // Đặt TRÊN khung bài để mở thẻ là thấy ngay, không phải cuộn qua video. Chữ dài cắt dòng, đủ chữ ở rê chuột (YDNI: chữ phụ vào hover).
 const mauTc = (d: number) => (d >= 8 ? 'var(--fg-2, #aaa)' : d >= 5 ? '#f59e0b' : '#f87171');
 const DONG = (n: number): React.CSSProperties => ({ display: '-webkit-box', WebkitLineClamp: n, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' });
-// DỊCH HOOK (anh #1778): dòng 🇻🇳 dưới hook — bản đã nhớ (etp.dich) đi kèm thẻ; chưa có thì gọi dichHook một lần mỗi câu (nhớ trong trang), lỗi hiện đỏ ngay dòng này
-const DICH = new Map<string, Promise<{ vi: string } | { loi: string }>>();
-function HookVi({ nd }: { nd: NoiDungCr }) {
-  const [kq, setKq] = useState<{ vi: string } | { loi: string } | null>(nd.hookVi ? { vi: nd.hookVi } : null);
+// DỊCH (anh #1778 "các hook đều có thêm phần hiển thị tiếng Việt" + "mở rộng thêm phần dịch cho các nội dung khác trong đó"): mọi chữ ngoại ngữ của thẻ —
+// hook, chữ trên video, lời đọc, tóm tắt, lý do chấm, chữ QC, tiêu đề, mô tả — có MỘT dòng 🇻🇳 nghiêng cùng một kiểu ngay dưới chữ gốc (lý do chấm vốn ở rê chuột
+// thì bản dịch nối vào rê chuột). Bản đã nhớ (etp.dich) đi kèm thẻ; chữ chưa dịch gom MỘT lượt dichChu cho cả thẻ (nhớ trong trang), lỗi hiện đỏ ngay dòng dịch.
+type Dv = { vi: string } | { loi: string } | 'cho' | null;
+type LayVi = (goc: string | null | undefined) => Dv;
+const viCua = (d: Dv) => (d && typeof d === 'object' && 'vi' in d ? d.vi : null);
+const DICH = new Map<string, Promise<{ vi: Record<string, string> } | { loi: string }>>();
+const layDich = (ds: string[]) => {
+  const k = [...ds].sort().join('\u0001'); let p = DICH.get(k);
+  if (!p) { p = dichChu(ds); DICH.set(k, p); p.then((r) => { if ('loi' in r) DICH.delete(k); }, () => DICH.delete(k)); }
+  return p;
+};
+function useDich(b: BaiQc | null): LayVi {
+  const [vi, setVi] = useState<Record<string, string>>({}); const [loi, setLoi] = useState<string | null>(null);
   useEffect(() => {
-    if (nd.hookVi || !nd.canDich || !nd.hook) return;
-    const h = nd.hook; let p = DICH.get(h);
-    if (!p) { p = dichHook(h); DICH.set(h, p); p.then((r) => { if ('loi' in r) DICH.delete(h); }, () => DICH.delete(h)); }
+    setLoi(null);
+    if (!b) { setVi({}); return; }
+    const co: Record<string, string> = {}; const thieu: string[] = [];
+    for (const [g, v] of Object.entries(b.dich)) { if (v) co[g] = v; else thieu.push(g); }
+    setVi(co);
+    if (!thieu.length) return;
     let song = true;
-    p.then((r) => { if (song) setKq(r); }, (e) => { if (song) setKq({ loi: `không dịch được: ${String(e?.message ?? e)}` }); });
+    layDich(thieu).then((r) => { if (!song) return; if ('loi' in r) setLoi(r.loi); else setVi((x) => ({ ...x, ...r.vi })); },
+      (e) => { if (song) setLoi(`không dịch được: ${String(e?.message ?? e)}`); });
     return () => { song = false; };
-  }, [nd.hook, nd.hookVi, nd.canDich]);
-  if (!nd.canDich) return null;
-  if (!kq) return <div data-hook-vi="cho" style={{ fontSize: 11, color: 'var(--fg-3, #888)' }}>🇻🇳 đang dịch…</div>;
-  if ('loi' in kq) return <div data-hook-vi="loi" style={{ fontSize: 11, color: '#f87171' }}>🇻🇳 {kq.loi}</div>;
-  return <div data-hook-vi style={{ ...DONG(2), fontSize: 12, color: 'var(--fg-2, #bbb)' }} title={kq.vi}>
-    <span style={{ color: 'var(--fg-3, #888)', marginRight: 4 }}>🇻🇳 Dịch</span><i>{kq.vi}</i></div>;
+  }, [b]);
+  return (g) => { if (!g || !b || !(g in b.dich)) return null; const v = vi[g]; return v ? { vi: v } : loi ? { loi } : 'cho'; };
 }
-function NoiDungVideo({ nd }: { nd: NoiDungCr | null }) {
+/** dòng dịch dưới chữ gốc — sang = nằm trong khung bài trắng (chữ xám tối) */
+function DongVi({ d, dong = 2, sang = false, hien }: { d: Dv; dong?: number; sang?: boolean; hien?: (s: string) => string }) {
+  if (!d) return null;
+  const nhat = sang ? XAM : 'var(--fg-3, #888)';
+  if (d === 'cho') return <div data-vi="cho" style={{ fontSize: 11, color: nhat, whiteSpace: 'normal' }}>🇻🇳 đang dịch…</div>;
+  if ('loi' in d) return <div data-vi="loi" style={{ fontSize: 11, color: sang ? '#dc2626' : '#f87171', whiteSpace: 'normal' }}>🇻🇳 {d.loi}</div>;
+  return <div data-vi style={{ ...DONG(dong), fontSize: 12, color: sang ? XAM : 'var(--fg-2, #bbb)', whiteSpace: sang ? 'pre-wrap' : 'normal', fontWeight: 400 }} title={d.vi}>
+    <span style={{ marginRight: 4, fontStyle: 'normal' }}>🇻🇳</span><i>{hien ? hien(d.vi) : d.vi}</i></div>;
+}
+const goiLai = (s: string) => s.replace(/\s*\n\s*/g, ' / ');
+const viTitle = (v: LayVi, s: string | null) => { const t = viCua(v(s)); return t ? `\n🇻🇳 ${t}` : ''; };
+function NoiDungVideo({ nd, v }: { nd: NoiDungCr | null; v: LayVi }) {
   const nhan: React.CSSProperties = { color: 'var(--fg-3, #888)', marginRight: 4 };
   if (!nd) return <div data-noi-dung-video="chua" style={{ fontSize: 11, color: 'var(--fg-3, #888)' }} title="Máy chấm chưa đọc video này nên chưa có hook, chữ trong video và điểm">Chưa chấm — chưa có hook, chữ video, điểm</div>;
-  const chuVideo = nd.chuVideo?.replace(/\s*\n\s*/g, ' / ') ?? null;
+  const chuVideo = nd.chuVideo ? goiLai(nd.chuVideo) : null;
+  const loiSau = nd.sauHook ?? nd.loiDoc;
   // #1777: điểm hook giữ người xem quá 3s — tiêu chí nhóm 'hut' (không thuộc Meta / AFS, không vào cổng chặn), hiện ngay trên dòng Hook
   const giu = nd.diem.find((d) => d.nhom === 'hut' && d.ma === 'giu_3s') ?? null;
   const diemNd = nd.diem.filter((d) => d.nhom !== 'hut');
   return <div data-noi-dung-video style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12, lineHeight: 1.35 }}>
     <div style={DONG(2)} title={nd.hook ?? ''}><span style={nhan}>🎣 Hook</span>
-      {giu ? <span data-giu-3s={giu.diem} title={`Hook giữ người xem quá 3s: ${giu.diem}/10 — máy chấm 3 giây đầu video (khung hình, chữ, câu đọc đầu)${giu.lyDo ? `\n${giu.lyDo}` : ''}`}
+      {giu ? <span data-giu-3s={giu.diem} title={`Hook giữ người xem quá 3s: ${giu.diem}/10 — máy chấm 3 giây đầu video (khung hình, chữ, câu đọc đầu)${giu.lyDo ? `\n${giu.lyDo}${viTitle(v, giu.lyDo)}` : ''}`}
           style={{ fontSize: 11, border: `1px solid ${mauTc(giu.diem)}`, color: mauTc(giu.diem), borderRadius: 4, padding: '0 4px', marginRight: 4, whiteSpace: 'nowrap', fontWeight: 700 }}>giữ 3s {giu.diem}/10</span>
         : <span data-giu-3s="chua" title="Creative này chấm trước khi có tiêu chí giữ người xem quá 3s — chỉ lượt chấm mới có điểm, không chấm lại hàng loạt"
           style={{ fontSize: 11, color: 'var(--fg-3, #888)', marginRight: 4, whiteSpace: 'nowrap' }}>giữ 3s: chưa chấm</span>}
       <b>{nd.hook ?? '—'}</b></div>
-    <HookVi nd={nd} />
+    <DongVi d={v(nd.hook)} />
     <div style={DONG(2)} title={nd.chuVideo ?? ''}><span style={nhan}>🔤 Chữ trên video</span>{chuVideo ?? '—'}</div>
+    <DongVi d={v(nd.chuVideo)} hien={goiLai} />
     {/* #1779: lời đọc SAU câu hook (phần thoại còn lại của video) — không lặp câu hook, hiện tới 6 dòng (không hộp cuộn lồng trong thẻ nổi), rê vào xem đủ cả lời đọc + tóm tắt */}
     <div data-sau-hook={nd.sauHook ? 'co' : 'khong'} style={{ ...DONG(6), wordBreak: 'break-word' }}
       title={[nd.sauHook ?? nd.loiDoc, nd.tomTat ? `Tóm tắt: ${nd.tomTat}` : ''].filter(Boolean).join('\n\n')}>
       <span style={nhan}>🎙 Lời đọc sau hook</span>{nd.sauHook ?? (nd.loiDoc ? 'không còn lời nào sau câu hook' : 'không có giọng')}</div>
+    {nd.sauHook ? <DongVi d={v(loiSau)} dong={4} /> : null}
+    {nd.tomTat ? <div data-tom-tat style={DONG(2)} title={nd.tomTat}><span style={nhan}>🧾 Tóm tắt</span>{nd.tomTat}</div> : null}
+    <DongVi d={v(nd.tomTat)} />
     {diemNd.length ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 2 }}
       title="Điểm nội dung máy chấm từ chính video (thang 10, dưới 5 là chặn) — rê vào từng ô để xem lý do">
       <span style={{ ...nhan, fontSize: 11 }}>📝 Chấm nội dung</span>
-      {diemNd.map((d) => <span key={`${d.nhom}.${d.ma}`} data-tc={`${d.nhom}.${d.ma}`} title={`${d.nhom === 'meta' ? 'Meta' : 'AFS'} · ${d.ten}: ${d.diem}/10${d.lyDo ? `\n${d.lyDo}` : ''}`}
+      {diemNd.map((d) => <span key={`${d.nhom}.${d.ma}`} data-tc={`${d.nhom}.${d.ma}`} title={`${d.nhom === 'meta' ? 'Meta' : 'AFS'} · ${d.ten}: ${d.diem}/10${d.lyDo ? `\n${d.lyDo}${viTitle(v, d.lyDo)}` : ''}`}
         style={{ fontSize: 11, border: `1px solid ${mauTc(d.diem)}`, color: mauTc(d.diem), borderRadius: 4, padding: '0 4px', whiteSpace: 'nowrap' }}>{d.ten} {d.diem}</span>)}
     </div> : null}
   </div>;
@@ -89,9 +115,10 @@ export function KhungBaiQc({ cr, camp, anh, video, caoMedia, ngang = false, ben 
   const ds = b?.chinh ?? []; const chu = ds[i] ?? ''; const dai = chu.length > CAT;
   const tieuDe = b?.tieuDe[0] ?? null, moTa = b?.moTa[0] ?? null, cta = b ? chuCta(b.cta) : '';
   const lat = (d: number) => { setI((x) => (x + d + ds.length) % ds.length); setMo(false); };
+  const v = useDich(b);
   const thongTin = <>
     {ben}
-    {b ? <NoiDungVideo nd={b.noiDung} /> : null}
+    {b ? <NoiDungVideo nd={b.noiDung} v={v} /> : null}
     {b?.chuaCamp ?<div style={{ fontSize: 11, color: 'var(--fg-2, #aaa)' }}>chưa lên camp — chữ dự kiến</div> : null}
   </>;
   return <div data-bai-qc={cr} data-bo-cuc={ngang ? 'ngang' : 'doc'} style={ngang
@@ -116,7 +143,8 @@ export function KhungBaiQc({ cr, camp, anh, video, caoMedia, ngang = false, ben 
         {loi ? <span style={{ color: '#dc2626' }}>Không đọc được chữ QC: {loi}</span>
           : !b ? <span style={{ color: XAM }}>đang tải chữ QC…</span>
           : !chu ? <span style={{ color: XAM }}>{b.dongBo ? 'Creative này không có chữ QC.' : 'Chưa đồng bộ chữ QC của creative này — máy đồng bộ mỗi 10 phút.'}</span>
-          : <>{dai && !mo ? chu.slice(0, CAT).trimEnd() : chu}{dai ? <button type="button" onClick={() => setMo((x) => !x)} style={{ border: 0, background: 'none', padding: 0, marginLeft: 2, color: XAM, fontWeight: 600, cursor: 'pointer', font: 'inherit' }}>{mo ? ' Thu gọn' : '… Xem thêm'}</button> : null}</>}
+          : <>{dai && !mo ? chu.slice(0, CAT).trimEnd() : chu}{dai ? <button type="button" onClick={() => setMo((x) => !x)} style={{ border: 0, background: 'none', padding: 0, marginLeft: 2, color: XAM, fontWeight: 600, cursor: 'pointer', font: 'inherit' }}>{mo ? ' Thu gọn' : '… Xem thêm'}</button> : null}
+            <div style={{ marginTop: 3 }}><DongVi d={v(chu)} dong={mo ? 40 : 3} sang /></div></>}
         {ds.length > 1 ? <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontSize: 11, color: XAM }} title="Meta tự xoay các bản chữ QC này giữa người xem">
           <button type="button" onClick={() => lat(-1)} aria-label="Bản chữ trước" style={NUT_LAT}>‹</button><span>bản {i + 1}/{ds.length}</span>
           <button type="button" onClick={() => lat(1)} aria-label="Bản chữ sau" style={NUT_LAT}>›</button></div> : null}
@@ -132,6 +160,8 @@ export function KhungBaiQc({ cr, camp, anh, video, caoMedia, ngang = false, ben 
           {b?.tenMien ? <div style={{ ...MOT_DONG, fontSize: 11, color: XAM, textTransform: 'uppercase' }}>{b.tenMien}</div> : null}
           {tieuDe ? <div style={{ ...MOT_DONG, fontWeight: 600 }} title={tieuDe}>{tieuDe}</div> : null}
           {moTa ? <div style={{ ...MOT_DONG, fontSize: 12, color: XAM }} title={moTa}>{moTa}</div> : null}
+          <div data-vi-tieu-de><DongVi d={v(tieuDe)} dong={1} sang /></div>
+          <div data-vi-mo-ta><DongVi d={v(moTa)} dong={1} sang /></div>
         </div>
         {cta ? <span style={{ flex: 'none', background: '#e4e6eb', color: DEN, fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap' }}>{cta}</span> : null}
       </div>

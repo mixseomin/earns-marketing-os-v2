@@ -14,35 +14,53 @@ export type BaiQc = {
   chinh: string[]; tieuDe: string[]; moTa: string[]; cta: string | null; tenMien: string | null; kieu: string | null;
   /** NỘI DUNG TRONG VIDEO + CHẤM (anh #1774): đọc từ etp.cham (máy chấm etp-cham: lớp chữ trên hình · giọng đọc · tóm tắt nội dung) — null khi creative chưa chấm */
   noiDung: NoiDungCr | null;
+  /** BẢN DỊCH (anh #1778): khoá = mọi chữ ngoại ngữ trong thẻ (nguyên văn), giá trị = bản tiếng Việt đã nhớ ở etp.dich, null = chưa dịch (trang gọi dichChu gộp một lượt).
+   *  Chữ không có trong đây = tiếng Việt / rỗng → không cần dịch. */
+  dich: Record<string, string | null>;
 };
 export type DiemTc = { nhom: string; ma: string; ten: string; diem: number; lyDo: string | null };
-/** hookVi: bản dịch tiếng Việt đã nhớ ở etp.dich (anh #1778) — null khi chưa dịch; canDich = hook không phải tiếng Việt (trang gọi dichHook khi chưa có) */
-export type NoiDungCr = { hook: string | null; hookVi: string | null; canDich: boolean; chuVideo: string | null; loiDoc: string | null; sauHook: string | null; tomTat: string | null; meta: number | null; afs: number | null; ket: string | null; luc: string | null; diem: DiemTc[] };
+export type NoiDungCr = { hook: string | null; chuVideo: string | null; loiDoc: string | null; sauHook: string | null; tomTat: string | null; meta: number | null; afs: number | null; ket: string | null; luc: string | null; diem: DiemTc[] };
 
 // hook = câu mở video: câu đầu lời đọc (người xem nghe trước), không có giọng thì dòng chữ đầu trên hình
 const cauDau = (s: string | null) => { const t = (s ?? '').trim(); if (!t) return null; const m = t.match(/^[\s\S]*?[.!?…](?=\s|$)/); return (m?.[0] ?? t.split('\n')[0] ?? '').trim() || null; };
 
 // DỊCH HOOK (anh #1778 "các hook đều có thêm phần hiển thị tiếng Việt (dịch) để hiểu nghĩa"): câu có chữ cái riêng tiếng Việt thì không cần dịch
 const laTiengViet = (s: string) => /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(s);
-const docDich = async (db: NonNullable<ReturnType<typeof getDb>>, goc: string) =>
-  (((await db.execute(sql`select vi from etp.dich where goc = ${goc}`)) as unknown as { vi: string }[])[0]?.vi ?? null);
+const TRAN_DICH = 4000, TRAN_SO_DICH = 60;
+// MỌI chữ ngoại ngữ của thẻ (anh #1778 lần 2 "mở rộng thêm phần dịch cho các nội dung khác trong đó"): hook · chữ trên video · lời đọc · tóm tắt · lý do chấm · chữ QC · tiêu đề · mô tả
+const canDichChu = (s: string | null | undefined): s is string => !!s && !!s.trim() && s.length <= TRAN_DICH && !laTiengViet(s);
+const docDich = async (db: NonNullable<ReturnType<typeof getDb>>, ds: string[]): Promise<Record<string, string>> => {
+  if (!ds.length) return {};
+  const rows = (await db.execute(sql`select goc, vi from etp.dich where goc in (${sql.join(ds.map((d) => sql`${d}`), sql`, `)})`)) as unknown as { goc: string; vi: string }[];
+  return Object.fromEntries(rows.map((r) => [r.goc, r.vi]));
+};
 
-/** Dịch MỘT câu hook sang tiếng Việt — nhớ ở etp.dich theo nguyên văn (câu trùng / mở lại thẻ không dịch lại). Cổng AI chung, dòng Haiku (~vài chục đồng một câu). */
-export async function dichHook(goc: string): Promise<{ vi: string } | { loi: string }> {
+/** Dịch GỘP các chữ ngoại ngữ của MỘT thẻ sang tiếng Việt trong MỘT lượt AI — nhớ ở etp.dich theo nguyên văn (câu trùng / mở lại thẻ không dịch lại).
+ *  Cổng AI chung, dòng Haiku (~dưới 1₫ một thẻ). Trả bản dịch cho mọi câu xin (cả câu đã nhớ). */
+export async function dichChu(dsGoc: string[]): Promise<{ vi: Record<string, string> } | { loi: string }> {
   if (!(await quyenEtp(await getCurrentUser()))) return { loi: 'không có quyền' };
-  const t = String(goc ?? '').trim();
-  if (!t || t.length > 500) return { loi: 'câu hook rỗng hoặc dài quá 500 ký tự' };
-  if (laTiengViet(t)) return { vi: t };
+  const ds = [...new Set((Array.isArray(dsGoc) ? dsGoc : []).map((x) => String(x ?? '')))].filter(canDichChu);
+  if (ds.length > TRAN_SO_DICH) return { loi: `xin dịch ${ds.length} đoạn một lượt, trần ${TRAN_SO_DICH}` };
+  if (!ds.length) return { vi: {} };
   const db = getDb(); if (!db) return { loi: 'không nối được kho' };
-  const co = await docDich(db, t); if (co) return { vi: co };
+  const vi = await docDich(db, ds);
+  const thieu = ds.filter((d) => !vi[d]);
+  if (!thieu.length) return { vi };
   try {
-    const { hoiChu } = await import('@mos2/cong-ai');
-    const r = await hoiChu({ viec: 'etp2-dich-hook', model: 'haiku', max_tokens: 300,
-      system: 'Bạn dịch câu mở đầu (hook) của video quảng cáo phim ngắn sang tiếng Việt tự nhiên, giữ nguyên tên riêng / tên phim. Chỉ trả đúng câu dịch, không ngoặc kép, không giải thích.',
-      user: t });
-    const vi = r.chu.trim().replace(/^["“'«]+|["”'»]+$/g, '').trim();
-    if (!vi) return { loi: 'cổng AI trả bản dịch rỗng' };
-    await db.execute(sql`insert into etp.dich (goc, vi, model, chi_usd) values (${t}, ${vi}, ${r.model ?? null}, ${r.chi_usd ?? null}) on conflict (goc) do nothing`);
+    const { goiAi } = await import('@mos2/cong-ai');
+    const r = await goiAi<{ vi: string[] }>({ viec: 'etp2-dich', model: 'haiku',
+      max_tokens: Math.min(8000, 400 + Math.ceil(thieu.reduce((n, d) => n + d.length, 0) * 1.2)),
+      system: 'Bạn dịch nội dung quảng cáo phim ngắn (câu hook, chữ trên video, lời thoại, tóm tắt, nhận xét chấm điểm, chữ bài quảng cáo) sang tiếng Việt tự nhiên. '
+        + 'Vào là mảng JSON các đoạn; trả {"vi": [...]} đúng số đoạn, đúng thứ tự, mỗi phần tử là bản dịch của đoạn cùng vị trí. Giữ nguyên tên riêng / tên phim, giữ dấu " / " và xuống dòng, không thêm giải thích.',
+      noi_dung: JSON.stringify(thieu),
+      schema: { type: 'object', properties: { vi: { type: 'array', items: { type: 'string' } } }, required: ['vi'] } },
+    { kiem: (kq) => (Array.isArray(kq?.vi) && kq.vi.length === thieu.length && kq.vi.every((x) => typeof x === 'string' && x.trim()) ? null : `cần đúng ${thieu.length} bản dịch không rỗng` ) });
+    const chi = r.chi_usd != null ? r.chi_usd / thieu.length : null;
+    for (const [k, goc] of thieu.entries()) {
+      const v = String(r.kq.vi[k] ?? '').trim().replace(/^["“«]+|["”»]+$/g, '').trim(); if (!v) continue;
+      vi[goc] = v;
+      await db.execute(sql`insert into etp.dich (goc, vi, model, chi_usd) values (${goc}, ${v}, ${r.model ?? null}, ${chi}) on conflict (goc) do nothing`);
+    }
     return { vi };
   } catch (e) { return { loi: `không dịch được: ${String((e as Error)?.message ?? e).slice(0, 200)}` }; }
 }
@@ -72,25 +90,29 @@ export async function docBaiQc(cr: number, camp?: number | null): Promise<BaiQc 
   const q = (r.chu_qc ?? {}) as { headline?: string; mo_ta?: string; chu_dau?: string; link?: string };
   const dongBo = r.dong_bo === true;
   const hookGoc = r.co_cham === true ? (cauDau(typeof r.loi_doc === 'string' ? r.loi_doc : null) ?? cauDau(typeof r.chu_video === 'string' ? r.chu_video : null)) : null;
-  const hookVi = hookGoc && !laTiengViet(hookGoc) ? await docDich(db, hookGoc).catch(() => null) : null;
   const tenMien = (r.ten_mien as string) || (() => { const u = (r.final_url as string) || (r.link as string) || q.link || ''; try { return u ? new URL(/^https?:/.test(u) ? u : `https://${u}`).hostname.replace(/^www\./, '') : null; } catch { return null; } })();
-  return {
-    cr, camp: r.camp == null ? null : Number(r.camp), chuaCamp: r.camp == null, dongBo,
-    page: r.pten || r.panh ? { ten: (r.pten as string) ?? null, anh: (r.panh as string) ?? null, link: (r.plink as string) ?? null } : null,
-    chinh: dongBo ? ds(r.chinh) : ds([q.chu_dau]), tieuDe: dongBo ? ds(r.tieu_de) : ds([q.headline]), moTa: dongBo ? ds(r.mo_ta) : ds([q.mo_ta]),
-    cta: (r.cta as string) ?? null, tenMien, kieu: (r.kieu as string) ?? null,
-    noiDung: r.co_cham !== true ? null : (() => {
+  const chinh = dongBo ? ds(r.chinh) : ds([q.chu_dau]), tieuDe = dongBo ? ds(r.tieu_de) : ds([q.headline]), moTa = dongBo ? ds(r.mo_ta) : ds([q.mo_ta]);
+  const noiDung: NoiDungCr | null = r.co_cham !== true ? null : (() => {
       const s = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
       const chuVideo = s(r.chu_video), loiDoc = s(r.loi_doc);
       const so = (v: unknown) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
       return {
         // #1779 "sau hook là phần nội dung voice trong video cũng phải show ra": lời đọc PHÍA SAU câu hook (hook lấy từ lời đọc thì bỏ câu đó, lấy từ chữ trên hình thì giữ cả lời đọc)
         sauHook: (() => { const cd = cauDau(loiDoc); return loiDoc && cd && cd === hookGoc ? loiDoc.slice(loiDoc.indexOf(cd) + cd.length).trim() || null : loiDoc; })(),
-        hook: hookGoc, hookVi, canDich: !!hookGoc && !laTiengViet(hookGoc), chuVideo, loiDoc, tomTat: s(r.tom_tat), meta: so(r.cmeta), afs: so(r.cafs), ket: s(r.cket),
+        hook: hookGoc, chuVideo, loiDoc, tomTat: s(r.tom_tat), meta: so(r.cmeta), afs: so(r.cafs), ket: s(r.cket),
         luc: r.cluc == null ? null : String(r.cluc),
         diem: ((r.cdiem ?? []) as { nhom: string; ma: string; ten: string; diem: unknown; ly_do: string | null }[])
           .filter((d) => so(d.diem) != null).map((d) => ({ nhom: d.nhom, ma: d.ma, ten: d.ten, diem: so(d.diem) as number, lyDo: s(d.ly_do) })),
       };
-    })(),
+    })();
+  // #1778: gom mọi chữ ngoại ngữ trong thẻ — bản đã nhớ đi kèm luôn, chữ chưa dịch thì trang gọi dichChu MỘT lượt cho cả thẻ
+  const canDich = [...new Set([noiDung?.hook, noiDung?.chuVideo, noiDung?.sauHook ?? noiDung?.loiDoc, noiDung?.tomTat, ...(noiDung?.diem ?? []).map((d) => d.lyDo),
+    ...chinh, ...tieuDe, ...moTa].filter(canDichChu))].slice(0, TRAN_SO_DICH);
+  const daNho = await docDich(db, canDich).catch(() => ({} as Record<string, string>));
+  return {
+    cr, camp: r.camp == null ? null : Number(r.camp), chuaCamp: r.camp == null, dongBo,
+    page: r.pten || r.panh ? { ten: (r.pten as string) ?? null, anh: (r.panh as string) ?? null, link: (r.plink as string) ?? null } : null,
+    chinh, tieuDe, moTa, cta: (r.cta as string) ?? null, tenMien, kieu: (r.kieu as string) ?? null, noiDung,
+    dich: Object.fromEntries(canDich.map((d) => [d, daNho[d] ?? null])),
   };
 }

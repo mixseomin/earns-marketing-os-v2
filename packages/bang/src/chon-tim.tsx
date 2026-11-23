@@ -27,7 +27,7 @@ export function ChonTim({ value, ds, onChange, style, title, zIndex = 3000 }: {
   return <>
     <button ref={ref} type="button" title={title} onClick={() => (mo ? dong() : moRa())}
       onKeyDown={(e) => { if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); moRa(); } }}
-      style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, textAlign: 'left', ...style }}>
+      style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, textAlign: 'left', height: 26, padding: '0 8px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', font: 'inherit', fontSize: 12, ...style }}>
       <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cur ? (cur.nhan ?? cur.v) : value}</span>
       <span style={{ color: 'var(--fg-3)', fontSize: '0.85em' }}>▾</span>
     </button>

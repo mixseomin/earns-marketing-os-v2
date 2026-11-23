@@ -177,6 +177,12 @@ EOF'""", timeout=3600)
     # TỰ CHẤM CREATIVE MỚI (anh 25/10/2026: "các creative mới từ giờ có bước chấm tự động"): xếp hàng etp.cham_hang → Worker Cloudflare etp-cham chấm (mỗi phút).
     # CHỈ CHẤM — không chặn lên camp (anh: "chưa áp dụng vào camp hay rule nào hết").
     moi = [str(int(x["creative_id"])) for x in lo if not x.get("loi") and x.get("creative_id")]
+    # MỌI CREATIVE MỚI VÀO HÀNG CHỜ ANH DUYỆT TRƯỚC KHI CHẤM (anh 22/11/2026: mọi camp cần lên, cả creative, phải hiện "Chờ duyệt" ở etp2 › Camp):
+    # giữ trước khi xếp chấm → cham_cong.duoc_len = false tới khi anh bấm Duyệt; ghi giữ lỗi thì KHÔNG xếp chấm (fail-closed, không lọt camp tự lên)
+    if moi:
+        ghi = (os.environ.get("ETP_GHI_DUYET") or f"lô {ma}").replace("'", "")
+        try: SD.sql(f"insert into etp.cho_anh_duyet (creative_id, ghi) select unnest('{{{','.join(moi)}}}'::int[]), '{ghi}' on conflict do nothing")
+        except Exception as e: print("✗ GIỮ CHỜ DUYỆT LỖI — không xếp chấm để không lọt camp tự lên:", e, file=sys.stderr); moi = []
     if moi:
         try: SD.sql(f"insert into etp.cham_hang (creative_id, nguon, ai) select unnest('{{{','.join(moi)}}}'::int[]), 'moi', 'len-creative {ma}' on conflict (creative_id) do nothing")
         except Exception as e: print("xếp hàng chấm lỗi:", e)

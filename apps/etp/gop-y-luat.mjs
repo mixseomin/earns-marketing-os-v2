@@ -1673,6 +1673,8 @@ export const LUAT = [
   { card: 'chu-qc-spy-2311', tep: 'apps/xuong-video/scripts/ethopex/chu-qc.py', co: 'not CQ.sai_luat(c) and not CQ.phu_kich_thich(c)', vi: 'mọi câu chữ qua luật CTA Support Ads' },
   { card: 'chu-qc-spy-2311', tep: 'apps/xuong-video/scripts/ethopex/len-creative.py', co: '< {D}/qc-spy-ten.sql) > {tsv}', vi: 'chu.tsv có QC đối thủ cùng mã phim / nhắc đúng tên (bản cũ chỉ ghép landing app gốc → trượt hết)' },
   { card: 'chu-qc-spy-2311', tep: 'apps/xuong-video/scripts/ethopex/qc-spy-ten.sql', co: "HAVING count(*) >= 2", vi: 'ghép QC đối thủ theo mã /movie/ có ≥ 2 QC nhắc đúng tên phim' },
+  { card: 'cho-anh-duyet-2211', tep: 'apps/xuong-video/scripts/ethopex/len-creative.py', co: "insert into etp.cho_anh_duyet (creative_id, ghi) select unnest(", vi: 'mọi creative mới vào hàng Chờ anh duyệt trước khi xếp chấm (không lọt camp tự lên)' },
+  { card: 'cho-anh-duyet-2211', tep: 'apps/xuong-video/scripts/ethopex/len-creative.py', co: "không xếp chấm để không lọt camp tự lên", vi: 'giữ chờ duyệt lỗi thì không xếp chấm (fail-closed)' },
   // RN ★ ROAS NUÔI DẦN (Dol 22/11/2026 "camp mới $5, lãi thì nuôi dần"; anh "Ok. Làm theo đề xuất"): $5 → $10 → $15 → $20 khi từ lần đổi gần nhất chi > $10, ROI > 50%
   { card: 'roas-nuoi-2211', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"roas_nuoi": {"chi": 10, "roi": 50, "bac": [5, 10, 15, 20]}', vi: 'bậc RN trong sổ luật chung' },
   { card: 'roas-nuoi-2211', tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: '"roas_nuoi": {"chi": 10, "roi": 50, "bac": [5, 10, 15, 20]}', vi: 'etp2 cùng sổ luật' },

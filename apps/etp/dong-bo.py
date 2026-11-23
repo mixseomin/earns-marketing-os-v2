@@ -9,7 +9,7 @@ Kéo về schema `etp` (migration 0313):
   · nhat_ky: chép dòng mới từ studio ethopex_nhat_ky (bản đó chỉ giữ 1000 dòng — kho giữ hết)
 Ghi bằng psql + jsonb_to_recordset (không cần thư viện ngoài). Lỗi một phần không chặn phần khác; ghi lượt vào etp.dong_bo.
 Dùng: dong-bo.py [--day-du]   (--day-du = kéo lại chi tiết mọi camp + số từ 19/10) · dong-bo.py --xem-dem [ngày] (bảng chụp đêm, chỉ đọc)"""
-import datetime as dt, json, os, re, subprocess, sys, time, urllib.error, urllib.request
+import datetime as dt, json, os, re, subprocess, sys, tempfile, time, urllib.error, urllib.request
 T_BAT, TRAN_LUOT = time.time(), 900   # TRAN_LUOT = TimeoutStartSec của etp-dong-bo.service — bước dịch sẵn chỉ dùng phần còn dư
 # MỐC TỪNG BƯỚC (23/11/2026: lượt vượt trần 900 s bị systemd giết thì mất hết print vì stdout đệm khối) — in ngay, dòng nào ra là bước đó đã tới
 sys.stdout.reconfigure(line_buffering=True); MOC = []
@@ -136,6 +136,13 @@ def main():
     hk_cu = hk_ds = None   # hậu kiểm cửa (hau_kiem.py): chụp kho giữa lượt, so cuối lượt
     nay = dt.datetime.now(dt.timezone.utc).date(); t0 = time.time()
     if TOKEN.get("nguon") in ("het", "?"): loi.append(f"token Ethopex: không còn token dùng được ({TOKEN.get('loi')}) — etp2 bấm 🔑 Sửa token")
+    # DỊCH SẴN chữ thẻ creative chạy SONG SONG từ đầu lượt (23/11/2026): đặt cuối lượt thì không bao giờ tới lượt — các bước gọi Ethopex (camp ~220 s,
+    # kho thô ~170 s, trang phim ~290 s) đã ăn hết trần 900 s, systemd giết lượt ở 900 s nên etp.dich_cr trống mãi. Chỉ đọc kho lượt trước + gọi AI,
+    # không đụng Ethopex; --han 600 để xong trước trần, dấu dịch ghi trước hạn. Cuối lượt chờ nốt (xem 'DỊCH SẴN chữ thẻ creative').
+    _goc = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    try: DICH = subprocess.Popen([os.path.join(_goc, "node_modules", ".bin", "tsx"), os.path.join(_goc, "apps", "etp2", "scripts", "dich-truoc.mts"), "--so", "80", "--han", "600"],
+                                 stdout=(_dich_ra := tempfile.TemporaryFile("w+")), stderr=subprocess.STDOUT, text=True, cwd=_goc)
+    except Exception as e: DICH = None; print(f"dich-truoc: {e}")
     moc('LỊCH GIỜ')
     # ── LỊCH GIỜ (anh 25/10/2026): bật / tắt camp theo thể loại × khung giờ VN — chạy ĐẦU lượt cho đúng giờ (lượt đồng bộ dài vài phút); lỗi không chặn đồng bộ
     try:
@@ -672,15 +679,11 @@ def main():
     moc('DỊCH SẴN chữ thẻ creative')
     # ── DỊCH SẴN chữ thẻ creative (anh 23/11/2026: "Phần dịch thì phải làm ngay từ lúc sinh ra creative !! … Chỉ các creative đang, chuẩn bị và sẽ chạy !!") —
     # apps/etp2/scripts/dich-truoc.mts: camp ACTIVE · dòng thay thế · hàng chờ lên camp → etp.dich (khoá trùng thẻ), etp.dich_cr ghi creative đã dịch đủ.
-    # Đứng CUỐI lượt và chỉ dùng thời gian CÒN DƯ trong trần 900 giây của etp-dong-bo.service (23/11/2026: đặt giữa lượt với timeout 300 làm lượt vượt trần,
-    # systemd giết cả lượt → cảnh báo / phân loại / tư vấn phía sau không chạy). --han = giây tối đa; hết hạn thì dừng nhận lô mới, ghi dấu phần đã dịch.
+    # Đã khởi chạy SONG SONG ở đầu main() (DICH); đây chỉ chờ nó xong trong phần còn dư của trần TRAN_LUOT rồi in lỗi nếu có.
     try:
-        han = int(TRAN_LUOT - 60 - (time.time() - T_BAT))
-        if han >= 120:   # một lô AI có thể tới ~80 giây — dưới 2 phút thì để lượt sau
-            goc = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-            r = subprocess.run([os.path.join(goc, "node_modules", ".bin", "tsx"), os.path.join(goc, "apps", "etp2", "scripts", "dich-truoc.mts"), "--so", "80", "--han", str(han)],
-                               capture_output=True, text=True, timeout=han + 30, cwd=goc)
-            if r.returncode or '"loi": []' not in r.stdout: print(("dich-truoc: " + r.stdout + r.stderr).strip()[-300:])
+        if DICH:
+            DICH.wait(timeout=max(5, int(TRAN_LUOT - 30 - (time.time() - T_BAT)))); _dich_ra.seek(0); out = _dich_ra.read()
+            if DICH.returncode or '"loi": []' not in (out or ""): print(("dich-truoc: " + (out or "")).strip()[-300:])
     except Exception as e: print(f"dich-truoc: {e}")
 
 if __name__ == "__main__": main()

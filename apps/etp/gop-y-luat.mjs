@@ -794,11 +794,12 @@ export const LUAT = [
   { card: 'review-luat-0211', tep: "apps/web/src/lib/etp-bang-luat.json", co: "\"nhat_ky\": [\"tat\", \"^PL \\\\(\"]", vi: "PL máy tách khỏi lô tắt tay \"PL bộ 2\"" },
   { card: 'review-luat-0211', tep: "apps/web/src/components/etp-view.tsx", co: "c('hq', 'Hiệu quả thật'", vi: "bản luật hiện hiệu quả có đối chứng" },
   // anh 02/11/2026 "bật phần góp ý cho tk của Sơn": người có quyền etp thấy nút Góp ý trên etp.on.tc, chỉ đụng card mình gửi
-  { card: 'gopy-son-0211', tep: 'apps/web/src/app/layout.tsx', co: "const coGopY = u?.role === 'admin' || (host === 'etp.on.tc' && !!(await quyenEtp(u)));", vi: 'nút góp ý cho người team etp' },
+  { card: 'gopy-son-0211', tep: 'apps/web/src/app/layout.tsx', co: "const coGopY = u?.role === 'admin' || (host === 'etp.on.tc' && !!(await quyenEtp(u)))", vi: 'nút góp ý cho người team etp' },
   // 17/11/2026 hòm góp ý dời sang gói @mos2/gop-y (dcc52416a): mos2 tính choPhepGui, gói chặn người không phải admin thiếu choPhepGui; trả lời đi qua cuaMinh của gói
-  { card: 'gopy-son-0211', tep: 'apps/web/src/lib/actions/gop-y-mos2.ts', co: "(h === 'mos2' && laTrangEtp(String(input.trang || '')) && (await quyenEtp(me)))", vi: 'gửi góp ý: người team chỉ từ trang etp' },
+  { card: 'gopy-son-0211', tep: 'apps/web/src/lib/actions/gop-y-mos2.ts', co: "(h === 'mos2' && laTrangEtp(String(input.trang || '')) && !!(await quyenEtp(me)))", vi: 'gửi góp ý: người team chỉ từ trang etp' },
   // anh 24/11/2026 "tk doanhoe cũng là admin của studio2": người có quyền Studio 2 (xv_s2_quyen) gửi được từ studio2.on.tc, chỉ vào hòm xuong-video
-  { card: 'gopy-s2-2411', tep: 'apps/web/src/lib/actions/gop-y-mos2.ts', co: "|| (h === 'xuong-video' && (await noiGui()) === 'studio2.on.tc' && (await quyenS2(me.id))));", vi: 'gửi góp ý: người có quyền Studio 2 chỉ từ studio2.on.tc vào hòm xuong-video' },
+  { card: 'gopy-s2-2411', tep: 'apps/web/src/lib/actions/gop-y-mos2.ts', co: "|| (h === 'xuong-video' && (await noiGui()) === 'studio2.on.tc' && (await quyenGopYS2(me.id))));", vi: 'gửi góp ý: người có quyền Studio 2 chỉ từ studio2.on.tc vào hòm xuong-video' },
+  { card: 'gopy-s2-2411', tep: 'apps/web/src/app/layout.tsx', co: "|| (!!u && tuStudio2(host, hd.get('referer')) && (await quyenGopYS2(u.id)));", vi: 'hòm góp ý nhúng từ studio2 hiện cho người có quyền Studio 2' },
   { card: 'gopy-son-0211', tep: 'apps/web/src/lib/actions/gop-y-mos2.ts', co: "return hom.guiGopY(h, me, input, { ...ghiTrangThai, choPhepGui });", vi: 'gửi góp ý: truyền choPhepGui vào gói' },
   { card: 'gopy-son-0211', tep: 'packages/gop-y/src/server.ts', co: "if (!me || (me.role !== 'admin' && !o?.choPhepGui)) return { ok: false, error: 'không có quyền' };", vi: 'gửi góp ý: gói chặn người không phải admin khi thiếu choPhepGui' },
   { card: 'gopy-son-0211', tep: 'packages/gop-y/src/server.ts', co: "const cuaMinh = (me: Nguoi) => (me.role === 'admin' ? sql`` : sql`AND lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${me.email})`);", vi: 'người team chỉ trả lời card của mình' },

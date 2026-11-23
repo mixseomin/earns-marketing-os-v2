@@ -10,6 +10,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
+import { quyenGopYS2 } from '@/lib/gop-y-quyen-s2';
 import { boLocNguon, noiDangXem, trangRieng } from '@/lib/gop-y-loc-nguon';
 import { HEADER_KHACH, laTrangKhach, nguoiKhach } from '@/lib/gop-y-khach';
 import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture';
@@ -39,13 +40,6 @@ async function khachQuaNhieu(email: string) {
 }
 const hostCua = (u: unknown) => { try { return new URL(String(u || '')).hostname; } catch { return ''; } };
 const laTrangEtp = (u: string) => { try { return new URL(u).hostname === 'etp.on.tc'; } catch { return false; } };
-/** Người được quản trị cấp quyền Studio 2 (bảng xv_s2_quyen, mục Đội của studio2) gửi được góp ý từ studio2.on.tc vào hòm xuong-video — anh 24/11/2026 "tk doanhoe cũng là admin của studio2". */
-async function quyenS2(userId: number) {
-  const db = getDb();
-  if (!db) return false;
-  const r = (await db.execute(sql`SELECT 1 FROM xv_s2_quyen WHERE user_id = ${userId} AND (dung OR sinh) LIMIT 1`)) as unknown as unknown[];
-  return r.length > 0;
-}
 const homNayVN = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
 /** Thẻ do MÁY / Claude tạo thay anh: admin thấy trong "Của tôi" để theo dõi / trả lời / duyệt (anh 17/11/2026). */
 const NGUOI_MAY = ['may-quet', 'claude', 'ai'];
@@ -69,8 +63,8 @@ export async function guiGopYMos2(input: { loai: string; noiDung: string; trang:
   }
   const me = await getCurrentUser();
   const choPhepGui = !!me && me.role !== 'admin' && (
-    (h === 'mos2' && laTrangEtp(String(input.trang || '')) && (await quyenEtp(me)))
-    || (h === 'xuong-video' && (await noiGui()) === 'studio2.on.tc' && (await quyenS2(me.id))));
+    (h === 'mos2' && laTrangEtp(String(input.trang || '')) && !!(await quyenEtp(me)))
+    || (h === 'xuong-video' && (await noiGui()) === 'studio2.on.tc' && (await quyenGopYS2(me.id))));
   return hom.guiGopY(h, me, input, { ...ghiTrangThai, choPhepGui });
 }
 export async function dsGopYCuaToi(homVao?: string) { return hom.dsGopYCuaToi(await homCua(homVao), await nguoiGui(), await tuyChonDoc()); }

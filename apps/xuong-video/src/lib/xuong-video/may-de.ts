@@ -464,18 +464,19 @@ const thoatHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').
 /** HTML bài Substack: cảnh mở · lời hứa · ảnh 1 · mục 1-2 · khung ví dụ (class mock) · video · mục còn lại · ảnh 2 · "nếu đã lỡ" · ảnh 3 · FAQ · kết + nút CTA.
  *  {LINK} thành thẻ a + chữ link thuần (nap-bai lấy link đích từ chữ). Thuần. */
 export function htmlBaiDai(d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua' | 'muc' | 'vi_du' | 'neu_da_lo' | 'faq' | 'ket' | 'checklist' | 'dan_cta'>, link: string, anh: string[], video: string | null): string {
-  const ds = d.checklist?.length ? `<h2>Your quick checklist</h2><ul class="checklist">${d.checklist.map((x) => `<li>☐ ${thoatHtml(x.trim())}</li>`).join('')}</ul>` : '';
+  const ds = d.checklist?.length ? `<h2 id="quick-checklist">Your quick checklist</h2><ul class="checklist">${d.checklist.map((x, i) => `<li><label><input type="checkbox" id="check-${i + 1}"> ${thoatHtml(x.trim())}</label></li>`).join('')}</ul>` : '';
   const L = thoatHtml(link), t = (x: string) => thoatHtml(x.trim()).split('{LINK}').join(`<a href="${L}">${L}</a>`), p = (x: string) => `<p>${t(x)}</p>`;
   const img = (i: number) => anh[i] ? `<p><img src="${thoatHtml(anh[i]!)}" alt="${thoatHtml(d.tieu_de.trim())} (${i + 1})"></p>` : '';
   const khung = (k?: string[]) => (k?.filter((x) => x.trim()).length ?? 0) >= 2 ? `<blockquote class="mock">${k!.filter((x) => x.trim()).map(p).join('')}</blockquote>` : '';
-  const muc = (m: { h2: string; doan: string[]; khung?: string[] }) => `<h2>${thoatHtml(m.h2.trim())}</h2>${m.doan.map(p).join('')}${khung(m.khung)}`;
+  const muc = (m: { h2: string; doan: string[]; khung?: string[] }, id?: number) => `<h2${id ? ` id="section-${id}"` : ''}>${thoatHtml(m.h2.trim())}</h2>${m.doan.map(p).join('')}${khung(m.khung)}`;
+  const mucLuc = `<nav class="table-of-contents" aria-label="Table of contents"><strong>In this guide</strong><ol>${d.muc.map((m, i) => `<li><a href="#section-${i + 1}">${thoatHtml(m.h2.trim())}</a></li>`).join('')}<li><a href="#quick-checklist">Quick checklist</a></li></ol></nav>`;
   // dòng ví dụ trùng nhãn / trùng nhau bị bỏ (19/11/2026: "Sample case: an E-7…" in hai lần liên tiếp, Phòng Nội dung trừ điểm)
   const chuan = (x: string) => x.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(), thay = new Set([chuan(d.vi_du.tieu_de)]);
   const dongVd = d.vi_du.dong.filter((x) => { const k = chuan(x); if (!k || thay.has(k)) return false; thay.add(k); return true; });
   const vd = `<blockquote class="mock"><p><strong>${thoatHtml(d.vi_du.tieu_de.trim())}</strong></p>${dongVd.map(p).join('')}</blockquote>`;
   const vid = video ? `<p><iframe src="https://www.youtube.com/embed/${thoatHtml(video)}" title="${thoatHtml(d.tieu_de.trim())} video" width="560" height="315" allowfullscreen></iframe></p><p>Video: <a href="https://www.youtube.com/watch?v=${thoatHtml(video)}">https://www.youtube.com/watch?v=${thoatHtml(video)}</a></p>` : '';
-  return `<article><h1>${thoatHtml(d.tieu_de.trim())}</h1><p><em>${thoatHtml(d.phu_de.trim())}</em></p>\n${p(d.canh)}${p(d.hua)}${img(0)}\n`
-    + d.muc.slice(0, 2).map(muc).join('\n') + `\n${vd}\n${vid}\n${d.dan_cta?.trim() ? p(d.dan_cta) : ''}<p><a class="cta" href="${L}">Try it free on your own case</a></p>\n` + d.muc.slice(2).map(muc).join('\n') + `\n${ds}\n${img(1)}\n${muc(d.neu_da_lo)}\n${img(2)}\n`
+  return `<article><h1>${thoatHtml(d.tieu_de.trim())}</h1><p><em>${thoatHtml(d.phu_de.trim())}</em></p>\n${p(d.canh)}${p(d.hua)}${mucLuc}${img(0)}\n`
+    + d.muc.slice(0, 2).map((m, i) => muc(m, i + 1)).join('\n') + `\n${vd}\n${vid}\n${d.dan_cta?.trim() ? p(d.dan_cta) : ''}<p><a class="cta" href="${L}">Try it free on your own case</a></p>\n` + d.muc.slice(2).map((m, i) => muc(m, i + 3)).join('\n') + `\n${ds}\n${img(1)}\n${muc(d.neu_da_lo)}\n${img(2)}\n`
     + `<h2>Questions people ask</h2>${d.faq.map((f) => `<h3>${thoatHtml(f.hoi.trim())}</h3>${p(f.dap)}`).join('')}\n${p(d.ket)}<p><a class="cta" href="${L}">Open the free tool</a></p></article>`;
 }
 /** Mọi chữ của bài (để kiểm luật / độ dài). Thuần. */

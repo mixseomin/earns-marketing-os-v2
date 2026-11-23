@@ -535,3 +535,13 @@ body.ai-mo{padding-right:360px}
 .d-tlw>.d-tl{flex:1;max-height:none!important;height:auto!important;border:0;margin:0;min-height:0;grid-area:auto}
 .d-tlw .tl-keo{display:none}
 .dung.tl-o{grid-template-areas:"tren" "giua";grid-template-rows:auto minmax(0,1fr)}
+/* Người mới (anh 23/11/2026): hộp "Bạn muốn làm video gì?" — 3 thẻ loại video có mô tả; thanh 5 chặng trên đầu Quy trình */
+.tao-loai { display: grid; gap: 6px } .tao-loai button { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--mat); color: var(--ink); font: inherit; cursor: pointer }
+.tao-loai button:hover { border-color: var(--brass) } .tao-loai button[aria-pressed="true"] { border-color: var(--brass); background: var(--brass-nhat); box-shadow: inset 0 0 0 1px var(--brass) }
+.tao-loai b { font-size: 15px } .tao-loai span { font-size: 12.5px; color: var(--ink-2) }
+.qt-tien { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px }
+.qt-tien li > button, .qt-tien li > span { display: grid; justify-items: center; gap: 3px; width: 100%; padding: 6px 2px; border: 0; border-radius: 8px; background: none; color: var(--ink-3); font: 11.5px/1.25 var(--f-than); text-align: center }
+.qt-tien li > button { cursor: pointer } .qt-tien li > button:hover { background: var(--bg) }
+.qt-tien i { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line); font: 600 11px var(--f-so); font-style: normal; background: var(--mat) }
+.qt-tien li.xong > * { color: var(--ok) } .qt-tien li.xong i { background: var(--ok-nhat); border-color: var(--ok) }
+.qt-tien li.dang > * { color: var(--ink); font-weight: 600 } .qt-tien li.dang i { background: var(--brass); border-color: var(--brass); color: var(--mat) }

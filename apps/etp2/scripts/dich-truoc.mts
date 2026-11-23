@@ -9,6 +9,8 @@ import { getDb } from '@mos2/db';
 import { dungBaiQc, docDich, dichKho, TAP_CHAY, TRAN_SO_DICH } from '../src/lib/etp-dich';
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : undefined; };
+// --han N: dừng nhận lô mới sau N giây (dong-bo.py truyền phần thời gian còn dư của lượt) — lô đã xong vẫn ghi dấu etp.dich_cr.
+const HAN = arg('--han') ? Date.now() + Number(arg('--han')) * 1000 - 90000 : Infinity;   // chừa 90 giây cho lô đang chạy dở + ghi dấu
 const XEM = process.argv.includes('--xem'), SO = Number(arg('--so') ?? 300), TY_GIA = 26000, LO_KY_TU = 6000, SONG_SONG = 4;
 const db = getDb(); if (!db) throw new Error('không nối được kho (thiếu DATABASE_URL)');
 
@@ -38,7 +40,7 @@ for (const x of thieu) { if (cur.length && (cur.length >= TRAN_SO_DICH || n + x.
 if (cur.length) lo.push(cur);
 let chi = 0, moi = 0; const loi: string[] = []; let k = 0;
 await Promise.all(Array.from({ length: Math.min(SONG_SONG, lo.length) }, async () => {
-  while (k < lo.length) {
+  while (k < lo.length && Date.now() < HAN) {
     const l = lo[k++]!;
     try { const r = await dichKho(db, l, 'etp2-dich-truoc'); chi += r.chi_usd; moi += r.moi; r.vi && Object.keys(r.vi).forEach((x) => nho.add(x)); }
     catch (e) { loi.push(String((e as Error)?.message ?? e).slice(0, 160)); }

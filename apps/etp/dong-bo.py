@@ -10,6 +10,7 @@ Kéo về schema `etp` (migration 0313):
 Ghi bằng psql + jsonb_to_recordset (không cần thư viện ngoài). Lỗi một phần không chặn phần khác; ghi lượt vào etp.dong_bo.
 Dùng: dong-bo.py [--day-du]   (--day-du = kéo lại chi tiết mọi camp + số từ 19/10) · dong-bo.py --xem-dem [ngày] (bảng chụp đêm, chỉ đọc)"""
 import datetime as dt, json, os, re, subprocess, sys, time, urllib.error, urllib.request
+T_BAT, TRAN_LUOT = time.time(), 900   # TRAN_LUOT = TimeoutStartSec của etp-dong-bo.service — bước dịch sẵn chỉ dùng phần còn dư
 from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import ethopex_api as EA   # cổng chung: tài khoản nhà / ngoài (anh 28/10/2026)
 DB = os.environ["DATABASE_URL"]
@@ -597,14 +598,6 @@ def main():
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "bai-qc.py"), "--so", "80"], capture_output=True, text=True, timeout=240)
         if '"thieu": 0' not in r.stdout or r.stderr.strip(): print(("bai-qc: " + r.stdout + r.stderr).strip()[-300:])
     except Exception as e: print(f"bai-qc: {e}")
-    # ── DỊCH SẴN chữ thẻ creative (anh 23/11/2026: "Phần dịch thì phải làm ngay từ lúc sinh ra creative !! … Chỉ các creative đang, chuẩn bị và sẽ chạy !!") —
-    # apps/etp2/scripts/dich-truoc.mts: camp ACTIVE · dòng thay thế · hàng chờ lên camp → etp.dich (khoá trùng thẻ), etp.dich_cr ghi creative đã dịch đủ. Sau bai-qc (cần chữ QC mới).
-    try:
-        goc = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-        r = subprocess.run([os.path.join(goc, "node_modules", ".bin", "tsx"), os.path.join(goc, "apps", "etp2", "scripts", "dich-truoc.mts"), "--so", "80"],
-                           capture_output=True, text=True, timeout=300, cwd=goc)
-        if r.returncode or '"loi": []' not in r.stdout: print(("dich-truoc: " + r.stdout + r.stderr).strip()[-300:])
-    except Exception as e: print(f"dich-truoc: {e}")
     # ── CHẤM CREATIVE MỌI THÀNH VIÊN (anh 31/10/2026) — nap-creative-ngoai.py --tu-dong, chỉ chạy khi etp.cau_hinh.cham_doi.bat
     try:
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nap-creative-ngoai.py"), "--tu-dong"], capture_output=True, text=True, timeout=180)
@@ -637,5 +630,18 @@ def main():
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "tu_van.py"), "--luu"], capture_output=True, text=True, timeout=120)
         if r.returncode: print(f"tu-van: {(r.stderr or r.stdout).strip()[-300:]}")
     except Exception as e: print(f"tu-van: {e}")
+
+    # ── DỊCH SẴN chữ thẻ creative (anh 23/11/2026: "Phần dịch thì phải làm ngay từ lúc sinh ra creative !! … Chỉ các creative đang, chuẩn bị và sẽ chạy !!") —
+    # apps/etp2/scripts/dich-truoc.mts: camp ACTIVE · dòng thay thế · hàng chờ lên camp → etp.dich (khoá trùng thẻ), etp.dich_cr ghi creative đã dịch đủ.
+    # Đứng CUỐI lượt và chỉ dùng thời gian CÒN DƯ trong trần 900 giây của etp-dong-bo.service (23/11/2026: đặt giữa lượt với timeout 300 làm lượt vượt trần,
+    # systemd giết cả lượt → cảnh báo / phân loại / tư vấn phía sau không chạy). --han = giây tối đa; hết hạn thì dừng nhận lô mới, ghi dấu phần đã dịch.
+    try:
+        han = int(TRAN_LUOT - 60 - (time.time() - T_BAT))
+        if han >= 120:   # một lô AI có thể tới ~80 giây — dưới 2 phút thì để lượt sau
+            goc = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+            r = subprocess.run([os.path.join(goc, "node_modules", ".bin", "tsx"), os.path.join(goc, "apps", "etp2", "scripts", "dich-truoc.mts"), "--so", "80", "--han", str(han)],
+                               capture_output=True, text=True, timeout=han + 30, cwd=goc)
+            if r.returncode or '"loi": []' not in r.stdout: print(("dich-truoc: " + r.stdout + r.stderr).strip()[-300:])
+    except Exception as e: print(f"dich-truoc: {e}")
 
 if __name__ == "__main__": main()

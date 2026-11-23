@@ -17,7 +17,7 @@ export type BaiQc = {
 };
 export type DiemTc = { nhom: string; ma: string; ten: string; diem: number; lyDo: string | null };
 /** hookVi: bản dịch tiếng Việt đã nhớ ở etp.dich (anh #1778) — null khi chưa dịch; canDich = hook không phải tiếng Việt (trang gọi dichHook khi chưa có) */
-export type NoiDungCr = { hook: string | null; hookVi: string | null; canDich: boolean; chuVideo: string | null; loiDoc: string | null; tomTat: string | null; meta: number | null; afs: number | null; ket: string | null; luc: string | null; diem: DiemTc[] };
+export type NoiDungCr = { hook: string | null; hookVi: string | null; canDich: boolean; chuVideo: string | null; loiDoc: string | null; sauHook: string | null; tomTat: string | null; meta: number | null; afs: number | null; ket: string | null; luc: string | null; diem: DiemTc[] };
 
 // hook = câu mở video: câu đầu lời đọc (người xem nghe trước), không có giọng thì dòng chữ đầu trên hình
 const cauDau = (s: string | null) => { const t = (s ?? '').trim(); if (!t) return null; const m = t.match(/^[\s\S]*?[.!?…](?=\s|$)/); return (m?.[0] ?? t.split('\n')[0] ?? '').trim() || null; };
@@ -84,6 +84,8 @@ export async function docBaiQc(cr: number, camp?: number | null): Promise<BaiQc 
       const chuVideo = s(r.chu_video), loiDoc = s(r.loi_doc);
       const so = (v: unknown) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
       return {
+        // #1779 "sau hook là phần nội dung voice trong video cũng phải show ra": lời đọc PHÍA SAU câu hook (hook lấy từ lời đọc thì bỏ câu đó, lấy từ chữ trên hình thì giữ cả lời đọc)
+        sauHook: (() => { const cd = cauDau(loiDoc); return loiDoc && cd && cd === hookGoc ? loiDoc.slice(loiDoc.indexOf(cd) + cd.length).trim() || null : loiDoc; })(),
         hook: hookGoc, hookVi, canDich: !!hookGoc && !laTiengViet(hookGoc), chuVideo, loiDoc, tomTat: s(r.tom_tat), meta: so(r.cmeta), afs: so(r.cafs), ket: s(r.cket),
         luc: r.cluc == null ? null : String(r.cluc),
         diem: ((r.cdiem ?? []) as { nhom: string; ma: string; ten: string; diem: unknown; ly_do: string | null }[])

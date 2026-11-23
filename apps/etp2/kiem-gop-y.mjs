@@ -496,6 +496,9 @@ const LUAT = [
   { card: '1777', tep: 'packages/db/migrations/0463_etp_tieu_chi_hook_giu_3s.sql', co: "'hut', 'giu_3s', 'Hook giữ người xem quá 3s'", vi: 'máy chấm có tiêu chí hook giữ người xem quá 3s (nhóm riêng, không vào cổng chặn Meta / AFS)' },
   { card: '1777', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: "nd.diem.find((d) => d.nhom === 'hut' && d.ma === 'giu_3s')", vi: 'điểm giữ 3s hiện ngay trên dòng Hook của thẻ creative' },
   { card: '1777', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: '{diemNd.map((d) =>', vi: 'chip Chấm nội dung chỉ còn Meta / AFS, điểm hook không lẫn vào' },
+  { card: '1779', tep: 'apps/etp2/src/lib/actions/etp-bai.ts', co: 'sauHook: (() =>', vi: 'thẻ creative nhận lời đọc phía sau câu hook (không lặp câu hook)' },
+  { card: '1779', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', mot: 'data-sau-hook=', vi: 'dòng 🎙 Lời đọc sau hook hiện phần thoại còn lại của video' },
+  { card: '1779', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', cam: "<span style={nhan}>🎙 Lời đọc</span>{nd.loiDoc", vi: 'không quay về dòng lời đọc in lại câu hook và cắt 2 dòng' },
 ];
 
 const loi = [];

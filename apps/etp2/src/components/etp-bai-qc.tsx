@@ -62,7 +62,10 @@ function NoiDungVideo({ nd }: { nd: NoiDungCr | null }) {
       <b>{nd.hook ?? '—'}</b></div>
     <HookVi nd={nd} />
     <div style={DONG(2)} title={nd.chuVideo ?? ''}><span style={nhan}>🔤 Chữ trên video</span>{chuVideo ?? '—'}</div>
-    <div style={DONG(2)} title={[nd.loiDoc, nd.tomTat ? `Tóm tắt: ${nd.tomTat}` : ''].filter(Boolean).join('\n\n')}><span style={nhan}>🎙 Lời đọc</span>{nd.loiDoc ?? 'không có giọng'}</div>
+    {/* #1779: lời đọc SAU câu hook (phần thoại còn lại của video) — không lặp câu hook, hiện tới 6 dòng (không hộp cuộn lồng trong thẻ nổi), rê vào xem đủ cả lời đọc + tóm tắt */}
+    <div data-sau-hook={nd.sauHook ? 'co' : 'khong'} style={{ ...DONG(6), wordBreak: 'break-word' }}
+      title={[nd.sauHook ?? nd.loiDoc, nd.tomTat ? `Tóm tắt: ${nd.tomTat}` : ''].filter(Boolean).join('\n\n')}>
+      <span style={nhan}>🎙 Lời đọc sau hook</span>{nd.sauHook ?? (nd.loiDoc ? 'không còn lời nào sau câu hook' : 'không có giọng')}</div>
     {diemNd.length ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 2 }}
       title="Điểm nội dung máy chấm từ chính video (thang 10, dưới 5 là chặn) — rê vào từng ô để xem lý do">
       <span style={{ ...nhan, fontSize: 11 }}>📝 Chấm nội dung</span>

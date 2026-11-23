@@ -325,7 +325,9 @@ export async function taoPhimS2(d: { ten?: string; loai?: string; goi?: string; 
   const id = r.data;
   // Quảng cáo: Studio 2 không có "mục 0 sản phẩm" như studio — ý tưởng người tạo gõ (tên quán, món, giá, ưu đãi) CHÍNH là mô tả sản phẩm,
   // nên ghi vào kinh_thanh.qc.diem_noi_bat; không có thì gác thieuQc chặn bước viết kịch bản bằng câu "khai ở mục 0" mà người mới không tìm thấy.
-  const yQc = loai === 'quang_cao' && String(d.brief ?? '').trim() ? { qc: { ten: String(d.ten ?? '').trim(), diem_noi_bat: String(d.brief).trim() } } : {};
+  // Studio 2 không có mục 0 khai sản phẩm → brief của QC làm điểm nổi bật (đủ qua cổng thieuQc). KHÔNG lấy tên phim làm qc.ten:
+  // tên phim là một câu dài, kiem-qc đòi chữ màn shot cuối chứa đúng qc.ten → xuất bị chặn vĩnh viễn (phim 8180, 23/11/2026).
+  const yQc = loai === 'quang_cao' && String(d.brief ?? '').trim() ? { qc: { diem_noi_bat: String(d.brief).trim() } } : {};
   await db.execute(sql`UPDATE xv_phim SET owner_user_id = ${me.id}, kinh_thanh = coalesce(kinh_thanh, '{}'::jsonb) || ${JSON.stringify({ ...(g ? { goi: g.key, the_loai: g.the_loai, ti_le: g.ti_le } : {}), ...yQc })}::jsonb WHERE id = ${id}`);
   let tap = Number(((await db.execute(sql`SELECT id FROM xv_tap WHERE phim_id = ${id} ORDER BY so LIMIT 1`)) as unknown as Row[])[0]?.id ?? 0);
   if (!tap) { const t = await taoTap(id, 'Tập 1'); if (!t.ok) return t; tap = t.data; }

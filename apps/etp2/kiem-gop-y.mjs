@@ -499,6 +499,8 @@ const LUAT = [
   { card: '1779', tep: 'apps/etp2/src/lib/actions/etp-bai.ts', co: 'sauHook: (() =>', vi: 'thẻ creative nhận lời đọc phía sau câu hook (không lặp câu hook)' },
   { card: '1779', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', mot: 'data-sau-hook=', vi: 'dòng 🎙 Lời đọc sau hook hiện phần thoại còn lại của video' },
   { card: '1779', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', cam: "<span style={nhan}>🎙 Lời đọc</span>{nd.loiDoc", vi: 'không quay về dòng lời đọc in lại câu hook và cắt 2 dòng' },
+  { card: '1780', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<SiteFavicon url="https://www.facebook.com" size={14} /></a>;', vi: 'ô Bài post chỉ còn icon Facebook' },
+  { card: '1780', tep: 'apps/etp2/src/components/etp-view.tsx', cam: "{me ? 'Bài mẹ' : 'Bài'} ↗</a>", vi: 'không quay về chữ "Bài ↗" cạnh icon Facebook' },
 ];
 
 const loi = [];

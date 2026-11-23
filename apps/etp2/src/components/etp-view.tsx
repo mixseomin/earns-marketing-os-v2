@@ -2861,9 +2861,10 @@ function OBai({ c, kho }: { c: CampEtpKho; kho: CampEtpKho[] }) {
   if (!x) return <span data-cot="bai" title="camp chưa có bài post (Ethopex chưa trả mã bài cho camp này)" style={{ color: 'var(--fg-3, #6b7280)' }}>—</span>;
   const me = x.tu !== c.camp_id;
   return <a data-cot="bai" href={wrapHref(linkBai(x.bai))} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-    title={`mở bài post Facebook của camp (tab mới) — mã bài ${x.bai}${me ? ` · bản Used post dùng lại bài của camp #${x.tu}` : ''}`}
-    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--neon-cyan, #22d3ee)', textDecoration: 'none', whiteSpace: 'nowrap', fontSize: 12 }}>
-    <SiteFavicon url="https://www.facebook.com" size={13} />{me ? 'Bài mẹ' : 'Bài'} ↗</a>;
+    // #1780 anh 23/11/2026 "icon fb là đủ": ô chỉ còn icon Facebook, chữ "Bài / Bài mẹ ↗" gập vào chữ rê (title)
+    aria-label={me ? 'Bài mẹ' : 'Bài'} title={`${me ? 'Bài mẹ' : 'Bài'} — mở bài post Facebook của camp (tab mới) — mã bài ${x.bai}${me ? ` · bản Used post dùng lại bài của camp #${x.tu}` : ''}`}
+    style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+    <SiteFavicon url="https://www.facebook.com" size={14} /></a>;
 }
 // MỨC TIÊU HÔM NAY (anh 06/11/2026 "bộ lọc về các camp đã tiêu kịch trần ngân sách ngày" + "camp chưa tiêu đồng nào... các level"): camp ĐANG CHẠY chia theo
 // chi hôm nay (ngày Ethopex từ 07:00 VN) / ngân sách ngày; kịch trần = ≥ tang_ngay.duoi × ngân sách — cùng ngưỡng máy xét tăng (tieu90 còn trong LOC_CAMP cho URL cũ, không còn camp nào rơi vào)

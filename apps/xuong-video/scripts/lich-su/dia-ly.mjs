@@ -1,9 +1,16 @@
 // DỮ LIỆU BẢN ĐỒ DÙNG CHUNG cho máy kênh lịch sử (02/11/2026): dung-tap.mjs (dựng) + lam-tap.mjs (kiểm tập máy viết trước khi tốn tiền giọng / ảnh).
 // Natural Earth ở /Users/htuan/.cache/lich-su/ (iMac): ne_50m.geojson (nước, ADM0_A3) + ne_50m_places.geojson (thành phố).
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 
 export const KHO = `${process.env.HOME}/.cache/lich-su`;
+// Nền giấy chung của mọi tập (Pexels 7952505). Trước chỉ nằm sẵn trong bộ đệm, không ai tải lại: mất tệp là kiem-mat chết "image cannot be decoded" (23/11/2026).
+export function baoDamGiay() {
+  const f = join(KHO, 'giay.jpg'); if (existsSync(f)) return f; mkdirSync(KHO, { recursive: true });
+  execFileSync('curl', ['-sfL', '--retry', '3', '-o', f, 'https://images.pexels.com/photos/7952505/pexels-photo-7952505.jpeg?auto=compress&cs=tinysrgb&w=948']);
+  return f;
+}
 export const geo = JSON.parse(readFileSync(join(KHO, 'ne_50m.geojson'), 'utf8'));
 // mảnh của một nước: khai vung thì lấy mảnh chạm khung đó; không khai thì lấy CỤM CHÍNH (mảnh lớn nhất + mảnh trong 12° quanh nó) — Pháp không kéo
 // theo Guyane, Mỹ không kéo theo Hawaii. Đảo vắt qua kinh tuyến 180 bị bỏ.

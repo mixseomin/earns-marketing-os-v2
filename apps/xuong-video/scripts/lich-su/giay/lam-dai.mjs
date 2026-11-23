@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, wri
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { box, boxA, lenA, veA, sshA, len, ve, q, songSong, chay } from '../box3.mjs';
-import { geo, KHO as KHO_DL } from '../dia-ly.mjs';
+import { geo, KHO as KHO_DL, baoDamGiay } from '../dia-ly.mjs';
 import { suaBanDo } from './dia-danh.mjs';
 import { AM_NEN, AM_NHAC, AM_VAT } from './am-kho.mjs';
 import { nenH264, giaiMaHw } from '../../../src/lib/xuong-video/nen-video.mjs';
@@ -148,7 +148,7 @@ const muc = canh.flatMap((s, i) => (s.chuong_moi ? [{ ten: s.chuong_moi.ten, bd:
 // LOGO KÊNH (anh 07/11/2026: "Dùng A3"): huy hiệu tròn ở góc suốt phim + thẻ logo ngang cuối phim; kênh chưa có bộ logo thì dừng, không dựng bản không logo
 const LOGO = join(LS, 'brand', tap.kenh_brand ?? 'yesterdays-news-tonight', 'ra', 'logo-a3'); for (const f of ['huy-hieu-tron-1024.png', 'ngang-nen-toi.png']) if (!existsSync(join(LOGO, f))) { console.error(`✗ thiếu logo ${join(LOGO, f)}`); process.exit(9); }
 anh['logo:huy'] = url(join(LOGO, 'huy-hieu-tron-1024.png')); anh['logo:ngang'] = url(join(LOGO, 'ngang-nen-toi.png'));
-const cauTep = join(RA, 'cau.json'), cauObj = { DAI, KET, anh, giay: url(join(KHO, 'giay.jpg')), geo: G, phu, canh, muc, song, dia_hinh: diaHinh, quoc }; writeFileSync(cauTep, JSON.stringify(cauObj));
+const cauTep = join(RA, 'cau.json'), cauObj = { DAI, KET, anh, giay: url(baoDamGiay()), geo: G, phu, canh, muc, song, dia_hinh: diaHinh, quoc }; writeFileSync(cauTep, JSON.stringify(cauObj));
 const TRANG = join(DIR, 'giay-lop.html'), dung = (them) => { const r = spawnSync(process.execPath, [join(LS, '../shot-code/dung.mjs'), '--trang', TRANG, '--cau', cauTep, '--rong', '1920', '--cao', '1080', '--fps', '30', ...them], { stdio: 'inherit' }); if (r.status) process.exit(r.status); };
 console.log(`${cauDs.length} câu · ${DAI.toFixed(0)} s · ${Object.keys(anh).length} ảnh`);
 if (arg('khung')) { dung(['--ra', '/dev/null', '--khung', arg('khung'), '--khung-ra', arg('khung-ra')]); process.exit(0); }

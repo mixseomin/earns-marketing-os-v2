@@ -10,7 +10,7 @@ import { homedir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { BOX, box, len } from './box3.mjs';
-import { geo, tamVung, chuan, TP_NHAC, dichCua, diem, isoVung, datThaiBinh, kinh, vong, khungDoi } from './dia-ly.mjs';
+import { baoDamGiay, geo, tamVung, chuan, TP_NHAC, dichCua, diem, isoVung, datThaiBinh, kinh, vong, khungDoi } from './dia-ly.mjs';
 import { hoSoTap, playlistCuaTap } from './playlist.mjs';
 import { soHinhCau } from './so-hinh.mjs';
 
@@ -114,6 +114,7 @@ if (!tap.dia_hinh) { let h = null;
       execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', a, '-i', b, '-filter_complex', 'hstack', '-q:v', '3', f]); execFileSync('rm', ['-f', a, b]); }
     if ((l1 - l0) * 60 > 12000) execFileSync('sips', ['-Z', '12000', f], { stdio: 'ignore' }); }
   tap.dia_hinh = { anh: ten, lon: [l0, l1], lat: [b0, b1], nguon: 'Natural Earth NE1_HR_LC_SR_W (public domain), máy tự cắt theo vùng tập' }; }
+if (!tap.nen) baoDamGiay();
 tap.nen ||= { anh: 'giay.jpg', nguon: 'https://www.pexels.com/photo/close-up-of-a-piece-of-paper-7952505/' };
 for (const s of canh) { for (const m of [...(s.c.ten || []), ...(s.c.xe || [])]) { m.tu = diem(m.tu); m.den = diem(m.den); }
   for (const m of [...(s.c.co || []), ...(s.c.nhan || [])]) m.o = diem(m.o); for (const m of s.c.ke || []) { m.tu = diem(m.tu); m.den = diem(m.den); } s.c.nhay = (s.c.nhay || []).map(diem); s.c.vong = (s.c.vong || []).map(diem); }

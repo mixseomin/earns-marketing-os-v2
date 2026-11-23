@@ -1,6 +1,6 @@
 // Tự kiểm phần đếm của nút 💬 (CHUAN.md): node_modules/.bin/tsx packages/gop-y/src/dem.test.mts
 import assert from 'node:assert';
-import { choToi, luotDangChay, viecTuNhatKy, demTuDs, TRAN_DANG_LAM_MS } from './dem';
+import { choToi, luotDangChay, viecTuNhatKy, demTuDs, chuDaiKySu, TRAN_DANG_LAM_MS } from './dem';
 
 const bay = Date.parse('2026-11-17T08:00:00Z');
 const truoc = (ms: number) => new Date(bay - ms).toISOString();
@@ -35,4 +35,12 @@ const d = demTuDs([
 ], bay);
 assert.deepEqual([d.working, d.can_y_kien, d.choYKien], [2, 1, [3]], 'dự phòng: claimed trong trần + chờ ý kiến');
 assert.equal(d.dangLam[0], '#1 Nút lệch');
+assert.deepEqual(d.treo, ['#2 cũ (45 phút)'], 'claimed quá trần → treo, kèm tuổi');
+// #1746: card claimed 2 giờ, không phiên nào chạy → dải KHÔNG được nói "rảnh"
+const t = demTuDs([{ id: 1746, noiDung: 'Xử lý rủi ro anglebrief', trangThai: 'claimed', capNhat: truoc(2 * 3600_000) }], bay);
+assert.equal(t.working, 0);
+assert.deepEqual(t.treo, ['#1746 Xử lý rủi ro anglebrief (2 giờ)']);
+const nhan = chuDaiKySu({ ...t, kySu: { ten: 'Đạt', tat: false } }).nhan;
+assert.ok(!/rảnh/.test(nhan) && /Đang làm/.test(nhan), `có card treo → không "rảnh": ${nhan}`);
+assert.equal(chuDaiKySu({ ...demTuDs([], bay), kySu: { ten: 'Đạt', tat: false } }).nhan, '🤖 Đạt đang rảnh', 'không card nào → rảnh');
 console.log('✓ gop-y dem: chờ ý kiến · lượt kỹ sư đang chạy · dự phòng đếm từ danh sách');

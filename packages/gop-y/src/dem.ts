@@ -21,11 +21,15 @@ export type DemGopY = {
   choYKien: number[];
   /** kỹ sư AI phụ trách hòm (tên từ SOUL.md, tat = đang tắt trên bảng nhân sự) — dải đầu hòm "Khôi đang rảnh" (góp ý #1673) */
   kySu?: { ten: string; tat: boolean } | null;
+  /** card còn claimed mà QUÁ trần phiên — không phiên nào đang chạy nó nhưng tab vẫn ghi "Đang làm". Có thì dải đầu hòm KHÔNG được nói "rảnh"
+   *  (#1746 23/11/2026: dải ghi "Đạt đang rảnh" trong khi tab Đang làm 1 · card claimed 2 giờ vì máy nộp bị cổng chặn). */
+  treo?: string[];
 };
 export const DEM_RONG: DemGopY = { working: 0, dangLam: [], can_y_kien: 0, choYKien: [] };
 /** Chữ dải đầu hòm: "<tên> đang tắt" / "<tên> đang làm:" / "<tên> đang rảnh"; chưa biết tên → "AI". */
 export function chuDaiKySu(dem: DemGopY): { nhan: string; tat: boolean } {
   const ten = dem.kySu?.ten || 'AI';
+  if (!dem.working && dem.treo?.length) return { nhan: `⚠ ${dem.treo.length} việc ghi Đang làm nhưng không phiên nào chạy:`, tat: false };
   if (dem.kySu?.tat && !dem.working) return { nhan: `⏸ ${ten} đang tắt`, tat: true };
   return { nhan: dem.working ? `${ten} đang làm:` : `🤖 ${ten} đang rảnh`, tat: false };
 }
@@ -69,10 +73,16 @@ export function viecTuNhatKy(dong: Array<{ luc?: string; ket?: string }>, bay = 
 
 /** Card claimed còn trong trần phiên (updated_at đổi lúc claim / reply). */
 export const conTrongTran = (capNhat: string, bay = Date.now()) => bay - Date.parse(capNhat) < TRAN_DANG_LAM_MS;
+/** Nhãn card claimed quá trần: "#id tiêu đề (2 giờ)". */
+export function nhanTreo(id: number, tieuDe: string, capNhat: string, bay = Date.now()): string {
+  const phut = Math.max(0, Math.round((bay - Date.parse(capNhat)) / 60_000));
+  return `#${id} ${tieuDe.split('\n')[0]!.slice(0, 60)} (${phut < 120 ? `${phut} phút` : `${Math.round(phut / 60)} giờ`})`;
+}
 
 /** Phương án dự phòng ở trình duyệt khi app chưa nối `demGopY` vào máy chủ: đếm từ chính danh sách "Của tôi". */
 export function demTuDs(ds: Array<{ id: number; noiDung: string; trangThai: string; capNhat: string; choYKien?: boolean }>, bay = Date.now()): DemGopY {
   const lam = ds.filter((b) => b.trangThai === 'claimed' && conTrongTran(b.capNhat, bay));
+  const treo = ds.filter((b) => b.trangThai === 'claimed' && !conTrongTran(b.capNhat, bay)).map((b) => nhanTreo(b.id, b.noiDung, b.capNhat, bay));
   const cho = ds.filter((b) => !!b.choYKien);
-  return { working: lam.length, dangLam: lam.map((b) => `#${b.id} ${b.noiDung.split('\n')[0]!.slice(0, 60)}`), can_y_kien: cho.length, choYKien: cho.map((b) => b.id) };
+  return { working: lam.length, dangLam: lam.map((b) => `#${b.id} ${b.noiDung.split('\n')[0]!.slice(0, 60)}`), can_y_kien: cho.length, choYKien: cho.map((b) => b.id), treo };
 }

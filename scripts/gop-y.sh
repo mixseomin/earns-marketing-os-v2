@@ -161,7 +161,11 @@ submit)
     echo "submit #$id bị chặn: lời nộp tự nhận còn phần chưa làm — làm nốt (hoặc CHUYỂN cho đúng kỹ sư) rồi mới nộp; card giữ ở Đang làm." >&2; exit 1
   fi
   la_hoi=$(psql "$DATABASE_URL" -At -c "SELECT (COALESCE(prep_payload->>'loai','') = 'cau_hoi' OR title LIKE 'Hỏi: %') FROM human_tasks WHERE id = $id AND $SCOPE")
-  if [ "$la_hoi" != "t" ] && [ "$P" != "spy" ]; then
+  # VIỆC VẬN HÀNH KHÔNG SỬA MÃ: máy kỹ sư (cty may/gop-y-ky-su.mjs nopVanHanh) chỉ nộp kiểu này khi lượt đã trả lời card và KHÔNG có commit nào —
+  # không có bản sửa thì không có commit để kiểm. Trước đây cổng commit chặn luôn → card nằm "Đang làm" mãi (#1746 Thư 23/11/2026, claimed 2 giờ,
+  # dải hòm ghi "rảnh"). Vẫn phải có link (cổng trên) và người duyệt thấy rõ nhãn "vận hành, không sửa mã" ở đầu lời nộp.
+  van_hanh=f; case "$loi" in "["*" · vận hành, không sửa mã]"*) van_hanh=t ;; esac
+  if [ "$la_hoi" != "t" ] && [ "$van_hanh" != "t" ] && [ "$P" != "spy" ]; then
     repo=""; sha=""
     if [[ "$url" =~ ^https://github\.com/mixseomin/([A-Za-z0-9._-]+)/commit/([0-9a-f]{7,40})$ ]]; then
       repo="${BASH_REMATCH[1]}"; sha="${BASH_REMATCH[2]}"

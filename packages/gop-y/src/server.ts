@@ -9,7 +9,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import fs from 'node:fs';
 import path from 'node:path';
-import { choToi, conTrongTran, luotDangChay, viecTuNhatKy, KY_SU_HOM, DEM_RONG, type DemGopY } from './dem';
+import { choToi, conTrongTran, nhanTreo, luotDangChay, viecTuNhatKy, KY_SU_HOM, DEM_RONG, type DemGopY } from './dem';
 
 export type Nguoi = { email: string; displayName?: string | null; role: string };
 export type TinTraoDoi = { nguoi: string; noiDung: string; xuLy: string | null; luc: string; anh: string[]; trang?: string; nguCanh?: string };
@@ -196,13 +196,14 @@ export async function demGopY(duAn: string, me: Nguoi | null, o?: TuyChon): Prom
       AND COALESCE(prep_payload->'site_status'->>${duAn}, status) = 'claimed'
       ${o?.locNguon ? sql`AND (COALESCE(prep_payload->>'source_url', '') ~ ${o.locNguon.mau}) = ${o.locNguon.khop}` : sql``}
     ORDER BY updated_at DESC LIMIT 20`);
-  const lam = (r as unknown as Array<{ id: number; title: string; updated_at: string | Date }>)
-    .filter((x) => conTrongTran(new Date(x.updated_at).toISOString())).map((x) => `#${x.id} ${String(x.title ?? '').slice(0, 60)}`);
+  const hang = (r as unknown as Array<{ id: number; title: string; updated_at: string | Date }>).map((x) => ({ ...x, cn: new Date(x.updated_at).toISOString() }));
+  const lam = hang.filter((x) => conTrongTran(x.cn)).map((x) => `#${x.id} ${String(x.title ?? '').slice(0, 60)}`);
+  const treo = hang.filter((x) => !conTrongTran(x.cn)).map((x) => nhanTreo(x.id, String(x.title ?? ''), x.cn));
   const luot = kySuDangChay(duAn, o);
   // lượt kỹ sư thường là chính card claimed → chỉ cộng thêm khi không có card, hoặc là việc giao thẳng (ngoài hòm)
   const dangLam = luot && (!lam.length || /^việc giao/.test(luot)) ? [...lam, luot] : lam;
   const cho = (await dsGopYCuaToi(duAn, me, o)).filter((b) => b.choYKien);
-  return { working: dangLam.length, dangLam, can_y_kien: cho.length, choYKien: cho.map((b) => b.id), kySu: kySuPhuTrach(o?.kySu || KY_SU_HOM[duAn]) };
+  return { working: dangLam.length, dangLam, can_y_kien: cho.length, choYKien: cho.map((b) => b.id), kySu: kySuPhuTrach(o?.kySu || KY_SU_HOM[duAn]), treo };
 }
 
 export async function docTraoDoi(duAn: string | string[], me: Nguoi | null, taskId: number): Promise<TinTraoDoi[]> {

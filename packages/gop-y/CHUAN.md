@@ -38,6 +38,7 @@ Gói (`@mos2/gop-y/server`):
     Đọc `<người>.jsonl` (`dem.ts viecTuNhatKy`): sau `▶` có dòng `◆ nhận card #N: …` / `◆ nhận việc giao: …` (kỹ sư tự đẩy) thì việc = dòng ◆ mới nhất;
     việc giao thẳng (ngoài hòm) được cộng thêm cả khi đang có card claimed. Chưa có `.jsonl` → dòng cuối `<người>.json`.
   - `dangLam` = tiêu đề các việc đó: tooltip nút + **dải đầu hòm** (trên nội dung mọi tab, luôn hiện) "🔧 AI đang làm: …" / "AI đang rảnh", nạp cùng nhịp 60 giây.
+  - `treo` = card còn claimed mà quá trần (không phiên nào chạy): có thì dải ghi "⚠ N việc ghi Đang làm nhưng không phiên nào chạy: #id … (2 giờ)" — **cấm nói "rảnh" khi tab Đang làm còn card** (#1746).
   - `can_y_kien` = số card của chính `me` có `choYKien`; `choYKien` = id các card đó.
 
 Bản ngoài (spy / Astrolas) trả cùng tên khoá trong `counts`: `counts.working`, `counts.can_y_kien`.

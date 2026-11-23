@@ -491,6 +491,9 @@ const LUAT = [
   { card: '1775', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: "gridTemplateColumns: 'minmax(0, 1fr) 300px'", vi: 'thẻ creative trên máy tính xếp hai cột (thông tin trái, bài QC + video phải) — không phải cuộn' },
   { card: '1775', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'ngang={ngang} ben={ngang ? theCr : undefined}', vi: 'thẻ rê creative ở cây camp dùng bố cục ngang trên màn rộng' },
   { card: '1775', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'rong={320} cao={CAO} noi={noiAnh} style={{ width: 320, maxHeight: CAO', vi: 'không quay về thẻ một cột 320px cao quá màn phải cuộn' },
+  { card: '1777', tep: 'packages/db/migrations/0463_etp_tieu_chi_hook_giu_3s.sql', co: "'hut', 'giu_3s', 'Hook giữ người xem quá 3s'", vi: 'máy chấm có tiêu chí hook giữ người xem quá 3s (nhóm riêng, không vào cổng chặn Meta / AFS)' },
+  { card: '1777', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: "nd.diem.find((d) => d.nhom === 'hut' && d.ma === 'giu_3s')", vi: 'điểm giữ 3s hiện ngay trên dòng Hook của thẻ creative' },
+  { card: '1777', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: '{diemNd.map((d) =>', vi: 'chip Chấm nội dung chỉ còn Meta / AFS, điểm hook không lẫn vào' },
 ];
 
 const loi = [];

@@ -479,6 +479,7 @@ def main():
         q("""update etp.phim p set url = t.redirect_url, nguon = coalesce(p.nguon, split_part(replace(split_part(t.redirect_url, '/', 3), 'www.', ''), '.', 1))
              from (select distinct on (ref_id) ref_id, redirect_url from etp.trang_phim where redirect_url like 'http%' and link_ok is not false order by ref_id, sua desc) t
              where t.ref_id = p.content_id and coalesce(p.url, '') = ''""")
+        # etp.creative dựng lại toàn bộ mỗi 10 phút: loại creative phải ghi vào xv_khoa_ngoai["ethopex_tu_choi"] (thay-tu-choi.py gop), UPDATE etp.creative.tu_choi bị xoá ở lượt sau (camp 108725 lên từ creative đã "loại" kiểu đó, 23/11/2026)
         dat, thay, tc = khoa("ethopex_cta_dat"), khoa("ethopex_cta_thay"), khoa("ethopex_tu_choi")
         thay_nguoc = {int(v): int(k) for k, v in thay.items()}
         rows = []

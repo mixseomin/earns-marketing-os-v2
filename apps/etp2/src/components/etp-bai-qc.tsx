@@ -50,15 +50,23 @@ function NoiDungVideo({ nd }: { nd: NoiDungCr | null }) {
   const nhan: React.CSSProperties = { color: 'var(--fg-3, #888)', marginRight: 4 };
   if (!nd) return <div data-noi-dung-video="chua" style={{ fontSize: 11, color: 'var(--fg-3, #888)' }} title="Máy chấm chưa đọc video này nên chưa có hook, chữ trong video và điểm">Chưa chấm — chưa có hook, chữ video, điểm</div>;
   const chuVideo = nd.chuVideo?.replace(/\s*\n\s*/g, ' / ') ?? null;
+  // #1777: điểm hook giữ người xem quá 3s — tiêu chí nhóm 'hut' (không thuộc Meta / AFS, không vào cổng chặn), hiện ngay trên dòng Hook
+  const giu = nd.diem.find((d) => d.nhom === 'hut' && d.ma === 'giu_3s') ?? null;
+  const diemNd = nd.diem.filter((d) => d.nhom !== 'hut');
   return <div data-noi-dung-video style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12, lineHeight: 1.35 }}>
-    <div style={DONG(2)} title={nd.hook ?? ''}><span style={nhan}>🎣 Hook</span><b>{nd.hook ?? '—'}</b></div>
+    <div style={DONG(2)} title={nd.hook ?? ''}><span style={nhan}>🎣 Hook</span>
+      {giu ? <span data-giu-3s={giu.diem} title={`Hook giữ người xem quá 3s: ${giu.diem}/10 — máy chấm 3 giây đầu video (khung hình, chữ, câu đọc đầu)${giu.lyDo ? `\n${giu.lyDo}` : ''}`}
+          style={{ fontSize: 11, border: `1px solid ${mauTc(giu.diem)}`, color: mauTc(giu.diem), borderRadius: 4, padding: '0 4px', marginRight: 4, whiteSpace: 'nowrap', fontWeight: 700 }}>giữ 3s {giu.diem}/10</span>
+        : <span data-giu-3s="chua" title="Creative này chấm trước khi có tiêu chí giữ người xem quá 3s — chỉ lượt chấm mới có điểm, không chấm lại hàng loạt"
+          style={{ fontSize: 11, color: 'var(--fg-3, #888)', marginRight: 4, whiteSpace: 'nowrap' }}>giữ 3s: chưa chấm</span>}
+      <b>{nd.hook ?? '—'}</b></div>
     <HookVi nd={nd} />
     <div style={DONG(2)} title={nd.chuVideo ?? ''}><span style={nhan}>🔤 Chữ trên video</span>{chuVideo ?? '—'}</div>
     <div style={DONG(2)} title={[nd.loiDoc, nd.tomTat ? `Tóm tắt: ${nd.tomTat}` : ''].filter(Boolean).join('\n\n')}><span style={nhan}>🎙 Lời đọc</span>{nd.loiDoc ?? 'không có giọng'}</div>
-    {nd.diem.length ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 2 }}
+    {diemNd.length ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 2 }}
       title="Điểm nội dung máy chấm từ chính video (thang 10, dưới 5 là chặn) — rê vào từng ô để xem lý do">
       <span style={{ ...nhan, fontSize: 11 }}>📝 Chấm nội dung</span>
-      {nd.diem.map((d) => <span key={`${d.nhom}.${d.ma}`} data-tc={`${d.nhom}.${d.ma}`} title={`${d.nhom === 'meta' ? 'Meta' : 'AFS'} · ${d.ten}: ${d.diem}/10${d.lyDo ? `\n${d.lyDo}` : ''}`}
+      {diemNd.map((d) => <span key={`${d.nhom}.${d.ma}`} data-tc={`${d.nhom}.${d.ma}`} title={`${d.nhom === 'meta' ? 'Meta' : 'AFS'} · ${d.ten}: ${d.diem}/10${d.lyDo ? `\n${d.lyDo}` : ''}`}
         style={{ fontSize: 11, border: `1px solid ${mauTc(d.diem)}`, color: mauTc(d.diem), borderRadius: 4, padding: '0 4px', whiteSpace: 'nowrap' }}>{d.ten} {d.diem}</span>)}
     </div> : null}
   </div>;

@@ -9,6 +9,7 @@ set -uo pipefail
 if [ -z "${XV_H3_BAN_SAO:-}" ]; then B=$(mktemp -t may-h3); cp "$0" "$B"; XV_H3_DIR=$(cd "$(dirname "$0")" && pwd) XV_H3_BAN_SAO=1 exec bash "$B" "$@"; fi
 RA=${1:?thư mục ra}; shift; [ $# -gt 0 ] || { echo "bash may-h3.sh <thư-mục-ra> <vao.json> …"; exit 1; }
 DIR=${XV_H3_DIR:?}; mkdir -p "$RA"
+VAO=(); for f in "$@"; do b=$(basename "$f"); VAO+=("${b%.json}"); done
 ANH=${XV_H3_ANH:-ghcr.io/mixseomin/xv-h3:latest}   # image đóng sẵn ComfyUI + PyTorch CUDA 13, kiểm 0đ trên GitHub Actions trước khi đẩy (may/Dockerfile)
 GPU=${XV_H3_GPU:-"NVIDIA GeForce RTX 4090|NVIDIA RTX 5000 Ada Generation|NVIDIA RTX PRO 4500 Blackwell|NVIDIA L40|NVIDIA RTX 6000 Ada Generation|NVIDIA GeForce RTX 5090|NVIDIA L40S"}
 NHA=${XV_H3_NHA:-vast}
@@ -21,8 +22,29 @@ GQ() { python3 -c 'import json,sys; print(json.dumps({"query": sys.argv[1]}))' "
 # ── Vast: khoá vault #564, đọc mỗi lần gọi, không ghi đĩa
 VAPI() { local K; K=$(~/bin/acct reveal 564 api vast key 2>/dev/null | tail -1); [ -n "$K" ] || { echo '{"loi":"thiếu khoá Vast vault #564"}'; return 1; }
   curl -s -m 30 -X "$1" -H "Authorization: Bearer $K" -H 'Content-Type: application/json' ${3:+-d "$3"} "https://console.vast.ai/api/v0$2"; }
-MAY=""; LOAI=""; GIA=0; HOST=""
+MAY=""; LOAI=""; GIA=0; HOST=""; TAI=0; LEN=0; T_MAY=0
+# TIỀN THẬT TỪNG MÁY (anh 23/11/2026 "làm cho đúng logic đi"): trước studio ghi cố định 3¢/bản cho mọi cụm, máy hỏng / máy phí mạng 0,04$/GB đều không vào sổ.
+# Giờ mỗi máy đã thuê (kể cả máy không lên SSH, máy không ra tệp) ghi MỘT dòng vào <thư-mục-ra>/may.jsonl lúc xoá:
+#   tạm tính = phút thuê × giá giờ (dph_total đã gồm ổ) + (GB tải về đo trong máy + image XV_H3_ANH_GB) × phí tải về + GB tải lên × phí tải lên.
+# Máy không vào được SSH thì chưa đo được mạng (image có thể đã kéo một phần) → do_mang=false. Số THẬT lấy sau từ hoá đơn Vast (doi-soat-vast.sh, Vast chốt sổ theo ngày).
+ghi_tien() { [ -n "$MAY" ] || return 0
+  local rx="" tx="" ph; ph=$(python3 -c "print(round(($(date +%s) - ${T_MAY:-0}) / 60, 1))")
+  if [ -n "$HOST" ]; then read -r rx tx < <(ssh -p "${HOST#* }" -o ConnectTimeout=10 -o BatchMode=yes root@"${HOST% *}" "awk -F'[: ]+' 'NR>2 && \$2!=\"lo\" {r+=\$3; t+=\$11} END {print r, t}' /proc/net/dev" 2>/dev/null); fi
+  python3 - "$RA/may.jsonl" "$LOAI" "$MAY" "$ph" "$GIA" "$TAI" "$LEN" "${rx:-}" "${tx:-}" "${XV_H3_ANH_GB:-4.4}" "$(printf '%s,' "${VAO[@]}")" <<'PY'
+import json, sys
+f, loai, may, ph, gia, tai, len_, rx, tx, anh, vao = sys.argv[1:]
+do = rx != ''
+gb_ve = (float(rx) / 1e9 + float(anh)) if do else 0.0
+gb_len = float(tx) / 1e9 if do else 0.0
+usd = float(ph) / 60 * float(gia) + gb_ve * float(tai) + gb_len * float(len_)
+d = dict(nha=loai, may=may, phut=float(ph), gia_gio=float(gia), phi_tai=float(tai), phi_len=float(len_), gb_ve=round(gb_ve, 1), gb_len=round(gb_len, 2),
+         do_mang=do, usd=round(usd, 4), vao=[v for v in vao.split(',') if v])
+open(f, 'a').write(json.dumps(d, ensure_ascii=False) + '\n')
+print(f"tiền máy {loai} {may}: {ph} phút × {gia}$/giờ" + (f" + tải về {gb_ve:.1f} GB × {tai}$/GB" if do else " (chưa vào được máy — chưa đo mạng)") + f" = {usd:.3f}$")
+PY
+}
 xoa() { [ -n "$MAY" ] || return 0
+  ghi_tien
   if [ "$LOAI" = vast ]; then VAPI DELETE "/instances/$MAY/" >/dev/null; else GQ "mutation { podTerminate(input: {podId: \"$MAY\"}) }" >/dev/null; fi
   echo "đã XOÁ máy $LOAI $MAY sau $(( ($(date +%s) - T0) / 60 )) phút (từ lúc bắt đầu mạch)"; MAY=""; }
 # INT / TERM phải THOÁT (EXIT sẽ xoá máy): trước đây trap chỉ gọi xoa rồi script chạy tiếp — bị bảo dừng thì xoá máy đang thuê rồi lại thuê máy khác (20/11/2026)
@@ -55,17 +77,17 @@ thue_vast() {   # máy một card ≥ 24GB, đời card ≥ 8.0 (INT8 ConvRot �
   local SD; SD=$(VAPI GET "/users/current/" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(round(float(d.get("credit") or 0) + float(d.get("balance") or 0), 3))' 2>/dev/null)
   python3 -c "import sys; sys.exit(0 if float('${SD:-0}') > float('${XV_H3_VAST_SO_DU:-0.3}') else 1)" 2>/dev/null || { echo "  Vast: số dư ${SD:-?}\$ không đủ (cần hơn ${XV_H3_VAST_SO_DU:-0.3}\$) → bỏ qua Vast, sang nhà kế. Nạp tiền Vast thì lượt sau tự dùng lại (rẻ hơn RunPod ~2,5 lần)" >&2; return 1; }
   DS=$(VAPI GET "/bundles/?q=$(python3 -c 'import json,urllib.parse,sys; print(urllib.parse.quote(json.dumps({"verified":{"eq":True},"rentable":{"eq":True},"num_gpus":{"eq":1},"gpu_frac":{"gte":0.99},"cuda_max_good":{"gte":13.0},"disk_space":{"gte":int(sys.argv[3])},"reliability2":{"gte":0.97},"inet_down":{"gte":500},"gpu_ram":{"gte":int(sys.argv[2])},"compute_cap":{"gte":800},"dph_total":{"lte":float(sys.argv[1])},"inet_down_cost":{"lte":float(sys.argv[4])},"type":"on-demand","order":[["dph_total","asc"]],"limit":40})))' "${XV_H3_GIA_TOI_DA:-0.6}" "${XV_H3_VRAM:-23000}" "${XV_H3_O:-70}" "${XV_H3_GIA_TAI:-0.005}")" \
-    | python3 -c 'import json,sys,os; t=float(os.environ.get("XV_H3_GB_TAI","45")); h=float(os.environ.get("XV_H3_GIO_UOC","0.5")); ds=json.load(sys.stdin).get("offers",[]); ds.sort(key=lambda o: o["dph_total"]*h + (o.get("inet_down_cost") or 0)*t); [print("%s|%s|%.3f|%s|%.4f|%.3f" % (o["id"], o["gpu_name"], o["dph_total"], o.get("geolocation") or "", o.get("inet_down_cost") or 0, o["dph_total"]*h + (o.get("inet_down_cost") or 0)*t)) for o in ds[:8]]' 2>/dev/null)
+    | python3 -c 'import json,sys,os; t=float(os.environ.get("XV_H3_GB_TAI","45")); h=float(os.environ.get("XV_H3_GIO_UOC","0.5")); ds=json.load(sys.stdin).get("offers",[]); ds.sort(key=lambda o: o["dph_total"]*h + (o.get("inet_down_cost") or 0)*t); [print("%s|%s|%.3f|%s|%.4f|%.3f|%.4f" % (o["id"], o["gpu_name"], o["dph_total"], o.get("geolocation") or "", o.get("inet_down_cost") or 0, o["dph_total"]*h + (o.get("inet_down_cost") or 0)*t, o.get("inet_up_cost") or 0)) for o in ds[:8]]' 2>/dev/null)
   [ -n "$DS" ] || { echo "  Vast: không có máy hợp (≤ \$${XV_H3_GIA_TOI_DA:-0.6}/giờ, tải về ≤ \$${XV_H3_GIA_TAI:-0.005}/GB, driver CUDA 13)" >&2; return 1; }
-  while IFS='|' read -r i g gia noi tai uoc; do
+  while IFS='|' read -r i g gia noi tai uoc len; do
     case "$g" in CMP*) echo "  bỏ $g (card đào coin — 17/11/2026 thuê được mà không lên SSH)" >&2; continue ;; GB10*) echo "  bỏ $g (máy chip ARM — image x86 không chạy, 20/11/2026)" >&2; continue ;; esac
     # vùng không kéo nổi image ghcr (20/11/2026: máy Shanghai, CN rẻ nhất, thuê được nhưng không bao giờ lên SSH) — XV_H3_BO_VUNG="CN RU" để đổi
     case " ${XV_H3_BO_VUNG:-CN} " in *" ${noi##*, } "*) echo "  bỏ máy ở $noi (vùng không kéo được image)" >&2; continue ;; esac
     R=$(VAPI PUT "/asks/$i/" "$(python3 -c 'import json,sys; print(json.dumps({"client_id":"me","image":sys.argv[1],"disk":int(sys.argv[2]),"runtype":"ssh_direc ssh_proxy","onstart":"touch /root/.no_auto_tmux","label":"xv-h3-thu"}))' "$ANH" "${XV_H3_O:-70}")")
     N=$(echo "$R" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("new_contract") or "")' 2>/dev/null)
     [ -n "$N" ] || { echo "  Vast $g ($noi): không thuê được $(echo "$R" | head -c 100)" >&2; continue; }
-    MAY=$N; LOAI=vast; GIA=$gia; echo "máy vast $MAY · $g · $noi · $gia\$/giờ · tải về $tai\$/GB · ước một lượt ~$uoc\$" >&2
-    HOST=$(cho_ssh cong_vast); [ -n "$HOST" ] && return 0
+    MAY=$N; LOAI=vast; GIA=$gia; TAI=$tai; LEN=$len; T_MAY=$(date +%s); echo "máy vast $MAY · $g · $noi · $gia\$/giờ · tải về $tai\$/GB · ước một lượt ~$uoc\$" >&2
+    HOST=$(cho_ssh cong_vast); [ -n "$HOST" ] && return 0; MAY=""
   done <<< "$DS"; return 1; }
 thue_runpod() {
   local g cl R KHOA; KHOA=$(python3 -c 'import json,sys; print(json.dumps(open(sys.argv[1]).read().strip()))' "$HOME/.ssh/id_ed25519.pub")
@@ -74,8 +96,8 @@ thue_runpod() {
     R=$(GQ "mutation { podFindAndDeployOnDemand(input: {cloudType: $cl, gpuCount: 1, gpuTypeId: \"$g\", name: \"xv-h3-thu\", imageName: \"$ANH\", containerDiskInGb: ${XV_H3_DIA_RUNPOD:-60}, volumeInGb: 0, ports: \"22/tcp\", supportPublicIp: true, minVcpuCount: 8, minMemoryInGb: 30, env: [{key: \"PUBLIC_KEY\", value: $KHOA}]}) { id costPerHr } }")
     MAY=$(echo "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin); p=(d.get("data") or {}).get("podFindAndDeployOnDemand"); print(p["id"] if p else "")' 2>/dev/null)
     if [ -z "$MAY" ]; then echo "  RunPod $g $cl: $(echo "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin); e=d.get("errors"); print(e[0]["message"][:100] if e else "không nhận")' 2>/dev/null)" >&2; continue; fi
-    LOAI=runpod; GIA=$(echo "$R" | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["podFindAndDeployOnDemand"]["costPerHr"])'); echo "máy runpod $MAY · $g $cl · $GIA\$/giờ" >&2
-    HOST=$(cho_ssh cong_runpod); [ -n "$HOST" ] && return 0
+    LOAI=runpod; TAI=0; LEN=0; T_MAY=$(date +%s); GIA=$(echo "$R" | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["podFindAndDeployOnDemand"]["costPerHr"])'); echo "máy runpod $MAY · $g $cl · $GIA\$/giờ" >&2
+    HOST=$(cho_ssh cong_runpod); [ -n "$HOST" ] && return 0; MAY=""
   done; done; return 1; }
 for n in $NHA; do "thue_$n" && break; done
 [ -n "$HOST" ] || { echo "✗ không thuê được máy hợp ở: $NHA (hết chỗ / driver cũ)"; exit 1; }
@@ -108,4 +130,4 @@ for l in sys.stdin:
     print(("✓" if d.get("ok") else "✗"), d.get("vao"), str(d.get("kq"))[:300])'
 [ -n "$XONG" ] && cat "$RA/XONG" || echo "✗ không thấy lô xong sau $(( TRAN + 25 )) phút"
 tail -3 "$RA/cai.log" 2>/dev/null
-echo "tổng $(( ($(date +%s) - T0) / 60 )) phút · $LOAI · giá máy $GIA\$/giờ · tệp ra: $(ls "$RA"/*.mp4 "$RA"/*.png 2>/dev/null | wc -l | tr -d ' ')"
+xoa; echo "tổng $(( ($(date +%s) - T0) / 60 )) phút · tiền tạm tính $(python3 -c 'import json,sys; print(round(sum(json.loads(l)["usd"] for l in open(sys.argv[1]) if l.strip()), 3))' "$RA/may.jsonl" 2>/dev/null || echo 0)\$ ($(grep -c . "$RA/may.jsonl" 2>/dev/null || echo 0) máy đã thuê) · tệp ra: $(ls "$RA"/*.mp4 "$RA"/*.png 2>/dev/null | wc -l | tr -d ' ')"

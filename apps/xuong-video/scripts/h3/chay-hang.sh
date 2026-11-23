@@ -16,6 +16,8 @@ DIR=$(cd "$(dirname "$0")" && pwd); TAPSH="$DIR/../bo-set/cum-seedance-tap.sh"
 BOX=root@167.233.241.16; RBOX=/opt/earns-marketing-os-v2/apps/xuong-video
 TSX="set -a; . ../../.env.production; set +a; NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx"
 TM=$(mktemp -d); trap 'rm -rf "$TM"' EXIT
+# hoá đơn Vast chốt sổ chậm vài ngày → mỗi lượt thay số tạm tính của các lượt trước bằng số thật (doi-soat-vast.sh); hỏng thì lượt vẫn chạy
+bash "$DIR/doi-soat-vast.sh" 2>/dev/null | tail -1 || true
 ssh "$BOX" "cd $RBOX && $TSX scripts/hang-video.mts --ds" > "$TM/hang.json" || { echo "✗ không đọc được hàng trên box3"; exit 1; }
 python3 -c 'import json,sys; [print(h["tap"], h["bo"], ",".join(map(str, h["so"]))) for h in json.load(open(sys.argv[1]))]' "$TM/hang.json" > "$TM/hang.txt"
 # XV_HANG_BO="h3" → chỉ chạy hàng của các bộ được khai (việc nền tu-chay-hang.sh chỉ tự chạy H3; hàng Seedance chờ người gõ lệnh)
@@ -54,11 +56,26 @@ if [ -s "$TM/h3.txt" ]; then
   N=$(wc -l < "$TM/h3.txt" | tr -d ' '); MAY=$(( N < ${XV_H3_SO_MAY:-4} ? N : ${XV_H3_SO_MAY:-4} ))
   echo "── H3: $N cụm · $MAY máy thuê song song"
   bash "$DIR/song-song.sh" "$MAY" "$TM/ra" "$TM"/vao/job-*.json
+  # TIỀN THẬT VÀO SỔ (anh 23/11/2026): tiền mỗi máy (may.jsonl, cả máy hỏng) chia cho các cụm máy đó chạy theo giây video → --cents của từng job;
+  # mã máy đi kèm (--may) để doi-soat-vast.sh thay số tạm tính bằng hoá đơn Vast khi Vast chốt sổ ngày.
+  python3 - "$TM/ra/may.jsonl" "$TM/vao" > "$TM/tien.txt" <<'PY'
+import json, sys, os
+tien, may = {}, {}
+for l in (open(sys.argv[1]) if os.path.exists(sys.argv[1]) else []):
+    if not l.strip(): continue
+    d = json.loads(l); js = [v for v in d['vao'] if v.startswith('job-')]
+    g = {v: float(json.load(open(f"{sys.argv[2]}/{v}.json")).get('giay', 8)) for v in js}
+    for v in js:
+        k = v[4:]; tl = g[v] / (sum(g.values()) or 1)
+        tien[k] = tien.get(k, 0) + d['usd'] * 100 * tl
+        may.setdefault(k, []).append(f"{d['nha']}:{d['may']}:{round(tl, 4)}:{d['usd']}")
+for k in tien: print(k, round(tien[k], 3), ','.join(may[k]))
+PY
   while read -r JOB IDS; do
     # mọi bản của cụm (luật chuẩn H3: so_ban seed / cụm) → box3; --nap-h3 soi từng bản rồi giữ bản ít lỗi nhất làm clip chính (các bản khác vào phiên bản)
     TEP=""; for F in "$TM"/ra/job-$JOB.b*.mp4; do [ -f "$F" ] || continue; B=$(basename "$F"); scp -q "$F" "$BOX:/tmp/h3-$B" && TEP="$TEP${TEP:+,}/tmp/h3-$B"; done
     if [ -z "$TEP" ] && [ -f "$TM/ra/job-$JOB.mp4" ]; then scp -q "$TM/ra/job-$JOB.mp4" "$BOX:/tmp/h3-job-$JOB.mp4" && TEP=/tmp/h3-job-$JOB.mp4; fi
-    ssh -n "$BOX" "cd $RBOX && $TSX scripts/thu-seedance-cum.mts --canh=$IDS --nap-h3=$JOB --tep=${TEP:-/tmp/h3-job-$JOB.mp4} | tail -6; rm -f /tmp/h3-job-$JOB*.mp4"
+    ssh -n "$BOX" "cd $RBOX && $TSX scripts/thu-seedance-cum.mts --canh=$IDS --nap-h3=$JOB $(awk -v j="$JOB" '$1==j {print "--cents="$2" --may="$3}' "$TM/tien.txt") --tep=${TEP:-/tmp/h3-job-$JOB.mp4} | tail -6; rm -f /tmp/h3-job-$JOB*.mp4"
   done < "$TM/h3.txt"
 fi
 # ── đóng hàng từng tập

@@ -1710,5 +1710,9 @@ export const LUAT = [
   { card: 'keo-het-report-2311', tep: 'packages/db/migrations/0462_etp_bc_ad.sql', co: 'if coalesce(b->>k, \'\') = \'\' then', vi: 'dòng report thiếu chiều (JSON null / rỗng) không xoá chiều đã có của ad' },
   { card: 'keo-het-report-2311', tep: 'packages/db/migrations/0462_etp_bc_ad.sql', co: 'if old.ngay_cuoi is not null and new.ngay_cuoi < old.ngay_cuoi then', vi: 'lấp ngược ngày cũ không đè chiều mới nhất của ad' },
   { card: 'keo-het-report-2311', tep: 'packages/db/migrations/0462_etp_bc_ad.sql', co: 'insert into etp.bc_ad_doi (ad_id, cot, cu, moi)', vi: 'chiều của ad đổi thì ghi lịch sử từng cột' },
+  { card: '1777', tep: 'apps/etp-cham-worker/src/index.ts', co: "const meta = Math.min(...vals('meta')), afs = Math.min(...vals('afs'));", vi: 'điểm hook giữ 3s (nhóm hut) không kéo tổng Meta / AFS, cổng chặn creative giữ nguyên' },
   { card: 'keo-het-report-2311', tep: 'packages/db/migrations/0462_etp_bc_ad.sql', co: 'from etp.bc_ad_ngay f left join etp.bc_ad a using (ad_id)', vi: 'view bc_v: fact × chiều + tỉ lệ tính lại từ số đếm' },
+  { card: 'free-dau-2311', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', cam: '("For Free.", "Watch the entire series', vi: 'giọng AT không mở bằng "For Free" — câu đầu là tên phim (anh 21/11 + 23/11/2026, camp 108721/108723/108725)' },
+  { card: 'free-dau-2311', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', mot: 'assert not [m for l in CAU.values() for m in l if re.match(', vi: 'máy dừng nếu có mẫu giọng mở bằng Free/gratis' },
+  { card: 'free-dau-2311', tep: 'apps/etp/dong-bo.py', co: 'loại creative phải ghi vào xv_khoa_ngoai["ethopex_tu_choi"]', vi: 'ghi chú: etp.creative.tu_choi là bảng dựng lại, loại phải vào kho gốc' },
 ];

@@ -37,11 +37,26 @@ function thanTheoDang(dang, r) {
     }
     return p;
   }
-  const a = 1.0 + r() * 0.22, mu = 1.1 + r() * 0.35; // độ thon + độ cong riêng mỗi tháp
-  for (let i = 0; i <= N; i++) { // nón đạn: chân ~1,12 R, thon đều lên ~0,55 R dưới cổ; hơi phình ở 1/5 thân như ảnh mẫu
-    const t = i / N, f = 1.12 * (1 - 0.5 * a * Math.pow(t, mu)) + 0.05 * Math.sin(Math.PI * Math.min(1, t * 2.5));
-    p.push([t, Math.max(0.3, f)]);
+  // ảnh mẫu: thân KHÔNG thon đuột — chồng 2–4 khúc, mỗi khúc phình giữa rồi thắt eo ở hai đầu, chỗ nối có gờ ngang
+  // và thường lùi vào; khúc trên cùng phình rõ dưới cổ trước khi lên vòm. Thon chung vẫn giữ (chân to, ngọn nhỏ).
+  const a = 0.9 + r() * 0.22, mu = 1.1 + r() * 0.35, n = 2 + Math.floor(r() * 3), go = [];
+  const nen = (t) => 1.12 * (1 - 0.45 * a * Math.pow(t, mu));
+  const w = Array.from({ length: n }, (_, k) => (0.7 + r() * 0.6) * (k === n - 1 ? 0.75 : 1)), tong = w.reduce((x, y) => x + y, 0), tb = [0];
+  for (let k = 0; k < n; k++) tb.push(k === n - 1 ? 1 : tb[k] + w[k] / tong);
+  let lui = 1;
+  for (let k = 0; k < n; k++) {
+    const t0 = tb[k], t1 = tb[k + 1], cuoi = k === n - 1;
+    const phinh = cuoi ? 0.1 + r() * 0.08 : 0.05 + r() * 0.1, dinh = cuoi ? 0.55 + r() * 0.15 : 0.35 + r() * 0.3, nhon = 0.8 + r() * 0.8;
+    const m = Math.max(8, Math.round(N * (t1 - t0)));
+    for (let i = 0; i <= m; i++) {
+      const u = i / m; if (k > 0 && i === 0) continue;
+      const v = u < dinh ? 0.5 - 0.5 * Math.cos(Math.PI * u / dinh) : 0.5 + 0.5 * Math.cos(Math.PI * (u - dinh) / (1 - dinh));
+      const t = t0 + (t1 - t0) * (k > 0 ? 0.012 + u * 0.988 : u); // chừa vạt chéo ngắn ở chỗ nối
+      p.push([t, Math.max(0.3, nen(t) * lui * (1 - 0.04 + phinh * Math.pow(v, nhon)))]);
+    }
+    if (!cuoi) { go.push(t1); lui *= r() < 0.7 ? 0.9 + r() * 0.06 : 1.02; } // phần lớn lùi vào sau gờ, đôi khi nở ra
   }
+  p.go = go;
   return p;
 }
 // chóp: vòm dẹt (ảnh mẫu) — chòi + ăng-ten dựng thêm trong dungThap
@@ -56,7 +71,7 @@ function dungHoSo(R, H, dang, r) {
     p.push(new THREE.Vector2(Math.max(0.01, rr), than + ddChop * (chop === 'nhon' ? s : Math.sin(a))));
   }
   const rTai = (y) => { if (y <= 0) return p[0].x; for (let i = 1; i < p.length; i++) if (p[i].y >= y) { const a = p[i - 1], b = p[i]; return a.x + (b.x - a.x) * (y - a.y) / Math.max(0.01, b.y - a.y); } return 0.5; };
-  return { p, than, rC: rCuoi, chop, rTai, rMax: Math.max(...p.map((v) => v.x)) };
+  return { p, than, rC: rCuoi, chop, rTai, rMax: Math.max(...p.map((v) => v.x)), go: (diem.go || []).map((t) => t * than) };
 }
 // gân dọc: nắn bán kính thân theo góc (chỉ phần thân, không đụng chóp)
 function khiaGan(geo, than, n, bien) {
@@ -217,6 +232,9 @@ function dungThap(R, H, gen, r, vKim, vMax = R * TL.vetDo) {
   g.add(new THREE.Mesh(geo, vT));
   const kVa = 1 / Math.cos(Math.PI / 28) * 0.5 + 0.5; // khung va thô 28 cạnh, nới ra cho mặt va sát mặt nhìn
   va(new THREE.LatheGeometry(hs.p, 28).scale(kVa, 1, kVa));
+  // gờ ngang ở chỗ nối khúc (ảnh mẫu: vành đỏ sẫm chia thân thành từng đoạn phình)
+  for (const yg of hs.go) { const rg = Math.max(hs.rTai(yg - 0.3), hs.rTai(yg + 1.6)) + 0.55 + r() * 0.4, hg = 0.6 + r() * 0.6;
+    const gG = new THREE.CylinderGeometry(rg - 0.15, rg, hg, 72), m = new THREE.Mesh(gG, r() < 0.5 ? vV : vBC); m.position.y = yg + hg / 2 - 0.2; g.add(m); va(gG, 0, m.position.y, 0); }
 
   // ban công vòng: lan can (sàn + cột + tay vịn) · đài kính quan sát (vách kính, đố, mái, lan can trên mái) · tường chắn
   const nBC = 1 + (r() < 0.45 ? 1 : 0), dsBC = []; // ảnh mẫu: một đài kính trên cổ, thân dưới gần như trơn

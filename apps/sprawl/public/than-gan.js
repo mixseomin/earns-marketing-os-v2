@@ -37,7 +37,7 @@ export function taoThanGan({ dsThap, tang, geos, vatLieu, mau }) {
     const doc = (y) => (hs.rTai(y + 0.5) - hs.rTai(y - 0.5)); // dr/dy: thân thon dần → khung nghiêng theo mặt
     // đặt một khối bám mặt thân: góc a, độ cao y (trên mặt), d = nhô ra theo pháp tuyến, t = lệch ngang theo tiếp tuyến, nghiêng thêm ph quanh trục ngang
     const dat = (arr, a, y, d, t, sx, sy, sz, ph = 0, mau = null) => {
-      const r = hs.rTai(y), phi = Math.atan(doc(y)), aa = a + t / Math.max(r, 1);
+      const r = hs.rTai(y), phi = Math.max(-0.45, Math.min(0.45, Math.atan(doc(y)))), aa = a + t / Math.max(r, 1);
       const rr = r + d * Math.cos(phi), yy = y - d * Math.sin(phi);
       _q.setFromEuler(_e.set(phi + ph, Math.PI / 2 - aa, 0));
       arr.push({ m: _m.compose(_p.set(Math.cos(aa) * rr, yy, Math.sin(aa) * rr), _q, _s.set(sx, sy, sz)).clone(), c: mau ? mau.clone() : null });

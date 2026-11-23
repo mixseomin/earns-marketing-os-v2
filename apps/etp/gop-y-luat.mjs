@@ -1662,6 +1662,8 @@ export const LUAT = [
   { card: 'phanh-cho-canh-bao-2211', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', co: "const CHAN = (PC as { chan?: boolean }).chan !== false;", vi: 'biển etp2 vàng + chữ chỉ cảnh báo' },
   { card: 'phanh-cho-canh-bao-2211', tep: 'apps/web/src/components/etp-phanh-cho.tsx', co: "const CHAN = (PC as { chan?: boolean }).chan !== false;", vi: 'biển etp vàng + chữ chỉ cảnh báo' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: 'insert into etp.cho_anh_duyet (tv_id, ghi)', vi: 'khung chỉ định --anh tự vào hàng chờ anh duyệt' },
+  { card: 'es-khong-ngon-ngu-2311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: '    bo_ngon_ngu(sp_g, a.get("content_id"), goc_id)', vi: 'camp phim ES bỏ locales khỏi targeting Ad Set (anh 23/11/2026 "ko đc target ngôn ngữ cho phim Es")' },
+  { card: 'es-khong-ngon-ngu-2311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'tg.pop("locales", None); sp_g["targeting"] = tg', vi: 'bo_ngon_ngu thật sự xoá trường locales' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp/lenh_cho.py', co: 'doi0, kcr = len_cr(st, chan, luc, xem, bao0)', vi: 'creative anh đã duyệt lúc phanh bật: máy tự lên camp ở nhịp đầu phanh nhả (anh 22/11 "thằng ngu !")' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', cam: 'Tắt dừng khẩn rồi bấm', vi: 'Duyệt lúc dừng khẩn không được bắt anh bấm lại Lên camp' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: 'width: 162, height: 288', vi: 'ảnh / video creative chờ duyệt đủ to để xem (anh 22/11 "hình cũng phải to hơn")' },

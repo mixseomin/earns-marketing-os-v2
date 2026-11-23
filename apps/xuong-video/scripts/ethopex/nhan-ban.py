@@ -450,6 +450,19 @@ THANG_MUC = {float(x) for x in _cau_hinh("thang_muc", [1, 3, 7, 15, 30]) if floa
 BO_DANG_CHAN = {str(k): set(v) for k, v in _cau_hinh("bo_dang_chan", {}).items()}   # bộ → dạng creative không lên camp mới (migration 0394, anh 01/11/2026 "bộ 2 chỉ lên cảnh cuối")
 BO_CHI_PHIM_LAI = {str(x) for x in _cau_hinh("bo_chi_phim_lai", [])}   # bộ chỉ mở camp cho phim đã lãi 7 ngày ở bộ đó (migration 0399, anh 02/11/2026 "chặn mở camp phim mới" ở bộ 2)
 ROAS_MIN, ROAS_MAX = 0.9, 1.4   # 0.9 (Dol 22/11/2026: "ngoài mức bid roas 1, lên camp test thêm mức 0.9, 1.1")
+KHUON_ES = 65734   # camp mẫu ES (cùng sổ lenh_cho.KHUON_CR / dot-phim-moi.KHUON) — mang locales [1002] trong targeting Ad Set
+def phim_es(content_id, goc_id=None):
+    """Phim tiếng Tây Ban Nha? Đọc etp.phim.locale; không đọc được thì coi khuôn ES là phim ES (nghiêng về bỏ khoá ngôn ngữ)."""
+    try:
+        l = q(f"select locale from etp.phim where content_id = {int(content_id)}") if str(content_id or "").isdigit() else ""
+    except Exception: l = ""
+    return l.lower().startswith("es") if l else str(goc_id) == str(KHUON_ES)
+def bo_ngon_ngu(sp_g, content_id, goc_id=None):
+    """PHIM ES KHÔNG TARGET NGÔN NGỮ (anh 23/11/2026 "ko đc target ngôn ngữ cho phim Es"): khuôn ES #65734 khoá locales [1002], mọi camp ES chép theo
+    → bỏ trường locales khỏi targeting Ad Set của mọi camp phim ES (nước giữ nguyên). Phim EN giữ khuôn như cũ. Trả True khi đã bỏ."""
+    if not phim_es(content_id, goc_id): return False
+    tg = dict(sp_g.get("targeting") or {}); co = "locales" in tg; tg.pop("locales", None); sp_g["targeting"] = tg
+    return co
 def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, nhan=None, ep=False, hoi_cho=False, ns_tay=None):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
     — anh 22/10/2026 "camp cùng phim thì chủ động thêm góc khác"; trước đó phải đi br form (dung-camp.sh).
@@ -497,6 +510,7 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
     if bo and bo_cua_camp(c) != str(bo):   # dựng trên khuôn camp của bộ khác → đổi đúng 3 trường tài khoản / Page (pixel dùng chung, bài đăng FB tạo mới)
         b = bo_tk(bo); tk, ext, page = int(b["tk"]), str(b["ext"]), int(b["page"])
     sp_g = {k: v for k, v in js(g.get("source_payload")).items() if k not in BO}; sp_g.update(name=f"{ten} · adset")
+    bo_ngon_ngu(sp_g, a.get("content_id"), goc_id)
     if roas:   # đúng đường form Ethopex (bid strategy cấp campaign + roas_average_floor cấp Ad Set, tối ưu VALUE) — đọc từ mã app 26/10/2026
         sp_c.update(bid_strategy="LOWEST_COST_WITH_MIN_ROAS", daily_budget=int(ns_roas))
         sp_g.update(optimization_goal="VALUE", bid_constraints={"roas_average_floor": roas}); sp_g.pop("bid_amount", None)

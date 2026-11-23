@@ -9,6 +9,7 @@ import { docKinhThanh, coMau, giayMau, thieuQc } from './kieu';
 import { soShotToiDa } from './nhip-hinh';
 import { phanRaTapDb, sinhAnhThieuDb } from './phan-ra';
 import { NGUONG_TU_CHAY_VND } from './chot-tien';
+import { daDangMayTapDb } from './hau-ky';
 
 type Kq<T> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -28,6 +29,9 @@ export async function tachCanhTapDb(db: Db, tapId: number, soCanh: number, nguoi
   const kq = await tachCanh({ loai: bc.loai, kinhThanh: bc.kt, nhanVat: bc.nhanVat, kichBan: bc.tap.kich_ban, soCanh, tapTruoc: bc.tapTruoc, thoiLuongS: mucTieu, khuon: bc.loai === 'quang_cao' ? taKhuon(await dsKhuon(db, { toiDa: 60 })) : undefined });
   if (!kq.ok) return loi(kq.loi);
   const so = await luuCanhTach(db, { tapId, tenTap: bc.tap.ten, kq, nhanVat: bc.nhanVat, nguoi: nguoi, thoiLuongS: mucTieu });
+  // CHUYỂN ĐỘNG MÁY theo nhịp ngay sau tách (0đ, cùng lõi nút 🎥 — hau-ky.ts › daDangMayTapDb): Claude hay cho máy trượt / lùi trong shot 2s, cổng
+  // nhịp hình chặn vẽ ảnh và người mới kẹt ở chặng 1/5 dù không có gì phải quyết (phim 8180 tập 8190, 23/11/2026: #5 #6 #12). Máy tự sửa, không chờ bấm.
+  await daDangMayTapDb(db, tapId, nguoi).catch((e: unknown) => console.error(`[chuyển động máy sau tách cảnh] tập ${bc.tap.so}:`, e instanceof Error ? e.message : e));
   // Shot vừa tách có hình tả được → vào thư viện khuôn (gỡ tên anchor), không cần ai bấm.
   if (bc.loai === 'quang_cao') await ghiKhuonTuCanh(db, kq.canh, bc.nhanVat, kt.qc?.ten ?? '', `phim #${bc.tap.phim_id} tập ${bc.tap.so}`, bc.tap.phim_id);
   if (kq.model && kq.tokens) await ghiTienChu(db, bc.tap.phim_id, `Tách cảnh · tập ${bc.tap.so} (${so} cảnh${coMau(kt.qc) ? ', bám QC mẫu' : ''})`, kq.model, kq.tokens);

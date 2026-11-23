@@ -119,6 +119,23 @@ def _goi(duong, body=None, timeout=90):
     if not T: raise NgoaiNha(f"người #{SUA} chưa kết nối Ethopex (hoặc phiên đã hết hạn) — dán phiên Ethopex của mình trên etp.on.tc")
     r = urllib.request.Request("https://api.ethopex.dev" + duong, data=json.dumps(body).encode() if body is not None else None, method="POST" if body is not None else "GET",
                                headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-ethopex"})
+    # THỬ LẠI LỖI THOÁNG QUA của LỆNH ĐỌC (23/11/2026 "lắm lỗi thế": T1 không tắt được #108663, so-ngay --chup hỏng mọi nhịp — Ethopex trả 522 Cloudflare
+    # và cắt ngang thân JSON 3 MB "Expecting ',' delimiter"; trước đây không chỗ nào thử lại, một lần chập là cả lệnh chết). Chỉ lệnh ĐỌC (GET, POST /report):
+    # lệnh ghi (tắt / bật / sửa / tạo camp) có thể đã tới máy chủ dù trả lỗi → không tự gửi lại, nơi gọi tự quyết.
+    doc = body is None or duong.startswith("/api/v1/report")
+    for lan in range(3 if doc else 1):
+        try: return _goi_mot(r, timeout)
+        except Exception as e:
+            if lan == 2 or not doc or not _thoang_qua(e): raise
+            import time as _t, sys as _s; print(f"⚠ Ethopex {duong[:60]}: {type(e).__name__} {getattr(e, 'code', '')} — thử lại lần {lan + 2}/3", file=_s.stderr); _t.sleep((3, 10)[lan])
+
+def _thoang_qua(e):
+    """lỗi đáng thử lại: máy chủ / Cloudflare chập (429 · 5xx · 52x), đứt mạng, quá giờ, thân trả về bị cắt (JSON gãy)"""
+    import http.client, socket
+    if isinstance(e, urllib.error.HTTPError): return e.code in (408, 425, 429) or e.code >= 500
+    return isinstance(e, (urllib.error.URLError, TimeoutError, socket.timeout, ConnectionError, http.client.IncompleteRead, http.client.RemoteDisconnected, json.JSONDecodeError))
+
+def _goi_mot(r, timeout):
     try: return json.load(urllib.request.urlopen(r, timeout=timeout))
     except urllib.error.HTTPError as e:   # LỖI PHẢI NÓI LÝ DO (anh 10/11/2026 "Tại sao tele lắm lỗi": tin chỉ ghi "HTTP Error 400: Bad Request"): kèm câu Ethopex trả về;
         # chuỗi vẫn mở đầu "HTTP Error <mã>: " nên nơi gọi đang nhận lỗi theo mã (thử lại 502…) không đổi

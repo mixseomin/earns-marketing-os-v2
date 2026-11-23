@@ -865,6 +865,8 @@ export const LUAT = [
   { card: 'dich-giong-2311', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', cam: 'không có giọng', vi: 'không ghi "không có giọng" cho creative chép giọng lỗi' },
   { card: 'dich-giong-2311', tep: 'apps/etp2/src/lib/actions/etp-bai.ts', co: 'dungBaiQc', vi: 'thẻ và máy dịch sẵn dựng chữ cùng một hàm (khoá dịch trùng khít)' },
   { card: 'dich-giong-2311', tep: 'apps/etp/dong-bo.py', co: 'dich-truoc.mts', vi: 'dịch sẵn chữ creative đang / chuẩn bị / sẽ chạy mỗi lượt đồng bộ' },
+  { card: 'thu-lai-2311', tep: 'apps/etp/ethopex_api.py', co: 'for lan in range(3 if doc else 1):', vi: 'lệnh ĐỌC Ethopex thử lại lỗi thoáng qua (522 / JSON bị cắt) — một lần chập không giết cả lệnh (T1 #108663, so-ngay 23/11/2026)' },
+  { card: 'thu-lai-2311', tep: 'apps/etp/ethopex_api.py', co: 'doc = body is None or duong.startswith("/api/v1/report")', vi: 'chỉ thử lại lệnh đọc — lệnh tắt / bật / tạo camp không tự gửi lại' },
   { card: 'dich-giong-2311', tep: 'apps/etp/dong-bo.py', co: 'DICH = subprocess.Popen(', vi: 'dịch sẵn chạy SONG SONG từ đầu lượt — đặt cuối lượt thì không bao giờ tới (các bước Ethopex ăn hết trần 900 s, 23/11/2026)' },
   { card: 'dich-giong-2311', tep: 'apps/etp/dong-bo.py', co: '"--so", "80", "--han", "600"]', vi: 'dịch sẵn có hạn 600 s, xong trước trần 900 s của etp-dong-bo.service' },
   { card: 'dong-bo-tran-2311', tep: 'apps/etp/dong-bo.py', co: 'from etp.bc_ad_ngay n join etp.bc_ad a using (ad_id)', vi: 'nước giao camp_nuoc tính từ kho thô bc_ad_ngay, không gọi lại report Ethopex (lệnh 8 ngày ngốn > 7 phút, lượt quá trần 900 s)' },

@@ -44,8 +44,19 @@ export function xepDocNoi(cao: number, a: { top: number; bottom: number }, gap: 
   return cao <= duoi ? {} : cao <= tren ? { top: a.top - gap - cao } : duoi >= tren ? { maxHeight: duoi } : { top: M, maxHeight: tren };
 }
 
+/** KẸP NGANG lớp nổi trong màn — MỘT NHỊP, không lặp (thuần — tự kiểm anchored-popover.test.mts). r = rect panel vừa vẽ, W = rộng khung nhìn.
+ *  Tràn phải → neo mép PHẢI cách lề 8 (right: 8); tràn trái → left: 8; kèm maxWidth = W − 16 nên vẽ lại là nằm gọn, lần đo sau trả null.
+ *  Gốc #1796 (React #185 "Maximum update depth"): bản cũ dời left = W − 8 − r.width, nhưng panel không đặt bề rộng co theo chỗ trống
+ *  (rộng = min(nội dung, W − left)) → dời trái là panel nở thêm đúng chừng đó, lại tràn, lại dời 8px — hơn 50 nhịp setPos liền nhau thì React giết trang. */
+export function kepNgang(r: { left: number; right: number }, W: number): { left?: number; right?: number; maxWidth: number } | null {
+  const M = 8, maxWidth = Math.max(0, W - 2 * M);
+  if (r.right > W - M + 0.5) return { left: undefined, right: M, maxWidth };
+  if (r.left < M - 0.5) return { left: M, right: undefined, maxWidth };
+  return null;
+}
+
 export function AnchoredPopover({ anchorRef, open, onClose, children, align = 'left', gap = 4, zIndex = 1100, backdrop = true, closeOnPointerOutside = false }: AnchoredPopoverProps) {
-  const [pos, setPos] = useState<{ top: number; left?: number; right?: number; maxHeight?: number; lat?: boolean } | null>(null);
+  const [pos, setPos] = useState<{ top: number; left?: number; right?: number; maxHeight?: number; maxWidth?: number; lat?: boolean } | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   // Chỉ portal sau mount (SSR không có document; popover luôn mở do tương tác client).
   const [mounted, setMounted] = useState(false);
@@ -82,22 +93,23 @@ export function AnchoredPopover({ anchorRef, open, onClose, children, align = 'l
         : { top: r.bottom + gap, left: r.left });
     };
     recompute();
-    const h = () => recompute();
+    // cuộn BÊN TRONG panel (panel có maxHeight tự cuộn) không phải nút neo dời chỗ — đặt lại pos lúc đó xoá maxHeight, panel giật về đầu, không cuộn được
+    const h = (e: Event) => { if (e.target instanceof Node && panelRef.current?.contains(e.target)) return; recompute(); };
     window.addEventListener('scroll', h, true);   // capture: bắt scroll của mọi container cha
     window.addEventListener('resize', h);
     return () => { window.removeEventListener('scroll', h, true); window.removeEventListener('resize', h); };
   }, [open, align, gap, anchorRef]);
   // KẸP TRONG MÀN (etp 26/10/2026: popup lọc cột ở cột cuối bị mép phải cắt mất ô giá trị): vẽ xong mới biết bề rộng panel →
-  // tràn mép phải thì dời sang trái, tràn mép trái thì dời về 8px. Chỉ set khi lệch thật nên không lặp vô hạn.
+  // tràn mép phải thì neo mép phải cách lề 8px, tràn mép trái thì left 8px, kèm maxWidth — một nhịp là gọn (kepNgang; #1796 bản cũ dời từng 8px tới React #185).
   // LẬT LÊN khi dưới thiếu chỗ (YDNI lớp nổi neo vào nút — anh 31/10 + 02/11/2026 "bấm một đằng đi một nẻo"): đo chiều cao THẬT của panel; dưới không đủ mà
   // trên đủ → đáy panel sát nút (không hở khoảng như khi đặt theo chiều cao ước); cả hai phía đều thiếu → phía rộng hơn + maxHeight, panel tự cuộn,
   // KHÔNG BAO GIỜ đè lên chính nút neo (đè lên thì bấm lại nút trúng nội dung panel). `lat` đánh dấu đã xếp dọc để không lặp vô hạn.
   useLayoutEffect(() => {
     const el = panelRef.current; if (!pos || !el) return;
-    const r = el.getBoundingClientRect(), M = 8, W = window.innerWidth, H = window.innerHeight;
-    const left = r.right > W - M ? Math.max(M, W - M - r.width) : r.left < M ? M : null;
+    const r = el.getBoundingClientRect(), H = window.innerHeight;
     type Vt = NonNullable<typeof pos>;
-    let moi: Vt | null = left != null && Math.abs(left - r.left) > 0.5 ? { ...pos, left, right: undefined } : null;
+    const ngang = kepNgang(r, window.innerWidth);
+    let moi: Vt | null = ngang ? { ...pos, ...ngang } : null;
     const a = anchorRef.current?.getBoundingClientRect();
     if (a && !pos.lat) {
       const doc: Partial<Vt> = xepDocNoi(el.scrollHeight, a, gap, H);
@@ -113,7 +125,7 @@ export function AnchoredPopover({ anchorRef, open, onClose, children, align = 'l
     // (vd mở drawer ngoài ý muốn). Chặn tại đây để overlay không rò click ra ngoài.
     <>
       {backdrop && <div onClick={(e) => { e.stopPropagation(); onClose(); }} style={{ position: 'fixed', inset: 0, zIndex }} />}
-      <div ref={panelRef} onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: pos.top, left: pos.left, right: pos.right, zIndex: zIndex + 1, ...(pos.maxHeight ? { maxHeight: pos.maxHeight, overflowY: 'auto' as const } : {}) }}>
+      <div ref={panelRef} onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: pos.top, left: pos.left, right: pos.right, maxWidth: pos.maxWidth, zIndex: zIndex + 1, ...(pos.maxHeight ? { maxHeight: pos.maxHeight, overflowY: 'auto' as const } : {}) }}>
         {children}
       </div>
     </>,

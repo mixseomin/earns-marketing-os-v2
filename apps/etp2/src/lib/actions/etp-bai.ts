@@ -16,10 +16,36 @@ export type BaiQc = {
   noiDung: NoiDungCr | null;
 };
 export type DiemTc = { nhom: string; ma: string; ten: string; diem: number; lyDo: string | null };
-export type NoiDungCr = { hook: string | null; chuVideo: string | null; loiDoc: string | null; tomTat: string | null; meta: number | null; afs: number | null; ket: string | null; luc: string | null; diem: DiemTc[] };
+/** hookVi: bản dịch tiếng Việt đã nhớ ở etp.dich (anh #1778) — null khi chưa dịch; canDich = hook không phải tiếng Việt (trang gọi dichHook khi chưa có) */
+export type NoiDungCr = { hook: string | null; hookVi: string | null; canDich: boolean; chuVideo: string | null; loiDoc: string | null; tomTat: string | null; meta: number | null; afs: number | null; ket: string | null; luc: string | null; diem: DiemTc[] };
 
 // hook = câu mở video: câu đầu lời đọc (người xem nghe trước), không có giọng thì dòng chữ đầu trên hình
 const cauDau = (s: string | null) => { const t = (s ?? '').trim(); if (!t) return null; const m = t.match(/^[\s\S]*?[.!?…](?=\s|$)/); return (m?.[0] ?? t.split('\n')[0] ?? '').trim() || null; };
+
+// DỊCH HOOK (anh #1778 "các hook đều có thêm phần hiển thị tiếng Việt (dịch) để hiểu nghĩa"): câu có chữ cái riêng tiếng Việt thì không cần dịch
+const laTiengViet = (s: string) => /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(s);
+const docDich = async (db: NonNullable<ReturnType<typeof getDb>>, goc: string) =>
+  (((await db.execute(sql`select vi from etp.dich where goc = ${goc}`)) as unknown as { vi: string }[])[0]?.vi ?? null);
+
+/** Dịch MỘT câu hook sang tiếng Việt — nhớ ở etp.dich theo nguyên văn (câu trùng / mở lại thẻ không dịch lại). Cổng AI chung, dòng Haiku (~vài chục đồng một câu). */
+export async function dichHook(goc: string): Promise<{ vi: string } | { loi: string }> {
+  if (!(await quyenEtp(await getCurrentUser()))) return { loi: 'không có quyền' };
+  const t = String(goc ?? '').trim();
+  if (!t || t.length > 500) return { loi: 'câu hook rỗng hoặc dài quá 500 ký tự' };
+  if (laTiengViet(t)) return { vi: t };
+  const db = getDb(); if (!db) return { loi: 'không nối được kho' };
+  const co = await docDich(db, t); if (co) return { vi: co };
+  try {
+    const { hoiChu } = await import('@mos2/cong-ai');
+    const r = await hoiChu({ viec: 'etp2-dich-hook', model: 'haiku', max_tokens: 300,
+      system: 'Bạn dịch câu mở đầu (hook) của video quảng cáo phim ngắn sang tiếng Việt tự nhiên, giữ nguyên tên riêng / tên phim. Chỉ trả đúng câu dịch, không ngoặc kép, không giải thích.',
+      user: t });
+    const vi = r.chu.trim().replace(/^["“'«]+|["”'»]+$/g, '').trim();
+    if (!vi) return { loi: 'cổng AI trả bản dịch rỗng' };
+    await db.execute(sql`insert into etp.dich (goc, vi, model, chi_usd) values (${t}, ${vi}, ${r.model ?? null}, ${r.chi_usd ?? null}) on conflict (goc) do nothing`);
+    return { vi };
+  } catch (e) { return { loi: `không dịch được: ${String((e as Error)?.message ?? e).slice(0, 200)}` }; }
+}
 
 const ds = (v: unknown): string[] => (Array.isArray(v) ? v.map((x) => String(x ?? '').trim()).filter(Boolean) : []);
 
@@ -45,6 +71,8 @@ export async function docBaiQc(cr: number, camp?: number | null): Promise<BaiQc 
       left join etp.tai_nguyen p on p.loai = 'page' and (p.id = bc.page_id or p.external_id = bc.page_id::text)`)) as unknown as Record<string, unknown>[])[0] ?? {};
   const q = (r.chu_qc ?? {}) as { headline?: string; mo_ta?: string; chu_dau?: string; link?: string };
   const dongBo = r.dong_bo === true;
+  const hookGoc = r.co_cham === true ? (cauDau(typeof r.loi_doc === 'string' ? r.loi_doc : null) ?? cauDau(typeof r.chu_video === 'string' ? r.chu_video : null)) : null;
+  const hookVi = hookGoc && !laTiengViet(hookGoc) ? await docDich(db, hookGoc).catch(() => null) : null;
   const tenMien = (r.ten_mien as string) || (() => { const u = (r.final_url as string) || (r.link as string) || q.link || ''; try { return u ? new URL(/^https?:/.test(u) ? u : `https://${u}`).hostname.replace(/^www\./, '') : null; } catch { return null; } })();
   return {
     cr, camp: r.camp == null ? null : Number(r.camp), chuaCamp: r.camp == null, dongBo,
@@ -56,7 +84,7 @@ export async function docBaiQc(cr: number, camp?: number | null): Promise<BaiQc 
       const chuVideo = s(r.chu_video), loiDoc = s(r.loi_doc);
       const so = (v: unknown) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
       return {
-        hook: cauDau(loiDoc) ?? cauDau(chuVideo), chuVideo, loiDoc, tomTat: s(r.tom_tat), meta: so(r.cmeta), afs: so(r.cafs), ket: s(r.cket),
+        hook: hookGoc, hookVi, canDich: !!hookGoc && !laTiengViet(hookGoc), chuVideo, loiDoc, tomTat: s(r.tom_tat), meta: so(r.cmeta), afs: so(r.cafs), ket: s(r.cket),
         luc: r.cluc == null ? null : String(r.cluc),
         diem: ((r.cdiem ?? []) as { nhom: string; ma: string; ten: string; diem: unknown; ly_do: string | null }[])
           .filter((d) => so(d.diem) != null).map((d) => ({ nhom: d.nhom, ma: d.ma, ten: d.ten, diem: so(d.diem) as number, lyDo: s(d.ly_do) })),

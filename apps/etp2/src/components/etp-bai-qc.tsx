@@ -4,7 +4,7 @@
 // (tên miền · tiêu đề · mô tả · nút CTA đúng loại của camp). Chữ THẬT từ kho (docBaiQc ← apps/etp/bai-qc.py), không chữ mẫu.
 // Chấm điểm / lý do chặn KHÔNG nằm trong khung — chỗ gọi đặt TheCr bên ngoài.
 import { useEffect, useState } from 'react';
-import { docBaiQc, type BaiQc, type NoiDungCr } from '@/lib/actions/etp-bai';
+import { docBaiQc, dichHook, type BaiQc, type NoiDungCr } from '@/lib/actions/etp-bai';
 import { VideoXem } from '@/components/ui/video-xem';
 
 const CACHE = new Map<string, Promise<BaiQc | { loi: string }>>();
@@ -28,12 +28,31 @@ const MOT_DONG: React.CSSProperties = { whiteSpace: 'nowrap', overflow: 'hidden'
 // Đặt TRÊN khung bài để mở thẻ là thấy ngay, không phải cuộn qua video. Chữ dài cắt dòng, đủ chữ ở rê chuột (YDNI: chữ phụ vào hover).
 const mauTc = (d: number) => (d >= 8 ? 'var(--fg-2, #aaa)' : d >= 5 ? '#f59e0b' : '#f87171');
 const DONG = (n: number): React.CSSProperties => ({ display: '-webkit-box', WebkitLineClamp: n, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' });
+// DỊCH HOOK (anh #1778): dòng 🇻🇳 dưới hook — bản đã nhớ (etp.dich) đi kèm thẻ; chưa có thì gọi dichHook một lần mỗi câu (nhớ trong trang), lỗi hiện đỏ ngay dòng này
+const DICH = new Map<string, Promise<{ vi: string } | { loi: string }>>();
+function HookVi({ nd }: { nd: NoiDungCr }) {
+  const [kq, setKq] = useState<{ vi: string } | { loi: string } | null>(nd.hookVi ? { vi: nd.hookVi } : null);
+  useEffect(() => {
+    if (nd.hookVi || !nd.canDich || !nd.hook) return;
+    const h = nd.hook; let p = DICH.get(h);
+    if (!p) { p = dichHook(h); DICH.set(h, p); p.then((r) => { if ('loi' in r) DICH.delete(h); }, () => DICH.delete(h)); }
+    let song = true;
+    p.then((r) => { if (song) setKq(r); }, (e) => { if (song) setKq({ loi: `không dịch được: ${String(e?.message ?? e)}` }); });
+    return () => { song = false; };
+  }, [nd.hook, nd.hookVi, nd.canDich]);
+  if (!nd.canDich) return null;
+  if (!kq) return <div data-hook-vi="cho" style={{ fontSize: 11, color: 'var(--fg-3, #888)' }}>🇻🇳 đang dịch…</div>;
+  if ('loi' in kq) return <div data-hook-vi="loi" style={{ fontSize: 11, color: '#f87171' }}>🇻🇳 {kq.loi}</div>;
+  return <div data-hook-vi style={{ ...DONG(2), fontSize: 12, color: 'var(--fg-2, #bbb)' }} title={kq.vi}>
+    <span style={{ color: 'var(--fg-3, #888)', marginRight: 4 }}>🇻🇳 Dịch</span><i>{kq.vi}</i></div>;
+}
 function NoiDungVideo({ nd }: { nd: NoiDungCr | null }) {
   const nhan: React.CSSProperties = { color: 'var(--fg-3, #888)', marginRight: 4 };
   if (!nd) return <div data-noi-dung-video="chua" style={{ fontSize: 11, color: 'var(--fg-3, #888)' }} title="Máy chấm chưa đọc video này nên chưa có hook, chữ trong video và điểm">Chưa chấm — chưa có hook, chữ video, điểm</div>;
   const chuVideo = nd.chuVideo?.replace(/\s*\n\s*/g, ' / ') ?? null;
   return <div data-noi-dung-video style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12, lineHeight: 1.35 }}>
     <div style={DONG(2)} title={nd.hook ?? ''}><span style={nhan}>🎣 Hook</span><b>{nd.hook ?? '—'}</b></div>
+    <HookVi nd={nd} />
     <div style={DONG(2)} title={nd.chuVideo ?? ''}><span style={nhan}>🔤 Chữ trên video</span>{chuVideo ?? '—'}</div>
     <div style={DONG(2)} title={[nd.loiDoc, nd.tomTat ? `Tóm tắt: ${nd.tomTat}` : ''].filter(Boolean).join('\n\n')}><span style={nhan}>🎙 Lời đọc</span>{nd.loiDoc ?? 'không có giọng'}</div>
     {nd.diem.length ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 2 }}

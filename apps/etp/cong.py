@@ -284,7 +284,8 @@ def ve_truc_tiep(viec, camp_id=None, content_id=None, lenh="", ns=None, phien=""
     if cid is None and ct is None: raise ValueError("vé phải gắn --camp hoặc --phim")
     lenh = str(lenh or "").replace("$", "").strip()
     if len(lenh) < 4: raise ValueError("vé trực tiếp phải ghi NGUYÊN VĂN câu lệnh của anh (--lenh)")
-    if cid is not None and _q(f"select 1 from etp.camp_ngoai where camp_id = {cid}") == "1": raise ValueError(f"camp #{cid} là camp đội (camp_ngoai) — lệnh trực tiếp chỉ cho tài khoản nhà")
+    # NHÂN BẢN camp đội sang tài khoản nhà (anh 23/11/2026 "lên camp giống của đội thì liên quan gì đến mấy luật kia"): camp đội KHÔNG bị đụng, bản mới nằm ở nhà → được cấp vé
+    if cid is not None and viec != "nhan_ban" and _q(f"select 1 from etp.camp_ngoai where camp_id = {cid}") == "1": raise ValueError(f"camp #{cid} là camp đội (camp_ngoai) — lệnh trực tiếp chỉ cho tài khoản nhà")
     ly_cam = phim_cam([cid] if cid else (), [ct] if ct else ())
     if ly_cam: raise ValueError(f"phim cấm — lệnh trực tiếp cũng không miễn: {ly_cam}")
     os.environ.pop("ETP_VE", None)

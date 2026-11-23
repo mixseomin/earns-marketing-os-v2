@@ -506,6 +506,8 @@ const LUAT = [
   { card: '1781', tep: 'apps/etp2/src/components/etp-view.tsx', co: "['hl', x.hl]", vi: 'chế độ tô sáng ghi URL hl=1 (F5 giữ nguyên)' },
   { card: '1781', tep: 'apps/etp2/src/app/etp/page.tsx', co: "hl: mot('hl')", vi: 'trang đọc hl từ URL truyền vào EtpView' },
   { card: '1781', tep: 'apps/etp2/src/components/etp-view.tsx', cam: '<CayCamp camps={camps} hang={hangLoc}', vi: 'không quay về Cây chỉ nhận danh sách đã lọc' },
+  { card: '1780', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<SiteFavicon url="https://www.facebook.com" size={14} /></a>;', vi: 'ô Bài post chỉ còn icon Facebook' },
+  { card: '1780', tep: 'apps/etp2/src/components/etp-view.tsx', cam: "{me ? 'Bài mẹ' : 'Bài'} ↗</a>", vi: 'không quay về chữ "Bài ↗" cạnh icon Facebook' },
 ];
 
 const loi = [];

@@ -13,6 +13,8 @@ const lay = (u) => fetch(`${u}?t=${Date.now()}`, { cache: 'no-store', credential
 let DS = [];
 const KHO = new Map();
 const chinh = $('#chinh'), ngan = $('#ngan');
+// Ngăn kéo ĐẨY trang sang trái (không đè): body.co-ngan co .khung lại đúng bề rộng ngăn (app.css).
+const moNgan = (mo) => { ngan.hidden = !mo; document.body.classList.toggle('co-ngan', mo); };
 
 function baoLoi(e) { chinh.innerHTML = `<p class="trong">Lỗi khi nạp: ${esc(e.message || e)}</p>`; }
 
@@ -89,7 +91,7 @@ function veTieng(w) {
 
 function veNgan(w, tab, el) {
   const e = w.theo.get(el);
-  if (!e) { ngan.hidden = true; return; }
+  if (!e) { moNgan(false); return; }
   const dsLk = (ids) => ids.length ? ids.map((id) => { const x = w.theo.get(id); return x ? `<a class="lk" href="${link(w.id, tab, id)}">${esc(x.name)}<small>${esc(LOAI[x.type] || x.type)} · ${esc(TEN_LOP[x.lop] || x.lop)}</small></a>` : ''; }).join('') : '<p class="trong">Không có.</p>';
   const them = Object.entries(e).filter(([k]) => !['id', 'type', 'name', 'description', 'lop', 'sinh_tu', 'tu_vung'].includes(k));
   ngan.style.setProperty('--m', w.mau);
@@ -102,12 +104,12 @@ function veNgan(w, tab, el) {
     <h4>Sinh từ</h4>${dsLk(e.sinh_tu || [])}
     <h4>Sinh ra</h4>${dsLk(w.sinhRa.get(e.id) || [])}
     <h4>Bản ghi OnlyWorlds</h4><pre>${esc(JSON.stringify(e, null, 1))}</pre>`;
-  ngan.hidden = false;
+  moNgan(true);
   $('.dong-x', ngan).onclick = () => { location.hash = link(w.id, tab); };
 }
 
 function veHuongDan() {
-  ngan.hidden = true;
+  moNgan(false);
   chinh.innerHTML = `<div class="hd"><h1>Cách thêm thế giới</h1>
   <p>Mỗi thế giới là <b>một tệp JSON</b> trong repo, thư mục <code>/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/worlds/public/the-gioi/</code> (iMac), theo chuẩn <a href="https://onlyworlds.com" target="_blank" rel="noopener">OnlyWorlds</a> (22 loại phần tử, MIT). Thêm thế giới = thêm tệp + một dòng trong <code>index.json</code>, rồi đẩy lên git; trang tự hiện.</p>
   <h3>Một phần tử</h3>
@@ -139,8 +141,12 @@ async function ve() {
     <div class="so">${w.elements.length} phần tử · ${new Set(w.elements.map((e) => e.type)).size} loại · năm hiện tại ${w.hien_tai}${w.sprawl ? ` · trên Sprawl: ${esc(w.sprawl)}` : ''}</div></header>
     <nav class="tabs">${TAB.map(([k, ten]) => `<a href="${link(w.id, k)}" class="${k === (TAB.some((t) => t[0] === tab) ? tab : 'chuoi') ? 'dang' : ''}">${ten}</a>`).join('')}</nav>
     <div id="than">${than}</div>`;
-  if (tab === 'chuoi' || !TAB.some((t) => t[0] === tab)) requestAnimationFrame(() => noiDay(w, el));
-  veNgan(w, tab, el);
+  veNgan(w, tab, el); // mở ngăn TRƯỚC khi đo vị trí thẻ để vẽ dây: trang đã co lại thì toạ độ mới đúng
+  if (tab === 'chuoi' || !TAB.some((t) => t[0] === tab)) requestAnimationFrame(() => {
+    if (el) chinh.querySelector(`.the[data-id="${CSS.escape(el)}"], .moc[href$="/${CSS.escape(el)}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    noiDay(w, el);
+  });
+  else if (el) requestAnimationFrame(() => chinh.querySelector(`[href$="/${CSS.escape(el)}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
 }
 
 addEventListener('hashchange', () => ve().catch(baoLoi));

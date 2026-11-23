@@ -10,13 +10,15 @@ import { loiNoiNhip } from './noi-nhip';
 import { chamTuyenTruyen } from './tuyen-truyen';
 
 export type NhipKb = 'hook' | 'van_de' | 'leo_thang' | 'lat_nguoc' | 'ket';
-/** Tên beat (Anh/Việt, tự do) → nhịp chuẩn. Thứ tự dò quan trọng: "climax twist" là lật ngược, "cliffhanger" là kết/móc. */
+/** Tên beat (Anh/Việt, tự do) → nhịp chuẩn. Thứ tự dò quan trọng: "climax twist" là lật ngược, "cliffhanger" là kết/móc.
+ * Khung QC nhà (dien-anh.ts: Hook → Nỗi đau → Khuấy → Giải pháp → Demo → Bằng chứng → Ưu đãi + CTA) = PAS: nỗi đau là vấn đề, khuấy là leo thang,
+ * giải pháp là cú lật. Trước đây máy chấm không nhận ba tên này → mọi phim QC bị báo "thiếu nhịp Vấn đề, Leo thang, Lật ngược" (phim 8180, 23/11/2026). */
 const NHIP: [NhipKb, RegExp][] = [
   ['ket', /resolution|payoff|ending|\bend\b|kết|giải quyết|cta|cliff|móc|teaser|tease|\btag\b|next|chốt/i],
-  ['lat_nguoc', /twist|turn|reversal|reveal|lật|bất ngờ|vỡ lẽ/i],
+  ['lat_nguoc', /twist|turn|reversal|reveal|lật|bất ngờ|vỡ lẽ|giải pháp|solution/i],
   ['hook', /hook|cold open|mở màn|mở đầu/i],
-  ['van_de', /inciting|problem|setup|vấn đề|biến cố|khởi|conflict|xung đột/i],
-  ['leo_thang', /escalat|rising|complication|stakes|climax|leo thang|cao trào|tệ hơn|thử|dồn/i],
+  ['van_de', /inciting|problem|setup|vấn đề|biến cố|khởi|conflict|xung đột|nỗi đau|\bpain\b/i],
+  ['leo_thang', /agitat|khuấy|escalat|rising|complication|stakes|climax|leo thang|cao trào|tệ hơn|thử|dồn/i],
 ];
 export const nhipCua = (ten: string): NhipKb | null => NHIP.find(([, r]) => r.test(ten))?.[0] ?? null;
 export const TEN_NHIP: Record<NhipKb, string> = { hook: 'Hook', van_de: 'Vấn đề', leo_thang: 'Leo thang', lat_nguoc: 'Lật ngược', ket: 'Kết / móc' };
@@ -96,7 +98,7 @@ export type MucKb = { key: string; ten: string; dat: boolean; ghi: string; cung:
 export type VaoKb = {
   tap: { so?: number; beats: Pick<Beat, 'ten'>[]; phan_canh: Pick<PhanCanh, 'ten' | 'beat'>[] };
   canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'hanh_dong' | 'thu_tu' | 'may_3d' | 'bieu_cam' | 'dan_dung' | 'ky_thuat'>>)[];
-  kt: { logline?: string; series?: Series | null; khong_loi?: boolean; /** thể loại — 'phim_doc' (phim ngắn dọc) bật bộ chấm nhịp micro-drama */ the_loai?: string };
+  kt: { logline?: string; series?: Series | null; khong_loi?: boolean; /** phim quảng cáo: cú lật = giải pháp, phải tới SỚM (sản phẩm trước nửa phim), không phải 55–92% như phim truyện */ laQc?: boolean; /** thể loại — 'phim_doc' (phim ngắn dọc) bật bộ chấm nhịp micro-drama */ the_loai?: string };
 };
 /** Logline của tập: series → logline tập trong kinh thánh series; phim lẻ → logline phim. */
 export const loglineTap = (kt: VaoKb['kt'], so?: number): string => ((kt.series?.dong_co ? kt.series.tap.find((t) => t.so === so)?.logline : '') || kt.logline || '').trim();
@@ -125,7 +127,9 @@ export function chamKichBan(o: VaoKb): { muc: MucKb[]; diem: number; chan: strin
     const tong = canh.reduce((a, c) => a + giayPhat(c), 0);
     const pcLat = new Set(tap.phan_canh.filter((p) => nhipCua(p.beat) === 'lat_nguoc').map((p) => p.ten));
     let t = 0, tuLat = -1; for (const c of canh) { if (tuLat < 0 && pcLat.has(c.phan_doan)) tuLat = t; t += giayPhat(c); }
-    if (tuLat >= 0 && tong > 0) { const r = tuLat / tong; m.push({ key: 'vi_tri_lat', ten: 'Lật ngược đúng chỗ', dat: r >= 0.55 && r <= 0.92, ghi: `lật ngược bắt đầu ở ${Math.round(r * 100)}% phim${r < 0.55 ? ' — quá sớm, chưa đủ leo thang' : r > 0.92 ? ' — quá muộn, không còn chỗ kết' : ''}`, cung: false }); }
+    if (tuLat >= 0 && tong > 0) { const r = tuLat / tong;
+      if (kt.laQc) m.push({ key: 'vi_tri_lat', ten: 'Giải pháp tới sớm', dat: r <= 0.5, ghi: `giải pháp (sản phẩm) bắt đầu ở ${Math.round(r * 100)}% phim${r > 0.5 ? ' — quá muộn, người xem lướt đi trước khi thấy sản phẩm: đưa giải pháp lên trước nửa phim' : ''}`, cung: false });
+      else m.push({ key: 'vi_tri_lat', ten: 'Lật ngược đúng chỗ', dat: r >= 0.55 && r <= 0.92, ghi: `lật ngược bắt đầu ở ${Math.round(r * 100)}% phim${r < 0.55 ? ' — quá sớm, chưa đủ leo thang' : r > 0.92 ? ' — quá muộn, không còn chỗ kết' : ''}`, cung: false }); }
   }
   if (kt.the_loai === 'phim_doc') m.push(...chamPhimDoc(o));
   m.push(...chamDauTu(o));

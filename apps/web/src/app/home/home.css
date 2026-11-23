@@ -172,6 +172,7 @@
 .ag-ten:hover { color: var(--accent); text-decoration: underline; }
 .ag-tt { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
 .ag-tt small, .ag-mo { color: var(--fg-3); }
+.ag-xau { color: var(--red, #f87171); font-weight: 600; }
 .ag-lam { color: #4ade80; font-weight: 600; }
 .ag-ket { color: #f87171; }
 .ag-trong { padding: 12px 4px; }

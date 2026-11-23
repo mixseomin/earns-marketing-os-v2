@@ -33,6 +33,7 @@ import { ViecAgents } from '@/components/agents/viec';
 import { PhienAgents } from '@/components/agents/phien';
 import { SuKienAgents } from '@/components/agents/su-kien';
 import { SoDoAgents } from '@/components/agents/so-do';
+import { PhongViec } from '@/components/agents/phong-viec';
 
 const PhuView = dynamic(() => import('@/components/phu-view').then((m) => m.PhuView));
 const PhuCanChuY = dynamic(() => import('@/components/phu-view').then((m) => m.PhuCanChuY));
@@ -102,6 +103,11 @@ async function AgViec() {
 }
 async function AgPhien() { const [r, ten] = await Promise.all([docAgents<DuPhien>('phien'), tenAgents()]); return r.ok ? <PhienAgents du={r.du} tenNguoi={ten} /> : <LoiCty loi={r.loi} />; }
 async function AgSuKien() { const [r, ten] = await Promise.all([docAgents<{ ds: SuKien[] }>('su-kien'), tenAgents()]); return r.ok ? <SuKienAgents ds={r.du.ds} tenNguoi={ten} /> : <LoiCty loi={r.loi} />; }
+async function AgPhongViec() {
+  const [n, p, v] = await Promise.all([docAgents<{ ds: Agent[] }>('nguoi'), docAgents<DuPhien>('phien'), docAgents<{ may: { ds: ViecMay[] } }>('viec')]);
+  if (!n.ok) return <LoiCty loi={n.loi} />;
+  return <PhongViec ds={n.du.ds} phien={p.ok ? p.du.ds : []} may={v.ok ? v.du.may.ds : []} />;
+}
 async function AgSoDo() { const r = await docAgents<{ phong: PhongSoDo[] }>('so-do'); return r.ok ? <SoDoAgents phong={r.du.phong} /> : <LoiCty loi={r.loi} />; }
 
 export const VE: Record<MaWidget, Ve> = {
@@ -170,4 +176,5 @@ export const VE: Record<MaWidget, Ve> = {
   M4: () => <AgPhien />,
   M5: () => <AgSuKien />,
   M6: () => <AgSoDo />,
+  M7: () => <AgPhongViec />,
 };

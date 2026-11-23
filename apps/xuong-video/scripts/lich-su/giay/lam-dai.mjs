@@ -128,7 +128,8 @@ const anh = {}, canh = cauDs.map((c, i) => { const ct = { ...c }; if (c.loai ===
   if (c.anh && existsSync(join(TAI, `${c.anh}.jpg`))) anh[c.anh] = url(join(TAI, `${c.anh}.jpg`));
   // cận mặt / thẻ câu nói: chỉ khi ảnh cận mặt thật sự có (không lấy dáng toàn thân thay vào)
   const mat = (nv, cam) => { const f = join(TAI, 'nv', nv, `${cam}.png`); if (!existsSync(f)) return null; anh[`${nv}:${cam}`] = url(f); return `${nv}:${cam}`; }, bc_ = BCAM.get(i), cq = mocCau[i].cau_noi;
-  if (bc_) { const k_ = mat(bc_.nv, bc_.cam); if (k_) ct.bieu_cam = { anh: k_, cam: bc_.cam }; }
+  // câu mở chương: tên chương hiện 0,5–4,4 s ngay giữa phía trên, cận mặt trồi lên 0,15–3,3 s → luôn đè mặt (kiem-mat chặn tập Thập tự chinh 23/11/2026) → không cận mặt ở câu mở chương
+  if (bc_ && i > 0 && cauDs[i - 1].chuong === c.chuong) { const k_ = mat(bc_.nv, bc_.cam); if (k_) ct.bieu_cam = { anh: k_, cam: bc_.cam }; }
   if (cq) { const v = tap.nhan_vat.find((x) => x.id === cq.nv), k_ = mat(cq.nv, cq.cam) ?? mat(cq.nv, 'goc'); ct.cau_noi = { chu: cq.cau, ten: v.ten, nam: cq.nam, anh: k_ }; }
   const kt = i < cauDs.length - 1 ? (mocCau[i].b + mocCau[i + 1].a) / 2 : DAI, bd = i ? (mocCau[i - 1].b + mocCau[i].a) / 2 : 0; return { bd, kt, c: ct, a: mocCau[i].a, nghi: mocCau[i].nghi, nhip: NH.get(i)?.nhip ?? 'binh', cang: NH.get(i)?.cang ?? 3, ...(i === 0 || cauDs[i - 1].chuong !== c.chuong ? { chuong_moi: { so: c.chuong + 1, ten: tap.chuong[c.chuong].ten } } : {}) }; });
 const phu = cauDs.flatMap((c, i) => { const ws = c.chu.split(/\s+/), dong = []; let d = ''; for (const w of ws) { if ((d + w).length > 58 && d) { dong.push(d.trim()); d = ''; } d += `${w} `; } dong.push(d.trim()); const { a, b } = mocCau[i], n = c.chu.length; let da = 0; return dong.map((x) => { const s = a + (b - a) * da / n; da += x.length + 1; return { a: s, b: a + (b - a) * da / n, chu: x.replace(/[.,;:]+$/, '') }; }); });

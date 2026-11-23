@@ -6,6 +6,7 @@ import { createContext, useContext, useRef, useState, useTransition, type ReactN
 import { useRouter } from 'next/navigation';
 import { AnchoredPopover, Segmented } from '@/components/ui';
 import { useShallowParam } from '@/lib/url-shallow';
+import { ChonTim } from '@mos2/bang/chon-tim';
 import { lenhAgent } from '@/lib/actions/cty-agents';
 import type { LenhAgent, Lich, TT } from '@/lib/cty-agents-kieu';
 
@@ -104,17 +105,32 @@ export function SuaLich({ muc, lich, chu, admin, apSau, cho, loiAp, chiMoi, khon
 }
 
 /** ô đổi mô hình của một người (đè dòng model của SOUL; bỏ trống = về SOUL) */
-export function SuaModel({ id, model, soul, admin }: { id: string; model: string; soul: string; admin: boolean }) {
+/** Tuyến của một dòng mô hình — cùng luật cty (src/lib/tuyen-model.ts tuyenCua + NhanTuyen): mọi dòng không phải claude-code gọi qua
+ *  Cổng AI API; claude-code có thẻ qua:cong / qua:donk đi qua cổng; claude-code trần dùng gói Claude, KHÔNG qua cổng (góp ý #1787). */
+export function tuyenModel(m: string): { icon: string; chu: string; qua: boolean } {
+  const s = m.trim();
+  if (!s) return { icon: '', chu: '', qua: false };
+  if (!/^claude-code\b/.test(s)) return { icon: '🔌', chu: 'qua cổng AI (API)', qua: true };
+  if (/\bqua:donk\b/.test(s)) return { icon: '⇢', chu: 'qua cổng AI (donk)', qua: true };
+  if (/\bqua:cong\b/.test(s)) return { icon: '⇄', chu: 'qua cổng AI', qua: true };
+  return { icon: '○', chu: 'gói Claude — không qua cổng', qua: false };
+}
+const NhanTuyen = ({ m }: { m: string }) => { const t = tuyenModel(m); return t.icon ? <span className="ag-mo" title={t.chu} aria-label={t.chu}>{t.icon}</span> : null; };
+
+export function SuaModel({ id, model, soul, admin, goi = [] }: { id: string; model: string; soul: string; admin: boolean; goi?: string[] }) {
   const nut = useRef<HTMLButtonElement | null>(null); const [mo, setMo] = useState(false); const [v, setV] = useState(model);
   const { dang, loi, chay, boLoi } = useLenh();
   const ten = model.replace(/^[a-z]+:/, '').replace(/\bqua:\w+/g, '').trim() || 'không';
-  if (!admin) return <span className="ag-model" title={model}>{ten}</span>;
+  if (!admin) return <span className="ag-model" title={`${model}\n${tuyenModel(model).chu}`}><NhanTuyen m={model} /> {ten}</span>;
+  const ds = [...new Set([model, soul, ...goi].map((x) => x.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const muc = [{ v: '', nhan: `— về dòng SOUL (${soul || 'không'})` }, ...ds.map((m) => { const t = tuyenModel(m); return { v: m, nhan: `${t.icon} ${m} · ${t.chu}` }; })];
+  const tv = tuyenModel(v || soul);
   return <>
-    <button ref={nut} type="button" className="ag-model ag-lich-nut" title={`${model}${soul && soul !== model ? `\nSOUL: ${soul}` : ''}\nBấm để đổi`} onClick={() => setMo((m) => !m)}>{ten}</button>
+    <button ref={nut} type="button" className="ag-model ag-lich-nut" title={`${model}\n${tuyenModel(model).chu}${soul && soul !== model ? `\nSOUL: ${soul}` : ''}\nBấm để đổi`} onClick={() => setMo((m) => !m)}><NhanTuyen m={model} /> {ten}</button>
     <AnchoredPopover anchorRef={nut} open={mo} onClose={() => { setMo(false); boLoi(); }}>
       <div className="hm-loc-pop ag-sua">
-        <label>Mô hình <input value={v} onChange={(e) => setV(e.target.value)} placeholder={soul} /></label>
-        <small className="ag-mo">bỏ trống = về dòng trong SOUL ({soul || 'không'})</small>
+        <label>Mô hình <ChonTim value={v.trim()} ds={muc} onChange={setV} zIndex={4000} style={{ minWidth: 280, maxWidth: 360 }} /></label>
+        <small className="ag-mo">{tv.icon} {v.trim() ? tv.chu : `về SOUL — ${tv.chu || 'không'}`}</small>
         <div className="ag-sua-nut"><button type="button" className="hm-chip on" disabled={dang} onClick={() => chay({ lenh: 'model', id, model: v.trim() }, () => setMo(false))}>{dang ? 'Đang lưu…' : 'Lưu'}</button>
           <button type="button" className="hm-chip" onClick={() => setMo(false)}>Huỷ</button></div>
         <BaoLoi loi={loi} onBo={boLoi} />

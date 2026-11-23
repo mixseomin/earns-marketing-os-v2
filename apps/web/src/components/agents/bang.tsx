@@ -23,6 +23,7 @@ export function BangAgents({ ds, admin, thang }: { ds: Agent[]; admin: boolean; 
   const hien = useMemo(() => ds.filter((a) => (!tt || khopTt(a, tt)) && (!loai || (loai === 'cli' ? a.loai === 'cli' || a.loai === 'cong' : a.loai === loai)) && (!phong || a.phong === phong)
     && (!tim || khongDau(`${a.ten} ${a.id} ${a.chucDanh} ${a.phongTen}`).includes(khongDau(tim)))).sort((a, b) => thu(a) - thu(b)), [ds, tt, loai, phong, tim]);
   const phongs = [...new Map(ds.map((a) => [a.phong, a.phongTen])).entries()].sort((a, b) => a[1].localeCompare(b[1], 'vi'));
+  const goiModel = [...new Set(ds.flatMap((a) => [a.model, a.modelSoul]))];   // mọi mô hình đang dùng trong công ty → danh sách chọn (góp ý #1787)
   type C = DataColumn<Agent> & { uu?: 1 | 2 | 3 };
   const cot: C[] = [
     { key: 'nguoi', uu: 1, header: 'Người', align: 'left', width: 150, sortValue: (a) => a.ten,
@@ -33,7 +34,7 @@ export function BangAgents({ ds, admin, thang }: { ds: Agent[]; admin: boolean; 
         nhan={a.nhip.muc.startsWith('nguoi:') ? `${a.nhip.soChay}/${a.nhip.soViecMay} việc` : a.nhip.bat ? a.nhip.tanSuat ?? 'bật' : 'tắt'}
         hoi={a.nhip.muc.startsWith('nguoi:') ? `Tắt ${a.nhip.soChay} việc máy của ${a.ten}?` : undefined} /> : <span className="ag-mo">—</span>) },
     { key: 'phong', uu: 2, header: 'Phòng', align: 'left', sortValue: (a) => a.phongTen, cell: (a) => <span className="ag-mo">{a.phongTen}</span> },
-    { key: 'model', uu: 2, header: 'Mô hình', align: 'left', sortValue: (a) => a.modelTen, cell: (a) => <SuaModel id={a.id} model={a.model} soul={a.modelSoul} admin={admin} /> },
+    { key: 'model', uu: 2, header: 'Mô hình', align: 'left', sortValue: (a) => a.modelTen, cell: (a) => <SuaModel id={a.id} model={a.model} soul={a.modelSoul} admin={admin} goi={goiModel} /> },
     { key: 'chi', uu: 2, header: `Chi T${thang}`, title: 'Tiền mô hình thật tháng lịch này (sổ ai_usage)', sortValue: (a) => a.chi ?? -1, cell: (a) => <span className={a.chi ? '' : 'ag-mo'}>{tien(a.chi)}</span>,
       total: (rs) => <b>{tien(rs.reduce((t, a) => t + (a.chi ?? 0), 0))}</b> },
     { key: 'vai', uu: 3, header: 'Vai', align: 'left', sortValue: (a) => a.vai, cell: (a) => <span className="ag-mo" title={a.chucDanh}>{a.vai}</span> },

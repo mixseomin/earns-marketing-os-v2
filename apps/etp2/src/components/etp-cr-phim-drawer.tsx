@@ -161,9 +161,12 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <button type="button" style={nut(XANH, true)} onClick={() => { setBan(BAN_TRONG); setKqLuu(null); }}>＋ Creative mới</button>
           {soanDo.map((s) => { const [t, m] = TT_SOAN[s.trang_thai];
+            // #1786: nút ghi VIỆC + số bản (động từ đứng đầu); tên mẫu / câu nhử / ghi chú gập vào chữ rê — trước nút chỉ ghi "<tên mẫu> · nháp", anh không hiểu là gì
+            const chu = s.trang_thai === 'dung' ? `⏳ Máy đang dựng bản #${s.id}` : s.trang_thai === 'loi' ? `⚠ Bản #${s.id} dựng lỗi — bấm sửa lại` : `✎ Sửa tiếp bản nháp #${s.id}`;
+            const re = [`Bản soạn #${s.id} · ${t}`, `Mẫu: ${tenMau(s.mau) ?? 'chưa chọn'}`, s.cau ? `Câu nhử: ${s.cau}` : '', s.ghi ?? '', s.trang_thai === 'dung' ? 'Xong sẽ hiện ở danh sách creative bên dưới.' : 'Bấm để mở lại và soạn tiếp.'].filter(Boolean).join('\n');
             return <GuardedButton key={s.id} onClick={() => moBan(s)} reason={s.trang_thai === 'dung' ? 'máy đang dựng bản này — xong sẽ hiện ở danh sách dưới' : false}
-              title={s.ghi ?? 'bấm sửa tiếp'} style={nut(m)}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{tenMau(s.mau) ?? 'chưa chọn mẫu'} · {t}{s.trang_thai === 'dung' ? <TienDung buoc={s.buoc} /> : null}</span></GuardedButton>; })}
+              title={re} style={nut(m)}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{chu}{s.trang_thai === 'dung' ? <TienDung buoc={s.buoc} /> : null}</span></GuardedButton>; })}
         </div>
         <Bao kq={kqLuu} />
       </div> : <div style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>

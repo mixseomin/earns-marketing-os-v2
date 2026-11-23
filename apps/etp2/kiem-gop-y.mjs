@@ -530,6 +530,9 @@ const LUAT = [
   { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', mot: '<LoTrinh ds={chang} dang={dang} />', vi: 'lộ trình nằm đầu thân ngăn' },
   { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: '<TienDung buoc={s.buoc} />', vi: 'bản đang dựng hiện dải tiến độ theo bước máy' },
   { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', cam: "` (${BUOC_DUNG[s.buoc] ?? 'đang làm'})`", vi: 'không quay về chữ bước dựng trong ngoặc thay cho tiến độ' },
+  // #1786 (anh 23/11/2026 'Ngu thế ai hiểu' — nút bản dở chỉ ghi "<tên mẫu> · nháp"): nút ghi việc + số bản, tên mẫu vào chữ rê
+  { card: '1786', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: '`✎ Sửa tiếp bản nháp #${s.id}`', vi: 'nút bản nháp ghi rõ "Sửa tiếp bản nháp #…"' },
+  { card: '1786', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', cam: "{tenMau(s.mau) ?? 'chưa chọn mẫu'} · {t}", vi: 'không quay về nút chỉ ghi tên mẫu · nháp' },
 ];
 
 const loi = [];

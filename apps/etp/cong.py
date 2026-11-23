@@ -525,7 +525,7 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         if viec in ("tao_camp", "nhan_ban") and not roas and not bac and ns_moi is not None and float(ns_moi) > (NS_BAI_CU if bai_cu and viec == "nhan_ban" else 1):
             return f"camp mới phải $1 — đang gửi ${float(ns_moi):g} (anh 08/11/2026); ngân sách khác phải xin anh"
         # NẮP ROI 3 NGÀY (Dol 09/11/2026): camp thường tăng lên $X mà X > trần của dải ROI 3 ngày khép → chặn; camp ★ ROAS không áp; camp đang chạy không bị hạ (chỉ chặn tăng)
-        if viec == "tang" and not roas and camp_id and ns_moi is not None and _q(f"select 1 from etp.camp where camp_id = {int(camp_id)} and la_roas") != "1":
+        if viec == "tang" and not roas and camp_id and ns_moi is not None and _q(f"select 1 from etp.camp c where c.camp_id = {int(camp_id)} and {sql_roas_luat('c')}") != "1":
             r3 = _q(SQL_ROI3.format(cid=int(camp_id))); r3f = float(r3) if r3 not in ("", None) else None
             try: nc = int(_q(SQL_NGAY_CHI.format(cid=int(camp_id))) or 0)
             except Exception: nc = None
@@ -598,9 +598,20 @@ def goc_roas(camps):
     ids = {int(m.group(1)) for n in ro for m in [_GOC_ID.search(n)] if m}
     goc_ten = {_DUOI.sub("", n).strip() for n in ro}
     return ids | {int(c["id"]) for c in camps if not la_roas(c) and (c.get("name") or "").strip() in goc_ten}
+# CLONE CAMP ĐỘI = CAMP THƯỜNG TRƯỚC MÁY LUẬT (anh 23/11/2026 "Camp roas lên kiểu trực tiếp này sẽ áp dụng các rule kiểm soát giống camp thông thường"):
+# camp nhà nhân bản từ camp của đội (tên "(nhan ban N cua <gốc>)", gốc nằm trong etp.camp_ngoai — nhan-ban.py giữ nguyên thầu MIN_ROAS của đội nên la_roas = true)
+# vẫn là ★ ROAS ở thầu / hiển thị, nhưng máy luật (luat-ethopex.py tắt / giảm / tăng, lich-gio.py lịch giờ + chấm, nắp ROI 3 ngày) xét như camp thường.
+# Một định nghĩa: mọi chỗ luật hỏi "camp này có miễn luật ROAS không" gọi sql_roas_luat(alias) / camp_roas() — không gõ "la_roas" trần.
+def sql_clone_doi(a="c"):
+    return f"exists (select 1 from etp.camp_ngoai n_ where n_.camp_id::text = substring({a}.ten from 'nhan ban [0-9]+ cua ([0-9]+)[)]'))"
+def sql_roas_luat(a="c"):
+    return f"(coalesce({a}.la_roas, false) and not {sql_clone_doi(a)})"
+def camp_clone_doi(q=None):
+    """camp nhà clone từ camp đội — máy luật xét như camp thường (lỗi đọc kho thì để nổ, người gọi ghi loi_may)"""
+    return {int(x) for x in (q or _q)(f"select c.camp_id from etp.camp c where {sql_clone_doi('c')}").split() if x.isdigit()}
 def camp_roas():
-    """tập camp ROAS trong kho etp (đồng bộ 10 phút) — luật đọc API trực tiếp thì cộng thêm la_roas(tên)"""
-    return {int(x) for x in _q("select camp_id from etp.camp where la_roas").split() if x.isdigit()}
+    """tập camp ★ ROAS máy luật miễn (đồng bộ 10 phút; trừ clone camp đội) — luật đọc API trực tiếp thì cộng la_roas(tên) rồi trừ camp_clone_doi()"""
+    return {int(x) for x in _q(f"select c.camp_id from etp.camp c where {sql_roas_luat('c')}").split() if x.isdigit()}
 
 # CAMP MỚI = $1, ĐỌC NGAY TRÊN PAYLOAD GỬI ĐI (anh 08/11/2026 "Rà ngay" sau vụ 52 camp A/B lên $3): kiem() ở trên tin số ns_moi + cờ roas/bac do NGƯỜI GỌI
 # tự khai — người gọi tính sai (A/B đặt $3 vào payload sau khi cổng đã nhận "1") là lọt. Hàm này đọc CHÍNH lệnh tạo camp ở cổng API chung

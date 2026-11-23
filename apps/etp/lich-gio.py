@@ -84,8 +84,8 @@ def main():
     try: vua_tat = {int(k) for k in json.load(open(TAT_CHAM_TEP))}
     except Exception: vua_tat = set()
     # camp đang chạy + thể loại (kho etp, đồng bộ 10 phút)
-    chay = [(int(c), t or "_khac") for c, t in (l.split("|") for l in q("""select c.camp_id, coalesce(p.the_loai, '') from etp.camp c left join etp.phim p using (content_id)
-        where c.trang_thai = 'ACTIVE' and not c.la_roas""").splitlines() if "|" in l)]   # camp ROAS miễn lịch giờ (cong.camp_roas)
+    chay = [(int(c), t or "_khac") for c, t in (l.split("|") for l in q(f"""select c.camp_id, coalesce(p.the_loai, '') from etp.camp c left join etp.phim p using (content_id)
+        where c.trang_thai = 'ACTIVE' and not {_CG.sql_roas_luat('c')}""").splitlines() if "|" in l)]   # camp ROAS miễn lịch giờ (cong.camp_roas)
     dang_tat = {int(c): t or "_khac" for c, t in (l.split("|") for l in q("""select l.camp_id, coalesce(p.the_loai, l.the_loai, '') from etp.lich_tat l
         left join etp.camp c using (camp_id) left join etp.phim p on p.content_id = c.content_id""").splitlines() if "|" in l)}
     # camp trong lich_tat đã bị lưu trữ / mất khỏi kho → bỏ khỏi sổ (không bật)
@@ -193,7 +193,8 @@ def cham_mien():
     return ra
 
 # camp ★ ROAS không chịu luật chấm (anh 29/10/2026: "Camp roas lên ko cần chấm lại") — cột la_roas (chiến lược thầu thật, 0401)
-KHONG_ROAS = "not c.la_roas"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cong as _CG   # một định nghĩa camp miễn luật ROAS: clone camp đội xét như camp thường (anh 23/11/2026)
+KHONG_ROAS = "not " + _CG.sql_roas_luat("c")
 # KHÔNG TẮT CAMP ĐANG LÃI (anh 02/11/2026 duyệt review luật: 26–27/10 luật chấm tắt 60 camp mà 3 ngày trước đó ROI +66% / +88%, anh bật lại tay ~170 lần):
 # creative ≤ 4 chỉ tắt camp có lãi 3 ngày ĐÃ KHÉP ≤ $0 (hoặc chưa có số); camp đang lãi chạy tiếp, creative đó vẫn bị cổng chấm chặn mở camp mới / nhân bản.
 KHONG_LAI3 = """coalesce((select sum(s.thu - s.chi) from etp.so_ngay s where s.camp_id = c.camp_id

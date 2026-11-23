@@ -25,6 +25,8 @@ q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], ca
 # API Ethopex chậm / quá giờ (23/10/2026 21:49 "The read operation timed out" thành tin báo động giả) → mọi lượt gọi tự thử lại 3 lần, nghỉ 5–10s.
 # Lỗi 4xx không thử lại. Còn lỗi sau 3 lần mới vào nhóm loi_may (báo nhanh, tự xoá) — KHÔNG bao giờ nhét vào nhóm bị Meta từ chối.
 import time, urllib.error
+import importlib.util as _iuc   # cong nạp sớm: luật tat_tv (SQL) cần CONG.sql_roas_luat
+_sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
 _goc_mo = urllib.request.urlopen
 def _mo(*a, **k):
     for i in range(3):
@@ -763,7 +765,7 @@ tat_tv, _tv = [], {}
 try:
     for _lv in _q_ktra(f"""with g as (select camp_id, ngay, sum(chi) filter (where gio < {TV_GIO}) som, sum(chi) chi, sum(thu) thu from etp.so_gio_camp
                             where ngay between (now() at time zone 'utc')::date - {TV_NGAY} and (now() at time zone 'utc')::date - 1 group by 1, 2),
-        x as (select g.*, k.ten, k.ngan_sach ns from g join etp.camp k using (camp_id) where not k.la_roas and k.ngan_sach >= {TV_NS})
+        x as (select g.*, k.ten, k.ngan_sach ns from g join etp.camp k using (camp_id) where not {CONG.sql_roas_luat('k')} and k.ngan_sach >= {TV_NS})
         select camp_id, min(ten), min(ns), count(*) filter (where som >= {TV_PHAN} * ns and thu < chi), sum(chi), sum(thu),
                string_agg(to_char(ngay, 'DD/MM') || ': trước 19h VN chi $' || round(coalesce(som, 0)::numeric, 2) || ' = ' || round(100 * coalesce(som, 0) / ns) || '% NS $' || ns || ' · cả ngày ROI ' || coalesce(round(100 * (thu - chi) / nullif(chi, 0))::text, '—') || '%', ' · ' order by ngay)
         from x group by 1""").splitlines():
@@ -820,7 +822,7 @@ try:
     import importlib.util as _iux
     _sx = _iux.spec_from_file_location("etp_cong_x", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); _CX = _iux.module_from_spec(_sx); _sx.loader.exec_module(_CX)
     NGAY_XAU = {dt.date.fromisoformat(k) for k in _CX.ngay_xau(q)}
-    _roas_x = {int(x) for x in q("select camp_id from etp.camp where la_roas").split() if x.isdigit()}
+    _roas_x = {int(x) for x in q(f"select c.camp_id from etp.camp c where {_CX.sql_roas_luat('c')}").split() if x.isdigit()}
     _CHIN = {c for c in _ng if float((thang.get(c) or thang.get(str(c)) or {}).get("budget") or 0) >= _CX.NGAY_XAU_NS or c in _roas_x}
     for c in _CHIN: _ng[c][1] = [x for x in _ng[c][1] if x[0] not in NGAY_XAU]
 except Exception as e:
@@ -875,9 +877,7 @@ tat_l7 = []
 # L4 — LỖ ĐỀU ≥ 4 NGÀY → TẮT (anh 29/10/2026 "L4 bật đi", sau #68970 lọt L7 ở −29%): 7 ngày đã khép, ≥ L4_NGAY ngày có chi, chi ≥ L4_CHI, ROI < L4_ROI% → tắt hẳn.
 # Đo camp $1: 130 camp lỗ < −20% sau 4 ngày có chi, phần chạy tiếp chi $149 lãi −$38 (ROI −25%), 12 camp gỡ được cộng chỉ +$9.5, không camp nào thành camp thắng.
 L4_CHI, L4_NGAY, L4_ROI = 5.0, 4, -20
-import importlib.util as _iuc
-_sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
-try: _ROAS = CONG.camp_roas() | {int(c["id"]) for c in ds_camp if CONG.la_roas(c)}
+try: _ROAS = (CONG.camp_roas() | {int(c["id"]) for c in ds_camp if CONG.la_roas(c)}) - CONG.camp_clone_doi()   # clone camp đội = camp thường (anh 23/11/2026, cong.sql_clone_doi)
 except Exception as e: _ROAS = {int(c["id"]) for c in ds_camp if CONG.la_roas(c)}; loi_may.append((0, f"không đọc được danh sách camp ROAS trong kho: {str(e)[:80]}"))
 # L4 ÁP CẢ ★ ROAS (anh 03/11/2026 "set rule thế nào để nó tự xử lý": 11 camp ROAS Number One tiêu $3–9/ngày, lỗ dồn −13%, lọt RL / R0 / G10 — RL đòi
 # 2 ngày chi > $20, G10 đòi 3 ngày chi ≥ 1 ngày ngân sách; camp ROAS tiêu ít mà lỗ đều không luật nào xử). Cùng ngưỡng L4 đã đo trên camp thường.

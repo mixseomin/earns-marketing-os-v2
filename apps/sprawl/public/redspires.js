@@ -86,7 +86,7 @@ function vatThap(gen) {
       float tang = floor(vLo.y / uNhip.y), fy = fract(vLo.y / uNhip.y);
       vec2 o = vec2(floor(cung / uNhip.x), tang), f = vec2(fract(cung / uNhip.x), fy);
       float h = bam(o);
-      float cua = step(0.33, f.x) * step(f.x, 0.67) * step(0.2, f.y) * step(f.y, 0.84) * step(0.72, h) * step(vLo.y, uKieu.y); // ảnh mẫu: cửa thưa (~1/4 ô), phần lớn là tấm ốp trơn
+      float cua = step(0.33, f.x) * step(f.x, 0.67) * step(0.2, f.y) * step(f.y, 0.84) * step(0.8, h) * step(vLo.y, uKieu.y); // ảnh mẫu: cửa thưa (~1/4 ô), phần lớn là tấm ốp trơn
       float bang = step(fract(vLo.y / uNhip.z), 0.06);
       vec2 ot = vec2(floor(cung / 7.0), floor(vLo.y / 14.4)), ft = vec2(fract(cung / 7.0), fract(vLo.y / 14.4)) - 0.5;
       float tron = step(length(ft * vec2(1.0, 2.0)), 0.3) * step(uNhip.w, bam(ot + 5.3));
@@ -106,7 +106,7 @@ function vatThap(gen) {
       float eX = (0.5 - abs(fract(cx) - 0.5)) * 2.4, eY = (0.5 - abs(fy - 0.5)) * uNhip.y;
       float mep = max(1.0 - smoothstep(0.035, 0.035 + aa, eX), 1.0 - smoothstep(0.05, 0.05 + aa, eY)) * gan * trongThan;
       float sang = (1.0 - smoothstep(0.09, 0.09 + aa, abs(eY - 0.16))) * gan * trongThan * step(fy, 0.5); // gờ sáng trên mạch ngang (ánh nắng bắt cạnh)
-      float coCua = step(0.72, h) * trongThan;
+      float coCua = step(0.8, h) * trongThan;
       float khungCua = step(0.3, f.x) * step(f.x, 0.7) * step(0.14, f.y) * step(f.y, 0.9) * coCua - cua;
       float chay = step(0.43, f.x) * step(f.x, 0.57) * step(f.y, 0.32) * coCua * step(0.45, bam(o + 1.7)) * (f.y / 0.32) * gan;
       float laChop = (1.0 - coCua) * trongThan * step(0.3, f.x) * step(f.x, 0.7) * step(0.35, f.y) * step(f.y, 0.75) * step(0.5, fract(f.y * 14.0)) * step(0.6, bam(o + 9.1));
@@ -236,13 +236,13 @@ function dungThap(R, H, gen, r, vKim, vMax = R * TL.vetDo) {
   const yc = hs.than, rc = hs.rC;
   const gDai = new THREE.CylinderGeometry(rc + 1.2, rc + 1.6, 3.2, 72), dai = new THREE.Mesh(gDai, vV); dai.position.y = yc - 1; g.add(dai); va(gDai, 0, yc - 1, 0);
 
-  // hộp ốp tường: máy lạnh, cửa sập, ống đứng — rải theo thân, tô đỏ đậm nhạt / xám / màu viền
-  const nHop = Math.round(hs.than * (0.5 + r() * 0.4)), hop = new THREE.InstancedMesh(G_HOP, V_HOP, nHop), mauDo = new THREE.Color(gen.mau);
+  // hộp ốp tường: máy lạnh, cửa sập, ống đứng — ảnh mẫu chỉ lác đác (~1 hộp / 7 m cao), gần hết cùng màu thân; dày hơn thì nhìn xa thành rắc chấm xám như cửa sổ
+  const nHop = Math.round(hs.than * (0.1 + r() * 0.06)), hop = new THREE.InstancedMesh(G_HOP, V_HOP, nHop), mauDo = new THREE.Color(gen.mau);
   for (let i = 0; i < nHop; i++) {
     const y = 5 + r() * (hs.than * 0.94 - 5), a = r() * Math.PI * 2, rr = hs.rTai(y), loai = r();
     const [sx, sy, sz] = loai < 0.5 ? [1.3 + r() * 0.6, 0.8 + r() * 0.3, 0.7 + r() * 0.3] : loai < 0.8 ? [1.8 + r(), 2.4 + r() * 0.6, 0.35] : [0.35, 5 + r() * 14, 0.35];
     datRa(hop, i, a, rr + sz / 2 - 0.05, y, sx, sy, sz);
-    const c = r(); hop.setColorAt(i, c < 0.55 ? _c4.copy(mauDo).multiplyScalar(0.55 + r() * 0.35) : c < 0.8 ? _c4.set('#6d6a66').multiplyScalar(0.8 + r() * 0.4) : _c4.set(gen.vien));
+    const c = r(); hop.setColorAt(i, c < 0.85 ? _c4.copy(mauDo).multiplyScalar(0.6 + r() * 0.3) : c < 0.95 ? _c4.set('#6d6a66').multiplyScalar(0.8 + r() * 0.4) : _c4.set(gen.vien));
   }
   g.add(hop);
   // cửa tròn lớn: vành viền + kính tối
@@ -260,7 +260,8 @@ function dungThap(R, H, gen, r, vKim, vMax = R * TL.vetDo) {
     const bx = Math.cos(a) * d, bz = Math.sin(a) * d;
     const bau = new THREE.Mesh(new THREE.LatheGeometry(hp.p, 48), vatThap(gb)); bau.position.set(bx, y, bz); g.add(bau);
     va(new THREE.LatheGeometry(hp.p, 16).scale(1.02, 1, 1.02), bx, y, bz);
-    const gN = new THREE.ConeGeometry(rb * 0.95, rb * 1.8, 24).rotateX(Math.PI), non = new THREE.Mesh(gN, vV); non.position.set(bx, y - rb * 0.9, bz); g.add(non); va(gN, bx, y - rb * 0.9, bz);
+    const gN = new THREE.SphereGeometry(rb * 0.98, 24, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), non = new THREE.Mesh(gN, vatThap(gb)); non.position.set(bx, y, bz); // ảnh mẫu: khoang treo đáy tròn liền thân, không chân nón ngược
+    g.add(non); va(gN, bx, y, bz);
     const co = new THREE.Mesh(new THREE.TorusGeometry(hp.rC + 0.25, 0.3, 6, 32), vV); co.rotation.x = Math.PI / 2; co.position.set(bx, y + hp.than, bz); g.add(co);
   }
   // cần trục: 1-2 tay vươn gần đỉnh (dầm, thanh chống chéo, cáp, kiện hàng)
@@ -309,13 +310,14 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
     for (let i = 0; i < n; i++) uKhoet.uThap.value[i].copy(src[i]); uKhoet.uSoKhoet.value = n;
     if (src.length > MAX_KHOET) console.warn(`[sprawl] khoét ${src.length} tháp, quá trần ${MAX_KHOET}: tháp thừa đứng lẫn nhà PLATEAU`); }
   napKhoet();
+  const uPho = { uDoPho: { value: 0 } };
   const vatPho = new THREE.MeshLambertMaterial({ color: '#7f93a3', side: THREE.DoubleSide }); // hai mặt: tường PLATEAU lật pháp tuyến không thành tường tàng hình (vẫn va chạm)
   vatPho.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, uKhoet, U_DEN, uSang);
+    Object.assign(sh.uniforms, uKhoet, U_DEN, uSang, uPho);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWp = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-      varying vec3 vWp; uniform vec4 uThap[${MAX_KHOET}]; uniform int uSoKhoet; uniform float uDen, uTg, uSang;
+      varying vec3 vWp; uniform vec4 uThap[${MAX_KHOET}]; uniform int uSoKhoet; uniform float uDen, uTg, uSang, uDoPho;
       float bam(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }`)
       .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
       for (int i = 0; i < ${MAX_KHOET}; i++) { if (i >= uSoKhoet) break; vec4 t = uThap[i]; float d = length(vWp.xz - t.xy);
@@ -327,6 +329,9 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
       // mỗi khối một bảng màu: xanh xám · đá kem · đá phiến · xanh rêu xám · gạch nhạt
       vec3 m0 = vec3(0.50, 0.58, 0.64), m1 = vec3(0.74, 0.71, 0.64), m2 = vec3(0.40, 0.45, 0.50), m3 = vec3(0.50, 0.60, 0.57), m4 = vec3(0.68, 0.56, 0.50);
       vec3 mk = hm < 0.42 ? m0 : hm < 0.6 ? m2 : hm < 0.76 ? m1 : hm < 0.9 ? m3 : m4;
+      // Red Spires (ảnh mẫu): phố thấp dưới tháp là đất nung đỏ, gạch nâu, đá kem, không xanh xám
+      vec3 d0 = vec3(0.66, 0.36, 0.27), d1 = vec3(0.80, 0.72, 0.60), d2 = vec3(0.52, 0.30, 0.24), d3 = vec3(0.72, 0.52, 0.40);
+      mk = mix(mk, hm < 0.4 ? d0 : hm < 0.6 ? d2 : hm < 0.85 ? d1 : d3, uDoPho);
       diffuseColor.rgb = mk * (0.85 + 0.25 * hk);
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.85, 0.82) * (0.86 + 0.16 * hk), uSang);
       float den = 0.0;
@@ -354,7 +359,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
     const r = gieo(t.id + 17), R = t.banKinh, H = t.caoSpire;
     const dang = DANG[(i * 5 + ((r() * 2) | 0)) % DANG.length]; // xoay vòng ba dáng cùng họ
     const tang = TL.tang; // một chiều cao tầng cho mọi tháp — cầu nối, ban công, sàn vườn mới khớp nhau
-    const gen = { dang, r: r(), mau: chon(r, MAU_DO), vien: chon(r, MAU_VIEN), oRong: 4.6 + r() * 1.6, tang, bang: tang * (6 + ((r() * 5) | 0)),
+    const gen = { dang, r: r(), mau: chon(r, MAU_DO), vien: chon(r, MAU_VIEN), oRong: 7 + r() * 2, tang, bang: tang * (6 + ((r() * 5) | 0)),
       tron: 0.96 + r() * 0.03, soc: r() < 0.15 ? 2 : 0, gan: 0, dinh: 'ang' }; // ảnh mẫu: thân trơn, không gân / sọc dọc / vảy; cửa tròn lớn thưa
     const { g, hs } = dungThap(R, H, gen, r, vKim);
     let rVa = hs.rMax;
@@ -792,7 +797,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
   function boVa() { for (const d of dsThap) if (d.va) { world.removeCollider(d.va, false); d.va = null; } boVaCau(); }
   // hien(phố, tháp đỏ): Nhật 2200 mượn phố (nhà, người, xe đất, đường) nhưng không mượn tháp đỏ — tắt cả hình lẫn khung va + cầu/xe bay/sương của tháp đỏ
   let thapDo = false;
-  function hien(bat, coThap = bat) { goc.visible = bat; thapDo = bat && coThap; uDat.uDo.value = bat ? 1 : 0; canLoc = true;
+  function hien(bat, coThap = bat) { goc.visible = bat; thapDo = bat && coThap; uDat.uDo.value = bat ? 1 : 0; uPho.uDoPho.value = thapDo ? 1 : 0; canLoc = true;
     for (const d of dsThap) d.g.visible = thapDo; for (const m of song.anKhi2200) m.visible = thapDo;
     if (thapDo) dungVa(); else boVa();
     if (bat) dungVaDuong(); else boVaDuong(); }

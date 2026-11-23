@@ -4,7 +4,7 @@
 // (tên miền · tiêu đề · mô tả · nút CTA đúng loại của camp). Chữ THẬT từ kho (docBaiQc ← apps/etp/bai-qc.py), không chữ mẫu.
 // Chấm điểm / lý do chặn KHÔNG nằm trong khung — chỗ gọi đặt TheCr bên ngoài.
 import { useEffect, useState } from 'react';
-import { docBaiQc, type BaiQc } from '@/lib/actions/etp-bai';
+import { docBaiQc, type BaiQc, type NoiDungCr } from '@/lib/actions/etp-bai';
 import { VideoXem } from '@/components/ui/video-xem';
 
 const CACHE = new Map<string, Promise<BaiQc | { loi: string }>>();
@@ -23,6 +23,28 @@ const XAM = '#65676b', DEN = '#050505';
 const NUT_LAT: React.CSSProperties = { border: '1px solid #ccd0d5', background: '#fff', color: DEN, borderRadius: 4, width: 20, height: 18, lineHeight: '14px', cursor: 'pointer', padding: 0 };
 const MOT_DONG: React.CSSProperties = { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
 
+// NỘI DUNG TRONG VIDEO + ĐIỂM CHẤM NỘI DUNG (anh #1774: "show thêm hook, text nội dung trong video ở đây + chấm điểm"): hook (câu mở video),
+// chữ trên hình, lời đọc — bản máy chấm đọc ra từ chính video (etp.cham) — rồi điểm từng tiêu chí Meta + AFS, lý do nằm ở rê chuột.
+// Đặt TRÊN khung bài để mở thẻ là thấy ngay, không phải cuộn qua video. Chữ dài cắt dòng, đủ chữ ở rê chuột (YDNI: chữ phụ vào hover).
+const mauTc = (d: number) => (d >= 8 ? 'var(--fg-2, #aaa)' : d >= 5 ? '#f59e0b' : '#f87171');
+const DONG = (n: number): React.CSSProperties => ({ display: '-webkit-box', WebkitLineClamp: n, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' });
+function NoiDungVideo({ nd }: { nd: NoiDungCr | null }) {
+  const nhan: React.CSSProperties = { color: 'var(--fg-3, #888)', marginRight: 4 };
+  if (!nd) return <div data-noi-dung-video="chua" style={{ fontSize: 11, color: 'var(--fg-3, #888)' }} title="Máy chấm chưa đọc video này nên chưa có hook, chữ trong video và điểm">Chưa chấm — chưa có hook, chữ video, điểm</div>;
+  const chuVideo = nd.chuVideo?.replace(/\s*\n\s*/g, ' / ') ?? null;
+  return <div data-noi-dung-video style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12, lineHeight: 1.35 }}>
+    <div style={DONG(2)} title={nd.hook ?? ''}><span style={nhan}>🎣 Hook</span><b>{nd.hook ?? '—'}</b></div>
+    <div style={DONG(2)} title={nd.chuVideo ?? ''}><span style={nhan}>🔤 Chữ trên video</span>{chuVideo ?? '—'}</div>
+    <div style={DONG(2)} title={[nd.loiDoc, nd.tomTat ? `Tóm tắt: ${nd.tomTat}` : ''].filter(Boolean).join('\n\n')}><span style={nhan}>🎙 Lời đọc</span>{nd.loiDoc ?? 'không có giọng'}</div>
+    {nd.diem.length ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 2 }}
+      title="Điểm nội dung máy chấm từ chính video (thang 10, dưới 5 là chặn) — rê vào từng ô để xem lý do">
+      <span style={{ ...nhan, fontSize: 11 }}>📝 Chấm nội dung</span>
+      {nd.diem.map((d) => <span key={`${d.nhom}.${d.ma}`} data-tc={`${d.nhom}.${d.ma}`} title={`${d.nhom === 'meta' ? 'Meta' : 'AFS'} · ${d.ten}: ${d.diem}/10${d.lyDo ? `\n${d.lyDo}` : ''}`}
+        style={{ fontSize: 11, border: `1px solid ${mauTc(d.diem)}`, color: mauTc(d.diem), borderRadius: 4, padding: '0 4px', whiteSpace: 'nowrap' }}>{d.ten} {d.diem}</span>)}
+    </div> : null}
+  </div>;
+}
+
 export function KhungBaiQc({ cr, camp, anh, video, caoMedia }: { cr: number; camp?: number | null; anh: string | null; video: string | null; /** cao vùng hình; bỏ trống = khổ 9:16 */ caoMedia?: number | string }) {
   const [b, setB] = useState<BaiQc | null>(null); const [loi, setLoi] = useState<string | null>(null);
   const [i, setI] = useState(0); const [mo, setMo] = useState(false);
@@ -35,7 +57,8 @@ export function KhungBaiQc({ cr, camp, anh, video, caoMedia }: { cr: number; cam
   const tieuDe = b?.tieuDe[0] ?? null, moTa = b?.moTa[0] ?? null, cta = b ? chuCta(b.cta) : '';
   const lat = (d: number) => { setI((x) => (x + d + ds.length) % ds.length); setMo(false); };
   return <div data-bai-qc={cr} style={{ display: 'flex', flexDirection: 'column', gap: 4, minHeight: 0 }}>
-    {b?.chuaCamp ? <div style={{ fontSize: 11, color: 'var(--fg-2, #aaa)' }}>chưa lên camp — chữ dự kiến</div> : null}
+    {b ? <NoiDungVideo nd={b.noiDung} /> : null}
+    {b?.chuaCamp ?<div style={{ fontSize: 11, color: 'var(--fg-2, #aaa)' }}>chưa lên camp — chữ dự kiến</div> : null}
     <div style={{ background: '#fff', color: DEN, borderRadius: 8, overflow: 'hidden', fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', fontSize: 13, lineHeight: 1.35 }}>
       {/* đầu bài: Page + Được tài trợ */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px 6px' }}>

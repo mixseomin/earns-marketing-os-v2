@@ -478,6 +478,10 @@ const LUAT = [
   { card: '1772', tep: 'apps/etp2/src/components/etp-view.tsx', cam: "laMoi ? null : <button onClick={() => setChay('lich')}", vi: 'ngăn Nhân bản: creative mới không bị giấu chip theo lịch' },
   { card: '1772', tep: 'apps/etp2/src/components/etp-view.tsx', co: "g = chay === 'lich' ? THEO_LICH :", vi: 'creative mới chọn theo lịch thì gửi đúng theo lịch, không thành chạy ngay' },
   { card: '1772', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'xt_lich = xem_truoc and "--theo-lich" in a', vi: 'xem trước theo lịch chạy khô đúng đường lịch' },
+  { card: '1774', tep: 'apps/etp2/src/lib/actions/etp-bai.ts', co: "left join etp.cham ch on ch.creative_id = ${cr}", vi: 'bài QC đọc kèm bản chấm của creative (hook, chữ trong video, điểm)' },
+  { card: '1774', tep: 'apps/etp2/src/lib/actions/etp-bai.ts', co: "ch.lop->'chu'->>'noi_dung' chu_video, ch.lop->'giong'->>'noi_dung' loi_doc", vi: 'chữ trên video + lời đọc lấy từ lớp chấm' },
+  { card: '1774', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', mot: '{b ? <NoiDungVideo nd={b.noiDung} /> : null}', vi: 'thẻ creative hiện hook + chữ video + điểm chấm nội dung trên khung bài' },
+  { card: '1774', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: '📝 Chấm nội dung', vi: 'điểm từng tiêu chí hiện trên thẻ, lý do ở rê chuột' },
 ];
 
 const loi = [];

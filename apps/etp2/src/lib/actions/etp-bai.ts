@@ -12,7 +12,14 @@ export type BaiQc = {
   cr: number; camp: number | null; chuaCamp: boolean; dongBo: boolean;
   page: { ten: string | null; anh: string | null; link: string | null } | null;
   chinh: string[]; tieuDe: string[]; moTa: string[]; cta: string | null; tenMien: string | null; kieu: string | null;
+  /** NỘI DUNG TRONG VIDEO + CHẤM (anh #1774): đọc từ etp.cham (máy chấm etp-cham: lớp chữ trên hình · giọng đọc · tóm tắt nội dung) — null khi creative chưa chấm */
+  noiDung: NoiDungCr | null;
 };
+export type DiemTc = { nhom: string; ma: string; ten: string; diem: number; lyDo: string | null };
+export type NoiDungCr = { hook: string | null; chuVideo: string | null; loiDoc: string | null; tomTat: string | null; meta: number | null; afs: number | null; ket: string | null; luc: string | null; diem: DiemTc[] };
+
+// hook = câu mở video: câu đầu lời đọc (người xem nghe trước), không có giọng thì dòng chữ đầu trên hình
+const cauDau = (s: string | null) => { const t = (s ?? '').trim(); if (!t) return null; const m = t.match(/^[\s\S]*?[.!?…](?=\s|$)/); return (m?.[0] ?? t.split('\n')[0] ?? '').trim() || null; };
 
 const ds = (v: unknown): string[] => (Array.isArray(v) ? v.map((x) => String(x ?? '').trim()).filter(Boolean) : []);
 
@@ -27,8 +34,13 @@ export async function docBaiQc(cr: number, camp?: number | null): Promise<BaiQc 
       order by (x.trang_thai = 'ACTIVE') desc, x.camp_id desc limit 1)
     select b.kieu, b.cta, b.link, b.chinh, b.tieu_de, b.mo_ta, (b.creative_id is not null and b.chinh is not null) dong_bo,
       (select camp_id from k) camp, bc.ten_mien, bc.final_url, p.ten pten, p.them->>'picture_url' panh, p.them->>'link' plink,
-      (select tv.chu_qc from etp.thu_vien tv where tv.creative_id = ${cr} and tv.chu_qc is not null order by tv.id desc limit 1) chu_qc
+      (select tv.chu_qc from etp.thu_vien tv where tv.creative_id = ${cr} and tv.chu_qc is not null order by tv.id desc limit 1) chu_qc,
+      ch.creative_id is not null co_cham, ch.lop->'chu'->>'noi_dung' chu_video, ch.lop->'giong'->>'noi_dung' loi_doc, ch.lop->'noi_dung'->>'tom_tat' tom_tat,
+      ch.meta cmeta, ch.afs cafs, ch.ket cket, ch.luc cluc,
+      (select coalesce(jsonb_agg(jsonb_build_object('nhom', tc.nhom, 'ma', tc.ma, 'ten', tc.ten, 'diem', ch.diem->(tc.nhom || '.' || tc.ma), 'ly_do', ch.ly_do->>(tc.nhom || '.' || tc.ma))
+         order by tc.nhom desc, tc.thu_tu), '[]'::jsonb) from etp.tieu_chi tc where ch.diem -> (tc.nhom || '.' || tc.ma) is not null) cdiem
     from (select 1) o left join etp.bai_cr b on b.creative_id = ${cr}
+      left join etp.cham ch on ch.creative_id = ${cr}
       left join etp.bai_camp bc on bc.camp_id = (select camp_id from k)
       left join etp.tai_nguyen p on p.loai = 'page' and (p.id = bc.page_id or p.external_id = bc.page_id::text)`)) as unknown as Record<string, unknown>[])[0] ?? {};
   const q = (r.chu_qc ?? {}) as { headline?: string; mo_ta?: string; chu_dau?: string; link?: string };
@@ -39,5 +51,16 @@ export async function docBaiQc(cr: number, camp?: number | null): Promise<BaiQc 
     page: r.pten || r.panh ? { ten: (r.pten as string) ?? null, anh: (r.panh as string) ?? null, link: (r.plink as string) ?? null } : null,
     chinh: dongBo ? ds(r.chinh) : ds([q.chu_dau]), tieuDe: dongBo ? ds(r.tieu_de) : ds([q.headline]), moTa: dongBo ? ds(r.mo_ta) : ds([q.mo_ta]),
     cta: (r.cta as string) ?? null, tenMien, kieu: (r.kieu as string) ?? null,
+    noiDung: r.co_cham !== true ? null : (() => {
+      const s = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
+      const chuVideo = s(r.chu_video), loiDoc = s(r.loi_doc);
+      const so = (v: unknown) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+      return {
+        hook: cauDau(loiDoc) ?? cauDau(chuVideo), chuVideo, loiDoc, tomTat: s(r.tom_tat), meta: so(r.cmeta), afs: so(r.cafs), ket: s(r.cket),
+        luc: r.cluc == null ? null : String(r.cluc),
+        diem: ((r.cdiem ?? []) as { nhom: string; ma: string; ten: string; diem: unknown; ly_do: string | null }[])
+          .filter((d) => so(d.diem) != null).map((d) => ({ nhom: d.nhom, ma: d.ma, ten: d.ten, diem: so(d.diem) as number, lyDo: s(d.ly_do) })),
+      };
+    })(),
   };
 }

@@ -178,6 +178,8 @@ const LUAT = [
   { card: 1553, tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "chay(['lam-ethopex.py', ...lenh, '--luat', luat, '--ai', AI", vi: 'bật / tắt / bậc ngân sách tay đi đúng máy Nhà lam-ethopex.py' },
   { card: 1553, tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "spawn('python3', ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that'", vi: 'nhân bản tay đi đúng nhan-ban.py' },
   { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function DieuKhienCamp({ c, lon, tat, boDs, choDs, lsDk }', vi: 'bảng điều khiển camp (⚙ cạnh ngân sách) trên tab Camp' },
+  { card: 1790, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "{ value: 'nlai', label: 'Lãi trong ngày', nhom: 'Hôm nay'", vi: 'ô lọc Lãi/lỗ có nhóm Hôm nay: Lãi trong ngày / Lỗ trong ngày (anh 23/11/2026 "Thêm lãi/lỗ trong ngày")' },
+  { card: 1790, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "if (v === 'nlai' || v === 'nlo') { const k = c.nay;", vi: 'lọc lãi / lỗ trong ngày theo số hôm nay của camp, không theo kỳ đang chọn' },
   { card: 1789, tep: 'apps/etp2/src/components/etp-view.tsx', co: '<DieuKhienCamp c={c} tat />', vi: 'nút ⏸ tắt / ▶ bật camp bằng tay ngay ở cột TT của cây camp (anh 23/11/2026 "Cần option để tao tắt camp thủ công")' },
   { card: 1789, tep: 'apps/etp2/src/components/etp-view.tsx', co: "setCho(dangChay ? { o: 'tt', chu: `tắt camp #${c.camp_id}`", vi: 'bấm ⏸ mở thẳng tab Tắt với câu xác nhận sẵn — vẫn phải bấm Làm' },
   { card: 1789, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'try { r = await f(); } catch (e) {', vi: 'lệnh điều khiển camp hỏng giữa đường (máy chủ vừa lên bản) báo đỏ dưới nút, không đứng im ở "đang gửi máy…"' },

@@ -3144,6 +3144,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const coChi = useMemo(() => new Set(du.soNgay.filter((r) => r.chi > 0).map((r) => `${r.c}|${r.d}`)), [du.soNgay]);
   const locLaiV = useCallback((v: string, c: CampEtpKho) => {
     if (v === 'lai' || v === 'lo') { const k = khCamp.get(c.camp_id); if (!k || k.chi <= 0) return false; return v === 'lai' ? k.thu > k.chi : k.thu < k.chi; }
+    if (v === 'nlai' || v === 'nlo') { const k = c.nay; if (!k || k.chi <= 0) return false; return v === 'nlai' ? k.thu > k.chi : k.thu < k.chi; }   // #1790 lãi / lỗ TRONG NGÀY (hôm nay, ngày Ethopex) — không đổi theo kỳ đang chọn
     const m = /^([clg])(\d+)$/.exec(v); if (!m) return true; const n = Number(m[2]);   // g = LÃI liền N ngày (anh 27/10/2026 "thêm bộ lọc kiểu Lãi/Lỗ 3, 7 ngày liên tiếp")
     const ds = Array.from({ length: n }, (_, i) => new Date(Date.parse(du.nay) - (i + 1) * 86_400_000).toISOString().slice(0, 10));   // N ngày ĐÃ KHÉP gần nhất
     const x = laiNgay.get(c.camp_id);
@@ -3383,8 +3384,9 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       options={ma.flatMap((a) => { const cs = du.camps.filter((c) => c.ab?.ma === a.ma), nhom = `${a.ma} · ${a.ten} · từ ${ngayVn(a.batDau)}`;
         return [{ value: a.ma, label: `${a.ma} · cả hai nhánh`, ngan: `${a.ma} · ${a.ten}`, nhom, dem: cs.length, title: a.giaThuyet ?? undefined },
           ...(['thu', 'doi'] as const).map((n) => ({ value: `${a.ma}|${n}`, label: `${n === 'thu' ? 'Thử' : 'Đối chứng'} · ${a[n]}`, ngan: `${a.ma} · ${a[n]}`, nhom, dem: cs.filter((c) => c.ab!.nhanh === n).length }))]; })} />; };
-  const laiSel = () => <Chon2 chan={chanLoc.lai} to={toCua('lai')} value={laiLoc} onChange={(v) => doi({ ll: v }, () => setLaiLoc(v))} nhan="Lãi/lỗ" title="lọc camp lãi / lỗ — theo kỳ đang chọn, hoặc lỗ N ngày đã khép gần nhất"
-    options={[{ value: 'lai', label: 'Lãi trong kỳ', nhom: `Kỳ đang chọn (${khNhan})` }, { value: 'lo', label: 'Lỗ trong kỳ', nhom: `Kỳ đang chọn (${khNhan})` },
+  const laiSel = () => <Chon2 chan={chanLoc.lai} to={toCua('lai')} value={laiLoc} onChange={(v) => doi({ ll: v }, () => setLaiLoc(v))} nhan="Lãi/lỗ" title="lọc camp lãi / lỗ — trong ngày hôm nay, theo kỳ đang chọn, hoặc lỗ N ngày đã khép gần nhất"
+    options={[{ value: 'nlai', label: 'Lãi trong ngày', nhom: 'Hôm nay', title: 'hôm nay (ngày Ethopex 07:00–07:00 VN) có chi và thu > chi', tim: 'lai trong ngay hom nay' }, { value: 'nlo', label: 'Lỗ trong ngày', nhom: 'Hôm nay', title: 'hôm nay (ngày Ethopex 07:00–07:00 VN) có chi và thu < chi', tim: 'lo trong ngay hom nay' },
+      { value: 'lai', label: 'Lãi trong kỳ', nhom: `Kỳ đang chọn (${khNhan})` }, { value: 'lo', label: 'Lỗ trong kỳ', nhom: `Kỳ đang chọn (${khNhan})` },
       ...[3, 5, 7, 10, 14].map((n) => ({ value: `c${n}`, label: `Lỗ cộng dồn ${n} ngày`, nhom: 'Lỗ N ngày đã khép gần nhất', title: `tổng lãi ${n} ngày trọn gần nhất (không tính hôm nay) < 0`, tim: `lo ${n} ngay cong don` })),
       ...[3, 5, 7].map((n) => ({ value: `g${n}`, label: `Lãi ${n} ngày liên tiếp`, nhom: 'Liên tiếp từng ngày (ngày đã khép)', title: `${n} ngày trọn gần nhất ngày nào cũng có chi và đều lãi`, tim: `lai lien tiep ${n} ngay` })),
       ...[2, 3, 5, 7].map((n) => ({ value: `l${n}`, label: `Lỗ ${n} ngày liên tiếp`, nhom: 'Liên tiếp từng ngày (ngày đã khép)', title: `${n} ngày trọn gần nhất ngày nào cũng có chi và đều âm`, tim: `lo lien tiep ${n} ngay` }))]} />;

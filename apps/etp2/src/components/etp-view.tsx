@@ -38,7 +38,7 @@ import { chiRe, DongMoc, HoverChu, KhungNoi, ReThe, useNoi, type Moc, type Noi, 
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { Tong2 } from '@/components/etp-tong2';
-import { useNguoiMenu, COT_NGUOI } from '@/components/etp-tong2-widget';
+import { useNguoiMenu, COT_NGUOI_MENU } from '@/components/etp-tong2-widget';
 import { NenLam } from '@/components/etp-tu-van';
 import { TabInsight } from '@/components/etp-insight';
 import { TabLogs } from '@/components/etp-logs';
@@ -3082,8 +3082,9 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   // localStorage chung mọi tab → tab mới đổi kỳ thì tab cũ F5 / tự làm mới cũng nhảy theo. Giờ URL thắng; localStorage chỉ còn là mặc định cho trang mở không có ?k=
   const [kh, setKh] = useState<Kh>(() => { let v = dauVao?.k ?? null; if (!v) try { v = localStorage.getItem('etp-kh'); } catch { /* trình duyệt chặn */ } return v ? KH_CU[v] ?? v : '7'; });
   const khK = khKhoang(kh, du.nay), khNay = khK.tu === du.nay && khK.den === du.nay, khNhan = khNhanCua(kh);
-  // SỐ HIỆU QUẢ TRONG MENU NGƯỜI (anh 22/11/2026 etp2 #1759): mỗi người chi · lãi · ROI · camp bật · ROI 7 ngày theo kỳ đang xem, dòng Team = tổng — cùng hàm với bảng Người, cùng bản số của Tổng quan (không tải thêm)
-  const soNguoi = useNguoiMenu(khK);
+  // SỐ HIỆU QUẢ TRONG MENU NGƯỜI (anh 22/11/2026 etp2 #1759): mỗi người chi · lãi · ROI · camp bật · ROI 7 ngày, dòng Team = tổng — cùng hàm với bảng Người, cùng bản số của Tổng quan (không tải thêm).
+  // Chi / lãi / ROI LUÔN HÔM NAY, không theo kỳ chung (anh 24/11/2026 etp2 #1800)
+  const soNguoi = useNguoiMenu();
   const dinhRef = useRef<HTMLDivElement>(null);
   const cuonRef = useRef<HTMLDivElement>(null), heroRef = useRef<HTMLDivElement>(null); const [gonHero, setGonHero] = useState(false);
   // --etp-dinh = chỗ các hàng dính bên dưới (đầu cây, lọc Quét, DataTable) bám vào. #1597 anh 14/11/2026 "trên mobile lởm": offsetHeight LÀM TRÒN (cao 30,6px → 31) nên hàng dưới
@@ -3402,7 +3403,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const nguoiSel = () => (du.nguoi.ds.length > 1 ? <>{dangDoiNguoi ? <span style={{ fontSize: 11, color: '#60a5fa' }}>đang tải…</span> : null}<Chon2 value={du.nguoi.doi ? 'team' : du.nguoi.dang == null || !du.nguoi.ngoai ? '' : String(du.nguoi.dang)} nhan="Người" align="left" title="xem camp + report theo người dùng Ethopex (tài khoản QC của người đó) — người khác chỉ xem, luật không áp"
     onChange={(v) => { const u = urlNguoi(v); doiNguoi(() => router.push(`${u.pathname}${u.search}`)); }} href={(v) => urlNguoi(v).href}
     // TEAM (anh 02/11/2026): nhà + mọi người gộp một, chỉ xem — đứng đầu danh sách
-    cot={COT_NGUOI} oRong={(() => { const n = du.nguoi.ds.find((x) => x.nha); return n ? soNguoi?.theoId.get(n.id) : undefined; })()}
+    cot={COT_NGUOI_MENU} oRong={(() => { const n = du.nguoi.ds.find((x) => x.nha); return n ? soNguoi?.theoId.get(n.id) : undefined; })()}
     options={[{ value: 'team', label: `Team · cả đội · ${du.nguoi.ds.reduce((a, x) => a + x.tk, 0)} TK`, ngan: 'Team', o: soNguoi?.team }, ...du.nguoi.ds.filter((x) => !x.nha).map((x) => ({ value: String(x.id), label: `${x.ten} · ${x.tk} TK`, ngan: x.ten, o: soNguoi?.theoId.get(x.id) }))]} rong={`${du.nguoi.ds.find((x) => x.nha)?.ten ?? 'Nhà'} (nhà)`} /></> : null);
   const TEN_LOC: Record<string, string> = { loc: 'Lọc', luat: 'Luật', phim: 'Phim', dang: 'Loại', bo: 'TK', lai: 'Lãi/lỗ', tuoi: 'Tuổi', ro: 'ROAS', ab: 'A/B' };
   const giaiTim = (): React.ReactNode => {

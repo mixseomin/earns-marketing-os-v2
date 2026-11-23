@@ -245,15 +245,22 @@ const oNguoi = (p: SoO): ReactNode[] => [
   <KeToan key="chi" v={p.k.chi} />, <KeToan key="lai" v={p.k.thu - p.k.chi} mau={mauLai(p.k.thu - p.k.chi)} />, <span key="roi">{roiSoTruoc(p.k, p.t)}</span>,
   <span key="camp" title={`${p.camp} camp đang chạy · ngân sách ${tien(p.ns)}/ngày${p.cho ? `\n${p.cho} camp đã bật còn chờ tới giờ chạy — không tính vào số này` : ''}`}><Dem v={p.camp} /></span>, <DuongRoi key="duong" v={p.duong} />];
 
+/** cột của MENU CHỌN NGƯỜI: chi / lãi / ROI luôn là HÔM NAY (giờ VN), không theo kỳ chung (anh 24/11/2026 etp2 #1800) — chữ "hôm nay" ở tiêu đề Chi + chữ rê */
+export const COT_NGUOI_MENU: typeof COT_NGUOI = COT_NGUOI.map((c) =>
+  c.key === 'chi' ? { ...c, h: 'Chi hôm nay', rong: 84, title: 'chi hôm nay (giờ VN) — menu này luôn là hôm nay, không theo kỳ đang xem' }
+  : c.key === 'lai' ? { ...c, title: 'lãi hôm nay (giờ VN)' }
+  : c.key === 'roi' ? { ...c, title: 'ROI hôm nay · ▲▼ so hôm qua' } : c);
+
 /** MENU CHỌN NGƯỜI có số hiệu quả (anh 22/11/2026 #1759 "Show bảng chi tiết hiệu quả này vào menu chọn người"): ô số từng người theo id + dòng Team (cộng mọi người),
- *  cùng số / cùng cách tính với widget Người — chung một bản tải taiTong2 (useSoNho 'tong2', không tải thêm) */
-export function useNguoiMenu(ky: { tu: string; den: string }): { theoId: Map<number, ReactNode[]>; team: ReactNode[] } | null {
+ *  cùng cách tính với widget Người — chung một bản tải taiTong2 (useSoNho 'tong2', không tải thêm).
+ *  KỲ CỐ ĐỊNH = HÔM NAY (anh 24/11/2026 etp2 #1800 "bảng này chỉ ghi chỉ số hôm nay! Ko phụ thuộc vào time chung"): không nhận kỳ từ ngoài, lấy ngày nay của chính bản số */
+export function useNguoiMenu(): { theoId: Map<number, ReactNode[]>; team: ReactNode[] } | null {
   const { so: s } = useSoNho<SoTong2>('tong2', taiTong2, 120_000);
   return useMemo(() => {
     if (!s) return null;
-    const { nguoi } = tinhNguoi(s, ky);
+    const { nguoi } = tinhNguoi(s, { tu: s.nay, den: s.nay });
     return { theoId: new Map(nguoi.map((p) => [p.id, oNguoi(p)])), team: oNguoi(tongNguoi(s, nguoi)) };
-  }, [s, ky.tu, ky.den]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [s]);
 }
 
 export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidget> {

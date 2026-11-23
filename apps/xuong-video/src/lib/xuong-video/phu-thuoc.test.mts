@@ -53,6 +53,10 @@ assert.ok(!phuThuocShot('video', shot({ keyframe_url: 'k', trang_thai: 'duyet', 
   assert.deepStrictEqual(thieuMau({ nhan_vat: [50], prompt_anh: 'mayans ruins', hanh_dong: '' }, [maya, BC]), [], 'không khớp nửa từ');
   // shot nền ghép (khuôn đổi nền): nơi hiện một lần, keyframe là mẫu → không đòi anchor Bối cảnh; nhắc tên người vẫn phải gắn mẫu
   assert.deepStrictEqual(thieuMau({ nhan_vat: [], prompt_anh: 'Background plate: bus stop, NO people', hanh_dong: '', ky_thuat: { nen_ghep: true } }, [maya]), []);
+  // cổng người đọc cả hành động + chỉ dẫn diễn, không chỉ prompt ảnh (phim #7999 cảnh 6, 9 — 23/11/2026)
+  assert.ok(thieuMau({ nhan_vat: [50], prompt_anh: 'insert of a pen underlining a note', hanh_dong: '', dan_dung: { mo: "Narrator's hand holds a pen" } as never }, [maya, BC]).some((x) => x.includes('chưa gắn mẫu người')));
+  assert.ok(thieuMau({ nhan_vat: [50], prompt_anh: 'a clear desk, closed notebook', hanh_dong: 'then the hand reaches toward the notebook' }, [maya, BC]).some((x) => x.includes('chưa gắn mẫu người')));
+  assert.deepStrictEqual(thieuMau({ nhan_vat: [50], prompt_anh: 'a clear desk', hanh_dong: 'the camera holds on the desk', dan_dung: { dien: 'the clock glows' } as never }, [maya, BC]), []);
   assert.deepStrictEqual(thieuMau({ nhan_vat: [], prompt_anh: 'Maya at a bus stop', hanh_dong: '', ky_thuat: { nen_ghep: true } }, [maya]), ['"Maya" có trong prompt mà chưa gắn mẫu']);
   assert.ok(phuThuocShot('keyframe', shot({ nhan_vat: [], prompt_anh: 'a quiet room' }), [maya, BC], { noiKhung: false, tap: TQ, phim: PQ }).chan.length === 0, 'shot không người, có bối cảnh 50 → qua (prompt có người mà không gắn Maya thì cổng shot-có-người chặn — bài riêng bên dưới)');
 }

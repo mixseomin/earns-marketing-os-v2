@@ -69,7 +69,13 @@ export const CO_NGUOI = /\b(he|she|his|her|him|man|woman|person|people|hands?)\b
 /** Có người trong prompt — bỏ cụm PHỦ ĐỊNH trước ('NO people at all', 'without a person': ảnh nền ghép của khuôn đổi nền; 'no hands': tĩnh vật /
  *  end card sản phẩm — 16/10/2026 Jett #61 shot 6, 14 bị chặn nhầm). */
 export const coNguoi = (prompt: string): boolean => CO_NGUOI.test(prompt.replace(/\b(no|without|empty of|free of)\s+(\w+\s+)?(people|person|humans?|man|woman|one|hands?)\b/gi, ' '));
-export function thieuMau(c: Pick<Canh, 'nhan_vat' | 'prompt_anh' | 'hanh_dong'> & Partial<Pick<Canh, 'ky_thuat'>>, nhanVat: (Pick<NhanVat, 'id' | 'ten' | 'loai'> & Partial<Pick<NhanVat, 'mo_ta'>>)[]): string[] {
+/** Chữ để dò "shot có người": prompt ảnh + hành động + prompt video + chỉ dẫn diễn (mở / diễn / hướng / kết). Chỉ đọc prompt_anh thì lọt shot
+ *  ghi tay / người kể ở phần hành động (phim #7999 tập 8007 cảnh 6, 9 — 23/11/2026: không gắn mẫu người, keyframe vẽ một người đàn ông lạ). */
+export const chuCoNguoi = (c: { prompt_anh?: string | null; hanh_dong?: string | null; prompt_video?: string | null; dan_dung?: unknown }): string => {
+  const dd = c.dan_dung && typeof c.dan_dung === 'object' ? c.dan_dung as Record<string, unknown> : {};
+  return [c.prompt_anh, c.hanh_dong, c.prompt_video, dd.mo, dd.dien, dd.huong, dd.ket].filter((x): x is string => typeof x === 'string').join(' \n ');
+};
+export function thieuMau(c: Pick<Canh, 'nhan_vat' | 'prompt_anh' | 'hanh_dong'> & Partial<Pick<Canh, 'ky_thuat' | 'prompt_video' | 'dan_dung'>>, nhanVat: (Pick<NhanVat, 'id' | 'ten' | 'loai'> & Partial<Pick<NhanVat, 'mo_ta'>>)[]): string[] {
   const out: string[] = [];
   const gan = nhanVat.filter((v) => c.nhan_vat.includes(v.id));
   // Shot nền ghép (ky_thuat.nen_ghep — khuôn đổi nền): nơi chốn xuất hiện một lần, keyframe của nó là mẫu → không đòi anchor Bối cảnh
@@ -78,7 +84,7 @@ export function thieuMau(c: Pick<Canh, 'nhan_vat' | 'prompt_anh' | 'hanh_dong'> 
   for (const v of mauNhacTen(c, nhanVat)) out.push(`"${v.ten}" có trong prompt mà chưa gắn mẫu`);
   // Shot CÓ NGƯỜI mà không gắn mẫu người nào → model vẽ người lạ (16/10/2026: JettJeans #54 shot 3 / 6 tả 'he squats…', 'hands…' không nhắc tên Mike
   // nên cổng nhắc tên không bắt, keyframe ra một người đàn ông trẻ tóc đen). Chỉ xét khi phim có anchor người.
-  if (nhanVat.some((v) => v.loai === 'nhan_vat') && !gan.some((v) => v.loai === 'nhan_vat') && !c.ky_thuat?.nen_ghep && !mauNhacTen(c, nhanVat).some((v) => v.loai === 'nhan_vat') && coNguoi(c.prompt_anh)) out.push('shot có người (he / she / hands / man…) mà chưa gắn mẫu người — gắn nhân vật để keyframe không vẽ ra người lạ');
+  if (nhanVat.some((v) => v.loai === 'nhan_vat') && !gan.some((v) => v.loai === 'nhan_vat') && !c.ky_thuat?.nen_ghep && !mauNhacTen(c, nhanVat).some((v) => v.loai === 'nhan_vat') && coNguoi(chuCoNguoi(c))) out.push('shot có người (he / she / hands / man…) mà chưa gắn mẫu người — gắn nhân vật để keyframe không vẽ ra người lạ');
   for (const v of gan) { const x = moTaNuocDoi(v.mo_ta); if (x) out.push(`mô tả "${v.ten}" nước đôi ("${x}") — chọn MỘT kiểu khớp ảnh mẫu, không thì keyframe vẽ lúc kiểu này lúc kiểu kia`); }
   return out;
 }

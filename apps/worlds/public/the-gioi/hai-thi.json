@@ -1,0 +1,303 @@
+{
+ "schema": "onlyworlds+mos",
+ "id": "hai-thi",
+ "name": "Hải Thị Sáu Mươi",
+ "description": "Thủy triều chênh 60 m, hai lần mỗi ngày. Điện triều quá rẻ nên không ai bỏ đi.",
+ "phong_cach": "Tháp sọc vạch nước, phố nổi",
+ "mau": "#2f7d8c",
+ "cau_hoi_goc": "Nếu Trái Đất có thêm một mặt trăng nhỏ ở rất gần, và thủy triều dâng 60 mét mỗi ngày?",
+ "hien_tai": 2290,
+ "time_format_names": [
+  "Năm"
+ ],
+ "sprawl": "",
+ "nguon": [],
+ "elements": [
+  {
+   "id": "ban-trang",
+   "type": "Phenomenon",
+   "name": "Bạn Trăng",
+   "description": "Năm 2140 một tiểu hành tinh bị kéo vào quỹ đạo thấp. Thủy triều ven biển chênh tới 60 m, lên xuống hai lần mỗi ngày.",
+   "lop": "goc",
+   "sinh_tu": []
+  },
+  {
+   "id": "ngap-nua-ngay",
+   "type": "Phenomenon",
+   "name": "Dưới mốc 60 m ngập nửa ngày",
+   "description": "Hà và rong bám kín mọi thứ dưới mốc.",
+   "lop": "phat",
+   "sinh_tu": [
+    "ban-trang"
+   ]
+  },
+  {
+   "id": "tua-bin-trieu",
+   "type": "Object",
+   "name": "Điện triều dư thừa",
+   "description": "Giàu năng lượng, nghèo đất khô.",
+   "lop": "phat",
+   "sinh_tu": [
+    "ban-trang"
+   ]
+  },
+  {
+   "id": "gac-cua-nuoc",
+   "type": "Collective",
+   "name": "Gác Cửa Nước",
+   "description": "Đóng mở cửa kín theo giờ nước.",
+   "lop": "phat",
+   "sinh_tu": [
+    "ngap-nua-ngay"
+   ]
+  },
+  {
+   "id": "nha-thuyen",
+   "type": "Object",
+   "name": "Nhà thuyền, chợ thuyền, thùng kín",
+   "description": "Hàng hoá đóng thùng kín, người sống trên thuyền.",
+   "lop": "phat",
+   "sinh_tu": [
+    "ngap-nua-ngay"
+   ]
+  },
+  {
+   "id": "nuoc-xuyen",
+   "type": "Need",
+   "name": "Tầng thấp để nước chảy xuyên",
+   "description": "Không được chặn sóng.",
+   "lop": "nhu",
+   "sinh_tu": [
+    "ngap-nua-ngay"
+   ]
+  },
+  {
+   "id": "doi-giao-thong",
+   "type": "Need",
+   "name": "Giao thông đổi hai lần mỗi ngày",
+   "description": "Đi thuyền lúc lên, đi bộ trên đáy lúc ròng.",
+   "lop": "nhu",
+   "sinh_tu": [
+    "ban-trang"
+   ]
+  },
+  {
+   "id": "len-kip",
+   "type": "Need",
+   "name": "Người và hàng lên cao kịp trước con nước",
+   "description": "",
+   "lop": "nhu",
+   "sinh_tu": [
+    "ngap-nua-ngay"
+   ]
+  },
+  {
+   "id": "vach-moc",
+   "type": "Construct",
+   "name": "Vạch màu ngang ở mốc 60 m",
+   "description": "Dưới vạch xám hà, trên vạch sạch và sơn màu: nhìn là biết mốc nước.",
+   "lop": "hinh",
+   "sinh_tu": [
+    "ngap-nua-ngay"
+   ]
+  },
+  {
+   "id": "khung-rong",
+   "type": "Construct",
+   "name": "Tầng dưới là khung rỗng",
+   "description": "Nước chảy xuyên, không giữ sóng, không bị đẩy đổ.",
+   "lop": "hinh",
+   "sinh_tu": [
+    "nuoc-xuyen"
+   ]
+  },
+  {
+   "id": "cau-noi",
+   "type": "Construct",
+   "name": "Cầu nổi neo xích",
+   "description": "Lên xuống theo con nước, chỉ thẳng hàng lúc nước đứng.",
+   "lop": "hinh",
+   "sinh_tu": [
+    "doi-giao-thong"
+   ]
+  },
+  {
+   "id": "cua-kin",
+   "type": "Construct",
+   "name": "Cửa kín như cửa tàu",
+   "description": "Đóng lại trước mỗi con nước.",
+   "lop": "hinh",
+   "sinh_tu": [
+    "gac-cua-nuoc",
+    "len-kip"
+   ]
+  },
+  {
+   "id": "pho-day",
+   "type": "Location",
+   "name": "Phố đáy bùn, chợ dựng tạm",
+   "description": "Chỉ sống được khoảng bốn giờ lúc nước ròng.",
+   "lop": "hinh",
+   "sinh_tu": [
+    "doi-giao-thong"
+   ]
+  },
+  {
+   "id": "tua-bin-chan",
+   "type": "Construct",
+   "name": "Tua bin dưới chân tháp",
+   "description": "Nguồn điện của cả thành phố.",
+   "lop": "hinh",
+   "sinh_tu": [
+    "tua-bin-trieu"
+   ]
+  },
+  {
+   "id": "gia-theo-met",
+   "type": "Construct",
+   "name": "Giá thuê theo mét cao trên mốc",
+   "description": "",
+   "lop": "xa",
+   "sinh_tu": [
+    "vach-moc"
+   ]
+  },
+  {
+   "id": "dan-kho-uot",
+   "type": "Collective",
+   "name": "Dân khô và dân ướt",
+   "description": "Dân khô ở trên mốc; dân ướt sống theo con nước.",
+   "lop": "xa",
+   "sinh_tu": [
+    "vach-moc",
+    "pho-day"
+   ]
+  },
+  {
+   "id": "tieng-nuoc",
+   "type": "Language",
+   "name": "Tiếng Nước",
+   "description": "Giờ giấc gọi theo nước, không theo kim đồng hồ.",
+   "lop": "xa",
+   "sinh_tu": [
+    "ban-trang"
+   ],
+   "tu_vung": [
+    [
+     "Nước mấy rồi?",
+     "Câu hỏi giờ"
+    ],
+    [
+     "nước đứng",
+     "Khoảng lặng giữa hai con nước, giờ hẹn hò và giao hàng"
+    ],
+    [
+     "dân ướt",
+     "Người sống dưới mốc"
+    ],
+    [
+     "ròng đáy",
+     "Lần nước rút thấp nhất trong năm"
+    ]
+   ]
+  },
+  {
+   "id": "kha",
+   "type": "Character",
+   "name": "Kha",
+   "description": "Người chở hàng qua chợ đáy, thuộc từng lối bùn.",
+   "lop": "xa",
+   "sinh_tu": [
+    "pho-day"
+   ]
+  },
+  {
+   "id": "trang-vao",
+   "type": "Event",
+   "name": "Bạn Trăng vào quỹ đạo",
+   "description": "",
+   "lop": "su",
+   "sinh_tu": [
+    "ban-trang"
+   ],
+   "start_date": 2140
+  },
+  {
+   "id": "dai-trieu",
+   "type": "Event",
+   "name": "Đại Triều",
+   "description": "Xoá sạch dải ven biển cũ.",
+   "lop": "su",
+   "sinh_tu": [
+    "trang-vao"
+   ],
+   "start_date": 2142
+  },
+  {
+   "id": "luat-moc",
+   "type": "Law",
+   "name": "Luật Mốc Sáu Mươi",
+   "description": "",
+   "lop": "su",
+   "sinh_tu": [
+    "dai-trieu",
+    "vach-moc"
+   ],
+   "date": 2150
+  },
+  {
+   "id": "cho-rong",
+   "type": "Event",
+   "name": "Chợ Nước Ròng được hợp pháp",
+   "description": "",
+   "lop": "su",
+   "sinh_tu": [
+    "pho-day"
+   ],
+   "start_date": 2190
+  },
+  {
+   "id": "sieu-trieu",
+   "type": "Event",
+   "name": "Siêu triều ngày nhật thực",
+   "description": "Dâng 74 m.",
+   "lop": "su",
+   "sinh_tu": [
+    "ban-trang"
+   ],
+   "start_date": 2241
+  },
+  {
+   "id": "dua-duoi-day",
+   "type": "Narrative",
+   "name": "Cuộc đua dưới đáy",
+   "description": "Một món hàng phải mang qua chợ đáy trước khi nước về, còn 40 phút.",
+   "lop": "truyen",
+   "sinh_tu": [
+    "kha",
+    "pho-day"
+   ]
+  },
+  {
+   "id": "ke-mo-cua",
+   "type": "Narrative",
+   "name": "Kẻ mở cửa nước",
+   "description": "Ai đó mở cửa kín của một tháp ngay trước con nước lớn.",
+   "lop": "truyen",
+   "sinh_tu": [
+    "cua-kin",
+    "gac-cua-nuoc"
+   ]
+  },
+  {
+   "id": "xac-tau",
+   "type": "Narrative",
+   "name": "Xác tàu lộ ra",
+   "description": "Lần ròng đáy kỷ lục làm lộ ra thứ thành phố đã chôn từ trước 2140.",
+   "lop": "truyen",
+   "sinh_tu": [
+    "dai-trieu"
+   ]
+  }
+ ]
+}

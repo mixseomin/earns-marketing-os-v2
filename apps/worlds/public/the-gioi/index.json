@@ -1,0 +1,52 @@
+{
+ "worlds": [
+  {
+   "id": "thanh-ri",
+   "name": "Thành Rỉ",
+   "phong_cach": "Tháp đỏ chắp vá (Red Spires)",
+   "mau": "#c4452f",
+   "description": "Tháp không xây, tháp được nuôi bằng quặng. Mỗi khúc tháp là một thế hệ nuôi.",
+   "so_phan_tu": 36
+  },
+  {
+   "id": "hai-thi",
+   "name": "Hải Thị Sáu Mươi",
+   "phong_cach": "Tháp sọc vạch nước, phố nổi",
+   "mau": "#2f7d8c",
+   "description": "Thủy triều chênh 60 m, hai lần mỗi ngày. Điện triều quá rẻ nên không ai bỏ đi.",
+   "so_phan_tu": 26
+  },
+  {
+   "id": "thanh-cam",
+   "name": "Thành Câm",
+   "phong_cach": "Nhà bọc đệm, tường đèn biết nói",
+   "mau": "#7a4fd0",
+   "description": "Thành phố sống trong im lặng, ánh sáng trở thành tiếng nói.",
+   "so_phan_tu": 26
+  },
+  {
+   "id": "thanh-treo",
+   "name": "Thành Treo",
+   "phong_cach": "Tháp ngược treo dưới đảo bay",
+   "mau": "#3f6fb0",
+   "description": "Bên trên đảo bay có bão, bên dưới là chỗ duy nhất kín gió. Thành phố treo xuống dưới.",
+   "so_phan_tu": 25
+  },
+  {
+   "id": "hoa-sat",
+   "name": "Hoa Sắt",
+   "phong_cach": "Nhà vỏ cánh đóng ngày, mở đêm",
+   "mau": "#c08a1e",
+   "description": "Cả xã hội đảo giờ: ngủ ban ngày, sống ban đêm. Nhà biết khép lại như nụ hoa.",
+   "so_phan_tu": 25
+  },
+  {
+   "id": "thanh-re",
+   "name": "Thành Rễ",
+   "phong_cach": "Nhà là cây sống, uốn bằng giàn",
+   "mau": "#3f8a4e",
+   "description": "Một ngôi nhà mất hai mươi năm để trồng và được truyền qua nhiều đời.",
+   "so_phan_tu": 24
+  }
+ ]
+}

@@ -1,0 +1,299 @@
+{
+ "schema": "onlyworlds+mos",
+ "id": "thanh-cam",
+ "name": "Thành Câm",
+ "description": "Thành phố sống trong im lặng, ánh sáng trở thành tiếng nói.",
+ "phong_cach": "Nhà bọc đệm, tường đèn biết nói",
+ "mau": "#7a4fd0",
+ "cau_hoi_goc": "Nếu mọi tiếng động trên 40 dB làm nở một loại nấm gây mù?",
+ "hien_tai": 2295,
+ "time_format_names": [
+  "Năm"
+ ],
+ "sprawl": "kiểu neon",
+ "nguon": [],
+ "elements": [
+  {
+   "id": "am-bao",
+   "type": "Phenomenon",
+   "name": "Nấm Âm Bào",
+   "description": "Bào tử nằm im khắp nơi, chỉ nở khi gặp rung âm mạnh trên 40 dB, gây mù.",
+   "lop": "goc",
+   "sinh_tu": []
+  },
+  {
+   "id": "vat-hut-am",
+   "type": "Object",
+   "name": "Vật liệu hút âm",
+   "description": "Nỉ, rêu, xốp, vải chần ở khắp nơi.",
+   "lop": "phat",
+   "sinh_tu": [
+    "am-bao"
+   ]
+  },
+  {
+   "id": "may-chan-khong",
+   "type": "Object",
+   "name": "Máy trong hộp chân không, xe từ trường",
+   "description": "Máy móc và xe chạy không tiếng.",
+   "lop": "phat",
+   "sinh_tu": [
+    "am-bao"
+   ]
+  },
+  {
+   "id": "chu-anh-sang",
+   "type": "Ability",
+   "name": "Ngôn ngữ tay và chữ ánh sáng",
+   "description": "Thay lời nói.",
+   "lop": "phat",
+   "sinh_tu": [
+    "am-bao"
+   ]
+  },
+  {
+   "id": "nam-phat-quang",
+   "type": "Phenomenon",
+   "name": "Nấm phát quang",
+   "description": "Báo chỗ vừa có người gây ồn.",
+   "lop": "phat",
+   "sinh_tu": [
+    "am-bao"
+   ]
+  },
+  {
+   "id": "khong-doi",
+   "type": "Need",
+   "name": "Không bề mặt nào được dội âm",
+   "description": "",
+   "lop": "nhu",
+   "sinh_tu": [
+    "am-bao"
+   ]
+  },
+  {
+   "id": "tin-khong-tieng",
+   "type": "Need",
+   "name": "Thông tin đi xa mà không phát tiếng",
+   "description": "",
+   "lop": "nhu",
+   "sinh_tu": [
+    "chu-anh-sang"
+   ]
+  },
+  {
+   "id": "khong-vang",
+   "type": "Need",
+   "name": "Không để vang giữa hai tường song song",
+   "description": "",
+   "lop": "nhu",
+   "sinh_tu": [
+    "khong-doi"
+   ]
+  },
+  {
+   "id": "nha-dem",
+   "type": "Construct",
+   "name": "Nhà bo tròn, bọc đệm chần",
+   "description": "Mặt cong mềm hút âm, không dội.",
+   "lop": "hinh",
+   "sinh_tu": [
+    "khong-doi",
+    "vat-hut-am"
+   ]
+  },
+  {
+   "id": "pho-cong",
+   "type": "Construct",
+   "name": "Phố cong, răng cưa, không tường song song",
+   "description": "Tránh vang qua lại giữa hai mặt phẳng.",
+   "lop": "hinh",
+   "sinh_tu": [
+    "khong-vang"
+   ]
+  },
+  {
+   "id": "tuong-den",
+   "type": "Construct",
+   "name": "Mặt tiền là lưới đèn chạy chữ",
+   "description": "Đây là cách nói chuyện, không phải quảng cáo.",
+   "lop": "hinh",
+   "sinh_tu": [
+    "tin-khong-tieng"
+   ]
+  },
+  {
+   "id": "cua-lom",
+   "type": "Construct",
+   "name": "Cửa sổ lõm sâu lót nỉ",
+   "description": "Chặn tiếng trong nhà lọt ra phố.",
+   "lop": "hinh",
+   "sinh_tu": [
+    "khong-doi"
+   ]
+  },
+  {
+   "id": "phong-het",
+   "type": "Construct",
+   "name": "Buồng kính chân không ở góc phố",
+   "description": "Phòng hét: nơi duy nhất được phát ra tiếng, thuê theo phút.",
+   "lop": "hinh",
+   "sinh_tu": [
+    "may-chan-khong"
+   ]
+  },
+  {
+   "id": "mang-xanh",
+   "type": "Construct",
+   "name": "Mảng sáng xanh trên tường",
+   "description": "Nấm phát quang ở chỗ từng có người lỡ gây ồn.",
+   "lop": "hinh",
+   "sinh_tu": [
+    "nam-phat-quang"
+   ]
+  },
+  {
+   "id": "cam-hat",
+   "type": "Law",
+   "name": "Hát là tội",
+   "description": "Nhạc chỉ còn dưới hầm cách âm.",
+   "lop": "xa",
+   "sinh_tu": [
+    "am-bao"
+   ]
+  },
+  {
+   "id": "ten-nhip-den",
+   "type": "Construct",
+   "name": "Tên người là một nhịp đèn",
+   "description": "",
+   "lop": "xa",
+   "sinh_tu": [
+    "chu-anh-sang"
+   ]
+  },
+  {
+   "id": "nguoi-diec",
+   "type": "Collective",
+   "name": "Người điếc bẩm sinh",
+   "description": "Tầng lớp được tin cậy nhất.",
+   "lop": "xa",
+   "sinh_tu": [
+    "chu-anh-sang"
+   ]
+  },
+  {
+   "id": "noi-sang",
+   "type": "Language",
+   "name": "Nói Sáng",
+   "description": "Tiếng nói bằng đèn và tay.",
+   "lop": "xa",
+   "sinh_tu": [
+    "chu-anh-sang"
+   ],
+   "tu_vung": [
+    [
+     "bốn mươi",
+     "Ngưỡng cấm, cũng là câu doạ trẻ con"
+    ],
+    [
+     "phòng hét",
+     "Buồng chân không cho thuê"
+    ],
+    [
+     "nói sáng",
+     "Nói chuyện bằng đèn"
+    ],
+    [
+     "mùa sấm",
+     "Mùa giông, bào tử nở dù không ai gây ồn"
+    ]
+   ]
+  },
+  {
+   "id": "mi",
+   "type": "Character",
+   "name": "Mi",
+   "description": "Bé gái sinh ra không học được im lặng.",
+   "lop": "xa",
+   "sinh_tu": [
+    "am-bao"
+   ]
+  },
+  {
+   "id": "mua-mu",
+   "type": "Event",
+   "name": "Mùa Mù Đầu Tiên",
+   "description": "Sau một buổi hoà nhạc ngoài trời, nửa khán giả mù.",
+   "lop": "su",
+   "sinh_tu": [
+    "am-bao"
+   ],
+   "start_date": 2201
+  },
+  {
+   "id": "luat-bon-muoi",
+   "type": "Law",
+   "name": "Luật Bốn Mươi",
+   "description": "Cấm mọi tiếng động trên 40 dB.",
+   "lop": "su",
+   "sinh_tu": [
+    "mua-mu"
+   ],
+   "date": 2203
+  },
+  {
+   "id": "bang-chu",
+   "type": "Event",
+   "name": "Thống nhất bảng chữ ánh sáng",
+   "description": "",
+   "lop": "su",
+   "sinh_tu": [
+    "chu-anh-sang"
+   ],
+   "start_date": 2210
+  },
+  {
+   "id": "dem-sam",
+   "type": "Event",
+   "name": "Đêm Sấm",
+   "description": "Giông lớn mở mùa bào tử, cả quận mù.",
+   "lop": "su",
+   "sinh_tu": [
+    "am-bao"
+   ],
+   "start_date": 2260
+  },
+  {
+   "id": "tre-khong-im",
+   "type": "Narrative",
+   "name": "Đứa trẻ không biết im",
+   "description": "Cả khu phố phải giấu Mi.",
+   "lop": "truyen",
+   "sinh_tu": [
+    "mi",
+    "luat-bon-muoi"
+   ]
+  },
+  {
+   "id": "nhac-duoi-dat",
+   "type": "Narrative",
+   "name": "Bản nhạc dưới đất",
+   "description": "Ai đó đang chơi nhạc trong hầm, và bào tử bắt đầu nở ở các tầng trên.",
+   "lop": "truyen",
+   "sinh_tu": [
+    "cam-hat"
+   ]
+  },
+  {
+   "id": "loi-khai-tuong",
+   "type": "Narrative",
+   "name": "Lời khai trên tường",
+   "description": "Thám tử đọc lại những câu nói còn lưu trong bộ nhớ một bức tường đèn.",
+   "lop": "truyen",
+   "sinh_tu": [
+    "tuong-den"
+   ]
+  }
+ ]
+}

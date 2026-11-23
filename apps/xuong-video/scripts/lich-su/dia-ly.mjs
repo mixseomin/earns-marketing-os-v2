@@ -5,14 +5,25 @@ import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 
 export const KHO = `${process.env.HOME}/.cache/lich-su`;
+const NE = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/';
+function baoDamDuLieu(ten, nguon) {
+  const f = join(KHO, ten); if (existsSync(f)) return f; mkdirSync(KHO, { recursive: true });
+  execFileSync('curl', ['-sfL', '--retry', '3', '--connect-timeout', '15', '--max-time', '120', '-o', f, `${NE}${nguon}`]);
+  return f;
+}
+// Box3 là máy dựng, không có bộ đệm /Users của iMac. Tải đúng bộ Natural Earth một lần
+// trước khi đọc để lượt sau không chết giữa chừng vì thiếu ne_50m.geojson.
+const GEO = baoDamDuLieu('ne_50m.geojson', 'ne_50m_admin_0_countries.geojson');
+const PLACES = baoDamDuLieu('ne_10m_places.geojson', 'ne_10m_populated_places_simple.geojson');
 // Nền giấy chung của mọi tập (Pexels 7952505). Trước chỉ nằm sẵn trong bộ đệm, không ai tải lại: mất tệp là kiem-mat chết "image cannot be decoded" (23/11/2026).
 export function baoDamGiay() {
   const f = join(KHO, 'giay.jpg'); if (existsSync(f)) return f; mkdirSync(KHO, { recursive: true });
   execFileSync('curl', ['-sfL', '--retry', '3', '-o', f, 'https://images.pexels.com/photos/7952505/pexels-photo-7952505.jpeg?auto=compress&cs=tinysrgb&w=948']);
   return f;
 }
-export const geo = JSON.parse(readFileSync(join(KHO, 'ne_50m.geojson'), 'utf8'));
+export const geo = JSON.parse(readFileSync(GEO, 'utf8'));
 // mảnh của một nước: khai vung thì lấy mảnh chạm khung đó; không khai thì lấy CỤM CHÍNH (mảnh lớn nhất + mảnh trong 12° quanh nó) — Pháp không kéo
+// theo Guyane, Mỹ không kéo theo Hawaii. Đảo vắt qua kinh tuyến 180 bị bỏ.
 // theo Guyane, Mỹ không kéo theo Hawaii. Đảo vắt qua kinh tuyến 180 bị bỏ.
 export const dienTich = (r) => { let A = 0; for (let i = 0; i < r.length - 1; i++) A += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1]; return Math.abs(A / 2); };
 // TẬP VẮT QUA KINH TUYẾN 180 (Alaska ↔ Nga, Thái Bình Dương): datThaiBinh(true) → mọi mảnh / điểm / khung có tâm ở kinh độ < -30 cộng 360 (châu Mỹ dời
@@ -44,7 +55,7 @@ export const chuan = (w) => boDau(w).toLowerCase().replace(/[^\p{L}\p{N}'-]/gu, 
 // thành phố: Natural Earth 10m (7.300 nơi, có Ceuta / Melilla / Nuuk…) — trùng tên thì lấy nơi đông dân hơn. TP = mọi nơi (đích khai "@Tên");
 // TP_NHAC = nơi ≥ 150 N dân hoặc thủ đô (máy tự chấm khi lời đọc nhắc tên — tránh nhận nhầm chữ thường như "Florida", "Victoria")
 export const TP = new Map(), TP_NHAC = new Map();
-for (const f of JSON.parse(readFileSync(join(KHO, 'ne_10m_places.geojson'), 'utf8')).features) { const p = f.properties, v = { ten: p.name, o: f.geometry.coordinates, pop: p.pop_max, iso: p.adm0_a3 };
+for (const f of JSON.parse(readFileSync(PLACES, 'utf8')).features) { const p = f.properties, v = { ten: p.name, o: f.geometry.coordinates, pop: p.pop_max, iso: p.adm0_a3 };
   for (const t of [p.name, p.nameascii, ...(p.namealt || '').split('|')]) { if (!t || t.length <= 3) continue; const k = chuan(t);
     if (!TP.has(k) || p.pop_max > TP.get(k).pop) TP.set(k, v); if ((p.pop_max >= 150000 || p.adm0cap) && (!TP_NHAC.has(k) || p.pop_max > TP_NHAC.get(k).pop)) TP_NHAC.set(k, v); } }
 // ĐÍCH VIẾT BẰNG CHỮ (máy viết tập khai): "RUS" nước · "RUS@19,54,23,56" mảnh nước trong khung lon/lat · "USA@-150,61" một điểm · "@Ceuta" thành phố Natural Earth · "20.5,54.7" toạ độ

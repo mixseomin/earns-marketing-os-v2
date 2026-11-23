@@ -1379,6 +1379,13 @@ def _xet_luat():
         return o
     giam_tu = q("select gia_tri::text from etp.cau_hinh where khoa = 'giam_tu_dong'") != "false"
     f = lambda v, dv="": "—" if v is None else (f"{v:+.0f}%" if dv == "%" else f"${v:.2f}" if dv == "$" else f"{v:g}{dv}")
+    def fh(x, r, hs=1.0):
+        # ô ROI một ngày (hôm nay / hôm qua) LUÔN ghi số thật: ROI + lãi + chi + thu. Chi dưới $0.3 luật không tính (r = None) nhưng vẫn hiện số,
+        # kèm chữ "chưa tính" — anh 23/11/2026 #1776: #108663 hôm nay chi $0.18 thu $0.31 (+72%) mà ô ghi "—", "đang có lãi thì phải ghi số cụ thể"
+        c = float((x or {}).get("chi") or 0); t = float((x or {}).get("thu") or 0) / float(hs or 1)
+        if not c: return "chưa chi"
+        so = f"lãi {'+' if t >= c else '−'}${abs(t - c):.2f} (chi ${c:.2f} · thu ${t:.2f})"
+        return f"{r:+.0f}% · {so}" if r is not None else f"{(t - c) / c * 100:+.0f}% · {so} · chi < $0.3 nên luật chưa tính"
     def L(ma, ten, mo_ta, dk, vao_ds=None, ghi=None, ap=True, tien=0, lo=None):
         # tien = số điều kiện TIỀN ĐỀ đứng đầu dk (camp có thuộc diện luật không: đáy $1 không giảm được, đã qua 2 ngày đầu…) — hỏng một cái là 'khong_ap', không gọi là 'gần'
         if not (isinstance(dk, list) and all(isinstance(x, list) and len(x) == 4 for x in dk)): raise ValueError(f"thẻ {ma}: dk sai khuôn (cần danh sách [tên, số, ngưỡng, đạt])")   # lỗi nói đúng thẻ nào (09/11/2026 TV)
@@ -1449,7 +1456,7 @@ def _xet_luat():
             _the1 = L("t1", "T1 · tắt sau ngày đầu", f"Camp có 1–2 ngày đã khép có chi, ngày đầu chi ≥ min(${T1_CHI:g}, {T1_PHAN:.0%} ngân sách) và ROI < {T1_ROI}% (không có thu = −100%), mọi ngày đã khép vẫn < {T1_ROI}% → máy tắt hẳn (cách Kim Kiên đóng camp — anh 02/11/2026); HOẶC 24 giờ chạy đầu (từ giờ có chi đầu, etp.so_gio_camp) ROI < {T1_24_ROI}% với chi ≥ {T1_24_PHAN:.0%} ngân sách → tắt ngay khi đủ {T1_24_TUOI} giờ tuổi, không chờ ngày khép (anh 05/11/2026). Xét từ {(7 + T1_CHO) % 24}:00 VN (ngày mới chạy đủ {T1_CHO} giờ); hôm nay ROI ≥ {T1_THA}% thì tha hôm đó." + CHU_BU,
                 [["Số ngày đã khép có chi", f"{len(ds2)} ngày", "1–2 ngày", 1 <= len(ds2) <= 2], ["Chi ngày đầu", f(c1, "$"), f"≥ ${ng1:g}", c1 >= ng1],
                  ["ROI ngày đầu", f(r1, "%"), f"< {T1_ROI}%", r1 is not None and r1 < T1_ROI], ["ROI mọi ngày đã khép", f(ra1, "%"), f"< {T1_ROI}%", ra1 is not None and ra1 < T1_ROI],
-                 ["ROI hôm nay (chi ≥ $0.3)", f(rn1, "%"), f"< {T1_THA}% (≥ {T1_THA}% thì tha hôm nay)", rn1 is None or rn1 < T1_THA]],
+                 ["ROI hôm nay (chi ≥ $0.3)", fh(hom.get(cid) or hom.get(str(cid)), rn1, _HS.get(d(0))),f"< {T1_THA}% (≥ {T1_THA}% thì tha hôm nay)", rn1 is None or rn1 < T1_THA]],
                 "tat1" if int(cid) in vao["tat1"] else None, tien=1, lo=(r1 is not None and r1 < 0) or (ra1 is not None and ra1 < 0))
             # GIỜ CHỜ + NHÁNH 24 GIỜ không phải điều kiện AND (05/11/2026: thẻ đếm cả "ngày mới đủ 6 giờ" lẫn hàng 24 giờ → camp đủ T1 bị ghi 'xa' trước 13:00,
             # thay-the.py không thấy phim sắp mất hết camp → không chuẩn bị camp thay). Giờ chờ chỉ hiện; 24 giờ chạy đạt = đạt T1 (HOẶC)
@@ -1514,7 +1521,7 @@ def _xet_luat():
             spv = (y["chi"] if (KHUNG_DEM and y) else h.get("chi", 0)) / ns * 100 if ns else 0
             dk_tang = [["ROI " + rd(cid).replace("ROI ", ""), f(r, "%"), f"≥ {ROI_TANG}%", r is not None and r >= ROI_TANG],
                        ["Spending " + ("hôm qua" if KHUNG_DEM else "hôm nay"), f"{spv:.0f}%", f"> {sp_min:g}%", spv > sp_min],
-                       [f"{NHAN_HN} · chi ≥ $0.3", f(rh, "%"), "≥ 0%", rh is None or rh >= 0], ["Còn bậc trên", f"${ns:g}", "< $20", bool(ke(ns))]]
+                       [f"{NHAN_HN} · chi ≥ $0.3", fh(h, rh), "≥ 0%", rh is None or rh >= 0], ["Còn bậc trên", f"${ns:g}", "< $20", bool(ke(ns))]]
             cong_b2 = ["Cổng mở bản thang (bộ 2)", _thang_ly.get(int(cid), "mở được"), "mở được", int(cid) not in _thang_ly]
             if b2: dk_tang = dk_tang + [cong_b2]
             _ts = _ts_ly(cid); dk_ts = [f"Siết tăng TS (02/11): sau {TS_GIO[1]}:00 (nạp sáng: {NT.chu_cong(NT.SANG_MAU)} thì được) · hôm qua không lãi 0–50%", _ts or "qua", "không chặn", _ts is None]; dk_ts[0] = dk_ts[0].replace("0–50%", f"0–{TS_HQ}%")
@@ -1552,8 +1559,8 @@ def _xet_luat():
             _khoa_dol(ls[-1], cid)
             # bộ 2 KHÔNG tăng ngân sách — đủ luật thì mở bản thang, nên cổng mở bản thang mới nằm trong bảng (anh 28/10/2026 #1464 "tăng trong ngày sao lại liên quan đến mở bản thang?": tên luật không nói điều đó)
             _tnr = tn_roi(h.get("chi", 0), ns)   # chi < 50% ngân sách → ROI hôm nay ≥ 100% (anh 12/11/2026)
-            dk_ngay = [[NHAN_HN, f(rh, "%"), f"≥ {_tnr:g}%" + (f" (chi < {TN['duoi']:.0%} ngân sách)" if _tnr != TN["roi"] else ""), rh is not None and rh >= _tnr], ["Chi hôm nay", f"{(h.get('chi', 0) / ns * 100 if ns else 0):.0f}% ngân sách", f"≥ {TN['chi']:.0%}", bool(ns and h.get("chi", 0) >= TN["chi"] * ns)],
-                 ["ROI hôm qua", f(ry, "%") + (f" · chi ${y['chi']:.2f}" if y else ""), f"≥ 0% · bỏ qua khi chi < ${max(HQ_NHO_MIN, HQ_NHO * ns):g}", bool(ry is None or ry >= 0 or (y and y["chi"] < max(HQ_NHO_MIN, HQ_NHO * ns)))],
+            dk_ngay = [[NHAN_HN, fh(h, rh), f"≥ {_tnr:g}%" + (f" (chi < {TN['duoi']:.0%} ngân sách)" if _tnr != TN["roi"] else ""), rh is not None and rh >= _tnr], ["Chi hôm nay", f"{(h.get('chi', 0) / ns * 100 if ns else 0):.0f}% ngân sách", f"≥ {TN['chi']:.0%}", bool(ns and h.get("chi", 0) >= TN["chi"] * ns)],
+                 ["ROI hôm qua", fh(y, ry),f"≥ 0% · bỏ qua khi chi < ${max(HQ_NHO_MIN, HQ_NHO * ns):g}", bool(ry is None or ry >= 0 or (y and y["chi"] < max(HQ_NHO_MIN, HQ_NHO * ns)))],
                  ["ROI " + rd(cid).replace("ROI ", ""), f(r, "%"), "≥ 0%", r is not None and r >= 0], dk_ts] + ([cong_b2] if b2 else [])
             if not b2 and all(x[3] for x in dk_ngay): dk_ngay = dk_ngay + [_nhip()[0]]   # cùng cổng nhịp với Tăng bậc (cùng lệnh tăng)
             dk_ngay = _kt(dk_ngay)

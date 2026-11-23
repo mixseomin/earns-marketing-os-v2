@@ -31,6 +31,9 @@ assert.deepStrictEqual(dangChongBau([shot(174)]), {});
 const cumC = 'Shot 3 (about 1.5 s): Medium shot — slow carefree stroll, sipping; nobody speaks, mouths closed. Shot 4 (about 3.5 s): Wide shot — man frowns and fires questions; boy lowers head; nobody speaks, mouths closed. Shot 5 (about 4 s): Close-up — the man in the t-shirt says: Sao giờ mới về? Tàu sắp chạy rồi. Keep it subtitle-free.';
 assert.deepStrictEqual(loiShotPrompt(cumC).length, 1); assert.ok(loiShotPrompt(cumC)[0]!.includes('shot 4') && loiShotPrompt(cumC)[0]!.includes('questions'));
 assert.deepStrictEqual(loiShotPrompt(cumC.replace('fires questions', 'glares down, jabbing a finger at the train')), []);
+// «questions» là danh từ (chữ viết trong sổ) thì không phải nói — phim #7999 cảnh 10 bị chặn nhầm 23/11/2026; làm động từ thì vẫn chặn
+assert.deepStrictEqual(loiShotPrompt('Shot 1 (about 3 s): Close-up — narrator opens the notebook; hand hovers between the two written questions; nobody speaks, mouths closed. Keep it subtitle-free.'), []);
+assert.strictEqual(loiShotPrompt('Shot 1 (about 3 s): Wide shot — the officer questions him sharply; nobody speaks, mouths closed. Keep it subtitle-free.').length, 1);
 assert.ok(loiShotPrompt('Shot 1 (about 1.5 s): Insert close-up — hold the action clear and readable, settle at the end. Keep it subtitle-free.')[0]!.includes('câu diễn rỗng'));
 assert.ok(loiThoaiCuoiCum([2], 4)[0]!.includes('shot 2')); assert.deepStrictEqual(loiThoaiCuoiCum([5], 5), []); assert.deepStrictEqual(loiThoaiCuoiCum([], 3), []);
 assert.ok(loiVideoThamChieu(1.2)[0]!.includes('1.20 s')); assert.deepStrictEqual(loiVideoThamChieu(2), []);

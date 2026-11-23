@@ -46,9 +46,10 @@ export function loiClipThamChieu(ds: { so: number; clip?: { sach?: boolean } | n
 
 /** TỪNG SHOT TRONG CÂU LỆNH CỤM (15/11/2026, soát cụm C / E phim #3071 trước khi sinh):
  *  - shot ghi "nobody speaks" mà động tác lại là NÓI ("man frowns and fires questions" — câu hỏi thật nằm ở shot sau) → model sinh tiếng / nhép miệng bịa;
+ *    «questions» chỉ là NÓI khi đứng sau động từ hỏi ("fires questions") hoặc làm động từ ("questions him"); "the two written questions" trong sổ là chữ, không phải lời (23/11/2026 phim #7999 cảnh 10 bị chặn nhầm);
  *  - câu diễn rỗng mặc định (prompt-khoi.ts › DIEN_RONG) còn lọt → shot không có động tác nào, model tự bịa. Thuần. */
 export function loiShotPrompt(prompt: string): string[] {
-  const NOI = /\b(?:says?|said|asks?|asking|questions?|shouts?|yells?|calls? (?:out|to)|talk(?:s|ing)?|tells?|repl(?:y|ies)|answers?|whispers?|mutters?|scolds?|argues?|chats?)\b/i;
+  const NOI = /\b(?:says?|said|asks?|asking|(?:fires?|firing|throws?|poses?) (?:off )?(?:a |more |the )?questions?|questions (?:him|her|them|me|you|the \w+)|questioning|shouts?|yells?|calls? (?:out|to)|talk(?:s|ing)?|tells?|repl(?:y|ies)|answers?|whispers?|mutters?|scolds?|argues?|chats?)\b/i;
   return [...prompt.matchAll(/Shot (\d+) \(about [^)]*\):([\s\S]*?)(?=Shot \d+ \(about|Keep it subtitle-free|$)/g)].flatMap(([, so, t]) => {
     const loi: string[] = []; const cau = t!.replace(/says:[\s\S]*$/, '');
     if (/nobody speaks/i.test(cau)) { const m = cau.replace(/nobody speaks[\s\S]*$/i, '').match(NOI); if (m) loi.push(`shot ${so} ghi "nobody speaks" mà động tác có «${m[0]}» — model sẽ sinh tiếng nói / nhép miệng bịa: viết lại câu diễn thành động tác câm`); }

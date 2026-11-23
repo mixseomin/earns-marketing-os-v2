@@ -866,6 +866,8 @@ export const LUAT = [
   { card: 'dich-giong-2311', tep: 'apps/etp2/src/lib/actions/etp-bai.ts', co: 'dungBaiQc', vi: 'thẻ và máy dịch sẵn dựng chữ cùng một hàm (khoá dịch trùng khít)' },
   { card: 'dich-giong-2311', tep: 'apps/etp/dong-bo.py', co: 'dich-truoc.mts', vi: 'dịch sẵn chữ creative đang / chuẩn bị / sẽ chạy mỗi lượt đồng bộ' },
   { card: 'dich-giong-2311', tep: 'apps/etp/dong-bo.py', co: 'han = int(TRAN_LUOT - 60 - (time.time() - T_BAT))', vi: 'bước dịch sẵn chỉ dùng thời gian còn dư của lượt — không đẩy etp-dong-bo vượt trần 900 giây (23/11/2026 systemd giết cả lượt)' },
+  { card: 'dong-bo-tran-2311', tep: 'apps/etp/dong-bo.py', co: 'from etp.bc_ad_ngay n join etp.bc_ad a using (ad_id)', vi: 'nước giao camp_nuoc tính từ kho thô bc_ad_ngay, không gọi lại report Ethopex (lệnh 8 ngày ngốn > 7 phút, lượt quá trần 900 s)' },
+  { card: 'dong-bo-tran-2311', tep: 'apps/etp/dong-bo.py', co: "sys.stdout.reconfigure(line_buffering=True)", vi: 'mốc từng bước in ngay — lượt bị systemd giết vẫn để lại bước đang chạy' },
   { card: 'dich-giong-2311', tep: 'apps/etp2/scripts/dich-truoc.mts', co: 'while (k < lo.length && Date.now() < HAN)', vi: 'máy dịch sẵn dừng nhận lô khi hết hạn, vẫn ghi dấu phần đã dịch' },
   { card: 'cat-0411', tep: 'apps/etp/cat_phim.py', co: '"cho_dang_ngay": 3,', vi: 'chờ dạng thiếu quá 3 ngày không lên được thì cất' },
   { card: 'noi-0411', tep: 'apps/web/src/components/etp-noi.tsx', co: 'function ReThe({ the, children, rong = 380, cao = 320 }', vi: 'mọi hover mới dùng thẻ nổi chung (useNoi + KhungNoi + DongMoc) — anh 04/11/2026' },

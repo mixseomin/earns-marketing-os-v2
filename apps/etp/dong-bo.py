@@ -409,19 +409,19 @@ def main():
     except Exception as e: loi.append(f"bc_ad: {e}")
     moc('NƯỚC GIAO THẬT của camp, 7 ngày gần nhất')
     # ── NƯỚC GIAO THẬT của camp, 7 ngày gần nhất (anh 29/10/2026 "các camp hãy thêm icon quốc gia target"): camp đều nhắm cùng 39 nước, nước GIAO mới cho biết
-    # camp chạy ở đâu. Report gom campaign_name + geo (gom geo trần trả 1 dòng / nước cho mọi team, không tách được nhà) → etp.camp_nuoc, ghi đè cả bảng mỗi lượt
+    # camp chạy ở đâu → etp.camp_nuoc (camp nhà × nước: chi / thu 8 ngày), ghi đè cả bảng mỗi lượt.
+    # TÍNH TỪ KHO THÔ etp.bc_ad_ngay (ad × nước × ngày, bước ngay trên) — KHÔNG gọi lại report (23/11/2026: lệnh report 8 ngày campaign × geo × date cổng chia
+    # theo ngày rồi lô camp ngốn > 7 phút, đẩy etp-dong-bo quá trần 900 s, systemd giết mọi lượt từ 12:24; đối chiếu kho: 7.603 dòng / chi $2.799 so với 7.581 / $2.793)
     try:
-        gn_ = {}
-        # + date và lọc campaign_id = camp trong kho: 8 ngày ~65.000 dòng, một ngày ~12.000 > 1 trang → cổng chia theo ngày rồi theo lô camp (cộng dồn bên dưới)
-        ds_camp = [int(x) for x in q("select camp_id from etp.camp union select camp_id from etp.camp_ngoai").split()]
-        for x in EA.api("/api/v1/report", {"columns": ["campaign_name", "cost", "revenue"], "group_by": ["campaign_name", "geo", "date"], "filters": {"campaign_id": ds_camp}, "metric_conditions": [], "limit": 10000, "page": 1, "page_size": 10000,
-                                           "date_from": (nay - dt.timedelta(days=7)).isoformat(), "date_to": nay.isoformat()})["rows"]:
-            m = re.match(r"\(([A-Z]{2})\)", str(x.get("geo") or ""))
-            if not x.get("campaign_id") or not m: continue
-            e = gn_.setdefault((int(x["campaign_id"]), m.group(1)), [0.0, 0.0]); e[0] += float(x.get("cost") or 0); e[1] += float(x.get("revenue") or 0)
-        if gn_:
-            q("delete from etp.camp_nuoc")
-            kq["so_dong_nuoc"] = ghi("camp_nuoc", [{"camp_id": c, "geo": g, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, g), v in gn_.items() if v[0] or v[1]], ["camp_id", "geo"], {"camp_id": "int", "geo": "text", "chi": "numeric", "thu": "numeric"})
+        kq["so_dong_nuoc"] = int(q("""begin;
+            create temp table m on commit drop as select a.campaign_id::int camp_id, n.geo, round(sum(n.cost), 4) chi, round(sum(n.revenue), 4) thu
+                from etp.bc_ad_ngay n join etp.bc_ad a using (ad_id)
+               where n.ngay >= current_date - 7 and n.geo <> '' and a.campaign_id in (select camp_id from etp.camp)
+               group by 1, 2 having sum(n.cost) <> 0 or sum(n.revenue) <> 0;
+            delete from etp.camp_nuoc where exists (select 1 from m);
+            insert into etp.camp_nuoc (camp_id, geo, chi, thu) select camp_id, geo, chi, thu from m;
+            select count(*) from m;
+            commit;""").strip() or 0)
     except Exception as e: loi.append(f"camp_nuoc: {e}")
     moc('số theo giờ')
     # ── số theo giờ (phim × giờ) hôm qua + hôm nay

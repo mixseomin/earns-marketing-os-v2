@@ -541,6 +541,10 @@ const LUAT = [
   // #1784 (anh 23/11/2026 'Ở drawer tạo phải có lộ trình, timeline... để ai cũng hiểu'): ngăn creative phim có lộ trình 5 chặng + tiến độ máy dựng theo bước
   // anh 23/11/2026 (ảnh khoanh đỏ dải 5 chặng: "Xoá cái này đi"): bỏ hẳn khung lộ trình khỏi ngăn — thay hai điều kiện cũ của #1784
   { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', cam: 'LoTrinh', vi: 'không quay lại dải lộ trình 5 chặng Soạn → Máy dựng → Thư viện → Lên camp → Chạy (anh bảo xoá 23/11/2026)' },
+  // anh 23/11/2026 ("chọn mẫu thì sang bước tiếp theo là các input, rồi chọn thư viện… kéo thả, chứ không phải lưu vào thư viện"): soạn theo bước, nút cuối là gửi máy dựng
+  { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', cam: 'Lưu vào thư viện', vi: 'nút cuối của khung soạn là Gửi máy dựng, không phải Lưu vào thư viện (anh 23/11/2026)' },
+  { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: "const BUOC_SOAN = ['Mẫu', 'Chữ', 'Thành phần', 'Gửi máy dựng']", vi: 'khung soạn chia 4 bước wizard (anh 23/11/2026)' },
+  { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: 'sua({ mau: m.ma }); setBuocSoan(2);', vi: 'chọn mẫu xong tự sang bước Chữ (anh 23/11/2026)' },
   { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: '<TienDung buoc={s.buoc} />', vi: 'bản đang dựng hiện dải tiến độ theo bước máy' },
   { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', cam: "` (${BUOC_DUNG[s.buoc] ?? 'đang làm'})`", vi: 'không quay về chữ bước dựng trong ngoặc thay cho tiến độ' },
   // #1786 (anh 23/11/2026 'Ngu thế ai hiểu' — nút bản dở chỉ ghi "<tên mẫu> · nháp"): nút ghi việc + số bản, tên mẫu vào chữ rê

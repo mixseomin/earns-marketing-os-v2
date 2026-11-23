@@ -2,11 +2,11 @@
 // NGĂN CREATIVE CỦA MỘT PHIM (anh 23/11/2026, etp2 › Camp, hàng tên phim: "có 1 nút để thêm creative mới, hoặc hiện danh sách creative đang edit, đang có. Bấm vào sẽ ra drawer
 // đầy đủ các bước edit… thao tác thoải mái, đóng mở thoải mái. Khi xong thì bấm save thì sẽ lưu vào thư viện creatives. Khi muốn lên camp từ creative thì thêm 1 nút lên camp").
 // Loại 'etp-cr-phim' của EtpDrawerHost, id = <mã phim> (danh sách) hoặc <mã phim>:moi (mở thẳng bản soạn mới) — nằm trên URL ?ed= nên F5 giữ nguyên.
-// Trên: SOẠN — Mẫu · Câu nhử (mẫu có câu nhử) · Chữ QC Meta, gõ tới đâu tự lưu nháp tới đó (etp.cr_soan), đóng ngăn mở lại vẫn còn; 💾 Lưu vào thư viện = gửi máy dựng
+// Trên: SOẠN — 4 bước Mẫu → Chữ → Thành phần → Gửi máy dựng, gõ tới đâu tự lưu nháp tới đó (etp.cr_soan), đóng ngăn mở lại vẫn còn
 // theo mẫu (iMac), khung hình máy tự chọn. Dưới: creative đã có — tích chọn + "Lên camp N" hoặc Lên camp từng cái (đúng đường ✓ Duyệt: camp $1 theo lịch lên). Lỗi hiện ngay dưới nút.
 // ngan-moi-ok: creative theo phim (soạn + thư viện + lên camp) — đã tra: etp-mau-dung là MỘT việc dựng mẫu × phim (chỉ đọc), etp-phim là thông tin phim, chưa ngăn nào soạn creative
 // tra-repo-ok: màn nội bộ dựng từ khối dùng chung của etp2 (Drawer, GuardedButton, BadgeDangNgan), action etp-cr-phim.ts dùng lại hàng chờ mau_dung + duyetChoAnh
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Drawer, GuardedButton } from '@/components/ui';
 import { BadgeDangNgan, MO_SO } from '@/components/etp-so';
 import { openEntityDrawer } from '@/lib/entity-drawer';
@@ -39,6 +39,8 @@ const loiChu = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const baoDoi = () => window.dispatchEvent(new Event('etp-cr-phim'));   // chip "🎬 N" trên hàng phim đếm lại
 
 type Ban = { id: number | null; mau: string | null; cau: string; nhan: string; chu_dau: string };
+/** các bước soạn (khuôn wizard) — mẫu → chữ → thành phần từ thư viện → gửi máy dựng */
+const BUOC_SOAN = ['Mẫu', 'Chữ', 'Thành phần', 'Gửi máy dựng'] as const;
 const BAN_TRONG: Ban = { id: null, mau: null, cau: '', nhan: '', chu_dau: '' };
 
 export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () => void }) {
@@ -55,6 +57,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
   // HAI MÀN TÁCH RIÊNG (anh 23/11/2026: "bấm danh sách creative thì chỉ hiện ds creative. Bấm draft thì hiện ra cái đang draft" — trước đổ cả soạn + lộ trình + thư viện vào một ngăn)
   // chip 🎬 N → 'ds' (chỉ creative đã có) · chip +nháp / ＋ → 'soan' (chỉ bản nháp / bản đang soạn)
   const [tab, setTab] = useState<'ds' | 'soan'>(che === 'moi' || che === 'nhap' ? 'soan' : 'ds');
+  const [buocSoan, setBuocSoan] = useState<1 | 2 | 3 | 4>(1);
   const [luu, setLuu] = useState<'' | 'dang' | 'da'>(''), [kqLuu, setKqLuu] = useState<Kq>(null), [gui, setGui] = useState(false);
   const banRef = useRef(ban); banRef.current = ban;
   const hen = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,7 +74,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
     thoiHen(); hen.current = setTimeout(() => { hen.current = null; void luuNgay(); }, 700); };   // gõ tới đâu tự lưu nháp tới đó
   useEffect(() => () => { if (thoiHen()) void luuNgay(); }, [luuNgay]);   // đóng ngăn giữa lúc chờ lưu → vẫn lưu
   const gap = () => { if (thoiHen()) void luuNgay(); setBan(null); void tai(); };
-  const moBan = (s: SoanCr) => { if (thoiHen()) void luuNgay(); setXemDung(null); setKqLuu(null); setBan({ id: s.id, mau: s.mau, cau: s.cau ?? '', nhan: s.nhan ?? '', chu_dau: s.chu_dau ?? '' }); };
+  const moBan = (s: SoanCr) => { if (thoiHen()) void luuNgay(); setXemDung(null); setKqLuu(null); setBan({ id: s.id, mau: s.mau, cau: s.cau ?? '', nhan: s.nhan ?? '', chu_dau: s.chu_dau ?? '' }); setBuocSoan(s.mau ? 2 : 1); };
   const guiDung = async () => {
     setGui(true); setKqLuu(null);
     try {
@@ -110,7 +113,6 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
   const mauChon = ok.mau.find((m) => m.ma === ban?.mau) ?? null;
   const soanDs = ok.soan.filter((s) => s.trang_thai !== 'xong');
   const nhan = (t: string, mau: string) => <span style={{ fontSize: 11, padding: '0 6px', borderRadius: 6, border: `1px solid ${mau}`, color: mau, whiteSpace: 'nowrap' }}>{t}</span>;
-  const so = (n: number) => (mauChon?.cau_nhu ? n : n - 1);
   const nSoan = ok.soan.filter((s) => s.trang_thai !== 'xong').length;
   const the = (k: 'ds' | 'soan', chu: string) => <button type="button" onClick={() => setTab(k)} style={{ all: 'unset', cursor: 'pointer', padding: '8px 14px', fontSize: 13.5,
     fontWeight: tab === k ? 700 : 500, color: tab === k ? 'var(--fg-1)' : MO_SO, borderBottom: `2px solid ${tab === k ? XANH : 'transparent'}` }}>{chu}</button>;
@@ -124,7 +126,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
     : <GuardedButton onClick={() => void lenCamp([c.creative_id])} reason={len ? 'đang lên…' : false} title="lên camp $1 theo lịch lên (đúng đường ✓ Duyệt)"
         style={{ ...nut(VANG), padding: '2px 8px', alignSelf: 'flex-start' }}>{len && lenMot === c.creative_id ? 'đang lên…' : '🚀 Lên camp'}</GuardedButton>;
 
-  return <Drawer onClose={onClose} width={900} padding={0}>{dau}
+  return <Drawer onClose={onClose} width={2400} padding={0}>{dau}
     {/* NEO (anh 23/11/2026: "phần danh sách giống như cái neo, không được để mất dấu"): thanh thẻ + cột danh sách trái dính trên khung cuộn của ngăn */}
     <div style={{ display: 'flex', gap: 4, padding: '0 10px', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 3, background: 'var(--bg-1)' }}>
       {the('ds', `Creative đã có · ${ok.cr.length}${ok.con ? `+${ok.con}` : ''}`)}{the('soan', `Bản nháp · ${nSoan}`)}</div>
@@ -136,7 +138,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
           danh sách bản nháp bên trái (＋ Creative mới đứng đầu), bên phải là MỘT khung soạn dùng chung cho bản mới lẫn bản cũ */}
       <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
         <div style={{ width: 270, flex: '0 0 270px', display: 'flex', flexDirection: 'column', gap: 6, position: 'sticky', top: 48, alignSelf: 'flex-start' }}>
-          <button type="button" style={{ ...nut(XANH, !!ban && ban.id == null), padding: '6px 12px', fontSize: 13 }} onClick={() => { if (thoiHen()) void luuNgay(); setXemDung(null); setBan(BAN_TRONG); setKqLuu(null); }}>＋ Creative mới</button>
+          <button type="button" style={{ ...nut(XANH, !!ban && ban.id == null), padding: '6px 12px', fontSize: 13 }} onClick={() => { if (thoiHen()) void luuNgay(); setXemDung(null); setBan(BAN_TRONG); setBuocSoan(1); setKqLuu(null); }}>＋ Creative mới</button>
           <div style={{ maxHeight: 'calc(100vh - 170px)', overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
             {!soanDs.length ? <div style={{ padding: 12, color: MO_SO }}>Chưa có bản nháp nào.</div> : null}
             {soanDs.map((s) => { const [t, m] = TT_SOAN[s.trang_thai], on = ban?.id === s.id || xemDung === s.id, mau = ok.mau.find((x) => x.ma === s.mau);
@@ -156,39 +158,77 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
           </div>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-        {ban ? <div style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {ban ? <div style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: MO_SO, letterSpacing: 0.5 }}>BƯỚC 1</span>
           <b style={{ fontSize: 14 }}>{ban.id ? `Soạn · bản #${ban.id}` : 'Soạn creative mới'}</b>
           <span style={{ color: luu === 'da' ? XANH : MO_SO, fontSize: 12 }}>{luu === 'dang' ? 'đang lưu nháp…' : luu === 'da' ? '✓ đã lưu nháp' : 'tự lưu khi gõ — đóng ngăn mở lại vẫn còn'}</span>
         </div>
-        {/* 1. MẪU */}
-        <div><div style={{ fontWeight: 600, marginBottom: 6 }}>1. Mẫu <span style={{ color: MO_SO, fontWeight: 400 }}>— khung hình máy tự chọn từ tập phim</span></div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(92px, 1fr))', gap: 8 }}>
+        {/* KHUÔN WIZARD (anh 23/11/2026: "chọn mẫu thì sang bước tiếp theo là các input, rồi chọn thư viện… kéo thả, chứ không phải lưu vào thư viện") —
+            thanh bước kiểu MUI Stepper https://mui.com/material-ui/react-stepper/ : mỗi lúc MỘT bước, bước đã qua bấm lại được */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {BUOC_SOAN.map((t, i) => { const n = (i + 1) as 1 | 2 | 3 | 4, xong = n < buocSoan, dang = n === buocSoan, mo = n === 1 || !!ban.mau;
+            return <Fragment key={t}>{i ? <span style={{ flex: 1, height: 1, background: xong ? XANH : 'var(--line)', minWidth: 16 }} /> : null}
+              <button type="button" disabled={!mo} onClick={() => setBuocSoan(n)} title={mo ? '' : 'chọn mẫu trước'}
+                style={{ all: 'unset', cursor: mo ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 6, opacity: mo ? 1 : 0.45 }}>
+                <span style={{ width: 22, height: 22, borderRadius: 11, display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700,
+                  background: dang || xong ? XANH : 'transparent', color: dang || xong ? '#fff' : MO_SO, border: `1px solid ${dang || xong ? XANH : 'var(--line)'}` }}>{xong ? '✓' : n}</span>
+                <span style={{ fontSize: 13, fontWeight: dang ? 700 : 500, color: dang ? 'var(--fg-1)' : MO_SO, whiteSpace: 'nowrap' }}>{t}</span>
+              </button></Fragment>; })}
+        </div>
+        {buocSoan === 1 ? <div><div style={{ color: MO_SO, marginBottom: 8 }}>Chọn một mẫu — bấm xong tự sang bước Chữ.</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
             {ok.mau.map((m) => { const on = m.ma === ban.mau;
-              return <button key={m.ma} type="button" onClick={() => sua({ mau: m.ma })} title={m.mo_ta}
+              return <button key={m.ma} type="button" onClick={() => { sua({ mau: m.ma }); setBuocSoan(2); }} title={m.mo_ta}
                 style={{ padding: 0, border: `2px solid ${on ? XANH : 'var(--line)'}`, borderRadius: 8, background: 'transparent', cursor: 'pointer', overflow: 'hidden', textAlign: 'left', color: 'inherit' }}>
                 <div style={{ aspectRatio: '9 / 16', background: '#000' }}>{m.anh ? <img src={m.anh} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}</div>
-                <div style={{ fontSize: 11, padding: '3px 5px', lineHeight: 1.25, color: on ? XANH : 'var(--fg-1)' }}>{on ? '✓ ' : ''}{m.ten}</div></button>; })}
-          </div></div>
-        {/* 2. CÂU NHỬ — chỉ mẫu có câu nhử trên hình */}
-        {mauChon?.cau_nhu ? <div><div style={{ fontWeight: 600, marginBottom: 6 }}>2. Câu nhử trên hình <span style={{ color: MO_SO, fontWeight: 400 }}>— để trống thì máy tự viết</span></div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input value={ban.cau} onChange={(e) => sua({ cau: e.target.value })} maxLength={120} placeholder="vd: She thought he was just the driver" style={{ ...O, flex: 1 }} />
-            <input value={ban.nhan} onChange={(e) => sua({ nhan: e.target.value })} maxLength={30} placeholder="chữ tô nổi (vd driver)" style={{ ...O, width: 160 }} />
+                <div style={{ fontSize: 11.5, padding: '4px 6px', lineHeight: 1.25, color: on ? XANH : 'var(--fg-1)' }}>{on ? '✓ ' : ''}{m.ten}</div></button>; })}
           </div></div> : null}
-        {/* 3. CHỮ QC META */}
-        <div><div style={{ fontWeight: 600, marginBottom: 6 }}>{so(3)}. Chữ quảng cáo trên Meta <span style={{ color: MO_SO, fontWeight: 400 }}>— để trống thì máy dùng chữ mặc định của mẫu</span></div>
-          <textarea value={ban.chu_dau} onChange={(e) => sua({ chu_dau: e.target.value })} rows={3} maxLength={400} placeholder="dòng chữ hiện phía trên video quảng cáo"
-            style={{ ...O, width: '100%', resize: 'vertical', padding: 8 }} /></div>
+        {buocSoan > 1 && mauChon ? <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+          {/* mẫu đang chọn đứng cố định bên trái mọi bước sau — người soạn luôn thấy mình đang làm theo mẫu nào */}
+          <div style={{ width: 150, flex: '0 0 150px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ aspectRatio: '9 / 16', background: '#000', borderRadius: 8, overflow: 'hidden' }}>{mauChon.anh ? <img src={mauChon.anh} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}</div>
+            <b style={{ fontSize: 12 }}>{mauChon.ten}</b>
+            <a style={{ cursor: 'pointer', fontSize: 12 }} onClick={() => setBuocSoan(1)}>đổi mẫu</a>
+          </div>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {buocSoan === 2 ? <>
+            {mauChon.cau_nhu ? <div><div style={{ fontWeight: 600, marginBottom: 6 }}>Câu nhử trên hình <span style={{ color: MO_SO, fontWeight: 400 }}>— để trống thì máy tự viết</span></div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input value={ban.cau} onChange={(e) => sua({ cau: e.target.value })} maxLength={120} placeholder="vd: She thought he was just the driver" style={{ ...O, flex: 1 }} />
+                <input value={ban.nhan} onChange={(e) => sua({ nhan: e.target.value })} maxLength={30} placeholder="chữ tô nổi (vd driver)" style={{ ...O, width: 180 }} />
+              </div></div> : <div style={{ color: MO_SO }}>Mẫu này không có câu nhử trên hình.</div>}
+            <div><div style={{ fontWeight: 600, marginBottom: 6 }}>Chữ quảng cáo trên Meta <span style={{ color: MO_SO, fontWeight: 400 }}>— để trống thì máy dùng chữ mặc định của mẫu</span></div>
+              <textarea value={ban.chu_dau} onChange={(e) => sua({ chu_dau: e.target.value })} rows={4} maxLength={400} placeholder="dòng chữ hiện phía trên video quảng cáo"
+                style={{ ...O, width: '100%', resize: 'vertical', padding: 8 }} /></div>
+          </> : null}
+          {buocSoan === 3 ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontWeight: 600 }}>Thành phần lấy từ thư viện</div>
+            {/* chưa có ô khai trong sổ mẫu (etp-mau-cr.json chưa có `o`) → nói thật máy đang chọn theo luật của mẫu, không vẽ ô kéo thả giả */}
+            <div style={{ color: MO_SO, padding: 12, border: '1px dashed var(--line)', borderRadius: 8, lineHeight: 1.5 }}>
+              Mẫu này chưa khai các ô thành phần, nên máy tự chọn khung hình / poster / nút theo luật của mẫu khi dựng.<br />
+              Đang làm: khai ô cho từng mẫu, rồi bước này hiện các ô bên trái và thư viện (poster, ảnh tĩnh, ảnh theo phim, nút CTA, băng chữ) bên phải để kéo thả ghim vào ô.</div>
+          </div> : null}
+          {buocSoan === 4 ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontWeight: 600 }}>Kiểm lại rồi gửi máy dựng</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '4px 12px' }}>
+              <span style={{ color: MO_SO }}>Mẫu</span><span>{mauChon.ten}</span>
+              {mauChon.cau_nhu ? <><span style={{ color: MO_SO }}>Câu nhử</span><span>{ban.cau.trim() || <i style={{ color: MO_SO }}>máy tự viết</i>}{ban.nhan.trim() ? ` · tô nổi: ${ban.nhan}` : ''}</span></> : null}
+              <span style={{ color: MO_SO }}>Chữ QC Meta</span><span style={{ whiteSpace: 'pre-wrap' }}>{ban.chu_dau.trim() || <i style={{ color: MO_SO }}>chữ mặc định của mẫu</i>}</span>
+              <span style={{ color: MO_SO }}>Thành phần</span><span>máy chọn theo luật của mẫu</span>
+            </div>
+            <div style={{ color: MO_SO, fontSize: 12 }} title={`AI chọn khung${mauChon.cau_nhu && !ban.cau.trim() ? ' + viết câu nhử' : ''} · máy iMac lấy hàng mỗi 2 phút`}>
+              Máy trên iMac dựng (~176₫ / bản), xong tự sang thẻ "Creative đã có".</div>
+          </div> : null}
+          </div>
+        </div> : null}
         <div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <GuardedButton onClick={() => void guiDung()} reason={!ban.mau ? 'chọn mẫu trước (bước 1)' : gui ? 'đang gửi…' : false}
-              title="máy trên iMac dựng theo mẫu, xong tự vào thư viện creative" style={nut(XANH, true)}>{gui ? 'đang gửi…' : '💾 Lưu vào thư viện'}</GuardedButton>
-            <span style={{ color: MO_SO, fontSize: 12 }} title={`AI chọn khung${mauChon?.cau_nhu && !ban.cau.trim() ? ' + viết câu nhử' : ''} · máy iMac lấy hàng mỗi 2 phút`}>
-              → sang <b style={{ color: 'var(--fg-1)' }}>bước 2</b>: máy tự dựng (~176₫ / bản), xong tự vào thư viện</span>
+            {buocSoan > 1 ? <button type="button" style={nut(MO_SO)} onClick={() => setBuocSoan((buocSoan - 1) as 1 | 2 | 3)}>← Quay lại</button> : null}
             <span style={{ flex: 1 }} />
             <button type="button" style={nut(DO)} onClick={() => void bo()}>Bỏ bản này</button>
+            {buocSoan < 4 ? <GuardedButton onClick={() => setBuocSoan((buocSoan + 1) as 2 | 3 | 4)} reason={!ban.mau ? 'chọn mẫu trước' : false} style={nut(XANH, true)}>Tiếp →</GuardedButton>
+              : <GuardedButton onClick={() => void guiDung()} reason={!ban.mau ? 'chọn mẫu trước' : gui ? 'đang gửi…' : false}
+                  title="máy trên iMac dựng theo mẫu, xong tự vào thẻ Creative đã có" style={nut(XANH, true)}>{gui ? 'đang gửi…' : '🛠 Gửi máy dựng'}</GuardedButton>}
           </div>
           <Bao kq={kqLuu} />
         </div>

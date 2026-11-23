@@ -11,6 +11,9 @@ Ghi bằng psql + jsonb_to_recordset (không cần thư viện ngoài). Lỗi m�
 Dùng: dong-bo.py [--day-du]   (--day-du = kéo lại chi tiết mọi camp + số từ 19/10) · dong-bo.py --xem-dem [ngày] (bảng chụp đêm, chỉ đọc)"""
 import datetime as dt, json, os, re, subprocess, sys, time, urllib.error, urllib.request
 T_BAT, TRAN_LUOT = time.time(), 900   # TRAN_LUOT = TimeoutStartSec của etp-dong-bo.service — bước dịch sẵn chỉ dùng phần còn dư
+# MỐC TỪNG BƯỚC (23/11/2026: lượt vượt trần 900 s bị systemd giết thì mất hết print vì stdout đệm khối) — in ngay, dòng nào ra là bước đó đã tới
+sys.stdout.reconfigure(line_buffering=True); MOC = []
+def moc(ten): MOC.append([ten, round(time.time() - T_BAT)]); print(f"⏱ {MOC[-1][1]}s {ten}")
 from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import ethopex_api as EA   # cổng chung: tài khoản nhà / ngoài (anh 28/10/2026)
 DB = os.environ["DATABASE_URL"]
@@ -133,16 +136,19 @@ def main():
     hk_cu = hk_ds = None   # hậu kiểm cửa (hau_kiem.py): chụp kho giữa lượt, so cuối lượt
     nay = dt.datetime.now(dt.timezone.utc).date(); t0 = time.time()
     if TOKEN.get("nguon") in ("het", "?"): loi.append(f"token Ethopex: không còn token dùng được ({TOKEN.get('loi')}) — etp2 bấm 🔑 Sửa token")
+    moc('LỊCH GIỜ')
     # ── LỊCH GIỜ (anh 25/10/2026): bật / tắt camp theo thể loại × khung giờ VN — chạy ĐẦU lượt cho đúng giờ (lượt đồng bộ dài vài phút); lỗi không chặn đồng bộ
     try:
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "lich-gio.py")], capture_output=True, text=True, timeout=300)
         print((r.stdout or "").strip()[-300:]); r.stderr.strip() and loi.append(f"lich_gio: {r.stderr.strip()[-200:]}")
     except Exception as e: loi.append(f"lich_gio: {e}")
+    moc('SỔ LUẬT CHUNG → etp.bang_luat')
     # ── SỔ LUẬT CHUNG → etp.bang_luat (một bản chép, ghi đè mỗi lượt): view kho bài viết etp.bai_viet_v đọc ngưỡng mốc ở đây, không tự đặt ngưỡng (0454)
     try:
         _bl = json.dumps(json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web", "src", "lib", "etp-bang-luat.json"))))
         q(f"insert into etp.bang_luat (id, gia_tri) values (1, $J${_bl}$J$::jsonb) on conflict (id) do update set gia_tri = excluded.gia_tri, luc = now() where etp.bang_luat.gia_tri is distinct from excluded.gia_tri")
     except Exception as e: loi.append(f"bang_luat: {e}")
+    moc('camp')
     # ── camp
     try:
         # TÀI KHOẢN NHÀ / NGOÀI (anh 28/10/2026): danh sách đủ mọi trang (tối đa 1.000/trang); camp tài khoản nhà vào kho luật như cũ, camp tài khoản
@@ -240,12 +246,14 @@ def main():
         # camp ROAS chạy BÀI ĐĂNG CŨ: ad không mang content/creative → nhận phim của camp gốc (cây camp + số theo phim trên etp.on.tc)
         q("""update etp.camp c set content_id = g.content_id from etp.camp g where c.goc = g.camp_id and coalesce(c.content_id, 0) = 0 and coalesce(g.content_id, 0) <> 0""")
     except Exception as e: loi.append(f"camp: {e}")
+    moc('MÁY QUÉT PHIM CẤM')
     # ── MÁY QUÉT PHIM CẤM (anh 20/11/2026 01:10 "phim cấm là ko đc bật — tắt, xoá mọi thứ ngay"): ngay sau khi đồng bộ camp (trạng thái mới nhất) —
     # camp NHÀ phim trong sổ ethopex_phim_cam đang ACTIVE / còn lịch bật → tắt ngay (cả ★ ROAS), huỷ dòng phim / việc chờ của phim cấm; có gì thì MỘT tin Telegram. Không đụng camp đội.
     try:
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "cong.py"), "--don-phim-cam"], capture_output=True, text=True, timeout=420)
         print("phim cấm:", (r.stdout or "").strip()[-300:]); (r.returncode or r.stderr.strip()) and loi.append(f"phim_cam_quet: {(r.stderr or r.stdout).strip()[-200:]}")
     except Exception as e: loi.append(f"phim_cam_quet: {e}")
+    moc('SỔ DẠNG')
     # ── SỔ DẠNG (anh 08/11/2026 "ko bị khai thừa ở nhiều nơi"): lưới apps/etp/kiem-so-dang.mjs mỗi lượt — có bảng dạng tự khai / sổ lệch → cảnh báo Telegram (một lần mỗi nội dung)
     try:
         r = subprocess.run(["node", os.path.join(os.path.dirname(os.path.abspath(__file__)), "kiem-so-dang.mjs")], capture_output=True, text=True, timeout=60)
@@ -254,6 +262,7 @@ def main():
             q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) select 'so_dang', 'so_dang:' || md5($N${nd}$N$), 'do', $N$Sổ dạng creative lệch / có bảng dạng tự khai:\n{nd}$N$
                   where not exists (select 1 from etp.canh_bao where khoa = 'so_dang:' || md5($N${nd}$N$))""")
     except Exception as e: loi.append(f"so_dang: {e}")
+    moc('SỔ MẪU')
     # ── SỔ MẪU (anh 19/11/2026 "Ko còn creative tự do nữa"): so_mau.py --tu-kiem mỗi lượt — dạng có dòng phim mà chưa có công thức (máy dòng phim sẽ bị chặn
     # ở bước tải creative), hay có tệp mới gọi thẳng bulk-jobs ngoài cổng len-creative.py → cảnh báo Telegram (một lần mỗi nội dung)
     try:
@@ -274,6 +283,7 @@ def main():
             v[0] += float(x.get("cost") or 0); v[1] += float(x.get("supply_impressions") or 0); v[2] += float(x.get("revenue") or 0)
         return {k: {"chi": round(v[0], 2), "cpm": round(v[0] / v[1] * 1000, 2) if v[1] else None, "roi": round((v[2] - v[0]) / v[0] * 100) if v[0] else None}
                 for k, v in sorted(nc.items(), key=lambda z: -z[1][0])[:8] if v[0] > 0}
+    moc('CPM NGÀY')
     # ── CPM NGÀY (anh 08/11/2026 plan mùa lễ Mỹ 27/11–05/01, tiến độ E05 bước 1): report Ethopex có cost + supply_impressions (cpm của report = cost / supply_impressions × 1000;
     # cột "impressions" là số khác, nhỏ hơn nhiều) → etp.cau_hinh 'cpm_ngay' {ngày UTC: {chi, cpm, cpc, roi}} cho hôm qua + hôm nay mỗi lượt.
     # Hôm qua đã khép mà CPM > 130% trung bình 7 ngày trước đó → etp.canh_bao 'cpm' (Telegram, một lần mỗi ngày). Mốc 08/11: CPM ~15–16 (đỉnh 25,3 ngày 23/10).
@@ -296,26 +306,32 @@ def main():
             q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) select 'cpm', 'cpm:{hq}', 'vang', $N$CPM ngày {hq}: ${so[hq]['cpm']:.2f} = {so[hq]['cpm'] / tb * 100:.0f}% trung bình 7 ngày (${tb:.2f}) · ROI {so[hq]['roi']}% · chi ${so[hq]['chi']:.0f} — mùa lễ: xem nhánh A/B tiến độ E05$N$
                   where not exists (select 1 from etp.canh_bao where khoa = 'cpm:{hq}')""")
     except Exception as e: loi.append(f"cpm_ngay: {e}")
+    moc('NHẬT KÝ DỰ ĐOÁN CPM')
     # ── NHẬT KÝ DỰ ĐOÁN CPM (apps/etp/du_doan_cpm.py, anh 11/11/2026 "log cụ thể xem dự đoán so với thực tế"): 13:00 VN chụp dự đoán 15 ngày — widget Thị trường đối chiếu
     try:
         import du_doan_cpm as DD; kq["du_doan_cpm"] = DD.chay(q)
     except Exception as e: loi.append(f"du_doan_cpm: {e}")
+    moc('GIÁ ADSENSE')
     # ── GIÁ ADSENSE (apps/etp/gia_adsense.py, anh 12/11/2026): Impression RPM / Fill theo nước → etp.cau_hinh.rpm_ngay + hệ số giá he_so_rpm (bù giá luật cắt camp mới). Hoãn tăng đã bỏ 13/11/2026
     try:
         import gia_adsense as GA; kq["gia_adsense"] = GA.chay(q)
     except Exception as e: loi.append(f"gia_adsense: {e}")
+    moc('TRẦN CAMP MỚI THEO LÃI + 3 CHỐT CHẶN')
     # ── TRẦN CAMP MỚI THEO LÃI + 3 CHỐT CHẶN (apps/etp/tran_len.py, anh 11/11/2026 "tăng theo lãi trước đó … đi từ dưới lên"): TRƯỚC mùa lễ — mua_le lấy số này làm trần gốc
     try:
         import tran_len as TL; kq["tran_len"] = TL.chay(q)
     except Exception as e: loi.append(f"tran_len: {e}")
+    moc('MÙA LỄ MỸ tự chạy')
     # ── MÙA LỄ MỸ tự chạy (apps/etp/mua_le.py — khoá tăng 25–30/11, nhánh A/B 26–30/11, sau Giáng sinh 26/12–05/01; Telegram chỉ báo)
     try:
         import mua_le as ML; kq["mua_le"] = ML.chay(q)
     except Exception as e: loi.append(f"mua_le: {e}")
+    moc('HẸN ĐO')
     # ── HẸN ĐO (apps/etp/hen_do.py, anh 09/11/2026 "đến ngày mày tự check rồi báo cho tao biết kq"): tới ngày → đo trên số thật → Telegram; ngày thị trường xấu → báo
     try:
         import hen_do as HD; kq["hen_do"] = HD.chay(q)
     except Exception as e: loi.append(f"hen_do: {e}")
+    moc('PHỐT META')
     # ── PHỐT META (anh 25/10/2026): ad bị Meta từ chối = một phốt gắn bộ tài khoản · tài khoản QC · Page → etp.phot + báo đỏ (Telegram qua etp.canh_bao)
     try:
         moi = q("""with bt as (select k bo, (v->>'page')::bigint page_id, v->>'ten' ten from xv_khoa_ngoai, jsonb_each(gia_tri) e(k, v) where ten = 'ethopex_bo_tk'),
@@ -334,6 +350,7 @@ def main():
               from m left join bt on bt.bo = m.bo on conflict (khoa) do nothing returning 1""")
         kq["phot_moi"] = len([x for x in moi.splitlines() if x])
     except Exception as e: loi.append(f"phot: {e}")
+    moc('số theo ngày')
     # ── số theo ngày (camp × ngày)
     try:
         # kéo lại từ đầu khi BẤT KỲ bảng nào chưa phủ từ đầu: trước 30/10 chỉ kiểm so_ngay → so_ngay_ngoai (tạo sau) mất 19–24/10, All time lệch Ethopex $2.258
@@ -357,6 +374,7 @@ def main():
           f"on conflict (camp_id, ngay) do update set ngan_sach = excluded.ngan_sach, trang_thai = excluded.trang_thai, "
           f"ns_max = greatest(so_ngay.ns_max, excluded.ns_max), bat = so_ngay.bat or excluded.bat")
     except Exception as e: loi.append(f"so_ngay: {e}")
+    moc('PHỄU camp × ngày')
     # ── PHỄU camp × ngày (đo điểm chạm creative, anh 28/10/2026) — bảng riêng etp.so_pheu, không đụng chi/thu ở trên; 3 ngày gần nhất ghi đè (số về trễ)
     try:
         tu_p = "2026-10-19" if day_du or q("select count(*) from etp.so_pheu") == "0" else (nay - dt.timedelta(days=3)).isoformat()
@@ -375,6 +393,7 @@ def main():
             for (c, d), v in gp.items()], ["camp_id", "ngay"], {"camp_id": "int", "ngay": "date", "hien": "int", "nhap": "int", "chuyen": "int", "s_hien": "int", "s_nhap": "int", "s_chuyen": "int", "s_gt": "numeric",
                                                               "luot_xem": "int", "xin_qc": "int"})
     except Exception as e: loi.append(f"so_pheu: {e}")
+    moc('KHO THÔ REPORT THEO AD')
     # ── KHO THÔ REPORT THEO AD (anh 23/11/2026 "kéo hết về", migration 0462): 3 ngày gần nhất ghi đè (số về trễ) + lấp ngược MỘT mẩu 2 ngày mỗi lượt về 19/10
     # (đo 23/11: 4 ngày chợ đông 12–15/11 = 53.651 dòng, 174 s; cả 35 ngày một lượt vượt nhịp 10 phút của timer) — mẩu lấp ngược bỏ khi lượt đã dài quá 7 phút
     try:
@@ -388,6 +407,7 @@ def main():
             print(f"bc_ad lấp ngược {tu_l}..{den_l}: {n} dòng")
         print(f"bc_ad: {kq['so_dong_bc_ad']} dòng ad × nước × ngày, {kq['so_ad_bc']} ad")
     except Exception as e: loi.append(f"bc_ad: {e}")
+    moc('NƯỚC GIAO THẬT của camp, 7 ngày gần nhất')
     # ── NƯỚC GIAO THẬT của camp, 7 ngày gần nhất (anh 29/10/2026 "các camp hãy thêm icon quốc gia target"): camp đều nhắm cùng 39 nước, nước GIAO mới cho biết
     # camp chạy ở đâu. Report gom campaign_name + geo (gom geo trần trả 1 dòng / nước cho mọi team, không tách được nhà) → etp.camp_nuoc, ghi đè cả bảng mỗi lượt
     try:
@@ -403,6 +423,7 @@ def main():
             q("delete from etp.camp_nuoc")
             kq["so_dong_nuoc"] = ghi("camp_nuoc", [{"camp_id": c, "geo": g, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, g), v in gn_.items() if v[0] or v[1]], ["camp_id", "geo"], {"camp_id": "int", "geo": "text", "chi": "numeric", "thu": "numeric"})
     except Exception as e: loi.append(f"camp_nuoc: {e}")
+    moc('số theo giờ')
     # ── số theo giờ (phim × giờ) hôm qua + hôm nay
     try:
         # CPM THEO GIỜ (anh 12/11/2026 duyệt "Lưu CPM", sau ngày cả chợ −23%: kho chỉ có chi / thu nên không tách được giá thầu Meta tăng hay người xem không nạp):
@@ -434,10 +455,12 @@ def main():
                 ghi(bang, [{"content_id": c, "ngay": d, "gio": h, "chi": round(v[0], 4), "thu": round(v[1], 4), "luot_xem": int(v[2]), "xin_qc": int(v[3]), "qc_hien": int(v[4])} for (c, h), v in gg[nha].items()],
                     ["content_id", "ngay", "gio"], {"content_id": "int", "ngay": "date", "gio": "smallint", "chi": "numeric", "thu": "numeric", "luot_xem": "int", "xin_qc": "int", "qc_hien": "int"})
     except Exception as e: loi.append(f"so_gio: {e}")
+    moc('CHỤP ĐÊM')
     # ── CHỤP ĐÊM (anh 18/11/2026, bước 1 — chỉ ghi sổ, không cắt camp): khung 0h–7h59 VN ghi một dòng etp.dem_chup = ROI cộng dồn camp nhà máy đang THẤY (apps/etp/dem_chup.py)
     try:
         import dem_chup as DC; kq["dem_chup"] = DC.chay(q)
     except Exception as e: loi.append(f"dem_chup: {e}")
+    moc('LUẬT TỪ CẤM / CTA cho Worker chấm creati')
     # ── LUẬT TỪ CẤM / CTA cho Worker chấm creative (anh 25/10/2026: một nguồn — danh sách gốc ở kiem-thoai.py / cta_qc.py) → xv_khoa_ngoai['ethopex_mau_cam']
     try:
         import importlib.util as _iu
@@ -446,6 +469,7 @@ def main():
         q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_mau_cam', $J$" + json.dumps(_kt.mau_js(), ensure_ascii=False).replace("$J$", "") + "$J$::jsonb) "
           "on conflict (ten) do update set gia_tri = excluded.gia_tri, cap_nhat = now() where xv_khoa_ngoai.gia_tri is distinct from excluded.gia_tri")
     except Exception as e: loi.append(f"mau_cam: {e}")
+    moc('phim + creative')
     # ── phim + creative (studio + spy)
     try:
         tl, ptk = khoa("ethopex_the_loai"), khoa("ethopex_phim_tk")
@@ -516,6 +540,7 @@ def main():
         # NGÔN NGỮ CREATIVE THIẾU → lấy theo phim (22/11/2026: 3.139 creative lang trống — bản ảnh tĩnh / thư viện không qua xv_phim; đường lên camp coalesce 'en' dựng phim ES bằng khuôn EN)
         q("""update etp.creative r set lang = f.locale from etp.phim f where f.content_id = r.content_id and r.lang is null and f.locale in ('en', 'es')""")
     except Exception as e: loi.append(f"phim/creative: {e}")
+    moc('tài nguyên')
     # ── tài nguyên: tài khoản QC · Page · pixel · tên miền (tab Tài nguyên)
     try:
         rows = []
@@ -526,10 +551,12 @@ def main():
                              "them": {k: x.get(k) for k in ("account_controls_status", "ads_restricted", "picture_url", "link", "available", "facebook_bm_id", "is_published", "used_by_asset_group", "cache_status") if x.get(k) is not None}})
         ghi("tai_nguyen", rows, ["loai", "id"], {"loai": "text", "id": "bigint", "external_id": "text", "ten": "text", "trang_thai": "text", "them": "jsonb"})
     except Exception as e: loi.append(f"tai_nguyen: {e}")
+    moc('TRANG PHIM TRONG WORKSPACE')
     # ── TRANG PHIM TRONG WORKSPACE (anh 02/11/2026: tab Phim — phim đã "thêm content" chưa, đủ mô tả / cốt truyện / link tập 1 chưa): trang_phim.py, chỉ đọc Ethopex
     try:
         import trang_phim; kq.update(trang_phim.chay(q, EA.T_NHA))
     except Exception as e: loi.append(f"trang_phim: {e}")
+    moc('THƯ VIỆN PHIM + CÓ THỂ TEST')
     # ── THƯ VIỆN PHIM + CÓ THỂ TEST (anh 02/11/2026 "làm mới thư viện đi. Và phim nào có thể test thì đánh dấu vào"): nạp phim mới của thư viện Ethopex
     # (EN/ES) vào kho spy ethopex_content, rồi chon-phim-moi.py --co-the-test chấm lại (đọc kho, ~3 giây) → xv_khoa_ngoai['ethopex_co_the_test'] cho tab Phim
     try:
@@ -548,6 +575,7 @@ def main():
         if r.returncode: loi.append(f"co_the_test: {(r.stderr or r.stdout).strip()[-200:]}")
         else: kq.update(json.loads(r.stdout.strip().splitlines()[-1]))
     except Exception as e: loi.append(f"co_the_test: {e}")
+    moc('NHẬN PHIM TỰ ĐỘNG')
     # ── NHẬN PHIM TỰ ĐỘNG (anh 02/11/2026): soát 18+ AI cho phim mới nhận + báo bước hỏng — nhan_tu_dong.py (máy sinh / chấm / lên camp chạy ở chỗ của chúng)
     try:
         import nhan_tu_dong; kq.update(nhan_tu_dong.chay(q))
@@ -561,6 +589,7 @@ def main():
     try:   # LỘ TRÌNH TỰ ĐỘNG THÍ ĐIỂM (anh 07/11/2026) — chỉ phim trong cau_hinh lo_trinh_tu_dong; đọc etp.mo_rong vừa ghi
         import lo_trinh_phim; kq.update(lo_trinh_phim.chay(q))
     except Exception as e: loi.append(f"lo_trinh_phim: {e}")
+    moc('nhật ký luật')
     # ── nhật ký luật
     try:
         nk = khoa("ethopex_nhat_ky", "[]"); rows = []
@@ -576,33 +605,39 @@ def main():
                   as x(luc timestamptz, viec text, camp_id int, goc int, truoc text, sau text, ok boolean, loi text, luat text, ai text)
                   on conflict do nothing""")   # KHÔNG CHÉP LẠI: khoá etp_nhat_ky_mot_dong (0392, nulls not distinct, gồm câu lỗi) — trước đó khoá coi NULL là khác nhau, dòng lỗi bị chép lại mỗi lượt 10 phút (27/10, 01/11/2026)
     except Exception as e: loi.append(f"nhat_ky: {e}")
+    moc('HẬU KIỂM CỬA')
     # ── HẬU KIỂM CỬA (sau khi chép nhật ký): camp mới / tăng ngân sách / bật không có dòng cửa cho qua → canh_bao đỏ 'cua_lot' (chỉ đọc + báo, không tắt camp)
     try:
         if hk_cu is not None: kq["hau_kiem"] = HK.xet(q, hk_cu, hk_ds, auto=lambda p: EA._goi(p))
     except Exception as e: loi.append(f"hau_kiem: {e}")
     l_ = "; ".join(loi)[:1000].replace("$L$", "")
     q(f"update etp.dong_bo set xong = now(), so_camp = {kq['so_camp']}, so_chi_tiet = {kq['so_chi_tiet']}, so_dong_ngay = {kq['so_dong_ngay']}, loi = {('$L$' + l_ + '$L$') if loi else 'null'} where lan = {lan}")
-    print(json.dumps({**kq, "loi": loi}, ensure_ascii=False))
+    print(json.dumps({**kq, "moc": MOC, "loi": loi}, ensure_ascii=False))
+    moc('BẢN XEM NHẸ cho creative chấm lỗi vì vid')
     # ── BẢN XEM NHẸ cho creative chấm lỗi vì video (anh 26/10/2026 "lỗi thì phải có cách xử lý") — cham-nhe.py, tối đa 1 creative / lượt
     try:
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "cham-nhe.py")], capture_output=True, text=True, timeout=540)
         if (r.stdout or r.stderr).strip(): print((r.stdout + r.stderr).strip()[-300:])
     except Exception as e: print(f"cham-nhe: {e}")
+    moc('ẢNH CREATIVE KHÔNG BAO GIỜ THIẾU')
     # ── ẢNH CREATIVE KHÔNG BAO GIỜ THIẾU (anh 31/10/2026) — anh-creative.py: khung chấm / ffmpeg từ video → etp.anh_cr, 60 creative / lượt
     try:
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "anh-creative.py"), "--so", "60"], capture_output=True, text=True, timeout=240)
         if '"thieu": 0' not in r.stdout or r.stderr.strip(): print(("anh-creative: " + r.stdout + r.stderr).strip()[-300:])
     except Exception as e: print(f"anh-creative: {e}")
+    moc('BÀI QC NHƯ NGƯỜI DÙNG THẤY')
     # ── BÀI QC NHƯ NGƯỜI DÙNG THẤY (anh 20/11/2026) — bai-qc.py: chữ QC + CTA của creative, Page + tên miền của camp → etp.bai_cr / etp.bai_camp (chỉ GET)
     try:
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "bai-qc.py"), "--so", "80"], capture_output=True, text=True, timeout=240)
         if '"thieu": 0' not in r.stdout or r.stderr.strip(): print(("bai-qc: " + r.stdout + r.stderr).strip()[-300:])
     except Exception as e: print(f"bai-qc: {e}")
+    moc('CHẤM CREATIVE MỌI THÀNH VIÊN')
     # ── CHẤM CREATIVE MỌI THÀNH VIÊN (anh 31/10/2026) — nap-creative-ngoai.py --tu-dong, chỉ chạy khi etp.cau_hinh.cham_doi.bat
     try:
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nap-creative-ngoai.py"), "--tu-dong"], capture_output=True, text=True, timeout=180)
         if '"nap": [' in r.stdout and '"nap": []' not in r.stdout or r.stderr.strip(): print(("cham-doi: " + r.stdout + r.stderr).strip()[-300:])
     except Exception as e: print(f"cham-doi: {e}")
+    moc('PHÂN LOẠI CREATIVE ĐỘI')
     # ── PHÂN LOẠI CREATIVE ĐỘI (anh 12/11/2026 "làm cơ chế tự chấm với creative mới của team"): creative đội chấm xong (Worker etp-cham, lượt nào cũng được) mà còn nhãn
     # tạm 'team' → phan_loai_cr.py xếp dạng / nhóm qua ai_chu (donk → ckey, ~1₫ / creative), tối đa 30 / lượt
     try:
@@ -611,6 +646,7 @@ def main():
     except Exception as e: print(f"phan-loai: {e}")
     r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "canh-bao.py")], capture_output=True, text=True, timeout=120)   # bước 3: cảnh báo bất thường
     print((r.stdout or r.stderr).strip()[-300:])
+    moc('SỐ THẬT TỪNG LUẬT')
     # ── SỐ THẬT TỪNG LUẬT (trang ?t=luat, anh 29/10/2026 "luật cũng cần định kỳ review lại dựa vào số liệu thực tế") — mỗi giờ một lần, ~1 giây
     try:
         # + LUẬT MỚI chạy lượt đầu (máy luật ghi xet_luat có mã chưa có ở so_luat) → chạy ngay, không đợi tròn giờ (anh 02/11/2026: thêm T1 mà tab Luật chưa thấy)
@@ -619,18 +655,21 @@ def main():
             r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "so-luat.py")], capture_output=True, text=True, timeout=180)
             print((r.stdout or r.stderr).strip()[-300:])
     except Exception as e: print(f"so-luat: {e}")
+    moc('ĐỀ XUẤT BẬC CHO TEAM')
     # ── ĐỀ XUẤT BẬC CHO TEAM (anh 30/10/2026 "chỉ đề xuất, ko tự ý update"): máy luật nhà chấm camp từng người ở chế độ xem (cổng chặn lệnh ghi) — mỗi giờ một lần
     try:
         if q("select coalesce(max(luc), 'epoch') < now() - interval '55 minutes' from etp.xet_luat_ngoai") == "t":
             r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "de-xuat-ngoai.py")], capture_output=True, text=True, timeout=1800)
             print((r.stdout or r.stderr).strip()[-300:])
     except Exception as e: print(f"de-xuat-ngoai: {e}")
+    moc('TƯ VẤN SỐNG THEO NGƯỜI')
     # ── TƯ VẤN SỐNG THEO NGƯỜI (anh 10/11/2026): bản 'song' cho ô "Nên làm gì bây giờ" trên Tổng quan — mỗi lượt đồng bộ, chỉ đọc kho, không AI (~1 giây)
     try:
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "tu_van.py"), "--luu"], capture_output=True, text=True, timeout=120)
         if r.returncode: print(f"tu-van: {(r.stderr or r.stdout).strip()[-300:]}")
     except Exception as e: print(f"tu-van: {e}")
 
+    moc('DỊCH SẴN chữ thẻ creative')
     # ── DỊCH SẴN chữ thẻ creative (anh 23/11/2026: "Phần dịch thì phải làm ngay từ lúc sinh ra creative !! … Chỉ các creative đang, chuẩn bị và sẽ chạy !!") —
     # apps/etp2/scripts/dich-truoc.mts: camp ACTIVE · dòng thay thế · hàng chờ lên camp → etp.dich (khoá trùng thẻ), etp.dich_cr ghi creative đã dịch đủ.
     # Đứng CUỐI lượt và chỉ dùng thời gian CÒN DƯ trong trần 900 giây của etp-dong-bo.service (23/11/2026: đặt giữa lượt với timeout 300 làm lượt vượt trần,

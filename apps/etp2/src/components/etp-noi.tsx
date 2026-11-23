@@ -165,6 +165,11 @@ export function TheChu({ chu }: { chu: string }) {
 // Nhường thẻ riêng (bậc, xét luật, creative…): thẻ riêng đang mở → không mở; thẻ riêng mở sau → đóng thẻ chữ. Bỏ qua chữ của cả dòng (tr / .dong — rê đâu cũng bật là phiền)
 // và chữ bên trong thẻ nổi.
 const NUT_KHONG_THE = 'button, a, input, select, textarea, label, [role="button"], [role="tab"]';
+// #1769 lượt 3: danh sách thẻ ở trên sót mọi thứ BẤM / KÉO được mà không phải <button> — tiêu đề cột bấm để sắp xếp (con trỏ tay), tay kéo bề ngang cột (col-resize),
+// mã phim bấm mở (con trỏ tay), ảnh creative bấm phóng (zoom-in) → vẫn bật thẻ to có ✕. Gốc chung: thẻ chữ chỉ dành cho chữ để ĐỌC → nhận theo con trỏ chuột trình duyệt
+// tính sẵn: chỉ con trỏ đọc (auto / default / help / text) mới mở thẻ; con trỏ bấm / kéo / phóng = phần tử điều khiển, để title= cho hộp chữ nhỏ của trình duyệt.
+const CON_TRO_DOC = new Set(['auto', 'default', 'help', 'text']);
+const bamDuoc = (el: Element) => !!el.closest(NUT_KHONG_THE) || !CON_TRO_DOC.has(getComputedStyle(el).cursor);
 export function HoverChu({ goc }: { goc: React.RefObject<HTMLElement | null> }) {
   const [v, setV] = useState<{ chu: string; x: number; y: number } | null>(null);
   const hen = useRef<number | undefined>(undefined);
@@ -182,7 +187,7 @@ export function HoverChu({ goc }: { goc: React.RefObject<HTMLElement | null> }) 
         if (el.hasAttribute('data-khung-noi')) return null;
         // #1769 lượt 2 (anh 23/11/2026 "Ko phải chỉ trên điện thoại"): NÚT / Ô NHẬP / LINK (Mở hết, Chú giải, ô lọc…) không bao giờ bật thẻ nổi to có ✕ —
         // trên MỌI thiết bị. Chữ của nút để nguyên title= (máy tính hiện hộp chữ nhỏ của trình duyệt, điện thoại không hiện). Thẻ chữ chỉ còn cho chữ chi tiết ở ô dữ liệu.
-        if (el.hasAttribute('title') || el.hasAttribute('data-tip')) return el.tagName === 'TR' || el.classList.contains('dong') || el.closest(NUT_KHONG_THE) ? null : el as HTMLElement;
+        if (el.hasAttribute('title') || el.hasAttribute('data-tip')) return el.tagName === 'TR' || el.classList.contains('dong') || bamDuoc(el) ? null : el as HTMLElement;
       }
       return null;
     };

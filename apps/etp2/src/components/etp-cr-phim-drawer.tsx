@@ -157,7 +157,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
     : <GuardedButton onClick={() => void lenCamp([c.creative_id])} reason={len ? 'đang lên…' : false} title="lên camp $1 theo lịch lên (đúng đường ✓ Duyệt)"
         style={{ ...nut(VANG), padding: '2px 8px', alignSelf: 'flex-start' }}>{len && lenMot === c.creative_id ? 'đang lên…' : '🚀 Lên camp'}</GuardedButton>;
 
-  return <Drawer onClose={onClose} width={760} padding={0}>{dau}
+  return <Drawer onClose={onClose} width={900} padding={0}>{dau}
     <div style={{ display: 'flex', gap: 4, padding: '0 10px', borderBottom: '1px solid var(--line)' }}>
       {the('ds', `Creative đã có · ${ok.cr.length}${ok.con ? `+${ok.con}` : ''}`)}{the('soan', `Bản nháp · ${nSoan}`)}</div>
     <div style={{ padding: '10px 16px 20px', display: 'flex', flexDirection: 'column', gap: 16, fontSize: 13 }}>
@@ -222,44 +222,40 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
       {/* ── CREATIVE ĐÃ CÓ ── */}
       {tab === 'ds' ? <div ref={dsRef} style={{ scrollMarginTop: 8 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-          <span style={{ color: MO_SO, fontSize: 12 }}>bấm ảnh để xem · 🚀 Lên camp từng cái, hoặc tích nhiều cái rồi lên một lượt{ok.con ? ` · đang hiện ${ok.cr.length} mới nhất` : ''}</span>
+          <span style={{ color: MO_SO, fontSize: 12 }}>bấm một dòng bên trái để xem · tích nhiều dòng rồi lên camp một lượt{ok.con ? ` · đang hiện ${ok.cr.length} mới nhất` : ''}</span>
           <span style={{ flex: 1 }} />
           {chon.length ? <GuardedButton onClick={() => void lenCamp(chon)} reason={len ? 'đang lên…' : false} style={nut(VANG, true)}>{len && lenMot == null ? 'đang lên…' : `🚀 Lên camp ${chon.length} creative`}</GuardedButton> : null}
         </div>
         {lenMot == null ? <Bao kq={kqLen} /> : null}
         {!ok.cr.length ? <div style={{ color: MO_SO }}>Phim này chưa có creative — bấm <a style={{ color: XANH, cursor: 'pointer' }} onClick={() => { setBan(BAN_TRONG); setTab('soan'); }}>＋ Creative mới</a>.</div> : null}
-        {xem ? (() => { const c = ok.cr.find((x) => x.creative_id === xem); if (!c) return null;
-          return <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 12, padding: 10, border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-2)' }}>
-            {c.video ? <video key={c.video} src={c.video} controls autoPlay playsInline style={{ width: 260, maxHeight: '62vh', aspectRatio: '9 / 16', background: '#000', borderRadius: 8, display: 'block' }} />
-              : c.anh ? <img src={c.anh} alt="" style={{ width: 260, borderRadius: 8, display: 'block' }} /> : <div style={{ width: 260, color: MO_SO }}>creative này không có video / ảnh</div>}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ fontSize: 15 }}>Creative #{c.creative_id}</b><BadgeDangNgan d={c.dang} /><span style={{ flex: 1 }} />
-                <button type="button" className="modal-close" onClick={() => setXem(null)} title="đóng trình xem">✕</button></div>
+        {/* DANH SÁCH BÊN TRÁI · CHI TIẾT BÊN PHẢI (anh 23/11/2026: "Danh sách thì phải hiện danh sách ở bên trái") */}
+        {ok.cr.length ? (() => { const c = ok.cr.find((x) => x.creative_id === xem) ?? ok.cr[0]!;
+          return <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <div style={{ width: 300, flex: '0 0 300px', maxHeight: 'calc(100vh - 190px)', overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
+              {ok.cr.map((x) => { const duoc = !x.camp_id && !x.tu_choi, tich = chon.includes(x.creative_id), on = x.creative_id === c.creative_id;
+                return <div key={x.creative_id} onClick={() => setXem(x.creative_id)} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 8px', cursor: 'pointer',
+                  borderBottom: '1px solid var(--line)', borderLeft: `3px solid ${on ? XANH : 'transparent'}`, background: on ? `color-mix(in srgb, ${XANH} 10%, transparent)` : 'transparent' }}>
+                  <span onClick={(e) => e.stopPropagation()} style={{ width: 16, display: 'flex' }}>{duoc
+                    ? <input type="checkbox" title="chọn để lên camp cùng lúc" checked={tich} onChange={() => setChon((y) => (tich ? y.filter((z) => z !== x.creative_id) : [...y, x.creative_id]))} /> : null}</span>
+                  <div style={{ width: 36, height: 64, flex: '0 0 36px', background: '#000', borderRadius: 4, overflow: 'hidden' }}>
+                    {x.video ? <video src={`${x.video}#t=3`} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      : x.anh ? <img src={x.anh} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}</div>
+                  <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><b>#{x.creative_id}</b><BadgeDangNgan d={x.dang} /><span style={{ color: MO_SO }}>{x.lang}</span></div>
+                    <div style={{ color: x.tu_choi ? DO : x.camp_id ? LAM : VANG }}>{x.tu_choi ? 'Ethopex từ chối' : x.camp_id ? `camp #${x.camp_id}${x.camp_tt ? ` · ${x.camp_tt}` : ''}` : 'chưa lên camp'}</div>
+                  </div>
+                </div>; })}
+            </div>
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ fontSize: 15 }}>Creative #{c.creative_id}</b><BadgeDangNgan d={c.dang} /></div>
               <div style={{ color: MO_SO }}>{[tenMau(c.mau) ?? (c.mau ? 'mẫu cũ' : null), c.lang, c.luc ? `vào thư viện ${gio(c.luc)}` : null].filter(Boolean).join(' · ') || '—'}</div>
               {trangThai(c)}
+              {lenMot === c.creative_id ? <Bao kq={kqLen} /> : null}
+              {c.video ? <video key={c.video} src={c.video} controls playsInline style={{ width: '100%', maxWidth: 340, maxHeight: 'calc(100vh - 300px)', aspectRatio: '9 / 16', background: '#000', borderRadius: 8, display: 'block' }} />
+                : c.anh ? <img src={c.anh} alt="" style={{ maxWidth: 340, borderRadius: 8, display: 'block' }} /> : <div style={{ color: MO_SO }}>creative này không có video / ảnh</div>}
               {c.video ? <a href={c.video} target="_blank" rel="noreferrer" style={{ color: LAM, fontSize: 12 }}>mở video ở tab mới ↗</a> : null}
             </div>
           </div>; })() : null}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(124px, 1fr))', gap: 10 }}>
-          {ok.cr.map((c) => { const duoc = !c.camp_id && !c.tu_choi, tich = chon.includes(c.creative_id), dangXem = xem === c.creative_id;
-            return <div key={c.creative_id} style={{ border: `2px solid ${dangXem ? XANH : tich ? VANG : 'var(--line)'}`, borderRadius: 8, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'var(--bg-2)' }}>
-              <div style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', cursor: 'pointer' }} onClick={() => setXem(c.creative_id)} title="bấm xem to · rê chuột để xem trước">
-                {c.video ? <video src={`${c.video}#t=3`} muted playsInline preload="metadata" onMouseEnter={(e) => void e.currentTarget.play().catch(() => {})} onMouseLeave={(e) => e.currentTarget.pause()}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                  : c.anh ? <img src={c.anh} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}
-                <span style={{ position: 'absolute', right: 5, bottom: 5, fontSize: 11, padding: '1px 6px', borderRadius: 5, background: 'rgba(0,0,0,.65)', color: '#fff', pointerEvents: 'none' }}>▶ xem</span>
-                {duoc ? <label onClick={(e) => e.stopPropagation()} title="chọn để lên camp cùng lúc"
-                  style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,.65)', borderRadius: 5, padding: '1px 4px', display: 'flex' }}>
-                  <input type="checkbox" checked={tich} onChange={() => setChon((x) => (tich ? x.filter((y) => y !== c.creative_id) : [...x, c.creative_id]))} /></label> : null}
-              </div>
-              <div style={{ padding: '5px 6px', display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><b>#{c.creative_id}</b><BadgeDangNgan d={c.dang} /></div>
-                <div style={{ color: MO_SO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={tenMau(c.mau) ?? undefined}>{[tenMau(c.mau) ?? (c.mau ? 'mẫu cũ' : null), c.lang].filter(Boolean).join(' · ') || '—'}</div>
-                {trangThai(c)}
-                {lenMot === c.creative_id ? <Bao kq={kqLen} /> : null}
-              </div>
-            </div>; })}
-        </div>
       </div> : null}
     </div>
   </Drawer>;

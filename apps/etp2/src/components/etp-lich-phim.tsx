@@ -1,7 +1,7 @@
 'use client';
 // BẢNG LỊCH + ĐIỀU KHIỂN PHIM (anh 06/11/2026, chỉ tài khoản chủ): bấm đồng hồ thị trường trên dòng phim → bảng nổi
 // (rê chuột vào là mở, thẻ nổi chung useNoi/KhungNoi; tab Thị trường giữ thẻ đồng hồ cũ)
-// giai đoạn · dạng đã thử · mốc cất · sản xuất + lỗi · sắp tới · nút ＋ CC / ＋ KT / − bớt camp lỗ nhất. Số: lib/actions/etp-lich-phim.ts (kiểm vai chủ trên máy chủ).
+// giai đoạn · dạng đã thử · sản xuất + lỗi · sắp tới · nút ＋ CC / ＋ KT / − bớt camp lỗ nhất. Số: lib/actions/etp-lich-phim.ts (kiểm vai chủ trên máy chủ).
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { KhungKeo } from '@/components/etp-khung-keo';
@@ -41,7 +41,7 @@ function huongPhim(l: LichPhim, gd: number) {
   const daThu = new Set([...g.keys(), ...l.sx.map((d) => MA_DANG[DANG_DONG[d.loai] ?? ''] ?? d.loai)]), chuaThu = DANG_NUT.filter((x) => !daThu.has(x));
   const lo = l.dang.reduce((a, d) => a + d.lo, 0), nThang = l.thang.length, thu = chuaThu.join(' / ');
   const [dong, chu, mauH] = pha === 'bao_hoa' ? ['Gọt', lo ? `tắt dần ${lo} camp lỗ (− bớt camp lỗ), không thêm camp` : 'giữ, không thêm camp tới khi về quanh mức tối ưu', '#f87171']
-    : gd === 0 ? ['Thử dạng', `chưa có camp lãi → ${thu ? `thử ${thu}` : 'đổi góc / đoạn mới'} trước mốc cất $${l.moc_chi}`, '#facc15']
+    : gd === 0 ? ['Thử dạng', `chưa có camp lãi → ${thu ? `thử ${thu}` : 'đổi góc / đoạn mới'}`, '#facc15']
     : pha === 'hut' ? ['Mở rộng', `thêm camp dạng ${manh[0] ?? 'đang lãi'}${nThang ? ` · ${nThang} camp thắng máy tự lên bậc / nhân bản` : ''}${thu ? ` · thử thêm ${thu}` : ''}`, '#4ade80']
     : pha === 'dinh' ? ['Làm mới', `giữ mức chi${lo ? `, thay ${lo} camp lỗ` : ''} bằng creative MỚI dạng ${manh[0] ?? 'đang lãi'}${thu ? ` hoặc thử ${thu}` : ''}`, '#facc15']
     : ['Đo thêm', `đồng hồ chưa đủ số → giữ camp lãi${manh.length ? ` (${manh.join(' / ')})` : ''}${thu ? `, thử ${thu}` : ''}`, '#94a3b8'];
@@ -208,7 +208,6 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
   const sapToi = l ? [
     l.thay ? `◌ ${l.thay.kieu === 'cho' ? 'camp chờ' : 'camp thay'} — ${({ chuan_bi: 'chọn creative', cat_goc: 'chờ cắt góc mới', cho_cham: 'chờ chấm', len_lich: 'đã lên, chờ chạy', chan: 'cổng chặn' } as Record<string, string>)[l.thay.buoc] ?? l.thay.buoc}` : null,
     ...l.hoan.slice(0, 2).map((h) => `${h.huong === 'tang' ? '⬆' : h.huong === 'giam' ? '⬇' : '✕'} #${h.camp_id} ${h.huong === 'tang' ? 'tăng bậc lúc 21:00' : h.huong === 'giam' ? 'giảm bậc lúc 15:00' : 'tắt lúc 15:00'}`),
-    gd === 0 && l.vong !== 'cat' && !l.lt ? `✕ cất phim nếu chi tới $${l.moc_chi} / ${l.moc_thu} camp thử mà chưa lãi` : null,
   ].filter(Boolean).slice(0, 4) as string[] : [];
   const oTab = (k: TabPhim, chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
   const RONG = tab === 'camp' ? 680 : 480;   // tab Camps 9 cột tiền kế toán — khung rộng hơn, không cắt cột
@@ -260,8 +259,7 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
               {(() => { const h = huongPhim(l, gd); return <>
                 {H('Tiềm năng', <div style={GON} title={h.re}><span style={{ color: h.mau }}>●</span> {h.tiem}</div>)}
                 {H('Hướng', <ChuHuong h={h} />)}</>; })()}
-              {l.lt ? H('Thử dạng', <div style={chuoi} title="số camp có chi trên mức cần để luật cất kết luận">{Object.entries(l.lt.dang).map(([x, v]) => <span key={x}>{x} <b style={{ color: v.chi >= 2 ? 'var(--fg)' : 'var(--fg-3)' }}>{v.chi}/2</b>{v.bo ? ' đã bỏ' : x === 'CT' ? ' chưa có máy' : ''}</span>)}</div>) : null}
-              {gd === 0 && !l.lt ? H('Mốc cất', <span title={`máy cất phim khi chi thử ≥ $${l.moc_chi} hoặc đủ ${l.moc_thu} camp có chi mà chưa camp nào lãi`}>${Math.round(l.chi)} / ${l.moc_chi} · {l.so_thu}/{l.moc_thu} camp</span>) : null}
+              {l.lt ? H('Thử dạng', <div style={chuoi} title="số camp có chi của từng dạng thử (điều kiện cất phim đã bỏ 23/11/2026)">{Object.entries(l.lt.dang).map(([x, v]) => <span key={x}>{x} <b style={{ color: v.chi >= 2 ? 'var(--fg)' : 'var(--fg-3)' }}>{v.chi}/2</b>{v.bo ? ' đã bỏ' : x === 'CT' ? ' chưa có máy' : ''}</span>)}</div>) : null}
               {/* CAMP MỚI: kế hoạch → đang sản xuất → chờ lên. Kế hoạch etp.mo_rong chỉ là số đề xuất, chỉ phim_doi_lai máy mới tự xếp dòng — nói đúng ai làm bước kế */}
               {H('Camp mới', <div style={chuoi}>{so(k ? `+${k}` : 0, 'kế hoạch', 'var(--fg)', ke ? `${ke.ly}\nCó sẵn ${ke.san} creative · cần làm thêm ${ke.can_sx}` : 'Chưa có kế hoạch')}<span style={{ color: 'var(--fg-3)' }}>→</span>{so(tongSx, 'đang SX', 'var(--fg)')}<span style={{ color: 'var(--fg-3)' }}>→</span>{so(cho, 'chờ lên', 'var(--fg)', `${l.hen.length} camp đã tạo chờ giờ chạy · ${ke?.san ?? 0} creative sạch chưa có camp · ${l.tu_len} trong hàng máy tự lên`)}</div>)}
               {buocKe ? H('Mở rộng', buocKe, true) : null}

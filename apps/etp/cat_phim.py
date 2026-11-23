@@ -4,8 +4,7 @@ thì làm thế nào" → "Đc làm đi"). Chỉ xét phim CHƯA có camp cơ h�
   vòng 1  đổi creative theo dạng (thay-the.py, như trước)
   vòng 2  chi thử ≥ cau_hinh.cat_phim.chi mà ROI < .roi, mới thử < .so_bo bộ → thu_vong 'doi_bo': camp mới kế tiếp lên bộ chưa thử (bo_moi, đọc qua cong.SQL_BO_PHIM)
   vòng 3  team (camp ngoài) lãi phim đó 14 ngày → KHÔNG cất, báo nạp creative team (nap-creative-ngoai.py — chấm là lượt AI, chờ lệnh)
-  vòng 4  hết đường (đủ bộ hoặc chi ≥ .chi_doi_bo) → thu_vong 'cat': cong.kiem chặn tạo / nhân bản / bật camp phim này; camp còn chạy để luật tắt xử
-  mở lại  có camp cơ hội, hoặc team lãi 14 ngày → thu_vong về null (tự động)
+  vòng 4  CẤT PHIM ĐÃ BỎ (anh 23/11/2026): không còn thu_vong 'cat' / 'sap_cat'; phim còn ở hai vòng đó được mở lại ở lượt xét kế
 Dùng: python3 cat_phim.py [--that]   (không --that = chạy khô, in sẽ làm gì) · python3 cat_phim.py --mo <content_id>  (anh mở tay một phim)
 Trong script khác: import cat_phim; bao, doi_bo = cat_phim.xet(that=True)   → doi_bo = {content_id: bộ nên lên}"""
 import json, os, subprocess, sys
@@ -80,38 +79,17 @@ def xet(that=False):
         if la_cam(ct): continue   # phim cấm: không đổi vòng, không vào doi_bo (camp mới lên bộ khác), không mở lại (etp:phim-cam-cho-3-2011)
         # ĐỘI CÒN LÃI = tổng đội 14 ngày lãi HOẶC đội có ≥ 1 camp chi ≥ $3 thu > chi trong 7 ngày (anh 09/11/2026: tổng đội âm vì camp thử khác vẫn che mất camp đội đang thắng)
         team_lai = (float(p["team_chi"] or 0) >= 10 and float(p["team_thu"] or 0) > float(p["team_chi"] or 0)) or int(p.get("doi_camp_lai") or 0) > 0
-        # BÃO HOÀ KHÔNG CÒN LÀ LÝ DO CẤT (anh 06/11/2026 "Phim bão hoà chỉ cảnh báo"): phim đã cất vì bão hoà → mở lại; phim bão hoà chỉ hiện cảnh báo (etp.phim_bao_hoa)
-        if vong == "cat" and str(p.get("thu_ly") or "").startswith("bão hoà"):
-            dat(ct, None, None, that); bao.append(f"mở lại phim {ct} {ten}: bão hoà chỉ cảnh báo, không cất (anh 06/11/2026)"); continue
-        # PHIM CÓ CAMP CƠ HỘI KHÔNG BAO GIỜ CẤT / SẮP CẤT (anh 06/11/2026: "Mục tiêu khi rải camp để test là để tìm cái này. Khi thấy thì phải tập trung scale từ nó chứ ko cất"):
-        # một camp chi ≥ $1 ROI ≥ 50% (etp.camp_co_hoi) là đủ, dù ROI cả phim âm vì các camp thử khác — camp thua để T1 / T2 / PL tắt, camp cơ hội để luật tăng / nhân bản scale
-        if p.get("lai") or (vong == "cat" and team_lai):
-            if vong: dat(ct, None, None, that); bao.append(f"mở lại phim {ct} {ten}: {'có camp cơ hội ' + p['lai'] if p.get('lai') else 'team lãi 14 ngày'}")
+        # BỎ ĐIỀU KIỆN CẤT PHIM (anh 23/11/2026 "Bỏ điều kiện 'Cất phim' đi"): máy không còn đặt phim sang 'cat' / 'sap_cat' — phim đang cất / sắp cất được mở lại,
+        # camp lỗ để luật tắt (T1 / T2 / PL) xử từng camp. Thang chỉ còn đổi bộ (doi_bo) và báo team lãi (team).
+        if vong in ("cat", "sap_cat"):
+            dat(ct, None, None, that); bao.append(f"mở lại phim {ct} {ten}: bỏ điều kiện cất phim (anh 23/11/2026)"); vong = None
+        # PHIM CÓ CAMP CƠ HỘI (etp.camp_co_hoi, anh 06/11/2026) → ra khỏi thang (không đổi bộ / không báo team): tập trung scale từ camp đó
+        if p.get("lai"):
+            if vong: dat(ct, None, None, that); bao.append(f"phim {ct} {ten}: có camp cơ hội {p['lai']} — ra khỏi thang đổi bộ")
             continue
         roi = (thu - chi) / chi * 100 if chi else 0
         lo = chi >= float(ch["chi"]) and roi < float(ch["roi"])
         so = f"chi ${chi:.0f} · thu ${thu:.0f} · ROI {roi:.0f}% · {p['so_camp']} camp · bộ {','.join(sorted(p.get('bo') or [])) or '?'}"
-        dt_ = p.get("dang_thu") or {}; thieu = [TEN_DANG.get(d, d) for d in ch.get("dang_can", []) if int(dt_.get(d) or 0) < int(ch.get("so_moi_dang", 1))]
-        so_dang_thu = sum(1 for d, n in dt_.items() if d and int(n or 0) >= 1)
-        if not team_lai and chi >= float(ch["som_chi"]) and roi <= float(ch["som_roi"]) and so_dang_thu >= int(ch["som_dang"]):
-            if vong != "cat": dat(ct, "cat", f"cất sớm: {so_dang_thu} dạng đã thử, ROI ≤ {ch['som_roi']}% sau ≥ ${ch['som_chi']} · {so}", that); bao.append(f"cất sớm phim {ct} {ten}: {so_dang_thu} dạng, {so}")
-            continue
-        da_cho = vong == "sap_cat" and str(p.get("thu_ly") or "").startswith("chưa thử đủ dạng") and float(p.get("cho_ngay") or 0) >= float(ch.get("cho_dang_ngay", 3))
-        # THÍ ĐIỂM LỘ TRÌNH (anh 07/11/2026): máy đang tự sản xuất dạng thiếu → hạn chờ chỉ tính khi máy hết dạng làm được (CT chưa có máy; dạng hỏng 2 dòng đã bị bỏ)
-        if ct in ch.get("_thi_diem", {}) and any(t in ch["_thi_diem"][ct] for t in thieu): da_cho = False
-        if not team_lai and so_thu >= N and thieu and da_cho:   # chờ dạng thiếu quá hạn mà không ai lên được → cất
-            dat(ct, "cat", f"chờ {ch.get('cho_dang_ngay', 3)} ngày không lên được dạng {', '.join(thieu)} · {so}", that); bao.append(f"cất phim {ct} {ten}: chờ dạng {', '.join(thieu)} quá hạn ({so})"); continue
-        if not team_lai and so_thu >= N and thieu:   # đủ số camp nhưng CHƯA thử đủ dạng → chưa cất, chờ thử dạng thiếu (mở lại phim lỡ cất theo luật cũ)
-            ly_ = f"chưa thử đủ dạng: thiếu {', '.join(thieu)} (mỗi dạng ≥ {ch.get('so_moi_dang', 1)} camp có chi) · {so}"
-            if vong != "sap_cat" or not str(p.get("thu_ly") or "").startswith("chưa thử đủ dạng"): dat(ct, "sap_cat", ly_, that); bao.append(f"{'mở lại' if vong == 'cat' else 'chờ'} phim {ct} {ten}: {ly_}")   # giữ thu_luc lần đầu chờ (đếm hạn chờ), chỉ ghi khi mới chuyển sang chờ
-            continue
-        if not team_lai and so_thu >= N:   # thử đủ N camp có chi VÀ đủ mọi dạng, chưa camp nào lãi
-            if vong != "cat": dat(ct, "cat", f"thử {so_thu} camp chưa camp nào lãi · {so}", that); bao.append(f"cất phim {ct} {ten}: thử {so_thu} camp chưa camp nào lãi ({so})")
-            continue
-        if not team_lai and so_thu == N - 1 and vong in (None, "sap_cat"):   # chờ: camp thử thứ N là lần cuối
-            if vong != "sap_cat" or p.get("thu_ly") != f"đã thử {so_thu}/{N} camp chưa lãi · {so}": dat(ct, "sap_cat", f"đã thử {so_thu}/{N} camp chưa lãi · {so}", that)
-            continue
-        if vong == "sap_cat" and so_thu < N - 1: dat(ct, None, None, that)
         if vong == "doi_bo" and (roi >= float(ch["roi"]) or chi < float(ch["chi_doi_bo"])):   # vòng 2 đang thử bộ mới: giữ bộ đích tới khi chi chạm chi_doi_bo
             doi_bo[ct] = p.get("thu_bo") or ""; continue
         if not lo: continue
@@ -119,10 +97,9 @@ def xet(that=False):
             if vong != "team": dat(ct, "team", f"team lãi 14 ngày (${p['team_chi']:.0f} → ${p['team_thu']:.0f}) · {so}", that); bao.append(f"phim {ct} {ten}: team lãi (${p['team_chi']:.0f} → ${p['team_thu']:.0f}) mà Nhà lỗ ({so}) — nạp creative team: nap-creative-ngoai.py --phim {ct} --cham")
             continue
         bo_moi = next((b for b in ch["bo"] if b not in (p.get("bo") or [])), None)
-        if vong not in ("doi_bo", "cat") and bo_moi and len(p.get("bo") or []) < int(ch["so_bo"]):
+        if vong != "doi_bo" and bo_moi and len(p.get("bo") or []) < int(ch["so_bo"]):
             doi_bo[ct] = bo_moi; dat(ct, "doi_bo", f"đổi sang bộ {bo_moi} · {so}", that, bo_moi)
             bao.append(f"đổi bộ phim {ct} {ten}: camp mới kế tiếp (dòng phim / lên sau chấm) lên bộ {bo_moi} ({so})"); continue
-        if vong != "cat": dat(ct, "cat", so, that); bao.append(f"cất phim {ct} {ten}: thôi lên camp mới ({so})" + (f" · ⚠ đội còn {p['doi_chay']} camp chạy phim này — không nên mở thêm (nhãn ⛔ chạm mốc trên etp)" if p.get("doi_chay") else ""))
     return bao, doi_bo
 
 if __name__ == "__main__":

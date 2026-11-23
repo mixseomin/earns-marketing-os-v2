@@ -5,7 +5,7 @@ kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=F
   CHỈ PHIM ÂU-MỸ (anh 29/10/2026 "dừng các phim ngoài âu mỹ … chặn thể loại này khi lên camp target US"): phim có etp.phim.nhom_goc khác au_my
   (trung / an / latin / hoat_hinh / dong_a / da_mau) → chặn mọi việc tăng chi (tạo camp, nhân bản kể cả ROAS, bật lại, tăng). Phim chưa chấm nhóm → chấm poster ngay, thiếu poster thì 4 khung video creative đã chấm (apps/etp/nhom_goc.py, ckey ~13–36₫), không chấm được → chặn (anh 29/10/2026 "làm cho kín").
   TRÙNG PHIM VỚI ĐỘI: BỎ (anh 06/11/2026 "Bỏ tiêu chí ko lên camp cùng người trong đội") — luật 02/11/2026 chặn camp mới phim người khác trong đội đang chạy; nay lên bình thường.
-  PHIM ĐÃ CẤT (anh 31/10/2026): etp.phim.thu_vong = 'cat' (apps/etp/cat_phim.py) → chặn tạo camp / nhân bản phim đó; camp đang chạy vẫn để luật tắt xử.
+  PHIM ĐÃ CẤT: điều kiện đã BỎ (anh 23/11/2026 "Bỏ điều kiện 'Cất phim' đi") — cổng không còn chặn tạo camp / nhân bản theo etp.phim.thu_vong.
   viec: tang | bat | nhan_ban | tao_camp (làm tăng chi) · giam | tat (luôn cho qua — dừng khẩn vẫn phải hạ được chi)
 Đọc etp.cau_hinh (dung_khan · tran_ngay · tran_camp · tran_bo · tran_camp_moi_ngay) + etp.camp (tổng ngân sách camp đang bật). Lỗi đọc kho → CHẶN (an toàn trước, không đoán).
 Dùng trong script khác: sys.path.insert(0, '/opt/earns-marketing-os-v2/apps/etp'); import cong; ly = cong.kiem('tang', cid, 15, 10)"""
@@ -183,7 +183,6 @@ def at_sai_dang(creative_ids, q=None):
     return ly_at(rows)
 
 LY_AU_MY = "phim nhóm gốc '{}' — chỉ chạy phim Âu-Mỹ (anh 29/10/2026: dừng các phim ngoài Âu-Mỹ, chặn khi lên camp; nhóm chấm trên poster, etp.phim.nhom_goc)"
-LY_CAT = "phim #{0} đã cất ({1}) — thử đủ creative + đủ bộ mà chưa camp nào lãi; tự mở lại khi camp nhà / team lãi, mở tay: python3 apps/etp/cat_phim.py --mo {0}"
 
 # NGÀY THỊ TRƯỜNG XẤU (anh 09/11/2026 "Như hnay là ngày cả đội giảm sâu. Plan nên là gì" → "Làm đi"): ngày đã khép mà ROI CẢ ĐỘI (nhà + đội) thấp hơn
 # trung bình 7 ngày khép trước đó từ NGAY_XAU_DIEM điểm trở lên. Luật L3 / L4 / G10 (luat-ethopex.py) không tính ngày này vào chuỗi lỗ của camp ≥ $10 và ★ ROAS
@@ -206,9 +205,9 @@ def phim_chan_len():
     Máy chọn việc (thay-the.py) lọc trước bằng hàm này: 31/10/2026 máy thay camp thử 450 lần thì 445 lần bị chặn Âu-Mỹ — mỗi lần một lượt gọi Ethopex + một dòng nhật ký.
     Phim chưa chấm nhóm không có ở đây (kiem() chấm ngay lúc lên)."""
     ra = {}
-    for l in _q("select content_id, coalesce(nhom_goc, ''), coalesce(thu_vong, ''), coalesce(thu_ly, '') from etp.phim where (nhom_goc is not null and nhom_goc <> 'au_my') or thu_vong = 'cat'").splitlines():
+    for l in _q("select content_id, coalesce(nhom_goc, ''), coalesce(thu_vong, ''), coalesce(thu_ly, '') from etp.phim where (nhom_goc is not null and nhom_goc <> 'au_my')").splitlines():   # phim đã cất không còn chặn (anh 23/11/2026 bỏ điều kiện cất phim)
         cid, ng, tv, tl = l.split("|", 3)
-        ra[int(cid)] = LY_AU_MY.format(ng) if ng and ng != "au_my" else LY_CAT.format(cid, tl)
+        ra[int(cid)] = LY_AU_MY.format(ng)
     # PHIM CẤM (etp:phim-cam-cho-3-2011): sổ ethopex_phim_cam cũng là chặn chắc — anh-tinh / thay-the lọc trước bằng hàm này nên không dựng / thay creative phim cấm
     for l in _q(f"select k.key || '|' || coalesce(k.value->>'ly_do', 'cấm') from xv_khoa_ngoai x, jsonb_each(x.gia_tri) k where x.ten = '{KHOA_PHIM_CAM}'"
                 f" and jsonb_typeof(x.gia_tri) = 'object' and k.key ~ '^[0-9]+$'").splitlines():
@@ -506,9 +505,6 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
             ng, _chi, _ly = NG.cham(int(ct))
             if not ng: return f"phim #{ct} chưa chấm được nhóm gốc ({_ly}) — chỉ lên camp phim Âu-Mỹ đã chấm (anh 29/10/2026 'làm cho kín')"
         if ng and ng != 'au_my': return LY_AU_MY.format(ng)
-        if ct and viec in ("nhan_ban", "tao_camp"):   # PHIM ĐÃ CẤT (anh 31/10/2026): thử đủ creative + đủ bộ, team không lãi → thôi lên camp mới (apps/etp/cat_phim.py)
-            cl = _q(f"select coalesce(thu_ly, '') from etp.phim where content_id = {int(ct)} and thu_vong = 'cat'")
-            if cl: return LY_CAT.format(ct, cl)
         ch = doc_cau_hinh()
         # NGƯỜI BẤM THẬT = VÉ (anh 18/11/2026): chỉ vé ETP_VE hợp lệ cho đúng việc + camp / phim này mới miễn phanh / bảo trì / trần camp test — không đọc chữ ai, cờ anh_bam / tay / roas
         ve = bool(ve_hop_le(viec, [camp_id] if camp_id else (), ct))

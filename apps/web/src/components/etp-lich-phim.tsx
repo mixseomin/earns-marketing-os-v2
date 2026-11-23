@@ -1,7 +1,7 @@
 'use client';
 // BẢNG LỊCH + ĐIỀU KHIỂN PHIM (anh 06/11/2026, chỉ tài khoản chủ): bấm đồng hồ thị trường trên dòng phim → bảng nổi
 // (rê chuột vào là mở, thẻ nổi chung useNoi/KhungNoi; tab Thị trường giữ thẻ đồng hồ cũ)
-// giai đoạn · dạng đã thử · mốc cất · sản xuất + lỗi · sắp tới · nút ＋ CC / ＋ KT / − bớt camp lỗ nhất. Số: lib/actions/etp-lich-phim.ts (kiểm vai chủ trên máy chủ).
+// giai đoạn · dạng đã thử · sản xuất + lỗi · sắp tới · nút ＋ CC / ＋ KT / − bớt camp lỗ nhất. Số: lib/actions/etp-lich-phim.ts (kiểm vai chủ trên máy chủ).
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DongMoc, KhungNoi, TheChung, useNoi, type Moc, type TheNoi } from '@/components/etp-noi';
@@ -96,7 +96,6 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
   const sapToi = l ? [
     l.thay ? `◌ ${l.thay.kieu === 'cho' ? 'camp chờ' : 'camp thay'} — ${({ chuan_bi: 'chọn creative', cat_goc: 'chờ cắt góc mới', cho_cham: 'chờ chấm', len_lich: 'đã lên, chờ chạy', chan: 'cổng chặn' } as Record<string, string>)[l.thay.buoc] ?? l.thay.buoc}` : null,
     ...l.hoan.slice(0, 2).map((h) => `${h.huong === 'tang' ? '⬆' : h.huong === 'giam' ? '⬇' : '✕'} #${h.camp_id} ${h.huong === 'tang' ? 'tăng bậc lúc 21:00' : h.huong === 'giam' ? 'giảm bậc lúc 15:00' : 'tắt lúc 15:00'}`),
-    gd === 0 && l.vong !== 'cat' && !l.lt ? `✕ cất phim nếu chi tới $${l.moc_chi} / ${l.moc_thu} camp thử mà chưa lãi` : null,
   ].filter(Boolean).slice(0, 4) as string[] : [];
   const oTab = (k: 'lich' | 'tt' | 'log', chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
   return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ display: 'inline-flex', cursor: 'pointer' }}>
@@ -136,8 +135,7 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
                 return <React.Fragment key={x}>{H(x, <div style={{ display: 'flex', gap: 2 }} title={`${L} lãi · ${X} lỗ · ${C} chưa đủ số · ${S} đang sản xuất`}>
                   {Array.from({ length: L }, (_, i) => <O key={'l' + i} mau="#4ade80" />)}{Array.from({ length: X }, (_, i) => <O key={'x' + i} mau="#f87171" />)}
                   {Array.from({ length: C }, (_, i) => <O key={'c' + i} mau="#6b7280" />)}{Array.from({ length: S }, (_, i) => <O key={'s' + i} mau="#facc15" net />)}</div>)}</React.Fragment>; })}
-              {l.lt ? H('Thử dạng', <div style={chuoi} title="số camp có chi trên mức cần để luật cất kết luận">{Object.entries(l.lt.dang).map(([x, v]) => <span key={x}>{x} <b style={{ color: v.chi >= 2 ? 'var(--fg)' : 'var(--fg-3)' }}>{v.chi}/2</b>{v.bo ? ' đã bỏ' : x === 'CT' ? ' chưa có máy' : ''}</span>)}</div>) : null}
-              {gd === 0 && !l.lt ? H('Mốc cất', <span title={`máy cất phim khi chi thử ≥ $${l.moc_chi} hoặc đủ ${l.moc_thu} camp có chi mà chưa camp nào lãi`}>${Math.round(l.chi)} / ${l.moc_chi} · {l.so_thu}/{l.moc_thu} camp</span>) : null}
+              {l.lt ? H('Thử dạng', <div style={chuoi} title="số camp có chi của từng dạng thử (điều kiện cất phim đã bỏ 23/11/2026)">{Object.entries(l.lt.dang).map(([x, v]) => <span key={x}>{x} <b style={{ color: v.chi >= 2 ? 'var(--fg)' : 'var(--fg-3)' }}>{v.chi}/2</b>{v.bo ? ' đã bỏ' : x === 'CT' ? ' chưa có máy' : ''}</span>)}</div>) : null}
               {/* CAMP MỚI: kế hoạch → đang sản xuất → chờ lên. Kế hoạch etp.mo_rong chỉ là số đề xuất, chỉ phim_doi_lai máy mới tự xếp dòng — nói đúng ai làm bước kế */}
               {H('Camp mới', <div style={chuoi}>{so(k ? `+${k}` : 0, 'kế hoạch', 'var(--fg)', ke ? `${ke.ly}\nCó sẵn ${ke.san} creative · cần làm thêm ${ke.can_sx}` : 'Chưa có kế hoạch')}<span style={{ color: 'var(--fg-3)' }}>→</span>{so(tongSx, 'đang SX', 'var(--fg)')}<span style={{ color: 'var(--fg-3)' }}>→</span>{so(cho, 'chờ lên', 'var(--fg)', `${l.hen.length} camp đã tạo chờ giờ chạy · ${ke?.san ?? 0} creative sạch chưa có camp · ${l.tu_len} trong hàng máy tự lên`)}</div>)}
               {buocKe ? H('Mở rộng', buocKe, true) : null}

@@ -17,7 +17,7 @@ Mỗi nhịp ethopex (cty worker, SAU khi luat-ethopex.py --json đã ghi etp.xe
   0. THANG CHUYỂN HƯỚNG (anh 31/10/2026, apps/etp/cat_phim.py): phim chưa camp nào lãi, chi ≥ mức thử mà ROI dưới ngưỡng → đổi sang bộ chưa thử (camp thay lên
      bộ đó), team lãi thì báo nạp creative team, hết đường thì CẤT (thôi mở dòng thay; cong.kiem chặn tạo camp phim đó). Mức ở etp.cau_hinh.cat_phim.
   4. Camp thay đã chạy (có chi) → dòng 'chay' (trang etp thôi vẽ dòng mờ).
-  Phim cần thay mà cổng chặn (trùng phim người trong đội · ngoài Âu-Mỹ · đã cất) → dòng 'chan' ghi lý do để tab Camp hiện (anh 05/11/2026); cổng mở thì huỷ, mở dòng thay thường.
+  Phim cần thay mà cổng chặn (trùng phim người trong đội · ngoài Âu-Mỹ) → dòng 'chan' ghi lý do để tab Camp hiện (anh 05/11/2026); cổng mở thì huỷ, mở dòng thay thường.
 Chạy (box3, đã nạp .env.production):  python3 thay-the.py [--that] [--toi-da 15]     (không --that = chạy khô, chỉ in sẽ làm gì; --toi-da = trần camp mới mỗi lượt)"""
 import datetime as dt, importlib.util, json, os, subprocess, sys
 
@@ -178,14 +178,14 @@ def lam(r, NB):
 def main():
     NB = _nap("nb", "nhan-ban.py")
     bao, moi = [], 0
-    # THANG CHUYỂN HƯỚNG (anh 31/10/2026): phim chưa lãi sau mức thử → đổi bộ (vòng 2) / chờ creative team (vòng 3) / cất (vòng 4) — trước khi mở dòng thay
+    # THANG CHUYỂN HƯỚNG (anh 31/10/2026): phim chưa lãi sau mức thử → đổi bộ (vòng 2) / chờ creative team (vòng 3) — cất phim (vòng 4) đã bỏ 23/11/2026 — trước khi mở dòng thay
     try:
         s_cp = importlib.util.spec_from_file_location("cat_phim", os.path.join(ETP, "cat_phim.py")); CP = importlib.util.module_from_spec(s_cp); s_cp.loader.exec_module(CP)
         b_cp, d_cp = CP.xet(that=THAT); bao += b_cp; DOI_BO.update({int(k): v for k, v in d_cp.items() if v})
     except Exception as e: bao.append(f"lỗi thang chuyển hướng: {str(e)[:120]}")
     # BỎ LOẠI CAMP THAY THẾ (anh 09/11/2026 "Bỏ loại camp đó đi vì đã có plan thay thế tổng thể rồi" — đo 29/10–08/11: 103 camp thay ROI −29% so với +4% của
     # camp mới khác; lộ trình phim / bù camp / cất sớm đã lo phim không đứt camp): không mở dòng mới, không lên camp thay. Dòng đang mở: đã có camp (len_lich) → 'chay'
-    # (camp giữ nguyên cho luật tắt / tăng xử), chưa có → 'huy' + gỡ hàng cắt góc mới cờ thay. Chỉ còn thang cất phim (cat_phim.xet) ở trên chạy theo nhịp ethopex.
+    # (camp giữ nguyên cho luật tắt / tăng xử), chưa có → 'huy' + gỡ hàng cắt góc mới cờ thay. Chỉ còn thang đổi bộ (cat_phim.xet, cất phim đã bỏ 23/11/2026) ở trên chạy theo nhịp ethopex.
     for r in qj("select id, content_id, buoc from etp.thay_the where buoc not in ('chay', 'huy')"):
         ghi(r["id"], buoc="chay" if r["buoc"] == "len_lich" else "huy", ghi="bỏ loại camp thay thế (anh 09/11/2026) — thay bằng lộ trình phim tổng thể")
         if r["buoc"] != "len_lich": bo_hang_cat(r["content_id"])
@@ -193,7 +193,7 @@ def main():
     print(json.dumps({"moi": 0, "bao": bao}, ensure_ascii=False))
     return
     sys.path.insert(0, ETP); import cong
-    CHAN = cong.phim_chan_len()   # phim cổng chắc chắn chặn (ngoài Âu-Mỹ · đã cất) → không mở dòng, không thử lên (31/10/2026: 445/450 lần thử bị chặn Âu-Mỹ)
+    CHAN = cong.phim_chan_len()   # phim cổng chắc chắn chặn (ngoài Âu-Mỹ) → không mở dòng, không thử lên (31/10/2026: 445/450 lần thử bị chặn Âu-Mỹ)
     global SAP, SAP_PHIM; CAN = can_thay(); SAP = {int(x["camp_id"]) for x in CAN}
     SAP_PHIM = {int(x["content_id"]): {int(c[1:].split(" ")[0]) for c in x["ly"].split(" | ")} for x in CAN}   # phim → mọi camp sắp tắt của phim
     # 4. camp thay đã chạy → xong; phim đã có camp khác chạy (ngoài camp cũ) → huỷ

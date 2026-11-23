@@ -203,10 +203,15 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
           </> : null}
           {buocSoan === 3 ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ fontWeight: 600 }}>Thành phần lấy từ thư viện</div>
-            {/* chưa có ô khai trong sổ mẫu (etp-mau-cr.json chưa có `o`) → nói thật máy đang chọn theo luật của mẫu, không vẽ ô kéo thả giả */}
-            <div style={{ color: MO_SO, padding: 12, border: '1px dashed var(--line)', borderRadius: 8, lineHeight: 1.5 }}>
-              Mẫu này chưa khai các ô thành phần, nên máy tự chọn khung hình / poster / nút theo luật của mẫu khi dựng.<br />
-              Đang làm: khai ô cho từng mẫu, rồi bước này hiện các ô bên trái và thư viện (poster, ảnh tĩnh, ảnh theo phim, nút CTA, băng chữ) bên phải để kéo thả ghim vào ô.</div>
+            {/* ô thành phần khai trong sổ mẫu (etp-mau-cr.json › o): mỗi ô một quy tắc chọn từ thư viện — chưa ghim thì máy chọn theo quy tắc khi dựng */}
+            {mauChon.o.length ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 8 }}>
+              {mauChon.o.map((o) => <div key={o.ma} style={{ border: '1px dashed var(--line)', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ fontWeight: 600 }}>{o.ten}</div>
+                <div style={{ fontSize: 12 }}>Thư viện: {o.tv?.ten ?? o.thu_vien}<span style={{ color: MO_SO }}> · {o.tv?.nguon ?? 'chưa khai thư viện'}</span></div>
+                <div style={{ fontSize: 12, color: MO_SO }}>Máy tự chọn: {o.luat}</div>
+              </div>)}
+            </div> : <div style={{ color: MO_SO, padding: 12, border: '1px dashed var(--line)', borderRadius: 8 }}>Mẫu này chưa khai ô thành phần — máy tự chọn theo luật của mẫu khi dựng.</div>}
+            <div style={{ color: MO_SO, fontSize: 12 }}>Kéo thả ghim từ thư viện vào ô: đang làm (bước kế). Hiện máy dựng theo quy tắc từng ô.</div>
           </div> : null}
           {buocSoan === 4 ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ fontWeight: 600 }}>Kiểm lại rồi gửi máy dựng</div>

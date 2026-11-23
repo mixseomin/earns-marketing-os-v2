@@ -14,11 +14,16 @@ import { duyetChoAnh } from '@/lib/actions/etp-cho-duyet';
 const run = async <T,>(s: ReturnType<typeof sql>) => (await getDb()!.execute(s)) as unknown as T[];
 const laChu = async () => { const me = await getCurrentUser(), q = await quyenEtp(me); return q?.vai === 'chu' ? me : null; };
 
-type MucSo = { ma: string; ten: string; loai: string; trang_thai: string; may?: string | null; mo_ta?: string; anh_dung?: string | null; anh_dung_phim?: string | null; nhom?: string | null; cau_nhu?: boolean };
+type MucSo = { ma: string; ten: string; loai: string; trang_thai: string; may?: string | null; mo_ta?: string; anh_dung?: string | null; anh_dung_phim?: string | null; nhom?: string | null; cau_nhu?: boolean; o?: OMau[] };
+/** ô thành phần của mẫu (sổ › o): mỗi ô gắn một QUY TẮC chọn từ một thư viện (sổ › thu_vien), không gắn cứng tệp */
+export type OMau = { ma: string; ten: string; thu_vien: string; luat: string };
+export type ThuVienSo = { ten: string; nguon: string; co: boolean };
+const THU_VIEN = (SO_MAU as unknown as { thu_vien: Record<string, ThuVienSo> }).thu_vien;
 /** mẫu máy dựng được (cùng điều kiện chonPhimMau: có hàm trong dung-mau.py, không phải công thức, không ở trạng thái chưa) */
 const MAU_DUNG = (SO_MAU.mau as MucSo[]).filter((x) => x.loai !== 'cong_thuc' && x.trang_thai !== 'chua' && (x.may ?? '').startsWith('dung-mau.py'));
 
-export type MauChon = { ma: string; ten: string; mo_ta: string; anh: string | null; anh_phim: string | null; nhom: string | null; cau_nhu: boolean };
+export type MauChon = { ma: string; ten: string; mo_ta: string; anh: string | null; anh_phim: string | null; nhom: string | null; cau_nhu: boolean;
+  /** ô thành phần đã khai (rỗng = mẫu chưa khai, máy tự chọn theo luật mẫu) — kèm tên + nguồn thư viện của ô */ o: (OMau & { tv: ThuVienSo | null })[] };
 export type SoanCr = { id: number; mau: string | null; cau: string | null; nhan: string | null; chu_dau: string | null; trang_thai: 'nhap' | 'dung' | 'xong' | 'loi'; ghi: string | null;
   creative_id: number | null; cap_nhat: string; /** việc dựng đang ở bước nào (etp.mau_dung) khi trang_thai = dung */ buoc: string | null };
 export type CrCuaPhim = { creative_id: number; dang: string | null; lang: string | null; anh: string | null; video: string | null; luc: string | null; mau: string | null;
@@ -59,7 +64,7 @@ export async function docCrPhim(contentId: number): Promise<DuCrPhim | { loi: st
     where r.content_id = ${cid} order by r.creative_id desc limit 80`);
   const n = Number((await run<{ n: number }>(sql`select count(*)::int n from etp.creative where content_id = ${cid}`))[0]?.n ?? 0);
   return { phim: f?.ten ?? null, con: Math.max(0, Number(n) - cr.length),
-    mau: MAU_DUNG.map((x) => ({ ma: x.ma, ten: x.ten, mo_ta: x.mo_ta ?? '', anh: x.anh_dung ?? null, anh_phim: x.anh_dung_phim ?? null, nhom: x.nhom ?? null, cau_nhu: !!x.cau_nhu })),
+    mau: MAU_DUNG.map((x) => ({ ma: x.ma, ten: x.ten, mo_ta: x.mo_ta ?? '', anh: x.anh_dung ?? null, anh_phim: x.anh_dung_phim ?? null, nhom: x.nhom ?? null, cau_nhu: !!x.cau_nhu, o: (x.o ?? []).map((y) => ({ ...y, tv: THU_VIEN[y.thu_vien] ?? null })) })),
     soan: soan.map((s) => ({ ...s, id: Number(s.id), creative_id: s.creative_id == null ? null : Number(s.creative_id) })),
     cr: cr.map((x) => ({ ...x, creative_id: Number(x.creative_id), camp_id: x.camp_id == null ? null : Number(x.camp_id) })) };
 }

@@ -1,5 +1,6 @@
 {
- "_ghi": "SỔ MẪU CREATIVE — MỘT NƠI (anh 19/11/2026: 'Tạo 1 tab mới là Mẫu Creative' · 'khi lên creative, phải dựa vào 1 mẫu nào đó! Nếu chưa có mẫu thì phải tìm cho ra hoặc phải bổ sung mới!! Ko còn creative tự do nữa'). Web (tab Mẫu Creative, lib/actions/etp-mau-cr.ts) và máy (apps/etp/so_mau.py → cổng len-creative.py: creative nào không gắn được mẫu thì KHÔNG được tải lên Ethopex) cùng đọc tệp này. DẠNG không khai ở đây — đọc etp-dang.json. loai: cong_thuc = công thức máy dựng creative (phải có 'dang' = dạng có dấu, 'nhan' = chữ nhận diện trong ghi chú bản dựng khi một dạng có nhiều công thức, 'mac_dinh' = công thức dùng khi không nhận ra) · bo_cuc / lop_phu = mẫu bố cục / lớp chữ-nút. trang_thai: may = máy đang dựng · thu = có mã, chưa vào máy · chua = mới là tham chiếu. CHỈ công thức trạng thái may / thu được tải lên. tham_chieu = library_id QC đối thủ. anh_dung = bản MÁY DỰNG theo mẫu (dung-mau.py --bang) đặt cạnh QC GỐC đối thủ để so có dựng đúng mẫu không (anh 19/11/2026). nhom = nhóm thiết kế hiện trên tab (1 công thức · 2 dạng · 3 tên phim · 4 nút / CTA · 5 băng chữ / câu nhử · 6 bố cục / key-art · 7 bố cục ảnh nhà). mau_duyet = creative máy dựng theo mẫu mà ANH ĐÃ DUYỆT làm mẫu (anh 20/11/2026 'Ổn rồi. Lưu vào creative mẫu đó') — chỉ những bản này được lên thẻ cạnh QC gốc đối thủ; anh_dung (bản thử) vẫn chỉ nằm trong ngăn. chuan = ngày quy trình dựng của mẫu được chuẩn hoá VÀ anh đã duyệt bản mẫu → web hiện trạng thái 'Đã chuẩn hoá' (máy vẫn đọc trang_thai như cũ). quy_trinh = các bước chuẩn, hiện thành danh sách trong chi tiết mẫu.",
+ "_ghi": "SỔ MẪU CREATIVE — MỘT NƠI (anh 19/11/2026: 'Tạo 1 tab mới là Mẫu Creative' · 'khi lên creative, phải dựa vào 1 mẫu nào đó! Nếu chưa có mẫu thì phải tìm cho ra hoặc phải bổ sung mới!! Ko còn creative tự do nữa'). Web (tab Mẫu Creative, lib/actions/etp-mau-cr.ts) và máy (apps/etp/so_mau.py → cổng len-creative.py: creative nào không gắn được mẫu thì KHÔNG được tải lên Ethopex) cùng đọc tệp này. DẠNG không khai ở đây — đọc etp-dang.json. loai: cong_thuc = công thức máy dựng creative (phải có 'dang' = dạng có dấu, 'nhan' = chữ nhận diện trong ghi chú bản dựng khi một dạng có nhiều công thức, 'mac_dinh' = công thức dùng khi không nhận ra) · bo_cuc / lop_phu = mẫu bố cục / lớp chữ-nút. trang_thai: may = máy đang dựng · thu = có mã, chưa vào máy · chua = mới là tham chiếu. CHỈ công thức trạng thái may / thu được tải lên. tham_chieu = library_id QC đối thủ. anh_dung = bản MÁY DỰNG theo mẫu (dung-mau.py --bang) đặt cạnh QC GỐC đối thủ để so có dựng đúng mẫu không (anh 19/11/2026). nhom = nhóm thiết kế hiện trên tab (1 công thức · 2 dạng · 3 tên phim · 4 nút / CTA · 5 băng chữ / câu nhử · 6 bố cục / key-art · 7 bố cục ảnh nhà). mau_duyet = creative máy dựng theo mẫu mà ANH ĐÃ DUYỆT làm mẫu (anh 20/11/2026 'Ổn rồi. Lưu vào creative mẫu đó') — chỉ những bản này được lên thẻ cạnh QC gốc đối thủ; anh_dung (bản thử) vẫn chỉ nằm trong ngăn. chuan = ngày quy trình dựng của mẫu được chuẩn hoá VÀ anh đã duyệt bản mẫu → web hiện trạng thái 'Đã chuẩn hoá' (máy vẫn đọc trang_thai như cũ). quy_trinh = các bước chuẩn, hiện thành danh sách trong chi tiết mẫu. o = CÁC Ô THÀNH PHẦN của mẫu (bước Thành phần ở ngăn Creative của phim etp2): mỗi ô {ma, ten, thu_vien (khoá trong thu_vien đầu sổ), luat = quy tắc máy tự chọn khi anh không ghim} — mỗi ô gắn một QUY TẮC chọn từ thư viện, không gắn cứng một tệp (anh 23/11/2026). Chỉ khai ô máy dựng THẬT SỰ dùng (đối chiếu mã dung-mau.py); mẫu chưa khai o = máy chưa nhận ghim.",
+ "thu_vien": {"khung_phim": {"ten": "Khung theo phim", "nguon": "khung trích từ tập 1–3 của phim (AI xếp hạng) · etp.thu_vien_phim · etp.anh_cr", "co": true}, "poster": {"ten": "Poster gốc phim", "nguon": "etp.phim_poster (og:image trang phim)", "co": true}, "giong": {"ten": "Giọng đọc", "nguon": "cổng giọng chung, câu đọc cố định theo ngôn ngữ (anh-tinh.py CAU)", "co": true}, "anh_tv": {"ten": "Poster / ảnh tĩnh / kể chuyện / thoại sốc", "nguon": "etp.thu_vien", "co": true}, "nut": {"ten": "Nút / CTA", "nguon": "sổ mẫu nhóm 4 + cta_qc.py", "co": true}, "bang": {"ten": "Băng chữ", "nguon": "sổ mẫu nhóm 5", "co": true}, "giong_cta": {"ten": "Giọng CTA", "nguon": "2 tệp cố định", "co": true}, "canh_cat": {"ten": "Cảnh cắt", "nguon": "chưa có thư viện", "co": false}, "hook": {"ten": "Hook", "nguon": "đọc QC spy mỗi lần, chưa có thư viện", "co": false}},
  "mau": [
   {
    "ma": "cc_cta",
@@ -417,7 +418,7 @@
    "nhom": "7 · Bố cục ảnh nhà"
   },
   {
-   "ma": "dt_ten_vang",
+   "ma": "dt_ten_vang", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Tên vàng nổi khối",
    "loai": "lop_phu",
    "nguon": "doi_thu",
@@ -446,7 +447,7 @@
    "nhom": "3 · Tên phim"
   },
   {
-   "ma": "dt_logo_chat_lieu",
+   "ma": "dt_logo_chat_lieu", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "logo", "ten": "Logo tên phim", "thu_vien": "poster", "luat": "tách logo từ poster gốc; nền poster rối thì AI vẽ lại nền sạch (~111₫, một lần mỗi phim)"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Logo gốc của phim",
    "loai": "lop_phu",
    "nguon": "doi_thu",
@@ -504,7 +505,7 @@
    ]
   },
   {
-   "ma": "dt_ten_nut_vang",
+   "ma": "dt_ten_nut_vang", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Tên + nút WATCH NOW viền vàng",
    "loai": "lop_phu",
    "nguon": "doi_thu",
@@ -527,7 +528,7 @@
    "nhom": "4 · Nút / CTA"
   },
   {
-   "ma": "dt_key_art_neon",
+   "ma": "dt_key_art_neon", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "khung_phu", "ten": "Khung phụ (nhân vật thứ hai)", "thu_vien": "khung_phim", "luat": "khung xếp hạng ngay sau khung chính"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "cau_nhu": true,
    "ten": "Key-art neon + câu nhử",
    "loai": "bo_cuc",
@@ -552,7 +553,7 @@
    "nhom": "6 · Bố cục / key-art"
   },
   {
-   "ma": "dt_cau_nhu_dinh",
+   "ma": "dt_cau_nhu_dinh", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "cau_nhu": true,
    "ten": "Câu nhử chữ nghiêng trên đỉnh",
    "loai": "lop_phu",
@@ -575,7 +576,7 @@
    "nhom": "5 · Băng chữ / câu nhử"
   },
   {
-   "ma": "dt_su_thi",
+   "ma": "dt_su_thi", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Poster sử thi khắc chữ",
    "loai": "bo_cuc",
    "nguon": "doi_thu",
@@ -599,7 +600,7 @@
    "nhom": "6 · Bố cục / key-art"
   },
   {
-   "ma": "dt_hanh_dong_kim_loai",
+   "ma": "dt_hanh_dong_kim_loai", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Tên hành động kim loại",
    "loai": "lop_phu",
    "nguon": "doi_thu",
@@ -625,7 +626,7 @@
    "nhom": "3 · Tên phim"
   },
   {
-   "ma": "dt_khung_player",
+   "ma": "dt_khung_player", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "cau_nhu": true,
    "ten": "Khung trình phát + EXCLUSIVE",
    "loai": "lop_phu",
@@ -648,7 +649,7 @@
    "nhom": "6 · Bố cục / key-art"
   },
   {
-   "ma": "dt_dai_free",
+   "ma": "dt_dai_free", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Dải trắng WATCH FREE trên đỉnh",
    "loai": "lop_phu",
    "nguon": "doi_thu",
@@ -670,7 +671,7 @@
    "nhom": "5 · Băng chữ / câu nhử"
   },
   {
-   "ma": "dt_theo_mua",
+   "ma": "dt_theo_mua", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Theo mùa (Giáng sinh)",
    "loai": "bo_cuc",
    "nguon": "doi_thu",
@@ -693,7 +694,7 @@
    "nhom": "6 · Bố cục / key-art"
   },
   {
-   "ma": "dt_logo_goc",
+   "ma": "dt_logo_goc", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "cau_nhu": true,
    "ten": "Logo phim nhỏ ở góc + phụ đề",
    "loai": "lop_phu",
@@ -716,7 +717,7 @@
    "nhom": "3 · Tên phim"
   },
   {
-   "ma": "dt_nut_free_do",
+   "ma": "dt_nut_free_do", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Nút Watch Free đỏ nhỏ",
    "loai": "lop_phu",
    "nguon": "doi_thu",
@@ -738,7 +739,7 @@
    "nhom": "4 · Nút / CTA"
   },
   {
-   "ma": "dt_discover_banner",
+   "ma": "dt_discover_banner", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "khung_phu", "ten": "Khung phụ (nhân vật thứ hai)", "thu_vien": "khung_phim", "luat": "khung xếp hạng ngay sau khung chính"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Băng DISCOVER + khung chéo + WATCH MORE",
    "loai": "bo_cuc",
    "nguon": "doi_thu",
@@ -758,7 +759,7 @@
    "nhom": "6 · Bố cục / key-art"
   },
   {
-   "ma": "dt_ong_ngam",
+   "ma": "dt_ong_ngam", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Ống ngắm",
    "loai": "bo_cuc",
    "nguon": "doi_thu",
@@ -782,7 +783,7 @@
    "nhom": "6 · Bố cục / key-art"
   },
   {
-   "ma": "dt_full_series_dau",
+   "ma": "dt_full_series_dau", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Full series now available",
    "loai": "lop_phu",
    "nguon": "doi_thu",
@@ -805,7 +806,7 @@
    "nhom": "5 · Băng chữ / câu nhử"
   },
   {
-   "ma": "dt_stream_banner",
+   "ma": "dt_stream_banner", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Băng STREAM THE FULL SERIES",
    "loai": "lop_phu",
    "nguon": "doi_thu",
@@ -830,7 +831,7 @@
    "nhom": "5 · Băng chữ / câu nhử"
   },
   {
-   "ma": "dt_watch_more_gian",
+   "ma": "dt_watch_more_gian", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "WATCH MORE + chữ giãn + tên vàng",
    "loai": "lop_phu",
    "nguon": "doi_thu",
@@ -857,7 +858,7 @@
    "nhom": "3 · Tên phim"
   },
   {
-   "ma": "dt_vang_do_script",
+   "ma": "dt_vang_do_script", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Tên hai màu vàng / đỏ viết tay",
    "loai": "lop_phu",
    "nguon": "doi_thu",
@@ -885,7 +886,7 @@
    "nhom": "3 · Tên phim"
   },
   {
-   "ma": "dt_full_series_free",
+   "ma": "dt_full_series_free", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Tên hai tầng + FULL SERIES - FREE",
    "loai": "lop_phu",
    "nguon": "doi_thu",
@@ -908,7 +909,7 @@
    "nhom": "4 · Nút / CTA"
   },
   {
-   "ma": "dt_ten_tren_nut_duoi",
+   "ma": "dt_ten_tren_nut_duoi", "o": [{"ma": "khung", "ten": "Khung hình chính", "thu_vien": "khung_phim", "luat": "khung AI xếp hạng cao nhất (tập 1–3) chưa dùng cho mẫu này với phim; chữ phủ mặt quá 4% thì lấy khung kế, tối đa 10 khung"}, {"ma": "giong", "ten": "Giọng đọc", "thu_vien": "giong", "luat": "câu đọc xoay theo số bản đã dựng của phim"}],
    "ten": "Vương miện + tên trên · nút dưới",
    "loai": "lop_phu",
    "nguon": "doi_thu",

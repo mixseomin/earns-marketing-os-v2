@@ -15,9 +15,11 @@ const KHO_RONG = 'etp2-chon2-xem-rong';
 /** ô TÊN khi bảng có cột số (#1759): lề trái 10 + dấu ✓ 14 + khe 8 + chữ tối thiểu 118 — đủ đọc "Nguyễn Sơn · 5 TK" trên điện thoại */
 const O_TEN = 10 + 14 + 8 + 118;
 const NEN = 'var(--bg-0, #0b0d12)', NEN_TRO = 'linear-gradient(var(--hover, rgba(255,255,255,.07)), var(--hover, rgba(255,255,255,.07))), var(--bg-0, #0b0d12)';
+const VANG = '#facc15', VANG_NHAT = 'rgba(250,204,21,.16)', NEN_TO = `linear-gradient(${VANG_NHAT}, ${VANG_NHAT}), var(--bg-0, #0b0d12)`, O_TO = 26;
 
 export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', title, minWidth, align = 'left', anRong, href, chan, nhieu, tatCa = '', cot, oRong, to }: {
-  /** CHỈ TÔ SÁNG (anh 23/11/2026 etp2 #1781): có prop này thì bảng nổi có công tắc 🖍 — bật = lựa chọn của RIÊNG ô này chỉ tô vàng mục khớp, không giấu gì; các ô khác vẫn lọc */ to?: { bat: boolean; doi: (v: boolean) => void };
+  /** TÔ SÁNG TỪNG MỤC (anh 23/11/2026 etp2 #1781 "chỉ muốn HL mà đổi trong filter hiện tại sẽ lọc hết"): mỗi dòng có nút 🖍 RIÊNG, độc lập với lựa chọn lọc —
+   *  bấm 🖍 = thêm / bỏ mục đó khỏi tập TÔ (to.chon), giá trị lọc (value) giữ nguyên; ô vừa lọc vừa tô được cùng lúc, kể cả tô mục trong chính ô đang lọc */ to?: { chon: string[]; doi: (v: string[]) => void };
   /** cột số cạnh nhãn của từng mục (Chon2Muc.o) — có cot thì bảng nổi rộng thêm theo tổng bề rộng cột */ cot?: Chon2Cot[];
   /** ô số của mục '' tự thêm (rong) */ oRong?: ReactNode[];
   value: string; onChange: (v: string) => void; options: Chon2Muc[];
@@ -40,7 +42,7 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
   useEffect(() => { if (mo) { try { setXemRong(localStorage.getItem(KHO_RONG) === '1'); } catch { /* máy chặn localStorage → giữ hẹp */ } } }, [mo]);
   const doiRong = () => setXemRong((v) => { try { localStorage.setItem(KHO_RONG, v ? '0' : '1'); } catch { /* bỏ qua */ } return !v; });
   const ds =useMemo(() => (anRong ? options : [{ value: '', label: rong, o: oRong } as Chon2Muc, ...options]), [options, rong, anRong, oRong]);
-  const rongCot = cot ? cot.reduce((a, c) => a + c.rong + 8, 0) : 0;   // + gap 8 mỗi cột
+  const rongCot = (cot ? cot.reduce((a, c) => a + c.rong + 8, 0) : 0) + (to ? O_TO + 8 : 0);   // + gap 8 mỗi cột; ô có tô sáng thêm một cột 🖍 cuối dòng
   // CÓ CỘT SỐ TRÊN MÀN HẸP (anh 22/11/2026 etp2 #1759 "Mobile lỗi ko chọn đc người. Trình bày lởm quá"): bảng nổi bị chặn 92vw mà cột số rộng cố định
   // → ô tên co về 0, mất tên người, dòng đang chọn lệch, cột cuối bị cắt. Gốc sửa: ô TÊN không bao giờ hẹp hơn O_TEN và DÍNH MÉP TRÁI; mọi dòng chung
   // một bề rộng tối thiểu = tên + mọi cột; thiếu chỗ thì khung danh sách cuộn NGANG (tên đứng yên, số trượt) → cột luôn thẳng hàng ở mọi khổ màn
@@ -65,16 +67,21 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
   };
   // SÁNG KHI KHÁC "TẤT CẢ" (anh 28/10/2026 góp ý #1457): mọi ô — kể cả ô có mục tất cả riêng (anRong, vd Lọc 'all') — đang chọn mục không phải "Tất cả" thì viền + nền nhấn
   const coLoc = nhieu ? daChon.size > 0 : !!dang && dang.value !== '' && (dang.ngan ?? dang.label) !== rong;
-  const toBat = !!to?.bat;   // ô đang ở chế độ chỉ tô sáng → nút viền / nền vàng + 🖍, khác hẳn màu xanh của ô đang lọc
-  const vien = chan ? '#f87171' : toBat ? '#facc15' : coLoc ? 'var(--accent, #60a5fa)' : 'var(--line)';
-  const nen = chan ? 'rgba(248,113,113,.15)' : toBat ? 'rgba(250,204,21,.16)' : coLoc ? 'var(--accent-soft, rgba(59,130,246,.15))' : 'var(--bg-1, #111)';
-  const titleTo = toBat ? 'Ô này đang CHỈ TÔ SÁNG: camp khớp được tô vàng, không camp nào bị giấu. Mở ô, tắt 🖍 để quay lại lọc.' : '';
+  // tập TÔ tách khỏi tập LỌC: nút giữ màu lọc (xanh) như cũ, tô thì thêm huy hiệu vàng 🖍 N — nhìn nút biết ngay ô vừa lọc gì, vừa tô mấy mục
+  const toSet = useMemo(() => new Set(to?.chon ?? []), [to?.chon]);
+  const doiTo = (v: string) => { if (!to) return; const n = new Set(toSet); if (n.has(v)) n.delete(v); else n.add(v); to.doi(options.filter((m) => n.has(m.value)).map((m) => m.value)); };
+  const coTo = (v: string) => !!to && v !== '' && !(nhieu && v === tatCa);   // mục "tất cả" không tô (tô cả danh sách thì không phân biệt được gì)
+  const nhanTo = to && toSet.size ? options.filter((m) => toSet.has(m.value)).map((m) => m.ngan ?? (typeof m.label === 'string' ? m.label : m.value)).join(' + ') : '';
+  const vien = chan ? '#f87171' : coLoc ? 'var(--accent, #60a5fa)' : toSet.size ? VANG : 'var(--line)';
+  const nen = chan ? 'rgba(248,113,113,.15)' : coLoc ? 'var(--accent-soft, rgba(59,130,246,.15))' : 'var(--bg-1, #111)';
+  const titleTo = nhanTo ? `🖍 Đang tô vàng: ${nhanTo} — chỉ tô, không giấu camp nào. Mở ô, bấm lại 🖍 để bỏ tô.` : '';
   return (
     <>
-      <button ref={ref} type="button" data-comp="ui.Chon2" title={[chan, titleTo, title].filter(Boolean).join('\n') || undefined} onClick={() => setMo((v) => !v)} data-to={toBat ? '1' : undefined}
+      <button ref={ref} type="button" data-comp="ui.Chon2" title={[chan, titleTo, title].filter(Boolean).join('\n') || undefined} onClick={() => setMo((v) => !v)} data-to={toSet.size ? String(toSet.size) : undefined}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap', minWidth, maxWidth: '100%', flex: 'none',
           border: `1px solid ${vien}`, background: nen, color: 'inherit', boxShadow: chan ? '0 0 0 2px rgba(248,113,113,.35)' : undefined }}>
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>{toBat ? '🖍 ' : null}{nhan ?<span style={{ color: 'var(--fg-2)' }}>{nhan}: </span> : null}{nhanNhieu ?? dang?.ngan ?? dang?.label ?? rong}</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>{nhan ?<span style={{ color: 'var(--fg-2)' }}>{nhan}: </span> : null}{nhanNhieu ?? dang?.ngan ?? dang?.label ?? rong}</span>
+        {toSet.size ? <span data-k="chon2-to-so" style={{ flex: 'none', background: VANG, color: '#000', borderRadius: 4, padding: '0 4px', fontSize: 10.5, fontWeight: 600 }}>🖍{toSet.size}</span> : null}
         <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>▾</span>
       </button>
       <AnchoredPopover anchorRef={ref} open={mo} onClose={() => setMo(false)} align={align}>
@@ -92,21 +99,18 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
                 <button key={chu2} type="button" onClick={lam} style={{ flex: 1, fontSize: 11.5, padding: '3px 0', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit', cursor: 'pointer' }}>{chu2}{chu2 === 'Chọn hết' && q.trim() ? ' (đang tìm)' : ''}</button>))}
               <span style={{ alignSelf: 'center', fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{daChon.size ? `${daChon.size} đã chọn` : 'tất cả'}</span>
             </div> : null}
-            {to ? <button type="button" data-k="chon2-to" aria-pressed={toBat} onClick={() => to.doi(!toBat)}
-              title={'Bật: lựa chọn của ô này chỉ TÔ VÀNG camp khớp, không giấu camp nào. Danh sách đang xem giữ nguyên theo các ô lọc khác.\nTắt: ô này lọc như thường.'}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', marginTop: 6, fontSize: 11.5, padding: '4px 8px', borderRadius: 5, cursor: 'pointer', color: 'inherit', textAlign: 'left',
-                border: `1px solid ${toBat ? '#facc15' : 'var(--line)'}`, background: toBat ? 'rgba(250,204,21,.16)' : 'var(--bg-1, #111)' }}>
-              <span style={{ width: 26, height: 14, borderRadius: 7, flex: 'none', position: 'relative', background: toBat ? '#facc15' : 'var(--line)' }}>
-                <span style={{ position: 'absolute', top: 2, left: toBat ? 14 : 2, width: 10, height: 10, borderRadius: 5, background: 'var(--bg-0, #0b0d12)' }} />
-              </span>
-              🖍 Chỉ tô sáng, không lọc
-            </button> : null}
+            {to ? <div data-k="chon2-to-goi" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11, color: 'var(--fg-2)' }}>
+              <span style={{ flex: 1 }}>Bấm chữ = lọc · bấm 🖍 cuối dòng = chỉ tô vàng, không giấu camp nào</span>
+              {toSet.size ? <button type="button" data-k="chon2-to-bo" onClick={() => to.doi([])} title={`Bỏ tô: ${nhanTo}`}
+                style={{ flex: 'none', fontSize: 11, padding: '2px 6px', borderRadius: 5, border: `1px solid ${VANG}`, background: VANG_NHAT, color: 'inherit', cursor: 'pointer' }}>Bỏ tô {toSet.size}</button> : null}
+            </div> : null}
           </div>
           <div data-k="chon2-ds" style={{ maxHeight: xemRong ? '72vh' : 340, overflowY: 'auto', overflowX: cot ? 'auto' : undefined, overscrollBehavior: 'contain', padding: cot ? '0 0 4px' : '4px 0' }}>
            <div style={cot ? { minWidth: rongDong } : undefined}>
             {cot ? <div style={{ position: 'sticky', top: 0, zIndex: 2, display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px 0 0', background: NEN, borderBottom: '1px solid var(--line)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3, #777)' }}>
               <span data-cot="ten" style={oTen(NEN)}><span style={{ flex: '0 0 14px' }} />{nhan ?? ''}</span>
               {cot.map((c) => oCot(c, c.h))}
+              {to ? <span data-cot="to" data-cot-can="giua" title="Chỉ tô vàng, không lọc" style={{ flex: `0 0 ${O_TO}px`, textAlign: 'center' }}>🖍</span> : null}
             </div> : null}
             {loc.length ? loc.map((m, i) => (
               <div key={m.value || '_'}>
@@ -114,8 +118,8 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
                 {/* trỏ theo rê chuột CHỈ với chuột: trên cảm ứng, đổi giao diện lúc mouseenter có thể làm Safari iOS nuốt cú chạm đầu (#1759 "không chọn được") */}
                 <a role="option" aria-selected={coChon(m.value)} title={m.title} href={href?.(m.value)} onPointerEnter={(e) => { if (e.pointerType === 'mouse') setTro(i); }}
                   onClick={(e) => { if (href && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) return; e.preventDefault(); chon(m.value); }}   // phím phụ = để trình duyệt mở tab mới
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: cot ? '0 10px 0 0' : '5px 10px', minHeight: cot ? 34 : undefined, cursor: 'pointer', color: 'inherit', textDecoration: 'none', background: i === tro ? 'var(--hover, rgba(255,255,255,.07))' : undefined, fontWeight: coChon(m.value) ? 600 : 400, WebkitTapHighlightColor: 'transparent' }}>
-                  {cot ? <span data-cot="ten" style={oTen(i === tro ? NEN_TRO : NEN)}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: cot ? '0 10px 0 0' : '5px 10px', minHeight: cot ? 34 : undefined, cursor: 'pointer', color: 'inherit', textDecoration: 'none', background: toSet.has(m.value) ? VANG_NHAT : i === tro ? 'var(--hover, rgba(255,255,255,.07))' : undefined, fontWeight: coChon(m.value) ? 600 : 400, WebkitTapHighlightColor: 'transparent' }}>
+                  {cot ? <span data-cot="ten" style={oTen(toSet.has(m.value) ? NEN_TO : i === tro ? NEN_TRO : NEN)}>
                     <span style={{ flex: '0 0 14px', color: 'var(--accent, #60a5fa)' }}>{nhieu && m.value !== tatCa ? (coChon(m.value) ? '☑' : '☐') : coChon(m.value) ? '✓' : ''}</span>
                     <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.label}</span>
                   </span> : <>
@@ -124,6 +128,12 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
                   </>}
                   {cot ? cot.map((c, j) => oCot(c, m.o?.[j])) : null}
                   {m.dem != null ? <span style={{ fontSize: 11, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{m.dem}</span> : null}
+                  {/* nút 🖍 RIÊNG mỗi dòng (#1781): chặn nổi bọt để bấm bút không đổi lựa chọn lọc, bảng nổi vẫn mở để tô tiếp mục khác */}
+                  {to ? <span data-cot="to" data-cot-can="giua" style={{ flex: `0 0 ${O_TO}px`, display: 'flex', justifyContent: 'center' }}>{coTo(m.value) ? <span role="button" tabIndex={-1} data-k="chon2-to-muc" aria-pressed={toSet.has(m.value)}
+                    title={toSet.has(m.value) ? 'Đang tô vàng camp khớp mục này — bấm để bỏ tô' : 'Chỉ tô vàng camp khớp mục này, không lọc, không giấu camp nào'}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); doiTo(m.value); }}
+                    style={{ width: 22, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, fontSize: 12, lineHeight: 1, cursor: 'pointer',
+                      border: `1px solid ${toSet.has(m.value) ? VANG : 'var(--line)'}`, background: toSet.has(m.value) ? VANG : 'transparent', opacity: toSet.has(m.value) ? 1 : 0.45 }}>🖍</span> : null}</span> : null}
                 </a>
               </div>)) : <div style={{ fontSize: 12, color: 'var(--fg-2)', padding: '8px 10px' }}>Không có mục khớp</div>}
            </div>

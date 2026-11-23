@@ -162,7 +162,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
                 <a onClick={() => { if (u) mv.open({ url: u, label: `Creative #${c.creative_id}`, kind: c.video ? 'frame' : 'image' }); }}
                   style={{ cursor: u ? 'zoom-in' : 'default', fontWeight: 600, minWidth: 64 }} title="bấm xem ngay tại đây">▶ #{c.creative_id}</a>
                 <span style={{ color: MO_SO, fontSize: 12, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {[tenMau(c.mau) ?? (c.mau ? 'mẫu cũ' : null), c.lang, gio(c.luc)].filter(Boolean).join(' · ')}</span>
+                  {[tenMau(c.mau) ?? (c.mau ? 'mẫu cũ' : null), c.lang, c.luc ? gio(c.luc) : null].filter(Boolean).join(' · ')}</span>
                 {c.tu_choi ? <span title={c.tu_choi}>{nhan('Ethopex từ chối', DO)}</span>
                   : c.camp_id ? <span style={{ cursor: 'pointer' }} title="mở camp" onClick={() => openEntityDrawer('etp-camp', c.camp_id!)}>{nhan(`camp #${c.camp_id}`, LAM)}</span>
                   : <GuardedButton onClick={() => void lenCamp([c.creative_id])} reason={len ? 'đang lên…' : false} title="lên camp $1 theo lịch lên (đúng đường ✓ Duyệt)"

@@ -21,7 +21,7 @@ const MAU_DUNG = (SO_MAU.mau as MucSo[]).filter((x) => x.loai !== 'cong_thuc' &&
 export type MauChon = { ma: string; ten: string; mo_ta: string; anh: string | null; anh_phim: string | null; nhom: string | null; cau_nhu: boolean };
 export type SoanCr = { id: number; mau: string | null; cau: string | null; nhan: string | null; chu_dau: string | null; trang_thai: 'nhap' | 'dung' | 'xong' | 'loi'; ghi: string | null;
   creative_id: number | null; cap_nhat: string; /** việc dựng đang ở bước nào (etp.mau_dung) khi trang_thai = dung */ buoc: string | null };
-export type CrCuaPhim = { creative_id: number; dang: string | null; lang: string | null; anh: string | null; video: string | null; luc: string; mau: string | null;
+export type CrCuaPhim = { creative_id: number; dang: string | null; lang: string | null; anh: string | null; video: string | null; luc: string | null; mau: string | null;
   camp_id: number | null; camp_tt: string | null; duyet: boolean | null; tu_choi: string | null };
 export type DuCrPhim = { phim: string | null; mau: MauChon[]; soan: SoanCr[]; cr: CrCuaPhim[]; con: number };
 
@@ -50,7 +50,8 @@ export async function docCrPhim(contentId: number): Promise<DuCrPhim | { loi: st
       case when s.trang_thai = 'dung' then d.buoc end buoc
     from etp.cr_soan s left join etp.mau_dung d on d.mau = s.mau and d.content_id = s.content_id
     where s.content_id = ${cid} and (s.trang_thai <> 'xong' or s.cap_nhat > now() - interval '2 days') order by s.cap_nhat desc limit 30`);
-  const cr = await run<CrCuaPhim>(sql`select r.creative_id, r.dang, r.lang, r.anh, r.video, r.cap_nhat::text luc, r.tu_choi,
+  const cr = await run<CrCuaPhim>(sql`select r.creative_id, r.dang, r.lang, r.anh, r.video, (select v.tao::text from etp.thu_vien v where v.creative_id = r.creative_id order by v.id desc limit 1) luc, r.tu_choi,   -- giờ làm thật (thư viện); creative.cap_nhat là giờ đồng bộ, mọi dòng giống nhau
+     
       (select substring(v.ghi from 'mẫu:([a-z_0-9]+)') from etp.thu_vien v where v.creative_id = r.creative_id order by v.id desc limit 1) mau,
       k.camp_id, k.trang_thai camp_tt, u.ok duyet
     from etp.creative r left join etp.cham_duyet u on u.creative_id = r.creative_id

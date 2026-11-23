@@ -4,18 +4,18 @@
 import { NextResponse } from 'next/server';
 import { guiGopYMos2 } from '@/lib/actions/gop-y-mos2';
 import { uploadImage } from '@/lib/actions/uploads';
+// Host trang tĩnh được gửi = sổ TRANG_RIENG (cờ tinh). Thêm trang mới = một dòng ở đó + location /api/gop-y trong vhost của nó.
+import { laTrangTinh } from '@/lib/gop-y-loc-nguon';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-/** Host trang tĩnh được gửi góp ý vào hòm mos2. Thêm trang mới = thêm một dòng + location /api/gop-y trong vhost của nó. */
-const TRANG_NGOAI = ['castle.on.tc', 'sprawl.on.tc', 'worlds.on.tc'];
 
 export async function POST(req: Request) {
   const b = (await req.json().catch(() => ({}))) as { noiDung?: string; loai?: string; trang?: string; nguCanh?: string; anh?: string; anhNgoai?: string[] };
   let host = '';
   try { host = new URL(String(b.trang || '')).hostname; } catch { /* trang hỏng → chặn dưới */ }
-  if (!TRANG_NGOAI.includes(host)) return NextResponse.json({ ok: false, error: 'Trang này chưa được mở hòm góp ý.' }, { status: 400 });
+  if (!laTrangTinh(host)) return NextResponse.json({ ok: false, error: 'Trang này chưa được mở hòm góp ý.' }, { status: 400 });
   const anhUrls: string[] = [];
   if (typeof b.anh === 'string' && b.anh.startsWith('data:image/')) {
     const up = await uploadImage(b.anh, 'gop-y');

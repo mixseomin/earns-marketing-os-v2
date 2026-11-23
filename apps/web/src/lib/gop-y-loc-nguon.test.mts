@@ -54,4 +54,7 @@ assert.equal(trangRieng('worlds.on.tc:443')?.ten, 'Sổ Thế Giới');
 assert.equal(laTrangTinh('worlds.on.tc'), true);
 assert.equal(laTrangTinh('studio2.on.tc'), false);
 assert.equal(laTrangTinh('mos2.on.tc'), false);
+assert.equal(trangRieng('worlds.on.tc')?.kySu, 'giang');
+assert.equal(trangRieng('castle.on.tc')?.kySu, 'thang');
+assert.equal(trangRieng('mos2.on.tc')?.kySu, undefined);
 console.log('gop-y-loc-nguon: đạt');

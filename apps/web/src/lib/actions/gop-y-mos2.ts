@@ -10,7 +10,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
-import { boLocNguon, noiDangXem } from '@/lib/gop-y-loc-nguon';
+import { boLocNguon, noiDangXem, trangRieng } from '@/lib/gop-y-loc-nguon';
 import { HEADER_KHACH, laTrangKhach, nguoiKhach } from '@/lib/gop-y-khach';
 import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture';
 
@@ -21,7 +21,7 @@ export type GopYCuaToi = hom.GopYCuaToi;
 const HOM_GOP_Y = ['mos2', 'city', 'xuong-video'];
 /** HÒM THEO NƠI GỬI: studio2.on.tc là mặt khác của Xưởng video → card về hòm xuong-video (Vinh, /tasks-studio), không về mos2 — trước đây
  *  card studio2 nằm hòm mos2, Đạt (chỉ sửa apps/web) nhận rồi trả về (#1741, anh 21/11/2026 "Tại sao lại là mos2 xử lý?"). Thêm trang = thêm một dòng. */
-const HOM_THEO_NOI: Record<string, { hom: string; kySu: string }> = { 'studio2.on.tc': { hom: 'xuong-video', kySu: 'vinh' } };
+const HOM_THEO_NOI: Record<string, { hom: string }> = { 'studio2.on.tc': { hom: 'xuong-video' } };
 async function noiGui() { const h = await headers(); return noiDangXem(h.get('host'), h.get('referer')); }
 async function homCua(x: unknown) { const theoNoi = HOM_THEO_NOI[await noiGui()]; if (theoNoi) return theoNoi.hom; return typeof x === 'string' && HOM_GOP_Y.includes(x) ? x : 'mos2'; }
 /** Người gửi: phiên mos2, hoặc KHÁCH của trang công khai (dantranh — middleware đã kiểm VN + gắn mã, lib/gop-y-khach.ts). */
@@ -49,9 +49,8 @@ const ghiTrangThai: hom.TuyChon = {
 };
 async function tuyChonDoc(): Promise<hom.TuyChon> {
   const h = await headers(); // nguồn theo nơi đang xem: mos2 / etp / castle (lib/gop-y-loc-nguon.ts)
-  // castle.on.tc nằm trong hòm mos2 nhưng do Thắng xử (SOUL thang runner castle-gop-y) → dải đầu hòm + rung theo Thắng, không theo Đạt (góp ý #1673)
-  // dantranh: Nguyệt (cty may/dantranh-gop-y.mjs) — trước đây dải đầu hòm báo "Đạt đang rảnh"
-  const noi = noiDangXem(h.get('host'), h.get('referer')), kySu = noi === 'castle.on.tc' ? 'thang' : laTrangKhach(noi) ? 'nguyet' : HOM_THEO_NOI[noi]?.kySu;
+  // Kỹ sư theo nơi đang xem = cột kySu của sổ TRANG_RIENG (castle Thắng #1673, dantranh Nguyệt, studio2 Vinh, worlds Giang); trang khách khác → Nguyệt
+  const noi = noiDangXem(h.get('host'), h.get('referer')), kySu = trangRieng(noi)?.kySu ?? (laTrangKhach(noi) ? 'nguyet' : undefined);
   return { ...ghiTrangThai, nguoiMay: NGUOI_MAY, locNguon: boLocNguon(h.get('host'), h.get('referer')), kySu };
 }
 

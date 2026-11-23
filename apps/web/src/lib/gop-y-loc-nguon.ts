@@ -6,14 +6,15 @@
 // apps/etp2 có luật lọc riêng (chỉ nguồn etp) — đổi nguồn etp thì sửa cả hai. Tự kiểm: gop-y-loc-nguon.test.mts.
 export type LocNguon = { mau: string; khop: boolean };
 
-/** khoa · ten = tên hòm hiện trên khung · host = mẫu tên máy (regex, không neo) · tinh = trang tĩnh gửi qua /api/gop-y-ngoai */
-export const TRANG_RIENG: { khoa: string; ten: string; host: string; tinh?: boolean }[] = [
+/** khoa · ten = tên hòm hiện trên khung · host = mẫu tên máy (regex, không neo) · tinh = trang tĩnh gửi qua /api/gop-y-ngoai
+ *  · kySu = id kỹ sư cty xử hòm này (dải "X đang làm" trên khung; thiếu = kỹ sư mặc định của hòm). 23/11/2026: worlds hiện "Đạt đang làm" vì kỹ sư gán tay theo host ở actions/gop-y-mos2.ts. */
+export const TRANG_RIENG: { khoa: string; ten: string; host: string; tinh?: boolean; kySu?: string }[] = [
   { khoa: 'etp', ten: 'Ethopex', host: 'etp2?\\.on\\.tc' },
-  { khoa: 'castle', ten: 'Lâu đài', host: 'castle\\.on\\.tc', tinh: true },
-  { khoa: 'studio2', ten: 'Studio 2', host: 'studio2\\.on\\.tc' },
-  { khoa: 'dantranh', ten: 'Đàn Tranh', host: 'dantranh2?\\.on\\.tc' },
+  { khoa: 'castle', ten: 'Lâu đài', host: 'castle\\.on\\.tc', tinh: true, kySu: 'thang' },
+  { khoa: 'studio2', ten: 'Studio 2', host: 'studio2\\.on\\.tc', kySu: 'vinh' },
+  { khoa: 'dantranh', ten: 'Đàn Tranh', host: 'dantranh2?\\.on\\.tc', kySu: 'nguyet' },
   { khoa: 'sprawl', ten: 'Sprawl', host: 'sprawl\\.on\\.tc', tinh: true },
-  { khoa: 'worlds', ten: 'Sổ Thế Giới', host: 'worlds\\.on\\.tc', tinh: true },
+  { khoa: 'worlds', ten: 'Sổ Thế Giới', host: 'worlds\\.on\\.tc', tinh: true, kySu: 'giang' },
 ];
 
 const mauNguon = (host: string) => `^https?://(${host})(/|$)`;

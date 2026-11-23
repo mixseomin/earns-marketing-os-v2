@@ -143,10 +143,10 @@ export function taoSong({ goc, ql, dsThap, nuaNut, LONG }) {
       hMin = nhip; tot = j; }
     if (tot < 0) continue; const k = Math.min(i, tot) + '-' + Math.max(i, tot); if (daCo.has(k)) continue; daCo.add(k);
     const b = dsThap[tot], hThap = Math.min(a.than, b.than);
-    for (const f of hThap > 200 ? [0.32, 0.56] : [0.42]) cau.push({ a, b, y: batTang(hThap * f) });
+    for (const f of [0.42]) cau.push({ a, b, y: batTang(hThap * f) });
   }
   const khop = { tong: 0, luat: {} }; // bộ đếm luật khớp, cập nhật mỗi lần đất dựng lại (redspires.tk.khop trỏ cùng đối tượng)
-  const vCau = new THREE.MeshStandardMaterial({ color: '#8f8578', roughness: 0.8, metalness: 0.1 });
+  const vCau = new THREE.MeshStandardMaterial({ color: '#a8503a', roughness: 0.75, metalness: 0.15 });
   const vKinhCau = new THREE.MeshStandardMaterial({ color: '#41525c', roughness: 0.1, metalness: 0.75, transparent: true, opacity: 0.75 });
   const vLa = new THREE.MeshStandardMaterial({ color: '#4f7a3e', roughness: 0.95 });
   const vLaRu = new THREE.MeshStandardMaterial({ color: '#5d8a46', roughness: 0.95 });
@@ -156,6 +156,7 @@ export function taoSong({ goc, ql, dsThap, nuaNut, LONG }) {
   const vuonCau = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1.3, 1).translate(0, 4.6, 0), vLa, cau.length);
   const ruCau = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1).translate(0, -0.5, 0), vLaRu, cau.length * RU * 2);
   for (const m of [sanCau, kinhCau, vuonCau, ruCau]) { m.frustumCulled = false; goc.add(m); }
+  vuonCau.visible = ruCau.visible = false; // ảnh mẫu Red Spires không có vườn treo / dây leo trên cầu: chỉ giữ ống cầu kính mảnh cùng màu tháp
   const rR = gieo(55), ruDai = Array.from({ length: cau.length * RU * 2 }, () => 3 + rR() * 14), ruViTri = ruDai.map(() => rR());
   function datCau() {
     let r = 0;
@@ -242,5 +243,5 @@ export function taoSong({ goc, ql, dsThap, nuaNut, LONG }) {
   // duyệt xe quanh (x, z) bán kính r theo lưới oXe; fn trả false = dừng, hàm trả false
   const xeQuanh = (x, z, r, fn) => { const o = Math.ceil(r / O_XE), ox = Math.floor(x / O_XE), oz = Math.floor(z / O_XE);
     for (let a = -o; a <= o; a++) for (let b = -o; b <= o; b++) for (let j = oXe.get((ox + a) * 8192 + oz + b) ?? -1; j >= 0; j = keXe[j]) if (fn(xe[j]) === false) return false; return true; };
-  return { datLai, khung, uT, vatCan, gt: { xe, tuyenXe, lay, denDo, denXe, xeQuanh, datHinh }, cau, anKhi2200: [thanBay, denTruoc, vet, suong, sanCau, kinhCau, vuonCau, ruCau], tk: { xeBay: nB, xe: xe.length, tau: tau.length, cau: cau.length, suong: o.length, khop } };
+  return { datLai, khung, uT, vatCan, gt: { xe, tuyenXe, lay, denDo, denXe, xeQuanh, datHinh }, cau, anKhi2200: [thanBay, denTruoc, vet, suong, sanCau, kinhCau], tk: { xeBay: nB, xe: xe.length, tau: tau.length, cau: cau.length, suong: o.length, khop } };
 }

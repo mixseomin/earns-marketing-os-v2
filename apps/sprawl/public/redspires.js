@@ -13,11 +13,12 @@ const MAU_NGUOI = ['#2b2f36', '#4a3b33', '#c9b8a0', '#6d7f8c', '#8a3b2e', '#d8d2
 const MAU_MAI = ['#c9483a', '#e0a83c', '#3f7f8c', '#d9d2c2', '#7d9a5a'];
 
 // Mỗi tháp một bộ gen (gieo theo id): dáng thân, kiểu chóp, màu đỏ, màu viền, gân dọc, nhịp cửa, ban công, đỉnh.
-// Sáu dáng: đạn (phình 1/4 thân) · bậc (3-4 trống lùi dần) · củ hành (thân mảnh, bầu gần đỉnh) · nón (thon nhọn kiểu gothic)
-//           · bình (eo giữa, loe vương miện) · chùm (thân chính + 2-3 tháp vệ tinh dính chân).
-const DANG = ['dan', 'bac', 'hanh', 'non', 'binh', 'chum'];
-const MAU_DO = ['#b9452f', '#a63a2a', '#c4553a', '#9e3b30', '#b54a3c', '#c9603f', '#8f3a2c', '#ad4b35', '#c2483f', '#9a4632'];
-const MAU_VIEN = ['#d9cdb5', '#4a3a33', '#5d8a86', '#c79a4a', '#e8e0cf', '#6b4f3f', '#8fa7a3'];
+// Ba dáng, cùng một họ theo ảnh mẫu (du-lieu-goc/anh-mau/red-spires.jpeg): thân nón thon dần như viên đạn, cổ có đài kính
+// vươn ra, chóp vòm dẹt, chòi nhỏ + chùm ăng-ten trên đỉnh. nón (một khối) · bậc (2-3 khúc nón lùi dần) · chùm (nón + tháp vệ tinh dính chân).
+// Bỏ các dáng trụ thẳng / củ hành / bình eo của bản trước: anh 23/11/2026 "toà nhà sai, nhìn không giống gốc chút nào".
+const DANG = ['non', 'non', 'chum', 'non', 'non', 'chum']; // ảnh mẫu: thân nón đạn liền một khối, không khúc bậc
+const MAU_DO = ['#cd553c', '#c94f38', '#d4603f', '#bf4a35', '#d86a48', '#c4513e', '#d25a3d', '#b94632'];
+const MAU_VIEN = ['#9a3f2e', '#7d3528', '#6b5a52', '#a84a36', '#d9cdb5', '#5a5550'];
 const gieo = (id) => { let h = (id * 2654435761 + 1013904223) >>> 0; return () => { h = (h * 1664525 + 1013904223) >>> 0; return h / 4294967296; }; };
 const chon = (r, a) => a[(r() * a.length) | 0];
 const buocMuot = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -25,33 +26,28 @@ const buocMuot = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b -
 // hồ sơ thân: trả các điểm [t 0..1 theo chiều cao thân, hệ số bán kính]; bậc cần điểm gãy nên trả điểm thẳng
 function thanTheoDang(dang, r) {
   const p = [], N = 40;
-  if (dang === 'bac') {
-    const n = 3 + (r() < 0.5 ? 1 : 0); let rr = 1.18, t0 = 0;
+  if (dang === 'bac') { // 2-3 khúc, mỗi khúc tự thon, khúc sau lùi vào sau một gờ ngang
+    const n = 2 + (r() < 0.5 ? 1 : 0); let rr = 1.16, t0 = 0;
     for (let k = 0; k < n; k++) {
-      const t1 = k === n - 1 ? 1 : t0 + (0.42 - k * 0.07) * (0.9 + r() * 0.2), thon = 0.04 + r() * 0.06;
-      p.push([t0, rr], [t0 + (t1 - t0) * 0.5, rr * (1 - thon * 0.5)], [t1 - 0.012, rr * (1 - thon)]);
-      t0 = t1; rr = rr * (1 - thon) * (0.72 + r() * 0.08);
+      const t1 = k === n - 1 ? 1 : t0 + (0.5 - k * 0.1) * (0.9 + r() * 0.2), thon = 0.14 + r() * 0.06;
+      p.push([t0, rr], [t0 + (t1 - t0) * 0.5, rr * (1 - thon * 0.45)], [t1 - 0.012, rr * (1 - thon)]);
+      t0 = t1; rr = rr * (1 - thon) * (0.86 + r() * 0.05);
       if (k < n - 1) p.push([t0, rr]);
     }
     return p;
   }
-  const a = 0.8 + r() * 0.4; // độ phình riêng mỗi tháp
-  for (let i = 0; i <= N; i++) {
-    const t = i / N; let f;
-    if (dang === 'dan') f = 1.1 + 0.15 * a * Math.sin(Math.PI * Math.min(1, t * 1.6)) - 0.5 * Math.pow(t, 1.5);
-    else if (dang === 'hanh') f = (0.78 - 0.22 * t) + 0.42 * a * Math.max(0, Math.sin(Math.PI * (t - 0.7) / 0.3)) * (t > 0.7 ? 1 : 0);
-    else if (dang === 'non') f = 1.15 * (1 - 0.8 * Math.pow(t, 0.9 + 0.3 * a)) + 0.06 * Math.sin(t * 9);
-    else if (dang === 'binh') f = 1.0 - 0.32 * a * Math.sin(Math.PI * Math.min(1, t / 0.8)) + 0.3 * buocMuot(0.72, 0.96, t);
-    else f = 1.05 + 0.1 * Math.sin(Math.PI * Math.min(1, t * 1.8)) - 0.45 * Math.pow(t, 1.4); // chùm: thân chính
-    p.push([t, Math.max(0.12, f)]);
+  const a = 1.0 + r() * 0.22, mu = 1.1 + r() * 0.35; // độ thon + độ cong riêng mỗi tháp
+  for (let i = 0; i <= N; i++) { // nón đạn: chân ~1,12 R, thon đều lên ~0,55 R dưới cổ; hơi phình ở 1/5 thân như ảnh mẫu
+    const t = i / N, f = 1.12 * (1 - 0.5 * a * Math.pow(t, mu)) + 0.05 * Math.sin(Math.PI * Math.min(1, t * 2.5));
+    p.push([t, Math.max(0.3, f)]);
   }
   return p;
 }
-// chóp: vòm tròn · vòm nhọn (ogive) · mái bằng có chòi nhỏ
+// chóp: vòm dẹt (ảnh mẫu) — chòi + ăng-ten dựng thêm trong dungThap
 function dungHoSo(R, H, dang, r) {
-  const chop = dang === 'non' ? 'nhon' : dang === 'hanh' ? 'nhon' : chon(r, ['vom', 'vom', 'nhon', 'choi']);
+  const chop = 'vom';
   const diem = thanTheoDang(dang, r), rCuoi = diem[diem.length - 1][1] * R;
-  const ddChop = chop === 'nhon' ? rCuoi * (1.6 + r() * 0.8) : chop === 'choi' ? rCuoi * 0.35 : rCuoi * (0.7 + r() * 0.25);
+  const ddChop = chop === 'nhon' ? rCuoi * (1.6 + r() * 0.8) : chop === 'choi' ? rCuoi * 0.35 : rCuoi * (0.42 + r() * 0.16);
   const than = H - ddChop, p = diem.map(([t, f]) => new THREE.Vector2(Math.max(0.5, f * R), t * than));
   for (let i = 1; i <= 14; i++) {
     const s = i / 14, a = s * Math.PI / 2;
@@ -90,7 +86,7 @@ function vatThap(gen) {
       float tang = floor(vLo.y / uNhip.y), fy = fract(vLo.y / uNhip.y);
       vec2 o = vec2(floor(cung / uNhip.x), tang), f = vec2(fract(cung / uNhip.x), fy);
       float h = bam(o);
-      float cua = step(0.3, f.x) * step(f.x, 0.7) * step(0.32, f.y) * step(f.y, 0.78) * step(0.18, h) * step(vLo.y, uKieu.y);
+      float cua = step(0.33, f.x) * step(f.x, 0.67) * step(0.2, f.y) * step(f.y, 0.84) * step(0.72, h) * step(vLo.y, uKieu.y); // ảnh mẫu: cửa thưa (~1/4 ô), phần lớn là tấm ốp trơn
       float bang = step(fract(vLo.y / uNhip.z), 0.06);
       vec2 ot = vec2(floor(cung / 7.0), floor(vLo.y / 14.4)), ft = vec2(fract(cung / 7.0), fract(vLo.y / 14.4)) - 0.5;
       float tron = step(length(ft * vec2(1.0, 2.0)), 0.3) * step(uNhip.w, bam(ot + 5.3));
@@ -110,24 +106,24 @@ function vatThap(gen) {
       float eX = (0.5 - abs(fract(cx) - 0.5)) * 2.4, eY = (0.5 - abs(fy - 0.5)) * uNhip.y;
       float mep = max(1.0 - smoothstep(0.035, 0.035 + aa, eX), 1.0 - smoothstep(0.05, 0.05 + aa, eY)) * gan * trongThan;
       float sang = (1.0 - smoothstep(0.09, 0.09 + aa, abs(eY - 0.16))) * gan * trongThan * step(fy, 0.5); // gờ sáng trên mạch ngang (ánh nắng bắt cạnh)
-      float coCua = step(0.18, h) * trongThan;
-      float khungCua = step(0.26, f.x) * step(f.x, 0.74) * step(0.28, f.y) * step(f.y, 0.82) * coCua - cua;
+      float coCua = step(0.72, h) * trongThan;
+      float khungCua = step(0.3, f.x) * step(f.x, 0.7) * step(0.14, f.y) * step(f.y, 0.9) * coCua - cua;
       float chay = step(0.43, f.x) * step(f.x, 0.57) * step(f.y, 0.32) * coCua * step(0.45, bam(o + 1.7)) * (f.y / 0.32) * gan;
       float laChop = (1.0 - coCua) * trongThan * step(0.3, f.x) * step(f.x, 0.7) * step(0.35, f.y) * step(f.y, 0.75) * step(0.5, fract(f.y * 14.0)) * step(0.6, bam(o + 9.1));
       vec2 nb = vec2(cung, vLo.y) / 3.2; vec2 i0 = floor(nb), t0 = fract(nb); t0 = t0 * t0 * (3.0 - 2.0 * t0);
       float nh = mix(mix(bam(i0), bam(i0 + vec2(1, 0)), t0.x), mix(bam(i0 + vec2(0, 1)), bam(i0 + vec2(1, 1)), t0.x), t0.y);
       // sơn bong: mảng lớn, thưa, tắt dần khi xa (trước đây chấm trắng 1,7 m rắc khắp thân, nhìn từ xa thành nhiễu)
       float xa = 1.0 - smoothstep(0.25, 1.1, px);
-      float bong = smoothstep(0.82, 0.87, nh) * step(0.68, bam(floor(vec2(cung, vLo.y) / 16.0) + 4.4)) * xa;
-      diffuseColor.rgb *= tam * (1.0 - 0.32 * vet) * (1.0 - 0.35 * bang);
+      float bong = smoothstep(0.82, 0.87, nh) * step(0.86, bam(floor(vec2(cung, vLo.y) / 16.0) + 4.4)) * xa;
+      diffuseColor.rgb *= tam * (1.0 - 0.32 * vet) * (1.0 - 0.12 * bang);
       diffuseColor.rgb = mix(diffuseColor.rgb, uVien * (1.0 - 0.25 * vet), soc * 0.85);
-      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.74, 0.68), bong * 0.8);
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.74, 0.68), bong * 0.55);
       diffuseColor.rgb *= (1.0 - 0.45 * mep) * (1.0 + 0.18 * sang) * (1.0 - 0.4 * chay) * (1.0 - 0.35 * laChop);
       diffuseColor.rgb = mix(diffuseColor.rgb, uVien * 0.8, max(khungCua, 0.0) * 0.55 * gan);
-      vec3 kinh = mix(vec3(0.11, 0.14, 0.17), vec3(0.36, 0.44, 0.5), smoothstep(0.32, 0.78, f.y) * 0.7 + 0.3 * bam(o + 2.2));
-      diffuseColor.rgb = mix(diffuseColor.rgb, kinh, cua * mix(0.4, 0.9, xa)); // xa: lưới cửa nhạt bớt cho khỏi răng cưa
+      vec3 kinh = mix(vec3(0.05, 0.06, 0.07), vec3(0.16, 0.19, 0.21), smoothstep(0.32, 0.78, f.y) * 0.7 + 0.3 * bam(o + 2.2));
+      diffuseColor.rgb = mix(diffuseColor.rgb, kinh, cua * mix(0.75, 0.95, xa)); // xa: lưới cửa nhạt bớt cho khỏi răng cưa
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.22, 0.27, 0.3), tron);
-      float den = cua * step(0.8, bam(o + 4.4 + floor(uTg * 0.1 + h * 9.0))) * (0.55 + 0.45 * bam(o + 8.8)) * (0.35 + 0.65 * xa);`)
+      float den = cua * step(0.8, bam(o + 4.4 + floor(uTg * 0.1 + h * 9.0))) * (0.55 + 0.45 * bam(o + 8.8)) * (0.35 + 0.65 * xa) * 0.18; // ban ngày: đèn chỉ le lói, không thành chấm trắng rải thân`)
       .replace('#include <emissivemap_fragment>', DEN_EMIT);
   };
   return v;
@@ -206,11 +202,11 @@ function dungThap(R, H, gen, r, vKim, vMax = R * TL.vetDo) {
   va(new THREE.LatheGeometry(hs.p, 28).scale(kVa, 1, kVa));
 
   // ban công vòng: lan can (sàn + cột + tay vịn) · đài kính quan sát (vách kính, đố, mái, lan can trên mái) · tường chắn
-  const nBC = 2 + ((r() * 4) | 0), dsBC = [];
+  const nBC = 1 + (r() < 0.45 ? 1 : 0), dsBC = []; // ảnh mẫu: một đài kính trên cổ, thân dưới gần như trơn
   for (let k = 0; k < nBC; k++) {
-    const cuoi = k === nBC - 1 && r() < 0.65;
-    const y = Math.min(batTang(hs.than * 0.94) - TL.tang, batTang(cuoi ? hs.than * (0.9 + r() * 0.04) : hs.than * (0.22 + 0.62 * (k + 0.3 + r() * 0.4) / nBC))); // sàn ban công = sàn tầng thật
-    const rv = hs.rTai(y), rong = cuoi ? 3 + r() * 2 : 1.8 + r() * 1.8, ro = rv + rong, mv = r() < 0.35 ? vV : vBC;
+    const cuoi = k === nBC - 1;
+    const y = Math.min(batTang(hs.than * 0.94) - TL.tang, batTang(cuoi ? hs.than * (0.93 + r() * 0.02) : hs.than * (0.22 + 0.62 * (k + 0.3 + r() * 0.4) / nBC))); // sàn ban công = sàn tầng thật
+    const rv = hs.rTai(y), rong = cuoi ? 4 + r() * 1 : 1.8 + r() * 1.8, ro = rv + rong, mv = r() < 0.35 ? vV : vBC;
     const kieu = cuoi ? 'kinh' : chon(r, ['lan', 'lan', 'kinh', 'tuong']);
     dsBC.push(y);
     const gSan = new THREE.CylinderGeometry(ro, ro, 0.5, 72);
@@ -281,16 +277,16 @@ function dungThap(R, H, gen, r, vKim, vMax = R * TL.vetDo) {
   }
   // đỉnh: ăng-ten chùm · kim cao + vòng hào quang · chòi nhỏ có mái vòm
   const dinh = gen.dinh, yTop = H;
-  if (hs.chop === 'choi') {
+  if (hs.chop === 'choi' || hs.chop === 'vom') { // chòi nhỏ có mái vòm ngồi trên đỉnh vòm (ảnh mẫu)
     const rr = rc * 0.32, gC = new THREE.CylinderGeometry(rr, rr * 1.1, rr * 1.6, 24), ch = new THREE.Mesh(gC, vV); ch.position.y = yTop + rr * 0.8 - 0.5; g.add(ch); va(gC, 0, yTop + rr * 0.8 - 0.5, 0);
     const gV = new THREE.SphereGeometry(rr * 1.05, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2), vm = new THREE.Mesh(gV, vT); vm.position.y = yTop + rr * 1.6 - 0.5; g.add(vm); va(gV, 0, yTop + rr * 1.6 - 0.5, 0);
   }
-  const yDinh = hs.chop === 'choi' ? yTop + rc * 0.32 * 2.6 : yTop;
+  const yDinh = hs.chop === 'choi' || hs.chop === 'vom' ? yTop + rc * 0.32 * 2.6 : yTop;
   if (dinh === 'kim' || hs.chop === 'nhon') {
     const cao = H * (0.12 + r() * 0.1), kim = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 1.1, cao, 8), vKim); kim.position.y = yDinh + cao / 2 - 1; g.add(kim);
     if (r() < 0.6) { const hq = new THREE.Mesh(new THREE.TorusGeometry(2.5 + r() * 3, 0.35, 6, 32), vV); hq.rotation.x = Math.PI / 2; hq.position.y = yDinh + cao * 0.4; g.add(hq); }
   } else {
-    const nAng = 1 + ((r() * 4) | 0);
+    const nAng = 2 + ((r() * 4) | 0); // chùm ăng-ten
     for (let a = 0; a < nAng; a++) {
       const cao = H * (0.06 + r() * 0.08), lech = a ? rc * 0.35 : 0, ga = a * 2.1 + r();
       const kim = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.9, cao, 6), vKim);
@@ -356,16 +352,16 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
   const vKim = new THREE.MeshStandardMaterial({ color: '#3a3532', roughness: 0.6, metalness: 0.5 });
   const dsThap = thap.map((t, i) => {
     const r = gieo(t.id + 17), R = t.banKinh, H = t.caoSpire;
-    const dang = DANG[(i * 5 + ((r() * 2) | 0)) % DANG.length]; // xoay vòng đủ sáu dáng, tháp liền hạng không trùng dáng
+    const dang = DANG[(i * 5 + ((r() * 2) | 0)) % DANG.length]; // xoay vòng ba dáng cùng họ
     const tang = TL.tang; // một chiều cao tầng cho mọi tháp — cầu nối, ban công, sàn vườn mới khớp nhau
-    const gen = { dang, r: r(), mau: chon(r, MAU_DO), vien: chon(r, MAU_VIEN), oRong: 2.2 + r() * 1.1, tang, bang: tang * (6 + ((r() * 5) | 0)),
-      tron: 0.78 + r() * 0.17, soc: (r() * 4) | 0, gan: r() < 0.4 ? 14 + ((r() * 14) | 0) : 0, dinh: r() < 0.45 ? 'kim' : 'ang' };
+    const gen = { dang, r: r(), mau: chon(r, MAU_DO), vien: chon(r, MAU_VIEN), oRong: 4.6 + r() * 1.6, tang, bang: tang * (6 + ((r() * 5) | 0)),
+      tron: 0.96 + r() * 0.03, soc: r() < 0.15 ? 2 : 0, gan: 0, dinh: 'ang' }; // ảnh mẫu: thân trơn, không gân / sọc dọc / vảy; cửa tròn lớn thưa
     const { g, hs } = dungThap(R, H, gen, r, vKim);
     let rVa = hs.rMax;
     if (dang === 'chum') { // 2-3 tháp vệ tinh dính chân, thấp hơn, cùng họ màu
       const n = 2 + (r() < 0.5 ? 1 : 0), g0 = r() * 6.28;
       for (let k = 0; k < n; k++) {
-        const gv = { ...gen, dang: chon(r, ['dan', 'non', 'hanh']), gan: 0, dinh: 'kim', soc: (gen.soc + k + 1) % 4, phu: 1 }, a = g0 + k * 6.28 / n;
+        const gv = { ...gen, dang: 'non', gan: 0, dinh: 'ang', soc: 0, phu: 1 }, a = g0 + k * 6.28 / n;
         const dV = R * 0.8, v = dungThap(R * (0.36 + r() * 0.08), batTang(H * (0.45 + r() * 0.25)), gv, r, vKim, R * TL.vetDo - dV); // vệ tinh nằm gọn trong dấu chân
         v.g.position.set(Math.cos(a) * dV, 0, Math.sin(a) * dV); g.add(v.g);
       }

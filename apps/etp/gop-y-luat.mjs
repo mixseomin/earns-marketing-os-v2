@@ -205,7 +205,7 @@ export const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'str(bo) if bo else None, content_id=cid', vi: 'nhân bản / tạo camp truyền phim vào cổng chặn nhóm gốc' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '<CoNuoc nuoc={c.nuoc ?? []} />', vi: 'camp hiện cờ nước giao nhiều chi nhất' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '<NhomGoc g={nhomCua.get(Number(k))} />', vi: 'dòng phim hiện nhóm gốc' },
-  { card: 0, tep: 'apps/etp/dong-bo.py', co: '"group_by": ["campaign_name", "geo", "date"]', vi: 'đồng bộ nước giao theo camp (gom geo trần không tách được nhà) + ngày để cổng chia được, không lật trang' },
+  { card: 0, tep: 'apps/etp/dong-bo.py', co: 'select a.campaign_id::int camp_id, n.geo, round(sum(n.cost), 4) chi', vi: 'nước giao theo camp × geo tính từ kho thô bc_ad_ngay (đã lọc nhà), không gom geo trần (thay luật group_by report, 23/11/2026)' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', cam: "maxWidth: 1600, margin: '0 auto'", vi: 'trang etp tràn hết bề ngang màn, không khoá 1600px (anh chat 29/10/2026)' },
   { card: 0, tep: 'packages/bang/src/data-table.tsx', co: 'colSpan={ci === 0 && gop > 1 ? gop : undefined}', vi: 'tên phim (dòng nhóm) tràn sang cột Trạng thái + Tuổi (anh chat 29/10/2026)' },
   { card: 1485, tep: 'apps/web/src/components/etp-view.tsx', co: 'const H = nhom ? 22 : 15', vi: 'cột ROI camp nhỏ hơn cột ROI phim' },
@@ -1096,7 +1096,7 @@ export const LUAT = [
   { card: 0, tep: 'apps/etp/ethopex_api.py', cam: 'for tr in range(2, int(d.get("total_pages") or 1) + 1): rows += _goi(', vi: 'report Ethopex không lật trang (máy chủ trả thứ tự lộn → trùng / mất dòng), chia khoảng ngày' },
   { card: 0, tep: 'apps/etp/ethopex_api.py', co: 'phan = [{**b, "filters": {**(b.get("filters") or {}), "hour": h}}', vi: 'report quá một trang thì chia đôi khoảng ngày, một ngày thì chia theo giờ' },
   { card: 0, tep: 'apps/etp/ethopex_api.py', co: 'elif len(cid := list((b.get("filters") or {}).get("campaign_id") or [])) > 1:', vi: 'report một ngày vẫn quá trang thì chia theo lô camp' },
-  { card: 0, tep: 'apps/etp/dong-bo.py', co: '"filters": {"campaign_id": ds_camp}, "metric_conditions": []', vi: 'nước giao theo camp lọc camp trong kho (chú thích giữa dòng từng nuốt filters / limit)' },
+  { card: 0, tep: 'apps/etp/dong-bo.py', co: 'a.campaign_id in (select camp_id from etp.camp)', vi: 'nước giao theo camp chỉ lấy camp trong kho (thay luật filters report, 23/11/2026)' },
   // anh 30/10/2026 "Thêm luật tắt cho khớp mọi thứ để nhìn rõ trên màn hình. Ko đc để luật ngầm nào": RL (★ ROAS lỗ) máy tự tắt qua LUAT_TAT, điều kiện hiện trên thẻ xét luật
   { card: 0, tep: 'apps/web/src/lib/etp-bang-luat.json', mot: '"tep": "ethopex-tat-rl.json"', vi: 'RL đi đường báo trước một nhịp rồi máy tắt (sổ luật chung)' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', cam: 'Máy không tự tắt — anh quyết', vi: 'không còn luật ROAS chỉ báo chờ anh' },

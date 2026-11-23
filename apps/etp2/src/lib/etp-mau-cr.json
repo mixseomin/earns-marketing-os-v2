@@ -528,6 +528,7 @@
   },
   {
    "ma": "dt_key_art_neon",
+   "cau_nhu": true,
    "ten": "Key-art neon + câu nhử",
    "loai": "bo_cuc",
    "nguon": "doi_thu",
@@ -552,6 +553,7 @@
   },
   {
    "ma": "dt_cau_nhu_dinh",
+   "cau_nhu": true,
    "ten": "Câu nhử chữ nghiêng trên đỉnh",
    "loai": "lop_phu",
    "nguon": "doi_thu",
@@ -624,6 +626,7 @@
   },
   {
    "ma": "dt_khung_player",
+   "cau_nhu": true,
    "ten": "Khung trình phát + EXCLUSIVE",
    "loai": "lop_phu",
    "nguon": "doi_thu",
@@ -691,6 +694,7 @@
   },
   {
    "ma": "dt_logo_goc",
+   "cau_nhu": true,
    "ten": "Logo phim nhỏ ở góc + phụ đề",
    "loai": "lop_phu",
    "nguon": "doi_thu",

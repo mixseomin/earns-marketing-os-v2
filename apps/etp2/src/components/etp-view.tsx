@@ -98,7 +98,8 @@ import { CHU_NHIP, KD, KHUNG_TEN, TANG_CHI, TRAN_CHI, chuCong, congTang, quaCong
 import { nhip } from '@/lib/nhip';   // tự làm mới chỉ khi tab hiện (12/11/2026)
 import { TabDoiThu } from './etp-doi-thu';   // tab Phim đối thủ (anh giao 19/11/2026)
 import { TabMauCr } from './etp-mau-cr';   // tab Mẫu creative (anh giao 19/11/2026)
-import { KhungBaiQc } from './etp-bai-qc';   // khung bài QC như người xem thấy (anh 20/11/2026)
+import { KhungBaiQc } from './etp-bai-qc';
+import { ChipCrPhim, useDemCrPhim } from './etp-cr-phim-chip';   // 🎬 N · ＋ trên hàng phim (anh 23/11/2026)   // khung bài QC như người xem thấy (anh 20/11/2026)
 
 type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'dt' | 'mau' | 'dong' | 'tv' | 'tn' | 'luat' | 'insight';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -2579,10 +2580,11 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
   const nhomCua = useMemo(() => new Map(du.phims.map((x) => [x.content_id, x.nhom_goc])), [du.phims]);
   const phCua = useMemo(() => new Map(du.phims.map((x) => [x.content_id, x])), [du.phims]);
   const bhCua = useMemo(() => new Map((du.baoHoa ?? []).map((x) => [x.content_id, x])), [du.baoHoa]);
+  const demCr = useDemCrPhim(phim.map((p) => Number(p.k)));
   const nhanPhim = (k: string) => { const p = phimMap.get(k);
-    if (!p) { const h = du.hangCr?.find((x) => String(x.content_id ?? 0) === k); return h?.phim ? <b title={`phim #${k}`}>{h.phim}</b> : `#${k}`; }   // nhóm chỉ có dòng ⏳ xếp hàng
+    if (!p) { const h = du.hangCr?.find((x) => String(x.content_id ?? 0) === k); return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{h?.phim ? <b title={`phim #${k}`}>{h.phim}</b> : `#${k}`}<ChipCrPhim cid={Number(k)} dem={demCr[Number(k)]} /></span>; }   // nhóm chỉ có dòng ⏳ xếp hàng
     return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>{<HexBo bos={p.all.map((c) => c.bo)} boTk={du.boTk} />}
-      <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 520 }} title={p.all[0]?.phim ?? ''}>{p.all[0]?.phim ?? `#${k}`}</b><NhomGoc g={nhomCua.get(Number(k))} /><MocPhim ph={phCua.get(Number(k))} chay={p.all.filter((c) => c.trang_thai === 'ACTIVE').length} />
+      <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 520 }} title={p.all[0]?.phim ?? ''}>{p.all[0]?.phim ?? `#${k}`}</b><NhomGoc g={nhomCua.get(Number(k))} /><MocPhim ph={phCua.get(Number(k))} chay={p.all.filter((c) => c.trang_thai === 'ACTIVE').length} /><ChipCrPhim cid={Number(k)} dem={demCr[Number(k)]} />
 
       {p.b?.bao_hoa ? <span title={p.b.bao_hoa} style={{ color: '#f59e0b', fontWeight: 400 }}>⚠ bão hoà</span> : null}
 </span>; };

@@ -559,7 +559,7 @@ def dt_ten_tren_nut_duoi(c):
     nen = nen_dat_mat(c, hop[3] + 40, int(H * 0.74) - 40); return (None if nen == c["nen"] else nen), lop   # mặt nằm GIỮA đáy tên và nút
 
 HAM = {k: v for k, v in globals().items() if k.startswith("dt_") and callable(v)}
-CAN_CAU = {"dt_key_art_neon", "dt_cau_nhu_dinh", "dt_khung_player", "dt_logo_goc"}
+CAN_CAU = {x["ma"] for x in SO if x.get("cau_nhu")}   # mẫu có câu nhử (AI viết, hoặc anh gõ ở ngăn Creative của phim) — một nguồn: sổ etp-mau-cr.json "cau_nhu"
 CAN_KHUNG2 = {"dt_key_art_neon", "dt_discover_banner"}   # mẫu cần khung phụ (khung xếp hạng kế)   # mẫu có câu nhử (AI viết)
 
 def ngu_canh(cid, tm_rieng=None):
@@ -587,14 +587,17 @@ def mot(ma, cid, xem=False, ban=1):
     def tt(b, t="dang", g=None, **k):
         if b not in ("xong", "loi"): dang_o[0] = b
         if not xem: ghi_tt(ma, cid, dang_o[0] if b == "loi" else b, t, g, vnd_truoc=vnd - da_ghi[0], **({"vnd": vnd} | k)); da_ghi[0] = vnd
-    vnd = 0
+    vnd = 0; soan = 0   # soan = mã bản soạn của anh (etp.cr_soan) khi việc đến từ ngăn "Creative của phim" — đặt trước try để nhánh lỗi đọc được
     # PHIM CẤM (anh 19/11/2026 "ko cho mở camp mới, lên creative dưới mọi hình thức"): không dựng creative cho phim trong sổ ethopex_phim_cam — trước bước tốn AI.
     # Đọc bằng xuong.phim_cam → cong.phim_cam (một hàm); lỗi đọc → coi như cấm (an toàn trước).
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import xuong as _XG
     try: _cam = _XG.phim_cam([cid]).get(int(cid))
     except Exception as e: _cam = f"không đọc được sổ phim cấm ({str(e)[:100]}) — dừng cho an toàn"
     if _cam:
-        if not xem: ghi_tt(ma, cid, "tai_tap", "dung", f"PHIM CẤM: {_cam}"[:300])
+        if not xem:
+            ghi_tt(ma, cid, "tai_tap", "dung", f"PHIM CẤM: {_cam}"[:300])
+            AT.sql(f"update etp.cr_soan s set trang_thai = 'loi', ghi = {s_(('PHIM CẤM: ' + _cam)[:300])}, cap_nhat = now() from etp.mau_dung d where d.mau = {s_(ma)} and d.content_id = {int(cid)} and s.id = (d.tuy_chon->>'soan')::int; "
+                   f"update etp.mau_dung set tuy_chon = null where mau = {s_(ma)} and content_id = {int(cid)}")
         print(f"✗ phim #{cid} cấm — không dựng: {_cam[:160]}", flush=True)
         return []
     try:
@@ -630,8 +633,18 @@ def mot(ma, cid, xem=False, ban=1):
         uv = [u for u in uv if khoa(u) not in {x.split("|")[0] for x in da_khung}]
         if not uv: raise RuntimeError(f"phim này đã dùng hết {len(da_khung)} khung ứng viên cho mẫu — không còn khung mới để ra bản khác")
         if da_khung: uv = sorted(uv, key=lambda u: bool(u.get("cam_xuc")) and u.get("cam_xuc") in cx_dung)   # khác cảm xúc lên trước, giữ thứ hạng AI trong từng nhóm
-        if ma in CAN_CAU and (da_cau or "cau" not in _NHO[cid]): c_, n_, v = cau_nhu(ten, _NHO[cid].get("mo_ta") or TB.mo_ta(p["url"]), lang, tuple(da_cau)); vnd += v; _NHO[cid]["cau"] = (c_, n_)
-        cau, nhan = _NHO[cid].get("cau", ("", "")) if ma in CAN_CAU else ("", "")
+        # BẢN ANH SOẠN (etp2 ngăn "Creative của phim", 23/11/2026): etp.mau_dung.tuy_chon = {soan, cau, nhan, chu_dau} — câu nhử anh gõ thay câu AI, chữ QC dòng đầu anh gõ
+        tc = {}
+        if not xem:
+            try: tc = json.loads(AT.sql(f"alter table etp.mau_dung add column if not exists tuy_chon jsonb; select coalesce(tuy_chon::text, '') from etp.mau_dung where mau = {s_(ma)} and content_id = {int(cid)}") or "{}") or {}
+            except Exception as e: print("đọc tuỳ chọn bản soạn lỗi — dựng như thường:", e, file=sys.stderr); tc = {}
+        soan = int(tc.get("soan") or 0)
+        def soan_tt(t, g=None, **k):   # ghi trạng thái về bản soạn của anh (nếu việc này đến từ bản soạn)
+            if soan: AT.sql(f"update etp.cr_soan set trang_thai = {s_(t)}, cap_nhat = now()" + (f", ghi = {s_(g[:500])}" if g else "") + "".join(f", {c} = {int(v)}" for c, v in k.items()) + f" where id = {soan}")
+        if (tc.get("cau") or "").strip(): _ct = tc["cau"].strip(); _cn = (tc.get("nhan") or "").strip(); _NHO[cid]["cau"] = (_ct, _cn if _cn and _cn.lower() in _ct.lower() else _ct.split()[-1])
+        elif ma in CAN_CAU and (da_cau or "cau" not in _NHO[cid]): c_, n_, v = cau_nhu(ten, _NHO[cid].get("mo_ta") or TB.mo_ta(p["url"]), lang, tuple(da_cau)); vnd += v; _NHO[cid]["cau"] = (c_, n_)
+        cau, nhan = _NHO[cid].get("cau", ("", "")) if ma in CAN_CAU or (tc.get("cau") or "").strip() else ("", "")
+        if (tc.get("cau") or "").strip(): _NHO[cid].pop("cau", None)   # câu anh gõ chỉ dùng cho đúng bản này
         cr = []
         for b in range(ban):
             cao_cho = CAN_CHO[ma]({"tm": tm, "ten": ten, "p": p, "cid": cid}) if ma in CAN_CHO else None; vnd += _CHI_LOGO[0]; _CHI_LOGO[0] = 0   # tách logo TRƯỚC khi chọn khung: không có logo thì dừng luôn, chưa tốn gì
@@ -675,8 +688,9 @@ def mot(ma, cid, xem=False, ban=1):
             tt("video", g="dựng video 1080×1920")
             giay = AT.dung(nen, chu, mp3, out)
             tt("thu_vien", g=f"nạp thư viện ({giay}s)")
-            tv = TB.nap(cid, lang, out, dang, f"mẫu:{ma} · {muc['ten']} · bản {len(da_khung) + 1} · khung {k['tap']}#{k['so']}" + (f" · {k['cam_xuc']} · {k.get('nhan_vat') or ''}" if k.get("cam_xuc") else ""), v)
+            tv = TB.nap(cid, lang, out, dang, f"mẫu:{ma} · {muc['ten']} · bản {len(da_khung) + 1} · khung {k['tap']}#{k['so']}" + (f" · {k['cam_xuc']} · {k.get('nhan_vat') or ''}" if k.get("cam_xuc") else "") + (f" · bản soạn #{soan}" if soan else ""), v, (tc.get("chu_dau") or "").strip() or None)
             if not tv: raise RuntimeError("nạp thư viện không ra mã")
+            soan_tt("dung", "đã vào thư viện — đang tải creative lên Ethopex", tv_id=tv)
             AT.sql(f"update etp.mau_dung set tv_ids = array_append(tv_ids, {int(tv)}), khung_dung = array_append(khung_dung, {s_(khoa(k) + '|' + (k.get('cam_xuc') or ''))})"
                    + (f", cau_dung = array_append(cau_dung, {s_(cau.replace(';', ','))})" if cau else "") + f" where mau = {s_(ma)} and content_id = {int(cid)}")
             uv = [u for u in uv if khoa(u) != khoa(k)]; da_khung.append(khoa(k) + "|" + (k.get("cam_xuc") or ""))
@@ -685,11 +699,16 @@ def mot(ma, cid, xem=False, ban=1):
             c_id = AT.sql(f"select coalesce(creative_id::text, '') from etp.thu_vien where id = {int(tv)}")
             if c_id: cr.append(int(c_id)); AT.sql(f"update etp.mau_dung set creative_ids = array_append(creative_ids, {int(c_id)}) where mau = {s_(ma)} and content_id = {int(cid)}")
         if not xem:
-            if cr: tt("xong", "xong", f"{len(cr)} creative: " + ", ".join(f"#{x}" for x in cr), vnd=vnd)
-            else: tt("creative", "loi", "dựng xong nhưng không thành creative (cổng chữ / studio loại) — xem nhật ký", vnd=vnd)
+            if cr: tt("xong", "xong", f"{len(cr)} creative: " + ", ".join(f"#{x}" for x in cr), vnd=vnd); soan_tt("xong", f"creative #{cr[-1]} đã vào thư viện", creative_id=cr[-1])
+            else: tt("creative", "loi", "dựng xong nhưng không thành creative (cổng chữ / studio loại) — xem nhật ký", vnd=vnd); soan_tt("loi", "dựng xong nhưng không thành creative (cổng chữ / studio loại)")
+            if soan: AT.sql(f"update etp.mau_dung set tuy_chon = null where mau = {s_(ma)} and content_id = {int(cid)}")
         return cr
     except Exception as e:
-        if not xem: tt("loi", "loi", f"{type(e).__name__}: {str(e)[:300]}", vnd=vnd)
+        if not xem:
+            tt("loi", "loi", f"{type(e).__name__}: {str(e)[:300]}", vnd=vnd)
+            try:
+                if soan: soan_tt("loi", f"{type(e).__name__}: {str(e)[:300]}"); AT.sql(f"update etp.mau_dung set tuy_chon = null where mau = {s_(ma)} and content_id = {int(cid)}")
+            except Exception: pass
         raise
 
 def hang():

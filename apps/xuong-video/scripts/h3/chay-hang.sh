@@ -4,7 +4,7 @@
 #   1) hàng từ box3 (scripts/hang-video.mts --ds): shot đang chờ, gom theo tập + bộ
 #   2) kế hoạch cụm của tập (cum-seedance.mts --lai=<shot trong hàng> — ép sinh lại đúng các shot anh bấm), chỉ chạy cụm có shot trong hàng
 #   3) mỗi cụm: cum-seedance-tap.sh dựng clip 3D nối trên iMac → Seedance: gửi Kie + gắn clip ngay · H3: xếp job H3 cùng đầu vào (BO=h3, 0đ)
-#   4) H3: mọi job H3 đang chờ → song-song.sh (thuê ≤ XV_H3_SO_MAY máy, mặc định 4; Vast trước, RunPod dự phòng; tự xoá máy) → clip về box3 →
+#   4) H3: mọi job H3 đang chờ → song-song.sh (thuê ≤ XV_H3_SO_MAY máy, mặc định 4; chỉ Vast — RunPod khi XV_H3_NHA="vast runpod"; tự xoá máy) → clip về box3 →
 #      thu-seedance-cum.mts --nap-h3 gắn clip (đo cú cắt, khớp thoại) + phiên bản nhãn H3
 #   5) đóng hàng (hang-video.mts --dong): shot có clip mới của bộ = xong, chưa có = lỗi (bấm Sinh lại) — không tự chạy lại cụm hỏng
 #   bash apps/xuong-video/scripts/h3/chay-hang.sh          → in hàng + cụm sẽ chạy + giá Seedance (0đ)

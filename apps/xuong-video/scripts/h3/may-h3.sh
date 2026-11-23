@@ -3,7 +3,7 @@
 # CUDA 13 → driver ≥ 580; thiếu thì xoá máy, sang máy kế) → thả cả lô chạy TÁCH trên máy (lam-lo.sh) → iMac ghé kéo clip mỗi 30 giây → XOÁ máy (trap, cả khi lỗi;
 # trần XV_H3_PHUT phút cả mạch). Khoá: Vast vault #564 (đọc lúc gọi), RunPod box3 .env.production. Luật máy thuê (anh 17/10/2026): sẵn sàng hết rồi mới bật.
 #   bash may-h3.sh <thư-mục-ra> <vao-1.json> [vao-2.json …]     vao.json: xem chay-h3.py · clip ra: <thư-mục-ra>/<tên vao>.mp4 · nhật ký: <thư-mục-ra>/so.jsonl
-#   XV_H3_NHA="vast runpod" (mặc định) · "runpod" · "vast"      XV_H3_GIA_TOI_DA (Vast, $/giờ, mặc định 0,6) · XV_H3_VRAM (MB, mặc định 23000 — H3 đầy đủ cần ~46000)
+#   XV_H3_NHA="vast" (mặc định — anh 23/11/2026: Vast đã nạp tiền ổn định, RunPod có thể hết tiền) · "vast runpod" (Vast trước, RunPod dự phòng) · "runpod"      XV_H3_GIA_TOI_DA (Vast, $/giờ, mặc định 0,6) · XV_H3_VRAM (MB, mặc định 23000 — H3 đầy đủ cần ~46000)
 set -uo pipefail
 # chạy từ BẢN SAO: sửa tệp gốc giữa lượt thì bash đọc lệch byte → lượt gãy sau khi đã thuê máy (bài học may-thue-vast.sh 22/10/2026)
 if [ -z "${XV_H3_BAN_SAO:-}" ]; then B=$(mktemp -t may-h3); cp "$0" "$B"; XV_H3_DIR=$(cd "$(dirname "$0")" && pwd) XV_H3_BAN_SAO=1 exec bash "$B" "$@"; fi
@@ -11,7 +11,7 @@ RA=${1:?thư mục ra}; shift; [ $# -gt 0 ] || { echo "bash may-h3.sh <thư-mụ
 DIR=${XV_H3_DIR:?}; mkdir -p "$RA"
 ANH=${XV_H3_ANH:-ghcr.io/mixseomin/xv-h3:latest}   # image đóng sẵn ComfyUI + PyTorch CUDA 13, kiểm 0đ trên GitHub Actions trước khi đẩy (may/Dockerfile)
 GPU=${XV_H3_GPU:-"NVIDIA GeForce RTX 4090|NVIDIA RTX 5000 Ada Generation|NVIDIA RTX PRO 4500 Blackwell|NVIDIA L40|NVIDIA RTX 6000 Ada Generation|NVIDIA GeForce RTX 5090|NVIDIA L40S"}
-NHA=${XV_H3_NHA:-vast runpod}
+NHA=${XV_H3_NHA:-vast}
 TRAN=${XV_H3_PHUT:-120}; T0=$(date +%s)
 # ── RunPod: gọi qua box3 (khoá ở đó). Box3 quá tải thì từ chối ssh ("Connection reset", 16/11/2026) → thử lại 5 lần
 API() { local q; q=$(cat); for i in 1 2 3 4 5; do

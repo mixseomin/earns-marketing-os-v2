@@ -12,7 +12,7 @@ server {
   gzip on; gzip_types text/css application/javascript image/svg+xml application/json; gzip_min_length 1024;
   auth_request /_mos2auth;
   error_page 401 = @login;
-  location = /_mos2auth { internal; proxy_pass http://127.0.0.1:3821/api/auth/verify; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header Cookie $http_cookie; proxy_set_header Host mos2.on.tc; }
+  location = /_mos2auth { internal; proxy_pass http://127.0.0.1:3821/api/auth/verify; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header Cookie $http_cookie; proxy_set_header Host $host; }   # Host thật: người trong đội vai viewer có users.chi_host = studio2.on.tc chỉ qua cổng ở đúng host này (khuôn etp.on.tc)
   location @login { return 302 https://mos2.on.tc/login?next=https://studio2.on.tc$request_uri; }
   location = /robots.txt { auth_request off; default_type text/plain; return 200 "User-agent: *\nDisallow: /\n"; }
   # Phim thật: studio2 đọc qua đường đọc + ảnh nhỏ của studio (apps/xuong-video, cổng 3840). Chỉ mở đúng ba đường: doc (đọc), nho (ảnh nhỏ), ghi (các bước làm phim trong sổ lib/ghi-ham.ts — máy viết kịch bản có thể chạy vài phút); không mở /api/xv/xong, /tai…;

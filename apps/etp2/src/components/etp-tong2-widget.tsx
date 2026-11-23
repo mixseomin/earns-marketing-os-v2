@@ -248,7 +248,7 @@ const oNguoi = (p: SoO): ReactNode[] => [
 /** cột của MENU CHỌN NGƯỜI: chi / lãi / ROI luôn là HÔM NAY (giờ VN), không theo kỳ chung (anh 24/11/2026 etp2 #1800) — chữ "hôm nay" ở tiêu đề Chi + chữ rê */
 export const COT_NGUOI_MENU: typeof COT_NGUOI = COT_NGUOI.map((c) =>
   c.key === 'chi' ? { ...c, h: 'Chi hôm nay', rong: 84, title: 'chi hôm nay (giờ VN) — menu này luôn là hôm nay, không theo kỳ đang xem' }
-  : c.key === 'lai' ? { ...c, title: 'lãi hôm nay (giờ VN)' }
+  : c.key === 'lai' ? { ...c, rong: 80, title: 'lãi hôm nay (giờ VN)' }
   : c.key === 'roi' ? { ...c, title: 'ROI hôm nay · ▲▼ so hôm qua' } : c);
 
 /** MENU CHỌN NGƯỜI có số hiệu quả (anh 22/11/2026 #1759 "Show bảng chi tiết hiệu quả này vào menu chọn người"): ô số từng người theo id + dòng Team (cộng mọi người),

@@ -45,7 +45,10 @@ function NoiDungVideo({ nd }: { nd: NoiDungCr | null }) {
   </div>;
 }
 
-export function KhungBaiQc({ cr, camp, anh, video, caoMedia }: { cr: number; camp?: number | null; anh: string | null; video: string | null; /** cao vùng hình; bỏ trống = khổ 9:16 */ caoMedia?: number | string }) {
+// BỐ CỤC NGANG (anh #1775 "YDNI để ko phải scroll xuống trên pc"): thẻ rê chuột trên máy tính xếp HAI CỘT — trái: `ben` (dải chấm điểm TheCr của chỗ gọi)
+// + hook / chữ video / lời đọc / điểm nội dung; phải: khung bài QC + video. Trước đó mọi thứ chồng một cột rộng 320px → cao ~1000px, thẻ phải cuộn mới thấy video.
+// Màn hẹp / ngăn camp vẫn một cột (ngang = false).
+export function KhungBaiQc({ cr, camp, anh, video, caoMedia, ngang = false, ben }: { cr: number; camp?: number | null; anh: string | null; video: string | null; /** cao vùng hình; bỏ trống = khổ 9:16 */ caoMedia?: number | string; /** hai cột: thông tin trái, bài QC phải */ ngang?: boolean; /** khối đặt đầu cột thông tin (vd TheCr) */ ben?: React.ReactNode }) {
   const [b, setB] = useState<BaiQc | null>(null); const [loi, setLoi] = useState<string | null>(null);
   const [i, setI] = useState(0); const [mo, setMo] = useState(false);
   useEffect(() => {
@@ -56,9 +59,15 @@ export function KhungBaiQc({ cr, camp, anh, video, caoMedia }: { cr: number; cam
   const ds = b?.chinh ?? []; const chu = ds[i] ?? ''; const dai = chu.length > CAT;
   const tieuDe = b?.tieuDe[0] ?? null, moTa = b?.moTa[0] ?? null, cta = b ? chuCta(b.cta) : '';
   const lat = (d: number) => { setI((x) => (x + d + ds.length) % ds.length); setMo(false); };
-  return <div data-bai-qc={cr} style={{ display: 'flex', flexDirection: 'column', gap: 4, minHeight: 0 }}>
+  const thongTin = <>
+    {ben}
     {b ? <NoiDungVideo nd={b.noiDung} /> : null}
     {b?.chuaCamp ?<div style={{ fontSize: 11, color: 'var(--fg-2, #aaa)' }}>chưa lên camp — chữ dự kiến</div> : null}
+  </>;
+  return <div data-bai-qc={cr} data-bo-cuc={ngang ? 'ngang' : 'doc'} style={ngang
+    ? { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: 10, alignItems: 'start', minHeight: 0 }
+    : { display: 'flex', flexDirection: 'column', gap: 4, minHeight: 0 }}>
+    {ngang ? <div data-cot-thong-tin style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, paddingTop: 2 }}>{thongTin}</div> : thongTin}
     <div style={{ background: '#fff', color: DEN, borderRadius: 8, overflow: 'hidden', fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', fontSize: 13, lineHeight: 1.35 }}>
       {/* đầu bài: Page + Được tài trợ */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px 6px' }}>

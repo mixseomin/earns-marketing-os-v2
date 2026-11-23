@@ -482,6 +482,9 @@ const LUAT = [
   { card: '1774', tep: 'apps/etp2/src/lib/actions/etp-bai.ts', co: "ch.lop->'chu'->>'noi_dung' chu_video, ch.lop->'giong'->>'noi_dung' loi_doc", vi: 'chữ trên video + lời đọc lấy từ lớp chấm' },
   { card: '1774', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', mot: '{b ? <NoiDungVideo nd={b.noiDung} /> : null}', vi: 'thẻ creative hiện hook + chữ video + điểm chấm nội dung trên khung bài' },
   { card: '1774', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: '📝 Chấm nội dung', vi: 'điểm từng tiêu chí hiện trên thẻ, lý do ở rê chuột' },
+  { card: '1775', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: "gridTemplateColumns: 'minmax(0, 1fr) 300px'", vi: 'thẻ creative trên máy tính xếp hai cột (thông tin trái, bài QC + video phải) — không phải cuộn' },
+  { card: '1775', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'ngang={ngang} ben={ngang ? theCr : undefined}', vi: 'thẻ rê creative ở cây camp dùng bố cục ngang trên màn rộng' },
+  { card: '1775', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'rong={320} cao={CAO} noi={noiAnh} style={{ width: 320, maxHeight: CAO', vi: 'không quay về thẻ một cột 320px cao quá màn phải cuộn' },
 ];
 
 const loi = [];

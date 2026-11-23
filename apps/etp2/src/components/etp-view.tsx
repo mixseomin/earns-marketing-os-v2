@@ -3608,10 +3608,15 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         const r = xem.cr ? crAnh.get(xem.cr) : undefined, ch = xem.cr ? du.cham[xem.cr] : undefined, k = xem.cr ? crKh.get(xem.cr) : undefined, CAO = r ? 600 : 480;
         // dải thông tin TỰ CAO theo chữ (lỗi 27/10/2026: cao cố định 92px, dòng "chặn" xuống hàng làm dòng lãi bị video che) — video lấp phần còn lại
         // có mã creative → khung BÀI QC như người xem thấy (anh 20/11/2026: Page · chữ QC · hình · tên miền · tiêu đề · CTA); chấm điểm / lý do chặn giữ trên đầu, ngoài khung
-        if (xem.cr) return <KhungNoi x={xem.x} y={xem.y} rong={320} cao={CAO} noi={noiAnh} style={{ width: 320, maxHeight: CAO, overflow: 'auto', background: 'var(--bg-1, #111)', display: 'flex', flexDirection: 'column', gap: 6, padding: '6px 8px 8px' }}>
-          {r ? <div style={{ flex: 'none', paddingRight: 22 }}><TheCr r={r} ch={ch} k={k} khTen={khNay ? undefined : khNhan} tc={du.tieuChi} /></div> : null}
-          <KhungBaiQc cr={xem.cr} camp={xem.camp ?? null} anh={xem.anh || null} video={xem.video} caoMedia={300} />
-        </KhungNoi>;
+        // #1775 (anh "YDNI để ko phải scroll xuống trên pc"): màn rộng ≥ 720px → thẻ HAI CỘT (chấm điểm + nội dung video trái, bài QC + video phải), video cao theo màn → không cuộn
+        const ngang = typeof window !== 'undefined' && window.innerWidth >= 720;
+        if (xem.cr) {
+          const theCr = r ? <div style={{ flex: 'none', paddingRight: ngang ? 0 : 22 }}><TheCr r={r} ch={ch} k={k} khTen={khNay ? undefined : khNhan} tc={du.tieuChi} /></div> : null;
+          return <KhungNoi x={xem.x} y={xem.y} rong={ngang ? 660 : 320} cao={CAO} noi={noiAnh} style={{ width: ngang ? 660 : 320, maxHeight: ngang ? undefined : CAO, overflow: 'auto', background: 'var(--bg-1, #111)', display: 'flex', flexDirection: 'column', gap: 6, padding: ngang ? '8px 34px 8px 10px' : '6px 8px 8px' }}>
+            {ngang ? null : theCr}
+            <KhungBaiQc cr={xem.cr} camp={xem.camp ?? null} anh={xem.anh || null} video={xem.video} caoMedia={ngang ? 'min(380px, calc(100dvh - 300px))' : 300} ngang={ngang} ben={ngang ? theCr : undefined} />
+          </KhungNoi>;
+        }
         return <KhungNoi x={xem.x} y={xem.y} rong={270} cao={CAO} noi={noiAnh} style={{ width: 270, height: CAO, overflow: 'hidden', background: '#000', display: 'flex', flexDirection: 'column' }}>
           <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
             {xem.anh ? <img src={xem.anh} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} /> : null}

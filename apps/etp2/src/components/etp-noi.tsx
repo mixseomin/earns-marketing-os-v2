@@ -164,6 +164,7 @@ export function TheChu({ chu }: { chu: string }) {
 // → cất chữ sang data-tip (trình duyệt không hiện hộp thô nữa), mở KhungNoi (trễ TRE_MO, ✕, Esc, giữ khi rê vào thẻ) với TheChu. Mọi title= mới tự theo, không phải sửa từng ô.
 // Nhường thẻ riêng (bậc, xét luật, creative…): thẻ riêng đang mở → không mở; thẻ riêng mở sau → đóng thẻ chữ. Bỏ qua chữ của cả dòng (tr / .dong — rê đâu cũng bật là phiền)
 // và chữ bên trong thẻ nổi.
+const NUT_KHONG_THE = 'button, a, input, select, textarea, label, [role="button"], [role="tab"]';
 export function HoverChu({ goc }: { goc: React.RefObject<HTMLElement | null> }) {
   const [v, setV] = useState<{ chu: string; x: number; y: number } | null>(null);
   const hen = useRef<number | undefined>(undefined);
@@ -179,7 +180,9 @@ export function HoverChu({ goc }: { goc: React.RefObject<HTMLElement | null> }) 
       let el = t instanceof Element ? t : null;
       for (; el && el !== khung; el = el.parentElement) {
         if (el.hasAttribute('data-khung-noi')) return null;
-        if (el.hasAttribute('title') || el.hasAttribute('data-tip')) return el.tagName === 'TR' || el.classList.contains('dong') ? null : el as HTMLElement;
+        // #1769 lượt 2 (anh 23/11/2026 "Ko phải chỉ trên điện thoại"): NÚT / Ô NHẬP / LINK (Mở hết, Chú giải, ô lọc…) không bao giờ bật thẻ nổi to có ✕ —
+        // trên MỌI thiết bị. Chữ của nút để nguyên title= (máy tính hiện hộp chữ nhỏ của trình duyệt, điện thoại không hiện). Thẻ chữ chỉ còn cho chữ chi tiết ở ô dữ liệu.
+        if (el.hasAttribute('title') || el.hasAttribute('data-tip')) return el.tagName === 'TR' || el.classList.contains('dong') || el.closest(NUT_KHONG_THE) ? null : el as HTMLElement;
       }
       return null;
     };

@@ -458,6 +458,8 @@ const LUAT = [
   { card: '1767', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'hang={hangLoc}', vi: 'dòng chờ duyệt đi qua bộ lọc trước khi vào cây camp' },
   { card: '1767', tep: 'apps/etp2/src/components/etp-view.tsx', cam: '[...con.ds, ...du.hangCr]', vi: 'không nối thẳng dòng chờ duyệt vào cây bỏ qua bộ lọc' },
   { card: '1769', tep: 'apps/etp2/src/components/etp-noi.tsx', co: "TRO.cham = e.pointerType !== 'mouse';", vi: 'ghi loại con trỏ cuối (chạm / chuột) trước mouseover giả của điện thoại' },
+  { card: '1769', tep: 'apps/etp2/src/components/etp-noi.tsx', co: "el.classList.contains('dong') || el.closest(NUT_KHONG_THE) ? null", vi: 'nút / ô nhập / link không bật thẻ chữ nổi to có ✕ trên MỌI thiết bị (anh 23/11/2026 "Ko phải chỉ trên điện thoại")' },
+  { card: '1769', tep: 'apps/etp2/src/components/etp-noi.tsx', mot: "const NUT_KHONG_THE = 'button, a, input, select, textarea, label", vi: 'một danh sách loại phần tử điều khiển cho cả trang' },
   { card: '1769', tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'if (TRO.cham) return;   // #1769', vi: 'HoverChu không mở thẻ chữ rê khi chạm ngón tay (anh "Ko dùng kiểu hover này ở mọi nơi")' },
   { card: '1770', tep: 'apps/etp2/src/lib/etp-chay.ts', mot: 'export const choChay = ', vi: 'một định nghĩa Chờ chạy gồm camp vừa lên còn đang tạo (lịch đã qua, PAUSED)' },
   { card: '1770', tep: 'apps/etp2/src/components/etp-view.tsx', co: "c.trang_thai !== 'ACTIVE' && !choChay(c) && !choDuyet(c)", vi: 'camp vừa lên còn đang tạo không bị tính Đã tắt, không rời lọc Chạy + Chờ + Duyệt' },

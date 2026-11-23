@@ -835,9 +835,10 @@
    "hong": "không đủ điểm khớp",
    "vung_thu": [
     "-100_10_-50_70",
-    "-140_20_-50_100_vong"
+    "-140_20_-50_100_vong",
+    "-50_90_-70_50"
    ],
-   "luc": "2026-11-21"
+   "luc": "2026-11-23"
   },
   "anh/web/mapillary-1217197145408026.jpg": {
    "hong": "chỉ 15 điểm khớp đúng (< 30)",
@@ -1214,10 +1215,11 @@
    "trang": "https://commons.wikimedia.org/wiki/File:Dvorac_Neuschwanstein_-_sjeverna_strana.jpg",
    "camera": {
     "y": 12.83,
-    "yaw": 2.8029,
-    "pitch": 0.6045,
-    "roll": -0.1025,
-    "fov": 52.5
+    "yaw": 2.8258,
+    "pitch": 0.5958,
+    "roll": -0.1123,
+    "fov": 54.5,
+    "nguon": "scripts/khop-camera-dom.py (viền trời ảnh ↔ viền trời DOM20, 23/11/2026): lệch 2D trung vị 4.4 px, 73 % cột trong 1 % khung"
    },
    "dung": 1010,
    "lech_px": 2.91,
@@ -1567,11 +1569,12 @@
    "giayPhep": "CC BY 3.0",
    "trang": "https://commons.wikimedia.org/wiki/File:Schloss_Neuschwanstein_-_panoramio_-_Seko_Naotomo_(1).jpg",
    "camera": {
-    "y": 26.25,
-    "yaw": 1.8609,
-    "pitch": 0.325,
-    "roll": -0.0327,
-    "fov": 54.5
+    "y": 29.03,
+    "yaw": 1.8718,
+    "pitch": 0.2486,
+    "roll": -0.0752,
+    "fov": 58.5,
+    "nguon": "scripts/khop-camera-dom.py (viền trời ảnh ↔ viền trời DOM20, 23/11/2026): lệch 2D trung vị 4.0 px, 81 % cột trong 1 % khung"
    },
    "dung": 1582,
    "lech_px": 2.68,
@@ -1604,6 +1607,90 @@
     "-50_90_-70_50"
    ],
    "luc": "2026-11-22"
+  },
+  "anh/web/mapillary-514939746415831.jpg": {
+   "hong": "chỉ 13 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-50_90_-70_50"
+   ],
+   "luc": "2026-11-23"
+  },
+  "anh/web/mapillary-338134784343291.jpg": {
+   "hong": "chỉ 10 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-50_90_-70_50"
+   ],
+   "luc": "2026-11-23"
+  },
+  "anh/web/commons-ノイシュバンシュタイン城---panoramio.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-50_90_-70_50"
+   ],
+   "luc": "2026-11-23"
+  },
+  "anh/web/commons-Gedenktafel-Schloss-Neuschwanstein-Hohenschwangau-Ludwig-II-Bayern-.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-50_90_-70_50"
+   ],
+   "luc": "2026-11-23"
+  },
+  "anh/web/commons-Gedenktafel-Schloss-Neuschwanstein-Hohenschwangau-Richard-Wagner.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-50_90_-70_50"
+   ],
+   "luc": "2026-11-23"
+  },
+  "anh/web/commons-Gedenktafel-Schloss-Neuschwanstein-Hohenschwangau-Schloss-Neuschwanstein.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-50_90_-70_50"
+   ],
+   "luc": "2026-11-23"
+  },
+  "anh/web/mapillary-1118115168712857.jpg": {
+   "hong": "chỉ 18 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-50_90_-70_50"
+   ],
+   "luc": "2026-11-23"
+  },
+  "anh/web/commons-Neuschwanstein---Throne-Room-2975633829-.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-50_90_-70_50"
+   ],
+   "luc": "2026-11-23"
+  },
+  "anh/web/commons-Neuschwanstein-5287381548-.jpg": {
+   "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau 9.0 m (> 3 m) — lời giải không vững",
+   "vung_thu": [
+    "-50_90_-70_50"
+   ],
+   "luc": "2026-11-23"
+  },
+  "anh/web/commons-Alpsee-from-Neuschwanstein-5287380836-.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-50_90_-70_50"
+   ],
+   "luc": "2026-11-23"
+  },
+  "anh/web/commons-Neuschwanstein-sw.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-50_90_-70_50"
+   ],
+   "luc": "2026-11-23"
+  },
+  "anh/web/mapillary-794119944578793.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-50_90_-70_50"
+   ],
+   "luc": "2026-11-23"
   }
  },
  "mat": {

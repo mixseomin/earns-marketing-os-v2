@@ -128,6 +128,25 @@ class Dom:
 
 
 DOM = Dom()
+CAM_TV = 10  # px — lệch 2D trung vị viền DOM20 ↔ viền ảnh mà dưới mức đó camera THÔ coi là đúng (khop-camera-dom.py dùng cùng thước để nhận camera)
+
+
+def ban_khoang(vA, W, H):
+    """viền trời ảnh → bản đồ khoảng cách 2D (px) tới viền gần nhất. Đo theo chiều đứng thì sườn mái dốc lệch ngang 3 px thành lệch đứng 30 px
+    (san-tren: trung vị đứng 28 px, 2D 10 px) — dò theo thước đứng bị kéo lệch hướng."""
+    m = np.full((H, W), 255, np.uint8); xs = [x for x in range(W) if vA[x] < H]
+    for a, b in zip(xs, xs[1:]):
+        if b - a == 1: cv2.line(m, (a, int(vA[a])), (b, int(vA[b])), 0, 1)
+    return cv2.distanceTransform(m, cv2.DIST_L2, 5)
+
+
+def dom_tv(d, vA, buoc=8):
+    """lệch 2D trung vị (px) viền DOM20 của camera THÔ (không canh khung) ↔ viền ảnh; DOM20 thấy < 40 % cột → inf (không chứng được)"""
+    if not DOM.ok: return float('inf')
+    W, H = d['W'], d['H']; xs = np.arange(4, W - 4, buoc); vD = DOM.vien(d, xs, np.float32([[1, 0, 0], [0, 1, 0]]), [H] * len(xs))
+    ok = (vD >= 0) & (vD < H)
+    if ok.sum() < 0.4 * len(xs): return float('inf')
+    return float(np.median(ban_khoang(vA, W, H)[vD[ok].astype(int), xs[ok]]))
 
 
 def phap_tuyen(P):
@@ -279,8 +298,13 @@ def phan_tich(anh, d, thu, bd, chon, khoa=None):
     # sửa vật liệu khung lại trôi, viền so với TRƯỚC tụt mà hình khối không đổi (21/11/2026: viền 66 → 6 %, khung dời 130 px chỉ vì thêm vân đá)
     hinh = cv2.imread(str(thu / f'{ten}-hinh.png')); hinh = mh if hinh is None else hinh  # thư mục cũ chưa có lượt hình
     eM0 = net_mo_hinh(hinh, sau, n) & (MAT != ''); eA0 = net_anh(anh) & ~(troiM & (np.arange(H)[:, None] < vien(troiM)[None, :] - 0.08 * H))
+    # canh khung chỉ để bù SAI SỐ CAMERA: DOM20 (độc lập mô hình) xác nhận camera thô khớp ảnh thì không còn sai số nào để bù — canh khung lúc đó kéo mô hình
+    # cho khớp ảnh, tức là che LỖI MÔ HÌNH, và kéo luôn tia DOM20 lệch theo (23/11/2026, camera khop-camera-dom: DOM20 thô khớp 2D 75/81/48 %, sau canh ×1,15
+    # nhân chứng chỉ còn 9/25/10 % → "CAMERA CHƯA TIN" oan cả ba ảnh)
+    tv0 = dom_tv(d, vien(troi_anh(anh, troiM, vien(troiM))))
     kk = khoa_khung(d) if khoa is not None else None
-    if kk and kk in khoa: CK = ck_tu_so(khoa[kk], W, H); loi_ck = khoa[kk]['tang_F']
+    if tv0 <= CAM_TV: CK, loi_ck = np.float32([[1, 0, 0], [0, 1, 0]]), 0
+    elif kk and kk in khoa: CK = ck_tu_so(khoa[kk], W, H); loi_ck = khoa[kk]['tang_F']
     else: CK, loi_ck = canh_khung(eA0, eM0, MAT != '')
     che = cv2.imread(str(thu / f'{ten}-che.png'))  # mặt nạ VẬT CHE (tranh, ban công) — thư mục cũ chưa có thì None
     goc = (P, MAT.copy(), mai, hinh, mh.copy(), sau.copy())  # khung mô hình CHƯA canh: dò chi tiết mặt cần toạ độ 3D gốc, tra ảnh qua CK
@@ -328,7 +352,8 @@ def phan_tich(anh, d, thu, bd, chon, khoa=None):
         mau = cot_lau[::16]; vD = dom.vien(d, mau, Ci, ym(mau)); co_d = [i for i, x in enumerate(mau) if 0 <= vD[i] < H]
         nhan_chung.update({'cot': len(co_d), 'anh_khop': round(sum(abs(int(vD[i]) - int(vA[mau[i]])) <= tolD for i in co_d) / max(1, len(co_d)), 3),
                            'mh_khop': round(sum(abs(int(vD[i]) - int(vM[mau[i]])) <= tolD for i in co_d) / max(1, len(co_d)), 3), 'vD': [[int(mau[i]), int(vD[i])] for i in co_d]})
-        nhan_chung['camera_tin'] = nhan_chung['cot'] < 8 or nhan_chung['anh_khop'] >= 0.7 or nhan_chung['anh_khop'] >= nhan_chung['mh_khop'] - 0.1
+        nhan_chung['tv_2d'] = round(tv0, 1) if tv0 != float('inf') else None
+        nhan_chung['camera_tin'] = tv0 <= CAM_TV or nhan_chung['cot'] < 8 or nhan_chung['anh_khop'] >= 0.7 or nhan_chung['anh_khop'] >= nhan_chung['mh_khop'] - 0.1
     # nét theo mặt
     eM = net_mo_hinh(mh, sau, n); eA = net_anh(anh) & cv2.dilate(lau.astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool) & ~troiM
     eM &= lau; r = max(3, round(0.004 * H))

@@ -8,17 +8,14 @@
   "tacGia": "Naturliebhaberin",
   "giayPhep": "CC BY-SA 4.0",
   "camera": {
-   "x": 14.0921,
-   "y": 24.3338,
-   "z": 0.6255,
-   "yaw": 1.8267,
-   "pitch": 0.5002,
-   "roll": -0.0113,
-   "fov": 28.0,
-   "nguon": "scripts/khop-lg.py (LightGlue + PnP ảnh chính ↔ ảnh 3D Google, khung cảnh), dò ở 1024×768 — cùng tỉ lệ khung, fov dọc nên dùng thẳng cho 1600×1200",
-   "lech_px": 2.93,
-   "tach_m": 0.7,
-   "kiem": "tia hàng mái 405 cắt mặt tường ra 57,57 m (mô hình MAI_SAN 57,87); tia đỉnh đầu hồi hàng 110 ra 67,07 m (DINH_NEO 65,7) — camera khớp khung mô hình theo chiều đứng"
+   "x": 14.65,
+   "y": 29.12,
+   "z": 0.81,
+   "yaw": 1.8376,
+   "pitch": 0.3911,
+   "roll": -0.0882,
+   "fov": 32.4,
+   "nguon": "scripts/khop-camera-dom.py (viền trời ảnh ↔ viền trời DOM20, 23/11/2026): lệch 2D trung vị 8.8 px, 53 % cột trong 1 % khung"
   }
  },
  "tiLe": {
@@ -28,8 +25,26 @@
   "maiY": 405,
   "hoiMep": {
    "ghi_chu": "hai mép NGOÀI đầu hồi trên ảnh chính (điểm ảnh [u, v], dò mép trời từng hàng 130–390, khớp đường thẳng: trái u = −0,870·v + 877,8; phải u = 0,81·v + 714 — phải chỉ lấy hàng ≤ 240 và 380, giữa bị chóp tháp phía sau che). ns.js đổi hai điểm mỗi mép ra mét bằng tia camera → độ dốc thật; chân đầu hồi = chỗ mép chạm hàng chân (maiY) — ở MÉP tháp góc, không phải tâm tháp (21/11/2026: lấy chân ở tâm tháp làm hai mép thoải, viền cao hơn ảnh 8–13 px ở 3 ảnh thật)",
-   "trai": [[747, 150], [548, 380]],
-   "phai": [[836, 150], [1023, 380]]
+   "trai": [
+    [
+     747,
+     150
+    ],
+    [
+     548,
+     380
+    ]
+   ],
+   "phai": [
+    [
+     836,
+     150
+    ],
+    [
+     1023,
+     380
+    ]
+   ]
   }
  },
  "cum": [
@@ -263,26 +278,191 @@
   "conXon": 780
  },
  "go": [
-  { "ten": "gờ chân đầu hồi (sa thạch, liền tháp tới tháp; trên là đá phẳng, dưới là đá đẽo thô)", "y": 702, "cao": 0.18, "nho": 0.16 },
-  { "ten": "bệ đá dưới cửa đôi đầu hồi", "y": 526, "doan": [[690, 903]], "cao": 0.28, "nho": 0.32 },
-  { "ten": "gờ dưới tầng hai", "y": 930, "cao": 0.22, "nho": 0.22 },
-  { "ten": "bệ từng cụm cửa tầng trệt (không liền)", "y": 1158, "doan": [[560, 702], [752, 850], [890, 1047]], "cao": 0.16, "nho": 0.14 }
+  {
+   "ten": "gờ chân đầu hồi (sa thạch, liền tháp tới tháp; trên là đá phẳng, dưới là đá đẽo thô)",
+   "y": 702,
+   "cao": 0.18,
+   "nho": 0.16
+  },
+  {
+   "ten": "bệ đá dưới cửa đôi đầu hồi",
+   "y": 526,
+   "doan": [
+    [
+     690,
+     903
+    ]
+   ],
+   "cao": 0.28,
+   "nho": 0.32
+  },
+  {
+   "ten": "gờ dưới tầng hai",
+   "y": 930,
+   "cao": 0.22,
+   "nho": 0.22
+  },
+  {
+   "ten": "bệ từng cụm cửa tầng trệt (không liền)",
+   "y": 1158,
+   "doan": [
+    [
+     560,
+     702
+    ],
+    [
+     752,
+     850
+    ],
+    [
+     890,
+     1047
+    ]
+   ],
+   "cao": 0.16,
+   "nho": 0.14
+  }
  ],
  "oNoi_ghi_chu": "mảng tường NỔI xếp bậc theo đầu hồi (đọc lưới 10 px, 21/11/2026): mỗi mảng từ vai xuống chân (gờ 702), đỉnh mảng là các u tròn (u: [x trái, x phải], dinh = đỉnh u); nổi ~0,1 m. Tranh + cửa đôi + cửa tròn nằm TRÊN mảng nên đẩy ra theo mảng",
  "oNoi": [
-  { "ten": "mảng giữa", "tu": 750, "den": 839, "vai": 266, "chan": 700, "dinh": 249, "u": [[750, 771], [783, 805], [816, 837]], "noi": 0.1 },
-  { "ten": "bậc trái", "tu": 679, "den": 750, "vai": 349, "chan": 700, "dinh": 333, "u": [[679, 701], [714, 737]], "noi": 0.1 },
-  { "ten": "bậc phải", "tu": 839, "den": 909, "vai": 356, "chan": 700, "dinh": 340, "u": [[851, 874], [886, 909]], "noi": 0.1 },
-  { "ten": "bậc dưới trái", "tu": 605, "den": 679, "vai": 439, "chan": 700, "dinh": 422, "u": [[606, 629], [641, 665]], "noi": 0.1 },
-  { "ten": "bậc dưới phải", "tu": 909, "den": 982, "vai": 452, "chan": 700, "dinh": 436, "u": [[924, 946], [959, 982]], "noi": 0.1 }
+  {
+   "ten": "mảng giữa",
+   "tu": 750,
+   "den": 839,
+   "vai": 266,
+   "chan": 700,
+   "dinh": 249,
+   "u": [
+    [
+     750,
+     771
+    ],
+    [
+     783,
+     805
+    ],
+    [
+     816,
+     837
+    ]
+   ],
+   "noi": 0.1
+  },
+  {
+   "ten": "bậc trái",
+   "tu": 679,
+   "den": 750,
+   "vai": 349,
+   "chan": 700,
+   "dinh": 333,
+   "u": [
+    [
+     679,
+     701
+    ],
+    [
+     714,
+     737
+    ]
+   ],
+   "noi": 0.1
+  },
+  {
+   "ten": "bậc phải",
+   "tu": 839,
+   "den": 909,
+   "vai": 356,
+   "chan": 700,
+   "dinh": 340,
+   "u": [
+    [
+     851,
+     874
+    ],
+    [
+     886,
+     909
+    ]
+   ],
+   "noi": 0.1
+  },
+  {
+   "ten": "bậc dưới trái",
+   "tu": 605,
+   "den": 679,
+   "vai": 439,
+   "chan": 700,
+   "dinh": 422,
+   "u": [
+    [
+     606,
+     629
+    ],
+    [
+     641,
+     665
+    ]
+   ],
+   "noi": 0.1
+  },
+  {
+   "ten": "bậc dưới phải",
+   "tu": 909,
+   "den": 982,
+   "vai": 452,
+   "chan": 700,
+   "dinh": 436,
+   "u": [
+    [
+     924,
+     946
+    ],
+    [
+     959,
+     982
+    ]
+   ],
+   "noi": 0.1
+  }
  ],
  "oTron": [
-  { "ten": "cửa sổ tròn đầu hồi", "x": 794, "y": 387, "r": 26, "cua": true },
-  { "ten": "lỗ tròn trên mảng giữa", "x": 792, "y": 200, "r": 11 },
-  { "ten": "lỗ tròn trên bậc trái", "x": 708, "y": 297, "r": 11 },
-  { "ten": "lỗ tròn trên bậc phải", "x": 878, "y": 305, "r": 11 },
-  { "ten": "lỗ tròn trên bậc dưới trái", "x": 636, "y": 385, "r": 11 },
-  { "ten": "lỗ tròn trên bậc dưới phải", "x": 950, "y": 399, "r": 11 }
+  {
+   "ten": "cửa sổ tròn đầu hồi",
+   "x": 794,
+   "y": 387,
+   "r": 26,
+   "cua": true
+  },
+  {
+   "ten": "lỗ tròn trên mảng giữa",
+   "x": 792,
+   "y": 200,
+   "r": 11
+  },
+  {
+   "ten": "lỗ tròn trên bậc trái",
+   "x": 708,
+   "y": 297,
+   "r": 11
+  },
+  {
+   "ten": "lỗ tròn trên bậc phải",
+   "x": 878,
+   "y": 305,
+   "r": 11
+  },
+  {
+   "ten": "lỗ tròn trên bậc dưới trái",
+   "x": 636,
+   "y": 385,
+   "r": 11
+  },
+  {
+   "ten": "lỗ tròn trên bậc dưới phải",
+   "x": 950,
+   "y": 399,
+   "r": 11
+  }
  ],
  "anhPhu": {
   "ghi_chu": "ảnh thứ hai cho phần ảnh chính bị cắt (dưới hàng 3·2·3 tới mặt sân). Neo vào ảnh chính: mocY = bậu hàng 3·2·3 (ảnh chính bau 1150), mocX = tâm cụm giữa hàng đó (ảnh chính x 800). Tỉ lệ so với ảnh chính: đứng tiDung = 120 px (bậu tầng hai → bậu hàng 3·2·3) / 228 px của ảnh chính; ngang tiNgang = 90 px (tâm cụm trái → giữa) / 168,5 px của ảnh chính. Ảnh chụp lúc đang xây, giàn giáo che nửa phải → cửa đơn phía phải lấy đối xứng (GIẢ ĐỊNH, chưa thấy trên ảnh)",

@@ -17,7 +17,8 @@ export function gioVN(iso: string | null | undefined, homNay = new Date().toISOS
   const a = vn(iso), b = vn(homNay);
   return a.slice(0, 10) === b.slice(0, 10) ? a.slice(11, 16) : `${a.slice(11, 16)} ${a.slice(8, 10)}/${a.slice(5, 7)}`;
 }
-export const tien = (x: number | null | undefined) => (x == null ? '?' : `$${x.toFixed(x >= 100 ? 0 : x >= 1 ? 2 : x === 0 ? 0 : 3).replace('.', ',')}`);
+// góp ý #1792: kiểu kế toán — luôn 2 số lẻ, tách nghìn bằng dấu chấm, cột số đều (tabular-nums trong home.css) để dấu phẩy thẳng hàng
+export const tien = (x: number | null | undefined) => (x == null ? '?' : `$${x.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 export const soGon = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace('.', ',')}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n));
 
 export const MAU_TT: Record<TT['kieu'] | 'ket', string> = { lam: '#4ade80', ranh: '#60a5fa', tat: 'var(--fg-4, #555)', chua: 'var(--fg-4, #555)', ket: '#f87171' };

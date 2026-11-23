@@ -115,7 +115,8 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
       else { setKqLen({ ok: !r.ds.some((x) => x.loi), chu: r.ds.map((x) => `#${x.cr}: ${x.chu}`).join('\n') }); setChon([]); baoDoi(); await tai(); }
     } catch (e) { setKqLen({ ok: false, chu: loiChu(e) }); } finally { setLen(false); }
   };
-  const [xem, setXem] = useState<number | null>(null);   // creative đang phát to trong ngăn
+  const [xem, setXem] = useState<number | null>(null);
+  const [loc, setLoc] = useState<'tat' | 'chua' | 'camp' | 'tu'>('tat');   // thanh lọc trên cột danh sách (khuôn hộp thư: lọc → danh sách → chi tiết)   // creative đang phát to trong ngăn
   const dsRef = useRef<HTMLDivElement>(null);
 
   const dau = <div className="modal-head"><div><div className="id-line">creative của phim · {cid}</div>
@@ -229,10 +230,16 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
         {lenMot == null ? <Bao kq={kqLen} /> : null}
         {!ok.cr.length ? <div style={{ color: MO_SO }}>Phim này chưa có creative — bấm <a style={{ color: XANH, cursor: 'pointer' }} onClick={() => { setBan(BAN_TRONG); setTab('soan'); }}>＋ Creative mới</a>.</div> : null}
         {/* DANH SÁCH BÊN TRÁI · CHI TIẾT BÊN PHẢI (anh 23/11/2026: "Danh sách thì phải hiện danh sách ở bên trái") */}
-        {ok.cr.length ? (() => { const c = ok.cr.find((x) => x.creative_id === xem) ?? ok.cr[0]!;
+        {ok.cr.length ? (() => {
+          const LOC = { tat: ['Tất cả', () => true], chua: ['Chưa lên camp', (x: typeof ok.cr[number]) => !x.camp_id && !x.tu_choi], camp: ['Đã có camp', (x: typeof ok.cr[number]) => !!x.camp_id], tu: ['Từ chối', (x: typeof ok.cr[number]) => !!x.tu_choi] } as const;
+          const ds = ok.cr.filter(LOC[loc][1]); const c = ds.find((x) => x.creative_id === xem) ?? ds[0] ?? null;
           return <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-            <div style={{ width: 300, flex: '0 0 300px', maxHeight: 'calc(100vh - 190px)', overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
-              {ok.cr.map((x) => { const duoc = !x.camp_id && !x.tu_choi, tich = chon.includes(x.creative_id), on = x.creative_id === c.creative_id;
+            <div style={{ width: 300, flex: '0 0 300px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{(Object.keys(LOC) as (keyof typeof LOC)[]).map((k) => { const n = ok.cr.filter(LOC[k][1]).length, on = loc === k;
+              return <button key={k} type="button" onClick={() => setLoc(k)} style={{ ...nut(on ? XANH : MO_SO, on), padding: '2px 8px' }}>{LOC[k][0]} {n}</button>; })}</div>
+            <div style={{ maxHeight: 'calc(100vh - 225px)', overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
+              {!ds.length ? <div style={{ padding: 12, color: MO_SO }}>Không có creative nào ở mục này.</div> : null}
+              {ds.map((x) => { const duoc = !x.camp_id && !x.tu_choi, tich = chon.includes(x.creative_id), on = x.creative_id === c?.creative_id;
                 return <div key={x.creative_id} onClick={() => setXem(x.creative_id)} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 8px', cursor: 'pointer',
                   borderBottom: '1px solid var(--line)', borderLeft: `3px solid ${on ? XANH : 'transparent'}`, background: on ? `color-mix(in srgb, ${XANH} 10%, transparent)` : 'transparent' }}>
                   <span onClick={(e) => e.stopPropagation()} style={{ width: 16, display: 'flex' }}>{duoc
@@ -245,8 +252,8 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
                     <div style={{ color: x.tu_choi ? DO : x.camp_id ? LAM : VANG }}>{x.tu_choi ? 'Ethopex từ chối' : x.camp_id ? `camp #${x.camp_id}${x.camp_tt ? ` · ${x.camp_tt}` : ''}` : 'chưa lên camp'}</div>
                   </div>
                 </div>; })}
-            </div>
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            </div></div>
+            {c ? <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ fontSize: 15 }}>Creative #{c.creative_id}</b><BadgeDangNgan d={c.dang} /></div>
               <div style={{ color: MO_SO }}>{[tenMau(c.mau) ?? (c.mau ? 'mẫu cũ' : null), c.lang, c.luc ? `vào thư viện ${gio(c.luc)}` : null].filter(Boolean).join(' · ') || '—'}</div>
               {trangThai(c)}
@@ -254,7 +261,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
               {c.video ? <video key={c.video} src={c.video} controls playsInline style={{ width: '100%', maxWidth: 340, maxHeight: 'calc(100vh - 300px)', aspectRatio: '9 / 16', background: '#000', borderRadius: 8, display: 'block' }} />
                 : c.anh ? <img src={c.anh} alt="" style={{ maxWidth: 340, borderRadius: 8, display: 'block' }} /> : <div style={{ color: MO_SO }}>creative này không có video / ảnh</div>}
               {c.video ? <a href={c.video} target="_blank" rel="noreferrer" style={{ color: LAM, fontSize: 12 }}>mở video ở tab mới ↗</a> : null}
-            </div>
+            </div> : null}
           </div>; })() : null}
       </div> : null}
     </div>

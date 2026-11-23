@@ -5,7 +5,9 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from './auth';
-import { docPhim, dsCanh, taoPhim, taoTap, xoaAnhGoc, luuNhanVat, sinhAnhMau, sinhGiong, sinhVideoCanh, sinhNhac, sinhAmThanh, suaCanh, suaTap, chonKeyframe, chonPhienBan } from './actions';
+import { docPhim, dsCanh, taoPhim, taoTap, xoaAnhGoc, luuNhanVat, sinhAnhMau, sinhGiong, sinhVideoCanh, sinhNhac, sinhAmThanh, suaCanh, suaTap, chonKeyframe, chonPhienBan, chonGiong } from './actions';
+import { giongCua } from './xuong-video/giong';
+import { MODEL_GIONG_MAC_DINH } from './xuong-video/sinh-giong';
 import { z } from 'zod/v4';
 import { sinhKeyframeCanh, lyChanKeyframe, chuanBiKeyframe } from './xuong-video/sinh-anh';
 import { boiCanhCanh } from './xuong-video/doc-db';
@@ -616,4 +618,20 @@ export async function chonNhacS2(tapId: number, url: string): Promise<{ ok: true
   const db = getDb(), id = Number(tapId), u = String(url ?? ''); const b = await banNhacS2(id); if (!db || !b) return { ok: false, loi: 'không thấy tập' };
   if (!b.ds.some((x) => x.url === u)) return { ok: false, loi: 'nhạc không thuộc tập này' };
   await db.execute(sql`UPDATE xv_tap SET nhac_url = ${u}, updated_at = now() WHERE id = ${id}`); return { ok: true, data: undefined };
+}
+
+/** GIỌNG CỦA MỘT NHÂN VẬT (Studio 2 › Chi tiết nhân vật — góp ý #1782 "Chi tiết Nhân vật ko thấy có voice"): giọng cố định đang gắn (model + giọng + bản nghe mẫu)
+ *  và danh sách giọng của model đó để chọn. Chưa gắn = máy tự chọn một giọng riêng (khác các nhân vật khác) ở lượt đọc lời đầu tiên rồi lưu lại. Chỉ đọc, 0đ. */
+export async function giongNvS2(phimId: number, nhanVatId: number): Promise<{ model: string; voice: string; mau: string; ds: { id: string; ten: string }[] } | null> {
+  const db = getDb(); if (!db) return null;
+  const r = ((await db.execute(sql`SELECT giong_model, giong_id, giong_mau_url FROM xv_nhan_vat WHERE id = ${Number(nhanVatId)} AND phim_id = ${Number(phimId)}`)) as unknown as Row[])[0];
+  if (!r) return null;
+  const model = String(r.giong_model || '') || MODEL_GIONG_MAC_DINH();
+  return { model, voice: String(r.giong_id || ''), mau: String(r.giong_mau_url || ''), ds: await giongCua(model).catch(() => []) };
+}
+/** Chọn giọng cố định cho nhân vật từ Studio 2 (0đ, không sinh gì): mọi lời nhân vật này nói ở các lượt đọc sau dùng giọng này, cả bộ phim. */
+export async function chonGiongS2(phimId: number, nhanVatId: number, voice: string): Promise<{ ok: true; data: undefined } | { ok: false; loi: string }> {
+  const g = await giongNvS2(phimId, nhanVatId); if (!g) return { ok: false, loi: 'nhân vật không thuộc phim này' };
+  const v = String(voice ?? ''); if (!v) return { ok: false, loi: 'chọn một giọng' };
+  const k = await chonGiong(Number(nhanVatId), g.model, v); return k.ok ? { ok: true, data: undefined } : { ok: false, loi: k.loi || 'không lưu được giọng' };
 }

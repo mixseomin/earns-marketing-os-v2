@@ -18,7 +18,7 @@ type MucSo = { ma: string; ten: string; loai: string; trang_thai: string; may?: 
 /** ô thành phần của mẫu (sổ › o): mỗi ô gắn một QUY TẮC chọn từ một thư viện (sổ › thu_vien), không gắn cứng tệp */
 export type OMau = { ma: string; ten: string; thu_vien: string; luat: string };
 export type ThuVienSo = { ten: string; nguon: string; co: boolean };
-const THU_VIEN = (SO_MAU as unknown as { thu_vien: Record<string, ThuVienSo & { cau?: Record<string, string[][]> }> }).thu_vien;
+const THU_VIEN = (SO_MAU as unknown as { thu_vien: Record<string, ThuVienSo & { cau?: Record<string, string[][]>; chu?: Record<string, string[]> }> }).thu_vien;
 /** một món ghim vào ô (cũng là một món của thư viện bên phải): nguon = bảng gốc, id = khoá trong bảng đó, anh = ảnh xem trên trang, src = ảnh gốc máy dựng tải, chu = chữ (câu giọng) */
 export type Ghim = { nguon: string; id: string; ten: string; anh: string | null; src: string | null; chu?: string | null };
 /** thư viện theo khoá sổ (khung_phim, poster, giong, anh_tv…) — chỉ món của đúng phim đang soạn */
@@ -111,7 +111,11 @@ export async function docThuVienO(contentId: number): Promise<ThuVienO | { loi: 
   const poster = await run<{ url: string | null }>(sql`select url from etp.phim_poster where content_id = ${cid} and url is not null`).catch(() => []);
   const tv = await run<{ id: number; anh: string; dang: string | null; ghi: string | null }>(sql`select id, anh, dang, ghi from etp.thu_vien
     where content_id = ${cid} and anh is not null and trang_thai not in ('loai', 'loi_may') order by id desc limit 60`);
+  // thư viện hook = câu nhử phim này đã dùng ở mọi mẫu + câu anh gõ ở các bản soạn (sổ › thu_vien.hook)
+  const hook = await run<{ cau: string }>(sql`select distinct cau from (select unnest(cau_dung) cau from etp.mau_dung where content_id = ${cid}
+    union all select cau from etp.cr_soan where content_id = ${cid}) x where coalesce(trim(cau), '') <> '' limit 60`).catch(() => []);
   const lang = (f?.lang ?? 'en').slice(0, 2).toLowerCase(), cau = THU_VIEN.giong?.cau ?? {}, ds = cau[lang] ?? cau.en ?? [], ten = f?.ten ?? 'tên phim';
+  const nc = THU_VIEN.nut?.chu ?? {}, ln = nc[lang] ? lang : 'en';
   return {
     // khung ứng viên máy dựng trích từ 3 tập + AI xếp hạng (id = tap#so, đúng khoá máy dựng tìm khi anh ghim) — rỗng tới khi lượt xem trước đầu tiên của phim chạy xong
     khung_phim: khung.map((x) => ({ nguon: 'khung_phim', id: x.khoa, ten: `hạng ${x.hang} · ${x.khoa.replace('#', ' khung ')}${x.cam_xuc ? ` · ${x.cam_xuc}` : ''}${x.nhan_vat ? ` · ${x.nhan_vat}` : ''}`,
@@ -120,6 +124,9 @@ export async function docThuVienO(contentId: number): Promise<ThuVienO | { loi: 
     anh_tv: tv.map((x) => ({ nguon: 'thu_vien', id: String(x.id), ten: `${x.dang ?? 'thư viện'} #${x.id}`, anh: anhXem(x.anh), src: anhGoc(x.anh) })),
     giong: ds.map((m, i) => ({ nguon: 'cau_giong', id: `${cau[lang] ? lang : 'en'}:${i}`, ten: `câu đọc ${i + 1}${cau[lang] ? '' : ' (tiếng Anh — sổ chưa có câu cho ' + lang + ')'}`, anh: null, src: null,
       chu: m.map((v) => v.replace('{t}', ten)).join(' ') })),
+    // chữ nút CTA đúng luật (cùng sổ máy dựng đọc) — id = lang:chữ, máy dựng vẽ đúng chữ đó; phim không phải en/es thì dùng chữ tiếng Anh
+    nut: (nc[ln] ?? []).map((t) => ({ nguon: 'nut', id: `${ln}:${t}`, ten: t, anh: null, src: null, chu: t })),
+    hook: hook.map((x) => ({ nguon: 'hook', id: x.cau.slice(0, 60), ten: 'câu nhử đã dùng', anh: null, src: null, chu: x.cau })),
   };
 }
 

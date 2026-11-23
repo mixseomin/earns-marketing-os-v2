@@ -11,6 +11,8 @@ import { Drawer, GuardedButton } from '@/components/ui';
 import { BadgeDangNgan, MO_SO } from '@/components/etp-so';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { boSoan, docCrPhim, docThuVienO, docXem, dungSoan, lenCampCrPhim, luuSoan, type DuCrPhim, type Ghim, type SoanCr, type ThuVienO, type XemSoan } from '@/lib/actions/etp-cr-phim';
+/** biểu tượng món chữ theo thư viện: câu đọc · chữ nút CTA · câu nhử */
+const ICON_CHU: Record<string, string> = { cau_giong: '🔊', nut: '🔘', hook: '💬' };
 import { DO, XANH } from './etp-doi-thu';
 
 const VANG = '#fbbf24', LAM = '#60a5fa';
@@ -271,7 +273,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
                     style={{ border: `${g ? '1px solid' : '1px dashed'} ${vien}`, borderRadius: 8, padding: 8, display: 'flex', gap: 10, cursor: 'pointer',
                       background: keo ? `color-mix(in srgb, ${LAM} 12%, transparent)` : on ? `color-mix(in srgb, ${XANH} 8%, transparent)` : 'transparent' }}>
                     <div style={{ width: 56, height: 100, flex: '0 0 56px', borderRadius: 6, background: '#000', display: 'grid', placeItems: 'center', overflow: 'hidden', color: MO_SO, fontSize: 20 }}>
-                      {g?.anh ? <img src={g.anh} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : g?.chu ? '🔊' : '+'}</div>
+                      {g?.anh ? <img src={g.anh} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : g?.chu ? ICON_CHU[g.nguon] ?? '🔊' : '+'}</div>
                     <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12 }}>
                       <b style={{ fontSize: 13 }}>{o.ten}</b>
                       {g ? <>
@@ -302,7 +304,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
                           onClick={() => ghimO(oA, g)} title="kéo thả vào ô / lên khung xem trước, hoặc bấm để ghim vào ô đang chọn"
                           style={{ border: `2px solid ${da ? XANH : 'var(--line)'}`, borderRadius: 8, overflow: 'hidden', cursor: 'grab', display: 'flex', flexDirection: 'column' }}>
                           {g.anh ? <div style={{ aspectRatio: '9 / 16', background: '#000' }}><img src={g.anh} alt="" draggable={false} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /></div>
-                            : <div style={{ padding: 8, fontSize: 12.5, minHeight: 60 }}>🔊 {g.chu}</div>}
+                            : <div style={{ padding: 8, fontSize: 12.5, minHeight: 60 }}>{ICON_CHU[g.nguon] ?? '🔊'} {g.chu}</div>}
                           <div style={{ fontSize: 11, padding: '3px 6px', color: da ? XANH : MO_SO }}>{da ? '📌 ' : ''}{g.ten}</div>
                         </div>; })}
                     </div>}

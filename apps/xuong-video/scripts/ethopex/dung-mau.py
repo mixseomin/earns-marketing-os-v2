@@ -15,9 +15,10 @@ from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFo
 D = os.path.dirname(os.path.abspath(__file__))
 def _nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(D, tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
-AT = _nap("anh_tinh", "anh-tinh.py"); TB = _nap("tinh_ba_kieu", "tinh-ba-kieu.py")
+AT = _nap("anh_tinh", "anh-tinh.py"); TB = _nap("tinh_ba_kieu", "tinh-ba-kieu.py"); CQ = _nap("cta_qc", "cta_qc.py")
 W, H = AT.W, AT.H
-SO = json.load(open(os.path.join(D, "..", "..", "..", "etp2", "src", "lib", "etp-mau-cr.json"), encoding="utf-8"))["mau"]
+_SO = json.load(open(os.path.join(D, "..", "..", "..", "etp2", "src", "lib", "etp-mau-cr.json"), encoding="utf-8")); SO = _SO["mau"]
+NUT_CHU = _SO["thu_vien"]["nut"]["chu"]   # chữ nút CTA đúng luật (thư viện ô CTA của ngăn Creative etp2) — en / es cùng vị trí là bản dịch của nhau
 F = "/System/Library/Fonts/Supplemental/"
 PH = {"impact": ("Impact.ttf", 0), "arial_black": ("Arial Black.ttf", 0), "didot": ("Didot.ttc", 0), "bodoni": ("Bodoni 72.ttc", 0), "copper": ("Copperplate.ttc", 2),
       "basker": ("Baskerville.ttc", 4), "basker_ng": ("Baskerville.ttc", 5), "georgia_bi": ("Georgia Bold Italic.ttf", 0), "georgia_i": ("Georgia Italic.ttf", 0),
@@ -145,7 +146,16 @@ def sang_khoi(lop, m, mau=(255, 255, 240), toi=(60, 30, 0)):
         l = Image.new("RGBA", m.size, c + (0,)); l.putalpha(mm.point(lambda v: v * a // 255)); lop.alpha_composite(l)
 def phat_sang(lop, m, mau, mo=24, a=200):
     g = Image.new("RGBA", m.size, mau + (0,)); g.putalpha(m.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(mo)).point(lambda v: min(255, v * a // 255))); lop.alpha_composite(g)
+def cta(c, en):
+    """CHỮ NÚT (anh 23/11/2026 "CTA … đâu?"): chữ anh ghim ở ô CTA của bản soạn (c["cta"], món thư viện sổ › thu_vien.nut.chu) nếu đúng ngôn ngữ phim,
+    không ghim thì chữ mặc định của mẫu `en` (bản ES = cùng vị trí trong sổ). Chữ trái luật CTA (Tap / Click / mũi tên) → dừng, không vẽ."""
+    g = c.get("cta") or ""; ds = NUT_CHU.get(c["lang"]) or NUT_CHU["en"]
+    t = g.split(":", 1)[1] if ":" in g and g.split(":", 1)[0] == (c["lang"] if c["lang"] in NUT_CHU else "en") else (ds[NUT_CHU["en"].index(en)] if en in NUT_CHU["en"] else en)
+    if CQ.sai_luat(t): raise RuntimeError(f"chữ nút {t!r} trái luật CTA ({CQ.sai_luat(t)!r}) — chọn chữ khác ở ô CTA")
+    return t
+
 def nut(lop, chu, y, f, nen, chu_mau=(255, 255, 255), vien_mau=None, dem=(56, 26), bo_tron=None, rong_min=0, x_tam=None):
+    while f.getlength(chu) + 2 * dem[0] > W - 80 and f.size > 30: f = f.font_variant(size=f.size - 4)   # chữ nút dài (anh ghim "WATCH FREE · LEARN MORE") co lại, không tràn khung
     d = ImageDraw.Draw(lop); x0, y0, x1, y1 = f.getbbox(chu); w = max(rong_min, x1 - x0 + 2 * dem[0]); h = y1 - y0 + 2 * dem[1]; x = int((x_tam or W / 2) - w / 2)
     r = bo_tron if bo_tron is not None else h // 2
     bo = Image.new("RGBA", (W, H)); ImageDraw.Draw(bo).rounded_rectangle((x + 4, y + 10, x + w + 4, y + h + 10), radius=r, fill=(0, 0, 0, 150)); lop.alpha_composite(bo.filter(ImageFilter.GaussianBlur(12)))
@@ -317,7 +327,7 @@ def _ten_hai_tang(c, y_min, them=130):
 def dt_ten_nut_vang(c):
     """tên hai tầng (từ khoá đỏ) giữa khung + nút bo tròn WATCH NOW viền vàng ngay dưới (kiểu Undercover Prison King, 45 ngày)"""
     lop, day = _ten_hai_tang(c, c["mat_day"] + 40)
-    nut(lop, "WATCH NOW" if c["lang"] != "es" else "VER AHORA", day + 34, ph("impact", 64), (25, 20, 15), (255, 222, 140), (214, 160, 50), (60, 18)); return None, lop
+    nut(lop, cta(c, "WATCH NOW"), day + 34, ph("impact", 64), (25, 20, 15), (255, 222, 140), (214, 160, 50), (60, 18)); return None, lop
 def dt_key_art_neon(c):
     """BỐ CỤC: nền chuyển đỏ–tím rực có tia sáng + lưới rào, 2 nhân vật tách nền chồng lớp (to sau, nhỏ trước), câu nhử trên đỉnh tô đỏ một từ, tên + nút dưới"""
     BC = _nap("bo_cuc_po", "bo-cuc-po.py")
@@ -345,7 +355,7 @@ def dt_key_art_neon(c):
     ra = os.path.join(c["tm"], f"nen-{c['ma']}.png"); nen.convert("RGB").save(ra)
     lop = Image.new("RGBA", (W, H)); _cau_dinh(lop, c, "arial_b", 50, H * TREN_AN, (255, 255, 255))
     l2, day = _ten_hai_tang({**c, "mat_day": H * 0.66}, H * 0.66); lop.alpha_composite(l2)
-    nut(lop, "WATCH NOW" if c["lang"] != "es" else "VER AHORA", day + 30, ph("din", 76), (60, 8, 16), (255, 255, 255), (230, 40, 60), (70, 16), bo_tron=18); return ra, lop
+    nut(lop, cta(c, "WATCH NOW"), day + 30, ph("din", 76), (60, 8, 16), (255, 255, 255), (230, 40, 60), (70, 16), bo_tron=18); return ra, lop
 def _cau_dinh(lop, c, ten_ph, co, y, mau, mau_nhan=(235, 40, 40)):
     """câu nhử trên đỉnh, MỘT từ tô đỏ"""
     f, dong = vua(c["cau"], ten_ph, W - 140, co, 2, 36); d = ImageDraw.Draw(lop); cao = int(f.size * 1.18); nhan = c["nhan"].lower().strip(".,!?¡¿")
@@ -361,7 +371,7 @@ def dt_cau_nhu_dinh(c):
     for r in range(int(H * 0.22)): d.line([(0, r), (W, r)], fill=(0, 0, 0, int(170 * (1 - r / (H * 0.22)))))
     lop.alpha_composite(toi); _cau_dinh(lop, c, "georgia_bi", 76, H * TREN_AN, (255, 255, 255))
     if AT.CO_FREE:   # lớp Free chuẩn nhưng chỉ NÚT (nhãn tím trên đỉnh trùng chỗ câu nhử — bản xem trước 19/11/2026 đè nhau)
-        f = ImageFont.truetype(AT.FONT_FREE, 84); nut(lop, AT.FREE.get(c["lang"], AT.FREE["en"])[1], int(H * 0.70), f, AT.XANH, (255, 255, 255), None, (70, 34), bo_tron=40)
+        f = ImageFont.truetype(AT.FONT_FREE, 84); nut(lop, cta(c, "Watch For Free"), int(H * 0.70), f, AT.XANH, (255, 255, 255), None, (70, 34), bo_tron=40)
     return None, lop
 def dt_su_thi(c):
     """BỐ CỤC: khung tối + viền tối (vignette) + chấm lửa, tên phim chữ có chân khắc ánh kim + dòng nhỏ 'A FANTASY ROMANCE EPIC' (kiểu Their Brother, the Dragon Sacrifice)"""
@@ -422,7 +432,7 @@ def dt_theo_mua(c):
     lop = Image.new("RGBA", (W, H)); f, dong = vua(c["ten"].upper(), "impact", W - 140, 112, 3); cao = int(f.size * 1.0) * len(dong)
     y = dat_y(c, cao + 130); m, hop = mat_chu(dong, f, y, 1.0)
     bong(lop, m); vien(lop, m, 6, (120, 10, 20)); to(lop, m, doc_trong((255, 255, 255), (255, 240, 220), (240, 210, 180), hop))
-    nut(lop, "WATCH NOW" if c["lang"] != "es" else "VER AHORA", hop[3] + 40, ph("impact", 62), (25, 20, 15), (255, 222, 140), (214, 160, 50), (60, 18)); return ra, lop
+    nut(lop, cta(c, "WATCH NOW"), hop[3] + 40, ph("impact", 62), (25, 20, 15), (255, 222, 140), (214, 160, 50), (60, 18)); return ra, lop
 def dt_logo_goc(c):
     """logo tên phim chữ nghiêng nhỏ ở góc trên trái + một dòng 'phụ đề' (câu nhử) trơn giữa dưới — trông như cảnh trích từ phim thật (kiểu Extraordinary Mother of a Billionaire)"""
     lop = Image.new("RGBA", (W, H)); f, dong = vua(c["ten"], "georgia_i", int(W * 0.55), 44, 2, 30); m, _ = mat_chu(dong, f, int(H * TREN_AN), 1.1, "trai", 50)
@@ -430,7 +440,7 @@ def dt_logo_goc(c):
     f2, d2 = vua(c["cau"], "arial_b", W - 200, 46, 2, 34); m2, _ = mat_chu(d2, f2, int(H * 0.70), 1.15); vien(lop, m2, 3, (0, 0, 0)); to(lop, m2, (255, 255, 255)); return None, lop
 def dt_nut_free_do(c):
     """nút bo tròn đỏ nhỏ 'Watch Free' đặt 1/3 dưới, đè thẳng lên cảnh phim — không tên phim, không nền (kiểu Lulu the Little Goddess, 29 ngày)"""
-    lop = Image.new("RGBA", (W, H)); nut(lop, "Watch Free" if c["lang"] != "es" else "Ver gratis", int(H * 0.70), ph("arial_b", 52), (229, 36, 54), (255, 255, 255), None, (64, 22)); return None, lop
+    lop = Image.new("RGBA", (W, H)); nut(lop, cta(c, "Watch Free"), int(H * 0.70), ph("arial_b", 52), (229, 36, 54), (255, 255, 255), None, (64, 22)); return None, lop
 
 def _ep_ngang(lop, ty=0.82, cy=None):
     """ép chữ hẹp lại theo chiều ngang quanh giữa khung (kiểu chữ cao, hẹp của poster)"""
@@ -460,7 +470,7 @@ def dt_discover_banner(c):
     XC = RN + 40; f3, dong = vua(c["ten"].upper(), "impact", W - XC - 60, 84, 3); m, hop = mat_chu(dong, f3, int(H * 0.70), 1.0, "trai", XC)
     l3 = Image.new("RGBA", (W, H)); bong(l3, m); vien(l3, m, 3, (0, 0, 0)); to(l3, m, (255, 255, 255))
     l3 = l3.transform((W, H), Image.AFFINE, (1, 0.16, -0.16 * (hop[1] + hop[3]) / 2, 0, 1, 0), Image.BICUBIC); lop.alpha_composite(l3)
-    nut(lop, "WATCH MORE" if c["lang"] != "es" else "VER MÁS", hop[3] + 50, ph("din", 76), (190, 22, 30), (255, 255, 255), (120, 10, 16), (44, 14), bo_tron=14, x_tam=(XC + W - 40) / 2); return ra, lop
+    nut(lop, cta(c, "WATCH MORE"), hop[3] + 50, ph("din", 76), (190, 22, 30), (255, 255, 255), (120, 10, 16), (44, 14), bo_tron=14, x_tam=(XC + W - 40) / 2); return ra, lop
 def dt_ong_ngam(c):
     """BỐ CỤC ống ngắm: khung phim trong vòng tròn ống ngắm (viền kim loại tối, chữ thập, số khoảng cách cam phát sáng), ngoài vòng tối; tên phim chữ hẹp nghiêng
     trắng kim loại phía dưới (kiểu American Sniper · Hot Movies Every Day, 41 ngày) — hợp phim hành động / quân đội / sát thủ"""
@@ -527,7 +537,7 @@ def dt_watch_more_gian(c):
     to(l2, m, doc_trong((255, 250, 210), (246, 196, 72), (170, 104, 16), hop)); sang_khoi(l2, m, (255, 255, 235), (90, 48, 6))
     lop.alpha_composite(_ep_ngang(l2, EP))
     # NHÃN WATCH MORE sát đỉnh (~4% chiều cao), hộp tối không viền, chữ vàng nhạt — như QC gốc; đỉnh khung thường là tường / nền, không phải mặt
-    f = ph("arial_b", 40); t = "WATCH MORE" if c["lang"] != "es" else "VER MÁS"; x0, y0_, x1, y1_ = f.getbbox(t); w, h = x1 - x0 + 44, y1_ - y0_ + 26
+    f = ph("arial_b", 40); t = cta(c, "WATCH MORE"); x0, y0_, x1, y1_ = f.getbbox(t); w, h = x1 - x0 + 44, y1_ - y0_ + 26
     yn = int(H * 0.04); xn = (W - w) // 2
     tren = min(a for a, _ in mats)
     if yn + h > tren - 10: yn = max(8, tren - h - 14)   # đầu sát mép trên: nhãn lùi lên, không đè tóc / trán
@@ -556,7 +566,7 @@ def dt_ten_tren_nut_duoi(c):
     d.polygon([(cx - 46, y + 40), (cx - 46, y + 6), (cx - 23, y + 24), (cx, y), (cx + 23, y + 24), (cx + 46, y + 6), (cx + 46, y + 40)], fill=(236, 186, 70, 255))
     f, dong = vua(c["ten"].upper(), "copper", W - 120, 120, 3); m, hop = mat_chu(dong, f, y + 60, 1.0)
     bong(lop, m, (5, 8), 10, 220); vien(lop, m, 5, (70, 40, 6)); to(lop, m, doc_trong((255, 244, 196), (232, 176, 60), (160, 96, 18), hop)); sang_khoi(lop, m)
-    nut(lop, "WATCH NOW!" if c["lang"] != "es" else "¡VER AHORA!", int(H * 0.74), ph("georgia_bi", 64), (40, 24, 10), (255, 236, 190), (214, 160, 50), (70, 18))
+    nut(lop, cta(c, "WATCH NOW!"), int(H * 0.74), ph("georgia_bi", 64), (40, 24, 10), (255, 236, 190), (214, 160, 50), (70, 18))
     nen = nen_dat_mat(c, hop[3] + 40, int(H * 0.74) - 40); return (None if nen == c["nen"] else nen), lop   # mặt nằm GIỮA đáy tên và nút
 
 HAM = {k: v for k, v in globals().items() if k.startswith("dt_") and callable(v)}
@@ -650,6 +660,9 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None):
         if o_.get("khung") and not k_ghim: raise RuntimeError(f"khung anh ghim {o_['khung'].get('id')} không còn trong khung ứng viên của phim — ghim lại khung khác")
         g_ghim = next((int(x.split(":")[1]) for x in [str((o_.get("giong") or {}).get("id") or "")] if re.fullmatch(r"[a-z]{2}:\d+", x)), None)
         if k_ghim: uv = [k_ghim]
+        cta_ghim = str((o_.get("cta") or {}).get("id") or "")   # ô CTA: "en:WATCH MORE" (sổ › thu_vien.nut.chu)
+        h_ghim = ((o_.get("hook") or {}).get("chu") or (o_.get("hook") or {}).get("ten") or "").strip()
+        if not (tc.get("cau") or "").strip() and h_ghim: tc["cau"] = h_ghim; tc["nhan"] = ""   # ô Hook ghim = câu nhử dùng đúng câu đó (câu gõ ở bước Chữ vẫn thắng)
         def soan_tt(t, g=None, **k):   # ghi trạng thái về bản soạn của anh (nếu việc này đến từ bản soạn)
             if soan: AT.sql(f"update etp.cr_soan set trang_thai = {s_(t)}, cap_nhat = now()" + (f", ghi = {s_(g[:500])}" if g else "") + "".join(f", {c} = {int(v)}" for c, v in k.items()) + f" where id = {soan}")
         if (tc.get("cau") or "").strip(): _ct = tc["cau"].strip(); _cn = (tc.get("nhan") or "").strip(); _NHO[cid]["cau"] = (_ct, _cn if _cn and _cn.lower() in _ct.lower() else _ct.split()[-1])
@@ -677,7 +690,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None):
                     mats = [((m[1]) * H, (m[1] + m[3]) * H) for m in jm.get("mat") or [] if m[4] >= 0.45 and m[3] >= 0.05]
                 except Exception as e: print("đọc mặt lỗi — chỉ né mặt chính:", e, file=sys.stderr)
                 c = {"ma": ma, "cid": cid, "p": p, "lang": lang, "ten": ten, "tm": tm, "nen": nen, "goc": goc, "goc_khac": [x for x in khac if os.path.exists(x)], "mats": mats,
-                     "mat_day": (k["mat"][1] + k["mat"][3]) * H, "mat_tam": k["mat"][1] + k["mat"][3] / 2, "cau": cau, "nhan": nhan}
+                     "mat_day": (k["mat"][1] + k["mat"][3]) * H, "mat_tam": k["mat"][1] + k["mat"][3] / 2, "cau": cau, "nhan": nhan, "cta": cta_ghim}
                 if cao_cho and not cao_cho[1](c, cao_cho[0]): continue
                 try: nen2, lop = HAM[ma](c)
                 except RuntimeError as e:

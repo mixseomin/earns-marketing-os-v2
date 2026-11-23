@@ -360,7 +360,7 @@ def cham_sach(cr, bo_cta=False):
         q(f"insert into etp.cham_hang (creative_id, nguon, ai) values ({int(cr)}, 'moi', 'nhan-ban: chờ chấm trước khi lên') on conflict (creative_id) do nothing")
         return f"creative #{cr} chưa được máy chấm — đã xếp hàng chấm, lượt sau mới lên"
     duoc, chan = k.split("|", 1)
-    if duoc != "true" and bo_cta:   # BÀI CŨ (anh 11/11/2026 "ko bắt buộc cta mới khi dùng bài cũ"): bỏ riêng tiêu chí CTA (afs.cta) — tiêu chí khác vẫn chặn
+    if duoc != "true":   # bỏ tiêu chí CTA (afs.cta) cho MỌI nhân bản (anh 23/11/2026 "bỏ ngay cổng này"; trước chỉ bài cũ, 11/11/2026) · BÀI CŨ (anh 11/11/2026 "ko bắt buộc cta mới khi dùng bài cũ"): bỏ riêng tiêu chí CTA (afs.cta) — tiêu chí khác vẫn chặn
         con = [x.strip() for x in chan.split(",") if x.strip() and not x.strip().startswith("afs.cta")]
         if not con: return None
         chan = ", ".join(con)
@@ -370,11 +370,10 @@ def cham_sach(cr, bo_cta=False):
 # của camp gốc, cũng không dùng creative đang có camp chạy của cùng phim — chọn creative khác cùng phim (đạt CTA, chưa bị Meta từ chối,
 # đoạn < 3 camp, chấm sạch, mới nhất trước); không có → xếp hàng cắt góc mới, không clone y nguyên.
 def creative_clone(content_id, cr_goc):
-    dat = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_cta_dat'") or "{}")
     tc = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_tu_choi'") or "{}")
     ds = [int(x) for x in q(f"select (kinh_thanh->'ethopex'->>'creative_id') from xv_phim where project='ethopex' and (kinh_thanh->'ethopex'->>'content_id')::int = {int(content_id)} order by 1 desc").split() if x.isdigit()]
     for c in ds:
-        if c == cr_goc or DEM_CR.get(c, 0) > 0 or str(c) not in dat or str(c) in tc or dem_doan(c) >= TRAN_DOAN: continue
+        if c == cr_goc or DEM_CR.get(c, 0) > 0 or str(c) in tc or dem_doan(c) >= TRAN_DOAN: continue
         if cham_sach(c) is None: return c
     return None
 
@@ -393,7 +392,8 @@ def cong(content_id, creative_id, ten="", cta=True):
     # creative đội mất dấu, bị đòi soát hình như creative nhà (tiendo E24 bước 6, anh 13/11/2026 "Fix triệt để cái đó")
     doi = "team" in (q(f"select coalesce(lo, '') || '|' || coalesce(dang, '') from etp.creative where creative_id = {int(creative_id)}") or "").split("|")
     # cta=False: nhân bản BÀI CŨ — bài đăng đã chạy giữ CTA của nó, đòi CTA mới là mất kế thừa (anh 11/11/2026 "ko bắt buộc cta mới khi dùng bài cũ")
-    chan = _nap("p18", "kiem-phim-18.py").kiem(content_id, soat_hinh=not doi) or (_nap("cta", "kiem-cta.py").kiem(creative_id, so=not NGOAI) if cta else None)
+    # cổng CTA bỏ hẳn (anh 23/11/2026 "bỏ ngay cổng này") — tham số cta giữ cho chỗ gọi cũ, không còn tác dụng
+    chan = _nap("p18", "kiem-phim-18.py").kiem(content_id, soat_hinh=not doi)
     if chan: return chan
     c, w = _nap("bh", "bai-hoc.py").da_lo(content_id, ten)
     if w: print(w, file=sys.stderr)
@@ -494,13 +494,8 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
         ten = f"{goc_ten} (thang ${thang:g} cua {goc_id})" if thang else f"{goc_ten} (nhan ban {so} cua {goc_id})"
         # CAMP THẮNG MANG CTA CŨ → DÙNG BẢN SỬA CTA (anh 06/11/2026 "Dùng bản sửa CTA"): 02/11 bỏ đổi để giữ CTA cũ, nhưng cổng cong() vẫn đòi luật CTA
         # → mọi camp thắng CTA cũ bị chặn hẳn ("chưa đạt luật CTA mới"), 6 camp ⚠ lỗi ở tin 🧬. Có bản sửa thì dùng, chưa có thì xếp hàng dựng lại.
+        # BỎ CỔNG CTA CŨ (anh 23/11/2026 "creative còn CTA cũ <- bỏ ngay cổng này"): nhân bản giữ đúng creative của camp gốc, không đổi bản sửa, không chặn
         if bai: ten = f"{goc_ten} bai-cu " + (f"(thang ${thang:g} cua {goc_id})" if thang else f"(nhan ban {so} cua {goc_id})")
-        elif not NGOAI and _nap("cta", "kiem-cta.py").kiem(a.get("creative_id")):
-            sua = ban_sua(a.get("creative_id"))
-            if not sua:
-                xep_dung_lai(goc_id, a.get("creative_id"), a.get("content_id"), c["name"])
-                raise ValueError(f"creative #{a.get('creative_id')} CTA cũ, chưa có bản sửa — đã xếp hàng dựng lại (ethopex_cho_dung_lai)")
-            a = {**a, "creative_id": sua}; ten = f"{goc_ten} cta-sua " + (f"(thang ${thang:g} cua {goc_id})" if thang else f"(nhan ban {so} cua {goc_id})")
     # BỎ mọi mã định danh + mốc thời gian của camp GỐC (chạy khô 22/10/2026: source_payload Ad Set mang campaign_id FB + start_time của camp gốc
     # → gửi nguyên là gắn nhầm vào camp gốc / chạy theo lịch cũ). Lịch của bản mới do type_run quyết.
     BO = {"id", "campaign_id", "adset_id", "account_id", "start_time", "end_time", "stop_time", "created_time", "updated_time", "effective_status", "configured_status", "issues_info"}

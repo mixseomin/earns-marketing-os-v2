@@ -35,7 +35,7 @@ export async function demCrPhim(ids: number[]): Promise<Record<number, { cr: num
   await getDb()!.execute(BANG);
   const arr = sql.raw(`array[${ds.join(',')}]::int[]`);
   const r = await run<{ k: number; cr: number; soan: number }>(sql`select k, coalesce(c.n, 0)::int cr, coalesce(s.n, 0)::int soan from unnest(${arr}) k
-    left join (select content_id, count(*) n from etp.creative where content_id = any(${arr}) and tu_choi is null group by 1) c on c.content_id = k
+    left join (select content_id, count(*) n from etp.creative where content_id = any(${arr}) group by 1) c on c.content_id = k
     left join (select content_id, count(*) n from etp.cr_soan where content_id = any(${arr}) and trang_thai in ('nhap', 'dung', 'loi') group by 1) s on s.content_id = k`);
   return Object.fromEntries(r.map((x) => [Number(x.k), { cr: Number(x.cr), soan: Number(x.soan) }]));
 }

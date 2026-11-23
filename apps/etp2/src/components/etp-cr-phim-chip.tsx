@@ -29,7 +29,9 @@ export function ChipCrPhim({ cid, dem }: { cid: number; dem?: { cr: number; soan
   const chan = (e: React.MouseEvent) => { e.stopPropagation(); e.preventDefault(); };
   return <span onClick={chan} style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid var(--line)', borderRadius: 10, fontWeight: 400, flexShrink: 0 }}>
     <button type="button" style={NUT} title={`creative của phim: ${cr} đã có${soan ? ` · ${soan} bản đang soạn` : ''} — bấm xem, sửa, lên camp`}
-      onClick={(e) => { chan(e); openEntityDrawer('etp-cr-phim', String(cid)); }}>🎬 {cr}{soan ? <span style={{ color: '#fbbf24' }}> +{soan}</span> : null}</button>
+      onClick={(e) => { chan(e); openEntityDrawer('etp-cr-phim', String(cid)); }}>🎬 {cr}</button>
+    {soan ? <><span style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)' }} />
+      <button type="button" style={{ ...NUT, color: '#fbbf24' }} title={`${soan} bản nháp / đang dựng — bấm mở bản nháp`} onClick={(e) => { chan(e); openEntityDrawer('etp-cr-phim', `${cid}:nhap`); }}>✎ {soan}</button></> : null}
     <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)' }} />
     <button type="button" style={NUT} title="soạn creative mới cho phim này" onClick={(e) => { chan(e); openEntityDrawer('etp-cr-phim', `${cid}:moi`); }}>＋</button>
   </span>;

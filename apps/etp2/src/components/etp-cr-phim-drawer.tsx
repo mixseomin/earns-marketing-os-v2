@@ -71,6 +71,9 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
 
   // ── SOẠN ── (null = đang không soạn bản nào)
   const [ban, setBan] = useState<Ban | null>(che === 'moi' ? BAN_TRONG : null);
+  // HAI MÀN TÁCH RIÊNG (anh 23/11/2026: "bấm danh sách creative thì chỉ hiện ds creative. Bấm draft thì hiện ra cái đang draft" — trước đổ cả soạn + lộ trình + thư viện vào một ngăn)
+  // chip 🎬 N → 'ds' (chỉ creative đã có) · chip +nháp / ＋ → 'soan' (chỉ bản nháp / bản đang soạn)
+  const [tab, setTab] = useState<'ds' | 'soan'>(che === 'moi' || che === 'nhap' ? 'soan' : 'ds');
   const [luu, setLuu] = useState<'' | 'dang' | 'da'>(''), [kqLuu, setKqLuu] = useState<Kq>(null), [gui, setGui] = useState(false);
   const banRef = useRef(ban); banRef.current = ban;
   const hen = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -125,7 +128,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
   const soanDo = ok.soan.filter((s) => s.trang_thai !== 'xong' && s.id !== ban?.id);
   const nhan = (t: string, mau: string) => <span style={{ fontSize: 11, padding: '0 6px', borderRadius: 6, border: `1px solid ${mau}`, color: mau, whiteSpace: 'nowrap' }}>{t}</span>;
   const so = (n: number) => (mauChon?.cau_nhu ? n : n - 1);
-  const tiDs = () => dsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const tiDs = () => setTab('ds');
   const nNhap = ok.soan.filter((s) => s.trang_thai === 'nhap' || s.trang_thai === 'loi').length, nDung = ok.soan.filter((s) => s.trang_thai === 'dung').length;
   const nTv = ok.cr.filter((c) => !c.camp_id && !c.tu_choi).length, nCamp = ok.cr.filter((c) => c.camp_id).length, nChay = ok.cr.filter((c) => c.camp_tt === 'ACTIVE').length;
   const chang: Chang[] = [
@@ -140,6 +143,9 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
     { so: 5, ten: 'Chạy', ban: false, dem: `${nChay} đang chạy`, co: !!nChay, bam: tiDs,
       re: 'Camp chạy rồi thì máy luật tự chấm theo luật đã chốt: tăng ngân sách hoặc tắt. Bấm nhãn "camp #…" để mở camp.' },
   ];
+  const nSoan = ok.soan.filter((s) => s.trang_thai !== 'xong').length;
+  const the = (k: 'ds' | 'soan', chu: string) => <button type="button" onClick={() => setTab(k)} style={{ all: 'unset', cursor: 'pointer', padding: '8px 14px', fontSize: 13.5,
+    fontWeight: tab === k ? 700 : 500, color: tab === k ? 'var(--fg-1)' : MO_SO, borderBottom: `2px solid ${tab === k ? XANH : 'transparent'}` }}>{chu}</button>;
   const dang = ban ? 1 : nDung ? 2 : nTv ? 3 : nCamp ? 5 : 1;
   const tieuDe = (n: number, t: string, phu?: string) => <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
     <span style={{ fontSize: 11, fontWeight: 700, color: MO_SO, letterSpacing: 0.5 }}>BƯỚC {n}</span><b style={{ fontSize: 14 }}>{t}</b>
@@ -152,8 +158,11 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
         style={{ ...nut(VANG), padding: '2px 8px', alignSelf: 'flex-start' }}>{len && lenMot === c.creative_id ? 'đang lên…' : '🚀 Lên camp'}</GuardedButton>;
 
   return <Drawer onClose={onClose} width={760} padding={0}>{dau}
+    <div style={{ display: 'flex', gap: 4, padding: '0 10px', borderBottom: '1px solid var(--line)' }}>
+      {the('ds', `Creative đã có · ${ok.cr.length}${ok.con ? `+${ok.con}` : ''}`)}{the('soan', `Bản nháp · ${nSoan}`)}</div>
     <div style={{ padding: '10px 16px 20px', display: 'flex', flexDirection: 'column', gap: 16, fontSize: 13 }}>
-      {/* ── LỘ TRÌNH ── */}
+      {tab === 'soan' ? <>
+      {/* ── LỘ TRÌNH (chỉ ở màn soạn) ── */}
       <LoTrinh ds={chang} dang={dang} />
       {/* ── SOẠN ── */}
       {!ban ? <div>
@@ -208,17 +217,17 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
           <Bao kq={kqLuu} />
         </div>
       </div>}
+      </> : null}
 
       {/* ── CREATIVE ĐÃ CÓ ── */}
-      <div ref={dsRef} style={{ scrollMarginTop: 8 }}>
+      {tab === 'ds' ? <div ref={dsRef} style={{ scrollMarginTop: 8 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: MO_SO, letterSpacing: 0.5 }}>BƯỚC 3–5</span><b style={{ fontSize: 14 }}>Thư viện creative → lên camp</b>
-          <span style={{ color: MO_SO, fontSize: 12 }}>{ok.cr.length}{ok.con ? ` mới nhất · còn ${ok.con} cũ hơn` : ''}</span>
+          <span style={{ color: MO_SO, fontSize: 12 }}>bấm ảnh để xem · 🚀 Lên camp từng cái, hoặc tích nhiều cái rồi lên một lượt{ok.con ? ` · đang hiện ${ok.cr.length} mới nhất` : ''}</span>
           <span style={{ flex: 1 }} />
           {chon.length ? <GuardedButton onClick={() => void lenCamp(chon)} reason={len ? 'đang lên…' : false} style={nut(VANG, true)}>{len && lenMot == null ? 'đang lên…' : `🚀 Lên camp ${chon.length} creative`}</GuardedButton> : null}
         </div>
         {lenMot == null ? <Bao kq={kqLen} /> : null}
-        {!ok.cr.length ? <div style={{ color: MO_SO }}>Phim này chưa có creative — bấm <a style={{ color: XANH, cursor: 'pointer' }} onClick={() => setBan(BAN_TRONG)}>＋ Creative mới</a>.</div> : null}
+        {!ok.cr.length ? <div style={{ color: MO_SO }}>Phim này chưa có creative — bấm <a style={{ color: XANH, cursor: 'pointer' }} onClick={() => { setBan(BAN_TRONG); setTab('soan'); }}>＋ Creative mới</a>.</div> : null}
         {xem ? (() => { const c = ok.cr.find((x) => x.creative_id === xem); if (!c) return null;
           return <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 12, padding: 10, border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-2)' }}>
             {c.video ? <video key={c.video} src={c.video} controls autoPlay playsInline style={{ width: 260, maxHeight: '62vh', aspectRatio: '9 / 16', background: '#000', borderRadius: 8, display: 'block' }} />
@@ -251,7 +260,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
               </div>
             </div>; })}
         </div>
-      </div>
+      </div> : null}
     </div>
   </Drawer>;
 }

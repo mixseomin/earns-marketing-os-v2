@@ -11,6 +11,8 @@ import { readFileSync } from 'node:fs';
 import { WebSocketServer } from 'ws';
 import postgres from 'postgres';
 import { timAnhQuanh } from './anh-quanh.mjs';
+import { macDinh as taiMac } from './tai-mang.mjs';
+taiMac.thu = 1; taiMac.choToiDa = 5; // người đang chờ nút 📷: thử lại một lần, chờ tối đa 5 s (lệnh kỹ sư giữ 6 lần / 120 s)
 
 const CONG = +(process.env.CONG || 3891), GAN = 200, GAN_CHAT = 60, NHIP = 100;
 const KIEU = [

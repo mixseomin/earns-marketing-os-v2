@@ -7,6 +7,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { taiMang } from '../server/tai-mang.mjs';
 
 const [ten, lat, lng, banKinh = 260, nua = 420, buoc = 12] = process.argv.slice(2);
 if (!ten || !lat || !lng) { console.error('thiếu: <tên> <vĩ độ> <kinh độ>'); process.exit(1); }
@@ -19,7 +20,7 @@ async function osm() {
   for (let lan = 0; lan < 8; lan++) {
     const may = MAY_OSM[lan % MAY_OSM.length];
     try {
-      const r = await fetch(may, { method: 'POST', headers: { 'User-Agent': 'castle-lau-dai-that/1.0', 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(q) });
+      const r = await taiMang(may, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(q) }, { thu: 1, thoiGian: 90 }); // 429 / 5xx thử lại tại chỗ; 200 mà không phải JSON → đổi máy gương
       const t = await r.text();
       if (r.ok && t.trim().startsWith('{')) { const j = JSON.parse(t); console.log(`OSM: ${j.elements.length} phần tử từ ${may}`); return j.elements; }
       console.log(`OSM ${may}: ${r.status} ${t.slice(0, 80).replace(/\s+/g, ' ')} — thử lại`);
@@ -39,14 +40,10 @@ async function diaHinh() {
   const cao = new Array(diem.length);
   for (let k = 0; k < diem.length; k += 100) {
     const lo = diem.slice(k, k + 100).map(([a, b]) => `${a.toFixed(6)},${b.toFixed(6)}`).join('|');
-    for (let lan = 0; ; lan++) {
-      const r = await fetch(`https://api.opentopodata.org/v1/eudem25m?locations=${lo}`, { headers: { 'User-Agent': 'castle-lau-dai-that/1.0' } });
-      if (r.ok) { const j = await r.json(); j.results.forEach((x, i) => { cao[k + i] = x.elevation; }); break; }
-      if (lan > 5) throw new Error(`OpenTopoData ${r.status}`);
-      await ngu(1500 * (lan + 1));
-    }
+    const r = await taiMang(`https://api.opentopodata.org/v1/eudem25m?locations=${lo}`); // giãn 1,1 s (giới hạn công cộng 1 lần/giây) + thử lại: server/tai-mang.mjs
+    if (!r.ok) throw new Error(`OpenTopoData ${r.status}`);
+    (await r.json()).results.forEach((x, i) => { cao[k + i] = x.elevation; });
     process.stdout.write(`\rđịa hình ${Math.min(k + 100, diem.length)}/${diem.length}`);
-    await ngu(1100); // giới hạn công cộng 1 lần/giây
   }
   console.log();
   return { n, buoc: +buoc, nua: +nua, cao: cao.map((v) => (v == null ? null : Math.round(v * 10) / 10)) };

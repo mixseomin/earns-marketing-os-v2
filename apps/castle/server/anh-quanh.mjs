@@ -6,7 +6,7 @@
 // Mapillary chỉ giữ ảnh NHÌN VÀO điểm (lệch hướng ≤ 40°); Commons giữ hết (không có hướng). Thứ tự: xem timAnhQuanh.
 // timAnhQuanh({ lat, lng, r = 120, mly, huong }) → { anh: [{ nguon, id, lat, lng, kc, toi, huong, lechNhin, doan, nhinVao, nho, lon, trang, tacGia, giayPhep, luc }], khac: […] }
 // tra-repo-ok: gọi thẳng API Commons + Graph API Mapillary (như scripts/tai-mapillary.mjs, tai-anh-doi-chieu.mjs).
-const UA = { 'User-Agent': 'castle-lau-dai-that/1.0 (anh-quanh)' };
+import { taiMang } from './tai-mang.mjs';
 const M = 111320, rad = (d) => (d * Math.PI) / 180;
 const boThe = (s) => String(s || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
 function doLech(lat, lng, la, lo) { // khoảng cách (m) + hướng la bàn TỪ chỗ chụp TỚI điểm (bắc = 0, theo chiều kim)
@@ -17,7 +17,7 @@ async function commons(lat, lng, r) {
   const u = new URL('https://commons.wikimedia.org/w/api.php');
   for (const [k, v] of Object.entries({ action: 'query', format: 'json', generator: 'geosearch', ggscoord: `${lat}|${lng}`, ggsradius: String(Math.min(10000, Math.max(10, r))),
     ggsnamespace: '6', ggslimit: '50', prop: 'coordinates|imageinfo', iiprop: 'url|size|extmetadata', iiurlwidth: '1280', iiextmetadatafilter: 'Artist|LicenseShortName|DateTimeOriginal' })) u.searchParams.set(k, v);
-  const j = await (await fetch(u, { headers: UA, signal: AbortSignal.timeout(15000) })).json();
+  const j = await (await taiMang(u, {}, { thoiGian: 15 })).json();
   return Object.values(j.query?.pages || {}).map((p) => {
     const ii = p.imageinfo?.[0], c = p.coordinates?.[0]; if (!ii || !c || !/\.(jpe?g|png|webp)$/i.test(p.title)) return null;
     const m = ii.extmetadata || {}, { kc, toi } = doLech(lat, lng, c.lat, c.lon);
@@ -31,7 +31,7 @@ async function mapillary(lat, lng, r, mly) {
   if (!mly) return [];
   const mx = M * Math.cos(rad(lat)), dy = r / M, dx = r / mx;
   const f = 'id,computed_geometry,computed_compass_angle,thumb_1024_url,thumb_2048_url,captured_at,creator,is_pano,camera_type,width,height';
-  const res = await fetch(`https://graph.mapillary.com/images?access_token=${mly}&fields=${f}&bbox=${lng - dx},${lat - dy},${lng + dx},${lat + dy}&limit=500`, { signal: AbortSignal.timeout(20000) });
+  const res = await taiMang(`https://graph.mapillary.com/images?access_token=${mly}&fields=${f}&bbox=${lng - dx},${lat - dy},${lng + dx},${lat + dy}&limit=500`, {}, { thoiGian: 20 });
   if (!res.ok) throw new Error('Mapillary ' + res.status);
   return ((await res.json()).data || []).filter((x) => !x.is_pano && x.camera_type !== 'spherical' && x.computed_geometry && x.thumb_1024_url).map((x) => {
     const [lo, la] = x.computed_geometry.coordinates, { kc, toi } = doLech(lat, lng, la, lo), h = x.computed_compass_angle;
@@ -66,7 +66,7 @@ async function commonsDanhMuc(dm) {
   const u = new URL('https://commons.wikimedia.org/w/api.php');
   for (const [k, v] of Object.entries({ action: 'query', format: 'json', generator: 'categorymembers', gcmtitle: 'Category:' + dm, gcmtype: 'file', gcmlimit: '60', gcmsort: 'timestamp', gcmdir: 'desc',
     prop: 'imageinfo|categories', clshow: '!hidden', cllimit: 'max', iiprop: 'url|size|extmetadata', iiurlwidth: '1280', iiextmetadatafilter: 'Artist|LicenseShortName|DateTimeOriginal' })) u.searchParams.set(k, v);
-  const j = await (await fetch(u, { headers: UA, signal: AbortSignal.timeout(15000) })).json();
+  const j = await (await taiMang(u, {}, { thoiGian: 15 })).json();
   const ds = Object.values(j.query?.pages || {}).map((p) => {
     const ii = p.imageinfo?.[0]; if (!ii || !/\.(jpe?g|png|webp)$/i.test(p.title)) return null;
     if ((p.categories || []).some((c) => c.title === 'Category:' + DM.ra)) return null; // chụp từ lâu đài ra ngoài
@@ -113,8 +113,8 @@ export async function chiTietAnh(ma, mly = null) {
   const [loai, id] = [ma.slice(0, 1), ma.slice(2)];
   if (loai === 'c') {
     const u = new URL('https://commons.wikimedia.org/w/api.php');
-    for (const [k, v] of Object.entries({ action: 'query', format: 'json', titles: 'File:' + id, prop: 'coordinates|imageinfo', iiprop: 'url|size|extmetadata', iiurlwidth: '2400', iiextmetadatafilter: 'Artist|LicenseShortName|DateTimeOriginal' })) u.searchParams.set(k, v);
-    const p = Object.values((await (await fetch(u, { headers: UA, signal: AbortSignal.timeout(15000) })).json()).query?.pages || {})[0], ii = p?.imageinfo?.[0];
+    for (const [k, v] of Object.entries({ action: 'query', format: 'json', titles: 'File:' + id, prop: 'coordinates|imageinfo', iiprop: 'url|size|extmetadata', iiurlwidth: '1920', iiextmetadatafilter: 'Artist|LicenseShortName|DateTimeOriginal' })) u.searchParams.set(k, v);
+    const p = Object.values((await (await taiMang(u, {}, { thoiGian: 15 })).json()).query?.pages || {})[0], ii = p?.imageinfo?.[0];
     if (!ii) throw new Error('Commons không có tệp ' + id);
     const m = ii.extmetadata || {}, c = p.coordinates?.[0];
     return { nguon: 'commons', id, lat: c?.lat ?? null, lng: c?.lon ?? null, huong: null, url: ii.thumburl || ii.url, trang: ii.descriptionurl,
@@ -122,7 +122,7 @@ export async function chiTietAnh(ma, mly = null) {
   }
   if (loai === 'm') {
     if (!mly) throw new Error('thiếu khoá Mapillary cho ảnh ' + id);
-    const x = await (await fetch(`https://graph.mapillary.com/${id}?access_token=${mly}&fields=computed_geometry,computed_compass_angle,thumb_2048_url,captured_at,creator`, { signal: AbortSignal.timeout(20000) })).json();
+    const x = await (await taiMang(`https://graph.mapillary.com/${id}?access_token=${mly}&fields=computed_geometry,computed_compass_angle,thumb_2048_url,captured_at,creator`, {}, { thoiGian: 20 })).json();
     if (!x.thumb_2048_url) throw new Error('Mapillary không trả ảnh ' + id);
     const [lo, la] = x.computed_geometry?.coordinates || [null, null];
     return { nguon: 'mapillary', id, lat: la, lng: lo, huong: x.computed_compass_angle == null ? null : Math.round(x.computed_compass_angle), url: x.thumb_2048_url,

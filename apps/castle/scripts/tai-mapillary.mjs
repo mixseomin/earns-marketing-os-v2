@@ -9,12 +9,13 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { PUB, du, doiSo } from './chung.mjs';
+import { taiMang } from '../server/tai-mang.mjs';
 const T = process.env.MLY_TOKEN; if (!T) { console.error('thiếu MLY_TOKEN'); process.exit(1); }
 const D = JSON.parse(readFileSync(du('').replace(/-\.json$/, '.json'), 'utf8')), [la0, lo0] = D.tam;
 const [RMIN = 25, RMAX = 160, TOI_DA = 16] = doiSo.map(Number);
 const M = 111320, MX = M * Math.cos(la0 * Math.PI / 180), p = (RMAX + 40) / M;
 const f = 'id,computed_geometry,geometry,computed_compass_angle,compass_angle,camera_parameters,camera_type,width,height,is_pano,captured_at,creator';
-const r = await fetch(`https://graph.mapillary.com/images?access_token=${T}&fields=${f}&bbox=${lo0 - p * M / MX},${la0 - p},${lo0 + p * M / MX},${la0 + p}&limit=2000`);
+const r = await taiMang(`https://graph.mapillary.com/images?access_token=${T}&fields=${f}&bbox=${lo0 - p * M / MX},${la0 - p},${lo0 + p * M / MX},${la0 + p}&limit=2000`);
 if (!r.ok) { console.error('Mapillary', r.status, await r.text()); process.exit(1); }
 const ds = (await r.json()).data.filter((x) => !x.is_pano && x.camera_type !== 'spherical' && x.computed_geometry && x.computed_compass_angle != null).map((x) => {
   const [lo, la] = x.computed_geometry.coordinates, dx = (lo - lo0) * MX, dz = -(la - la0) * M, kc = Math.hypot(dx, dz);
@@ -28,8 +29,8 @@ console.log(`${ds.length} ảnh hợp lệ (${RMIN}–${RMAX} m, nhìn về côn
 const tepDs = du('anh'), ANH = existsSync(tepDs) ? JSON.parse(readFileSync(tepDs, 'utf8')) : [];
 for (const x of chon) {
   if (ANH.some((a) => a.mly === x.id)) { console.log('đã có', x.id); continue; }
-  const m = await (await fetch(`https://graph.mapillary.com/${x.id}?access_token=${T}&fields=thumb_2048_url,width,height`)).json();
-  const b = await fetch(m.thumb_2048_url); if (!b.ok) { console.log('tải lỗi', x.id); continue; }
+  const m = await (await taiMang(`https://graph.mapillary.com/${x.id}?access_token=${T}&fields=thumb_2048_url,width,height`)).json();
+  const b = await taiMang(m.thumb_2048_url); if (!b.ok) { console.log('tải lỗi', x.id); continue; }
   const tep = `anh/mly-${x.id}.jpg`; writeFileSync(join(PUB, 'du-lieu', tep), Buffer.from(await b.arrayBuffer()));
   const W = m.width || x.width, H = m.height || x.height, sc = 2048 / Math.max(W, H), rong = Math.round(W * sc), cao = Math.round(H * sc);
   const fN = x.camera_parameters?.[0] || 0.8, fovDoc = 2 * Math.atan((cao / Math.max(rong, cao)) / 2 / fN) * 180 / Math.PI; // tiêu cự chuẩn hoá theo cạnh dài → ống kính dọc

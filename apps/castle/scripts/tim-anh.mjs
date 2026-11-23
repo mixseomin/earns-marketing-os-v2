@@ -14,6 +14,7 @@ import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { PUB, du, LAU, doiSo } from './chung.mjs';
 import { timAnhQuanh, chiTietAnh } from '../server/anh-quanh.mjs';
+import { taiMang } from '../server/tai-mang.mjs';
 
 const arg = (k) => { const i = doiSo.indexOf(k); return i >= 0 ? doiSo[i + 1] : null; };
 const D = JSON.parse(readFileSync(join(PUB, 'du-lieu', `${LAU}.json`), 'utf8')), [la0, lo0] = D.tam, MX = 111320 * Math.cos((la0 * Math.PI) / 180);
@@ -35,8 +36,8 @@ async function taiVe(ds, the = null) {
   for (const a of ds) {
     const tep = tenTep(a.nguon, a.id), duong = join(THU, tep);
     if (!existsSync(duong)) {
-      const r = await fetch(a.url || a.lon, { headers: { 'User-Agent': 'castle-lau-dai-that/1.0 (tim-anh)' } });
-      if (!r.ok) { console.error(`✗ ${a.nguon} ${a.id}: tải lỗi ${r.status}`); continue; }
+      const r = await taiMang(a.url || a.lon); // giãn nhịp + thử lại khi 429 / 5xx: server/tai-mang.mjs
+      if (!r.ok) { console.error(`✗ ${a.nguon} ${a.id}: tải lỗi ${r.status} (đã thử lại)`); continue; }
       writeFileSync(duong, Buffer.from(await r.arrayBuffer()));
     }
     const ghi = { tep: `anh/web/${tep}`, nguon: a.nguon, id: a.id, trang: a.trang, tacGia: a.tacGia, giayPhep: a.giayPhep, lat: a.lat, lng: a.lng, huong: a.huong ?? null, luc: a.luc ?? null, ...(the ? { the: +the } : {}) };
@@ -54,9 +55,9 @@ function layKhoaMly() { // khoá Mapillary: biến môi trường hoặc vault (
 // --ghi-cong: ảnh trong anh/web chưa có dòng ghi công (tải bằng đường khác / sổ bị ghi đè) → tra lại nguồn từ chính tên tệp, ghi bổ sung (do-anh.mjs chỉ thấy ảnh có trong sổ)
 const tenTep = (nguon, id) => `${nguon}-${String(id).replace(/\.[a-z]+$/i, '').replace(/[^\p{L}\p{N}_-]+/gu, '-').slice(0, 80)}.jpg`;
 if (doiSo.includes('--ghi-cong')) {
-  const { readdirSync } = await import('node:fs'), so = existsSync(SO) ? JSON.parse(readFileSync(SO, 'utf8')) : [], co = new Set(so.map((a) => a.tep)), mly = layKhoaMly(), UA = { 'User-Agent': 'castle-lau-dai-that/1.0 (tim-anh)' };
+  const { readdirSync } = await import('node:fs'), so = existsSync(SO) ? JSON.parse(readFileSync(SO, 'utf8')) : [], co = new Set(so.map((a) => a.tep)), mly = layKhoaMly();
   let them = 0; const sot = [], cho = (ms) => new Promise((ok) => setTimeout(ok, ms));
-  const layJson = async (u) => { for (let lan = 0; ; lan++) { const t = await (await fetch(u, { headers: UA })).text(); try { return JSON.parse(t); } catch { if (lan > 4) throw new Error('Commons từ chối: ' + t.slice(0, 60)); await cho(5000 * (lan + 1)); } } }; // Commons chặn khi gọi dồn
+  const layJson = async (u) => { for (let lan = 0; ; lan++) { const t = await (await taiMang(u)).text(); try { return JSON.parse(t); } catch { if (lan > 4) throw new Error('Commons từ chối: ' + t.slice(0, 60)); await cho(5000 * (lan + 1)); } } }; // Commons chặn khi gọi dồn
   for (const f of readdirSync(THU).filter((f) => /\.jpg$/i.test(f) && !co.has(`anh/web/${f}`))) {
     const [, ng, ten] = f.match(/^([a-z]+)-(.*)\.jpg$/i) || [];
     try {

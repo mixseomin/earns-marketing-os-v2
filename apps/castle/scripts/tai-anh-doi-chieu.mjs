@@ -8,12 +8,12 @@ import { fileURLToPath } from 'node:url';
 
 const [ten, ...tep] = process.argv.slice(2);
 if (!ten || !tep.length) { console.error('thiếu: <tên> "File:…" …'); process.exit(1); }
-const UA = { 'User-Agent': 'castle-lau-dai-that/1.0' };
+import { taiMang } from '../server/tai-mang.mjs';
 const goc = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'du-lieu');
 mkdirSync(join(goc, 'anh'), { recursive: true });
 const u = new URL('https://commons.wikimedia.org/w/api.php');
-for (const [k, v] of Object.entries({ action: 'query', format: 'json', titles: tep.join('|'), prop: 'coordinates|imageinfo', coprop: 'type', iiprop: 'url|size|extmetadata', iiurlwidth: '2400', iiextmetadatafilter: 'LicenseShortName|Artist|LicenseUrl' })) u.searchParams.set(k, v);
-const d = await (await fetch(u, { headers: UA })).json();
+for (const [k, v] of Object.entries({ action: 'query', format: 'json', titles: tep.join('|'), prop: 'coordinates|imageinfo', coprop: 'type', iiprop: 'url|size|extmetadata', iiurlwidth: '1920', iiextmetadatafilter: 'LicenseShortName|Artist|LicenseUrl' })) u.searchParams.set(k, v);
+const d = await (await taiMang(u)).json();
 const boThe = (s) => String(s || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').trim();
 // THÊM VÀO danh sách đang có (không ghi đè: ảnh cũ giữ nguyên camera đã khớp), bỏ ảnh đã có, đánh số tiếp
 const tepDs = join(goc, `${ten}-anh.json`), ra = existsSync(tepDs) ? JSON.parse(readFileSync(tepDs, 'utf8')) : [];
@@ -23,7 +23,7 @@ for (const t of tep) {
   const p = Object.values(d.query.pages).find((x) => x.title === t);
   if (!p?.coordinates?.[0] || !p.imageinfo?.[0]) { console.log('bỏ (thiếu toạ độ / ảnh):', t); continue; }
   const c = p.coordinates[0], ii = p.imageinfo[0], m = ii.extmetadata || {};
-  const r = await fetch(ii.thumburl, { headers: UA });
+  const r = await taiMang(ii.thumburl);
   if (!r.ok) { console.log('bỏ (tải ảnh lỗi', r.status, '):', t); continue; }
   const file = `anh/${ten}-${++k}.jpg`;
   writeFileSync(join(goc, file), Buffer.from(await r.arrayBuffer()));

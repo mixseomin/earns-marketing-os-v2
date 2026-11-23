@@ -5,9 +5,10 @@
 // tra-repo-ok: gọi Overpass trực tiếp (vài chục dòng), không cần thư viện.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { du, doiSo } from './chung.mjs';
+import { taiMang } from '../server/tai-mang.mjs';
 const D = JSON.parse(readFileSync(du('').replace(/-\.json$/, '.json'), 'utf8')), [la0, lo0] = D.tam, R = +(doiSo[0] || 450);
 const q = `[out:json][timeout:60];way(around:${R},${la0},${lo0})[highway];(._;>;);out body;`;
-let r; for (let t = 0; t < 4; t++) { r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'User-Agent': 'castle-lau-dai-that/1.0' } }); if (r.ok) break; console.log('Overpass', r.status, '— thử lại'); await new Promise((ok) => setTimeout(ok, 8000 * (t + 1))); }
+const r = await taiMang('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }, { thoiGian: 90 });
 if (!r.ok) { console.error('Overpass lỗi', r.status); process.exit(1); }
 const j = await r.json(), nut = new Map(j.elements.filter((e) => e.type === 'node').map((e) => [e.id, e]));
 const M = 111320, MX = M * Math.cos(la0 * Math.PI / 180), ra = (n) => [+((n.lon - lo0) * MX).toFixed(2), +(-(n.lat - la0) * M).toFixed(2)];

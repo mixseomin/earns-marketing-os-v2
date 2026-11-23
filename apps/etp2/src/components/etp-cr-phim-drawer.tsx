@@ -90,7 +90,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
     thoiHen(); hen.current = setTimeout(() => { hen.current = null; void luuNgay(); }, 700); };   // gõ tới đâu tự lưu nháp tới đó
   useEffect(() => () => { if (thoiHen()) void luuNgay(); }, [luuNgay]);   // đóng ngăn giữa lúc chờ lưu → vẫn lưu
   const gap = () => { if (thoiHen()) void luuNgay(); setBan(null); void tai(); };
-  const moBan = (s: SoanCr) => { setKqLuu(null); setBan({ id: s.id, mau: s.mau, cau: s.cau ?? '', nhan: s.nhan ?? '', chu_dau: s.chu_dau ?? '' }); };
+  const moBan = (s: SoanCr) => { if (thoiHen()) void luuNgay(); setXemDung(null); setKqLuu(null); setBan({ id: s.id, mau: s.mau, cau: s.cau ?? '', nhan: s.nhan ?? '', chu_dau: s.chu_dau ?? '' }); };
   const guiDung = async () => {
     setGui(true); setKqLuu(null);
     try {
@@ -116,6 +116,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
     } catch (e) { setKqLen({ ok: false, chu: loiChu(e) }); } finally { setLen(false); }
   };
   const [xem, setXem] = useState<number | null>(null);
+  const [xemDung, setXemDung] = useState<number | null>(null);   // bản máy đang dựng được chọn ở danh sách nháp (chỉ xem, không sửa)
   const [loc, setLoc] = useState<'tat' | 'chua' | 'camp' | 'tu'>('tat');   // thanh lọc trên cột danh sách (khuôn hộp thư: lọc → danh sách → chi tiết)   // creative đang phát to trong ngăn
   const dsRef = useRef<HTMLDivElement>(null);
 
@@ -126,7 +127,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
 
   const tenMau = (ma: string | null) => ok.mau.find((m) => m.ma === ma)?.ten ?? null;
   const mauChon = ok.mau.find((m) => m.ma === ban?.mau) ?? null;
-  const soanDo = ok.soan.filter((s) => s.trang_thai !== 'xong' && s.id !== ban?.id);
+  const soanDs = ok.soan.filter((s) => s.trang_thai !== 'xong');
   const nhan = (t: string, mau: string) => <span style={{ fontSize: 11, padding: '0 6px', borderRadius: 6, border: `1px solid ${mau}`, color: mau, whiteSpace: 'nowrap' }}>{t}</span>;
   const so = (n: number) => (mauChon?.cau_nhu ? n : n - 1);
   const tiDs = () => setTab('ds');
@@ -159,33 +160,43 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
         style={{ ...nut(VANG), padding: '2px 8px', alignSelf: 'flex-start' }}>{len && lenMot === c.creative_id ? 'đang lên…' : '🚀 Lên camp'}</GuardedButton>;
 
   return <Drawer onClose={onClose} width={900} padding={0}>{dau}
-    <div style={{ display: 'flex', gap: 4, padding: '0 10px', borderBottom: '1px solid var(--line)' }}>
+    {/* NEO (anh 23/11/2026: "phần danh sách giống như cái neo, không được để mất dấu"): thanh thẻ + cột danh sách trái dính trên khung cuộn của ngăn */}
+    <div style={{ display: 'flex', gap: 4, padding: '0 10px', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 3, background: 'var(--bg-1)' }}>
       {the('ds', `Creative đã có · ${ok.cr.length}${ok.con ? `+${ok.con}` : ''}`)}{the('soan', `Bản nháp · ${nSoan}`)}</div>
     <div style={{ padding: '10px 16px 20px', display: 'flex', flexDirection: 'column', gap: 16, fontSize: 13 }}>
       {tab === 'soan' ? <>
       {/* ── LỘ TRÌNH (chỉ ở màn soạn) ── */}
       <LoTrinh ds={chang} dang={dang} />
       {/* ── SOẠN ── */}
-      {!ban ? <div>
-        {tieuDe(1, 'Soạn creative', soanDo.length ? 'bản đang dở — bấm để sửa tiếp' : 'chọn mẫu, gõ chữ, rồi gửi máy dựng')}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button type="button" style={nut(XANH, true)} onClick={() => { setBan(BAN_TRONG); setKqLuu(null); }}>＋ Creative mới</button>
-          {soanDo.map((s) => { const [t, m] = TT_SOAN[s.trang_thai];
-            // #1786: nút ghi VIỆC + số bản (động từ đứng đầu); tên mẫu / câu nhử / ghi chú gập vào chữ rê — trước nút chỉ ghi "<tên mẫu> · nháp", anh không hiểu là gì
-            const chu = s.trang_thai === 'dung' ? `⏳ Máy đang dựng bản #${s.id}` : s.trang_thai === 'loi' ? `⚠ Bản #${s.id} dựng lỗi — bấm sửa lại` : `✎ Sửa tiếp bản nháp #${s.id}`;
-            const re = [`Bản soạn #${s.id} · ${t}`, `Mẫu: ${tenMau(s.mau) ?? 'chưa chọn'}`, s.cau ? `Câu nhử: ${s.cau}` : '', s.ghi ?? '', s.trang_thai === 'dung' ? 'Xong sẽ hiện ở danh sách creative bên dưới.' : 'Bấm để mở lại và soạn tiếp.'].filter(Boolean).join('\n');
-            return <GuardedButton key={s.id} onClick={() => moBan(s)} reason={s.trang_thai === 'dung' ? 'máy đang dựng bản này — xong sẽ hiện ở danh sách dưới' : false}
-              title={re} style={nut(m)}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{chu}{s.trang_thai === 'dung' ? <TienDung buoc={s.buoc} /> : null}</span></GuardedButton>; })}
+      {/* KHUÔN HỘP THƯ (anh 23/11/2026: "Bản nháp cũng phải show danh sách, bấm vào thì bên phải là edit cho bản nháp đó; tạo mới dùng chung luôn") —
+          danh sách bản nháp bên trái (＋ Creative mới đứng đầu), bên phải là MỘT khung soạn dùng chung cho bản mới lẫn bản cũ */}
+      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+        <div style={{ width: 270, flex: '0 0 270px', display: 'flex', flexDirection: 'column', gap: 6, position: 'sticky', top: 48, alignSelf: 'flex-start' }}>
+          <button type="button" style={{ ...nut(XANH, !!ban && ban.id == null), padding: '6px 12px', fontSize: 13 }} onClick={() => { if (thoiHen()) void luuNgay(); setXemDung(null); setBan(BAN_TRONG); setKqLuu(null); }}>＋ Creative mới</button>
+          <div style={{ maxHeight: 'calc(100vh - 170px)', overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
+            {!soanDs.length ? <div style={{ padding: 12, color: MO_SO }}>Chưa có bản nháp nào.</div> : null}
+            {soanDs.map((s) => { const [t, m] = TT_SOAN[s.trang_thai], on = ban?.id === s.id || xemDung === s.id, mau = ok.mau.find((x) => x.ma === s.mau);
+              // #1786: dòng ghi VIỆC + số bản (động từ đứng đầu)
+              const chu = s.trang_thai === 'dung' ? `⏳ Máy đang dựng bản #${s.id}` : s.trang_thai === 'loi' ? `⚠ Bản #${s.id} dựng lỗi — bấm sửa lại` : `✎ Sửa tiếp bản nháp #${s.id}`;
+              return <div key={s.id} onClick={() => { if (s.trang_thai === 'dung') { if (thoiHen()) void luuNgay(); setBan(null); setXemDung(s.id); } else moBan(s); }}
+                style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 8px', cursor: 'pointer', borderBottom: '1px solid var(--line)',
+                  borderLeft: `3px solid ${on ? XANH : 'transparent'}`, background: on ? `color-mix(in srgb, ${XANH} 10%, transparent)` : 'transparent' }}>
+                <div style={{ width: 36, height: 64, flex: '0 0 36px', background: '#000', borderRadius: 4, overflow: 'hidden' }}>
+                  {mau?.anh ? <img src={mau.anh} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}</div>
+                <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12 }}>
+                  <b style={{ color: m }}>{chu}</b>
+                  <span style={{ color: MO_SO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mau?.ten ?? 'chưa chọn mẫu'}{s.cau ? ` · ${s.cau}` : ''}</span>
+                  <span style={{ color: MO_SO, fontSize: 11 }}>{t} · {gio(s.cap_nhat)}</span>
+                </div>
+              </div>; })}
+          </div>
         </div>
-        <Bao kq={kqLuu} />
-      </div> : <div style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+        {ban ? <div style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: MO_SO, letterSpacing: 0.5 }}>BƯỚC 1</span>
           <b style={{ fontSize: 14 }}>{ban.id ? `Soạn · bản #${ban.id}` : 'Soạn creative mới'}</b>
           <span style={{ color: luu === 'da' ? XANH : MO_SO, fontSize: 12 }}>{luu === 'dang' ? 'đang lưu nháp…' : luu === 'da' ? '✓ đã lưu nháp' : 'tự lưu khi gõ — đóng ngăn mở lại vẫn còn'}</span>
-          <span style={{ flex: 1 }} />
-          <button type="button" style={nut(MO_SO)} onClick={gap}>Gập</button>
         </div>
         {/* 1. MẪU */}
         <div><div style={{ fontWeight: 600, marginBottom: 6 }}>1. Mẫu <span style={{ color: MO_SO, fontWeight: 400 }}>— khung hình máy tự chọn từ tập phim</span></div>
@@ -217,7 +228,17 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
           </div>
           <Bao kq={kqLuu} />
         </div>
-      </div>}
+      </div> : xemDung ? (() => { const s = ok.soan.find((x) => x.id === xemDung); if (!s) return null;
+          return <div style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <b style={{ fontSize: 14 }}>Máy đang dựng bản #{s.id}</b>
+            <TienDung buoc={s.buoc} />
+            <div style={{ color: MO_SO }}>Mẫu: {tenMau(s.mau) ?? 'chưa chọn'}{s.cau ? ` · Câu nhử: ${s.cau}` : ''}</div>
+            <div style={{ color: MO_SO }}>Xong sẽ tự sang thẻ "Creative đã có". Máy đang dựng nên không sửa được bản này.</div>
+          </div>; })()
+          : <div style={{ color: MO_SO, padding: 12, border: '1px dashed var(--line)', borderRadius: 10 }}>Chọn một bản nháp bên trái để sửa tiếp, hoặc bấm <b style={{ color: XANH }}>＋ Creative mới</b>.</div>}
+        <Bao kq={ban ? null : kqLuu} />
+        </div>
+      </div>
       </> : null}
 
       {/* ── CREATIVE ĐÃ CÓ ── */}
@@ -234,10 +255,10 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
           const LOC = { tat: ['Tất cả', () => true], chua: ['Chưa lên camp', (x: typeof ok.cr[number]) => !x.camp_id && !x.tu_choi], camp: ['Đã có camp', (x: typeof ok.cr[number]) => !!x.camp_id], tu: ['Từ chối', (x: typeof ok.cr[number]) => !!x.tu_choi] } as const;
           const ds = ok.cr.filter(LOC[loc][1]); const c = ds.find((x) => x.creative_id === xem) ?? ds[0] ?? null;
           return <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-            <div style={{ width: 300, flex: '0 0 300px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ width: 300, flex: '0 0 300px', display: 'flex', flexDirection: 'column', gap: 6, position: 'sticky', top: 48, alignSelf: 'flex-start' }}>
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{(Object.keys(LOC) as (keyof typeof LOC)[]).map((k) => { const n = ok.cr.filter(LOC[k][1]).length, on = loc === k;
               return <button key={k} type="button" onClick={() => setLoc(k)} style={{ ...nut(on ? XANH : MO_SO, on), padding: '2px 8px' }}>{LOC[k][0]} {n}</button>; })}</div>
-            <div style={{ maxHeight: 'calc(100vh - 225px)', overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
+            <div style={{ maxHeight: 'calc(100vh - 170px)', overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
               {!ds.length ? <div style={{ padding: 12, color: MO_SO }}>Không có creative nào ở mục này.</div> : null}
               {ds.map((x) => { const duoc = !x.camp_id && !x.tu_choi, tich = chon.includes(x.creative_id), on = x.creative_id === c?.creative_id;
                 return <div key={x.creative_id} onClick={() => setXem(x.creative_id)} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 8px', cursor: 'pointer',

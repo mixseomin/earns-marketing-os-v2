@@ -103,10 +103,25 @@ function vatThap(gen) {
       // Mờ dần theo cỡ điểm ảnh (fwidth) → xa không nhiễu răng cưa, lại gần hiện đủ.
       float px = fwidth(vLo.y) + fwidth(cung), gan = 1.0 - smoothstep(0.06, 0.45, px), aa = max(px, 0.002);
       float trongThan = step(vLo.y, uKieu.y);
-      float cx = cung / 2.4 + mod(tang, 2.0) * 0.5;
-      float eX = (0.5 - abs(fract(cx) - 0.5)) * 2.4, eY = (0.5 - abs(fy - 0.5)) * uNhip.y;
+      // tấm ốp CHẮP VÁ (anh 23/11/2026: "mảng lớn nối nhau kiểu chắp vá, không theo khuôn, tấm to bé khác nhau"):
+      // khối 9,6 m × 2 tầng, hàng khối lệch nhau ngẫu nhiên; mỗi khối cắt dọc/ngang 1–4 lần ở vị trí ngẫu nhiên → tấm to nhỏ lẫn lộn
+      float hb = uNhip.y * 2.0, rowB = floor(vLo.y / hb), xs = cung + bam(vec2(rowB, 7.7)) * 9.6;
+      vec2 lp = vec2(fract(xs / 9.6) * 9.6, fract(vLo.y / hb) * hb), lo = vec2(0.0), hi = vec2(9.6, hb), pid = vec2(floor(xs / 9.6), rowB);
+      for (int k = 0; k < 4; k++) {
+        vec2 sz = hi - lo; float r1 = bam(pid + 3.1), t = 0.28 + 0.44 * bam(pid + 9.9);
+        if (k > 0 && r1 < 0.22 + 0.12 * float(k)) break;
+        bool doc = sz.x > sz.y * (0.55 + bam(pid + 6.7) * 0.9);
+        if (doc ? sz.x < 2.2 : sz.y < 1.6) doc = !doc;
+        if (doc ? sz.x < 2.2 : sz.y < 1.6) break;
+        if (doc) { float c = lo.x + sz.x * t; if (lp.x < c) { hi.x = c; pid = pid * 1.37 + vec2(1.0, 0.3); } else { lo.x = c; pid = pid * 1.37 + vec2(2.0, 0.7); } }
+        else { float c = lo.y + sz.y * t; if (lp.y < c) { hi.y = c; pid = pid * 1.37 + vec2(0.4, 1.0); } else { lo.y = c; pid = pid * 1.37 + vec2(0.8, 2.0); } }
+      }
+      float eX = min(lp.x - lo.x, hi.x - lp.x), eY = min(lp.y - lo.y, hi.y - lp.y);
+      float tamTam = (0.85 + 0.3 * bam(pid + 1.1)) * mix(1.0, 0.78, step(0.86, bam(pid + 4.4))) * mix(1.0, 1.12, step(0.93, bam(pid + 8.2))); // mỗi tấm lệch màu, vài tấm vá sẫm hẳn
+      vec2 rv = vec2(eX - 0.13, (fract(lp.y / 0.45) - 0.5) * 0.45), rh = vec2((fract(lp.x / 0.45) - 0.5) * 0.45, eY - 0.13);
+      float dinh = (1.0 - smoothstep(0.032, 0.032 + aa, min(length(rv), length(rh)))) * gan * step(vLo.y, uKieu.y); // đinh tán dọc mép tấm
       float mep = max(1.0 - smoothstep(0.035, 0.035 + aa, eX), 1.0 - smoothstep(0.05, 0.05 + aa, eY)) * gan * trongThan;
-      float sang = (1.0 - smoothstep(0.09, 0.09 + aa, abs(eY - 0.16))) * gan * trongThan * step(fy, 0.5); // gờ sáng trên mạch ngang (ánh nắng bắt cạnh)
+      float sang = (1.0 - smoothstep(0.09, 0.09 + aa, abs(eY - 0.16))) * gan * trongThan * step(lp.y - lo.y, hi.y - lp.y); // gờ sáng trên mạch ngang (ánh nắng bắt cạnh)
       float coCua = step(0.8, h) * trongThan;
       float khungCua = step(0.3, f.x) * step(f.x, 0.7) * step(0.14, f.y) * step(f.y, 0.9) * coCua - cua;
       float chay = step(0.43, f.x) * step(f.x, 0.57) * step(f.y, 0.32) * coCua * step(0.45, bam(o + 1.7)) * (f.y / 0.32) * gan;
@@ -117,10 +132,10 @@ function vatThap(gen) {
       float xa = 1.0 - smoothstep(0.25, 1.1, px);
       float rach = (bam(floor(vec2(cung, vLo.y) / 0.3)) - 0.5) * 0.05 + (bam(floor(vec2(cung, vLo.y) / 0.9) + 1.3) - 0.5) * 0.05; // mép rách lởm chởm như ảnh mẫu, không mờ nhoè
       float bong = step(0.845, nh + rach) * step(0.86, bam(floor(vec2(cung, vLo.y) / 16.0) + 4.4)) * xa;
-      diffuseColor.rgb *= tam * (1.0 - 0.32 * vet) * (1.0 - 0.12 * bang);
+      diffuseColor.rgb *= tam * mix(1.0, tamTam, trongThan) * (1.0 - 0.32 * vet) * (1.0 - 0.12 * bang);
       diffuseColor.rgb = mix(diffuseColor.rgb, uVien * (1.0 - 0.25 * vet), soc * 0.85);
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.84, 0.76, 0.7), bong * 0.8);
-      diffuseColor.rgb *= (1.0 - 0.45 * mep) * (1.0 + 0.18 * sang) * (1.0 - 0.4 * chay) * (1.0 - 0.35 * laChop);
+      diffuseColor.rgb *= (1.0 - 0.45 * mep) * (1.0 + 0.18 * sang) * (1.0 - 0.3 * dinh) * (1.0 - 0.4 * chay) * (1.0 - 0.35 * laChop);
       diffuseColor.rgb = mix(diffuseColor.rgb, uVien * 0.8, max(khungCua, 0.0) * 0.55 * gan);
       vec3 kinh = mix(vec3(0.05, 0.06, 0.07), vec3(0.16, 0.19, 0.21), smoothstep(0.32, 0.78, f.y) * 0.7 + 0.3 * bam(o + 2.2));
       diffuseColor.rgb = mix(diffuseColor.rgb, kinh, cua * mix(0.75, 0.95, xa)); // xa: lưới cửa nhạt bớt cho khỏi răng cưa

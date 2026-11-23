@@ -22,5 +22,7 @@ while read -r i g fs; do
 done < "$RA/chia.txt"
 wait
 for d in "$RA"/may-*/; do cp -n "$d"*.mp4 "$RA/" 2>/dev/null; cat "$d/so.jsonl" >> "$RA/so.jsonl" 2>/dev/null; done
-cat "$RA/song-song.log"; for l in "$RA"/may-*.log; do echo "── $(basename "$l")"; grep -E "máy (vast|runpod)|✓|✗|tổng|XOÁ" "$l" | cut -c1-200; done
+cat "$RA/song-song.log"; for l in "$RA"/may-*.log; do echo "── $(basename "$l")"; grep -E "máy (vast|runpod)|✓|✗|tổng|XOÁ" "$l" | cut -c1-200
+  # máy không ra tệp nào → in nguyên lý do (XONG + đuôi cai.log của lô trên máy): thư mục tạm bị xoá sau lượt, lọc trên mà nuốt thì mất dấu (phim #7999, 23/11/2026: 8 phút, 0 tệp, không một dòng lý do)
+  if grep -q "tệp ra: 0" "$l"; then d="${l%.log}"; echo "✗ máy không ra tệp — lý do:"; cat "$d/XONG" 2>/dev/null | cut -c1-300; tail -25 "$d/cai.log" 2>/dev/null | cut -c1-200; grep -vE "^\s*$" "$l" | tail -12 | cut -c1-200; fi; done
 echo "clip: $(ls "$RA"/*.mp4 2>/dev/null | wc -l | tr -d ' ')"

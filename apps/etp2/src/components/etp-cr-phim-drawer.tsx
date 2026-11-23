@@ -17,6 +17,37 @@ const VANG = '#fbbf24', LAM = '#60a5fa';
 const gio = (s: string) => new Date(s).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
 const TT_SOAN: Record<SoanCr['trang_thai'], [string, string]> = { nhap: ['nháp', MO_SO], dung: ['máy đang dựng', LAM], xong: ['đã vào thư viện', XANH], loi: ['lỗi dựng', DO] };
 const BUOC_DUNG: Record<string, string> = { cho: 'chờ máy', trang_phim: 'trang phim', tai_tap: 'tải tập', chon_khung: 'chọn khung', ve_mau: 'vẽ mẫu', giong: 'giọng', video: 'video', thu_vien: 'thư viện', creative: 'tải creative', xong: 'xong' };
+const THU_TU_DUNG = ['cho', 'trang_phim', 'tai_tap', 'chon_khung', 've_mau', 'giong', 'video', 'thu_vien', 'creative'];
+
+// LỘ TRÌNH (anh 23/11/2026 #1784 "Ở drawer tạo phải có lộ trình, timeline... để ai cũng hiểu"): năm chặng một creative đi qua, ai làm (bạn bấm / máy tự),
+// số creative đang nằm ở từng chặng, chặng đang có việc sáng lên; giải thích dài nằm ở chữ rê. Số đếm lấy từ đúng dữ liệu ngăn đang hiện (soạn + creative đã có).
+type Chang = { so: number; ten: string; ban: boolean; dem: string; co: boolean; re: string; bam?: () => void };
+function LoTrinh({ ds, dang }: { ds: Chang[]; dang: number }) {
+  return <div style={{ display: 'flex', alignItems: 'stretch', border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
+    {ds.map((c, i) => { const on = c.so === dang;
+      return <div key={c.so} title={c.re} onClick={c.bam} style={{ flex: 1, minWidth: 0, padding: '8px 10px', cursor: c.bam ? 'pointer' : 'help',
+        background: on ? `color-mix(in srgb, ${XANH} 12%, transparent)` : 'transparent', borderLeft: i ? '1px solid var(--line)' : 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 20, height: 20, borderRadius: 10, flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700,
+            border: `1.5px solid ${on ? XANH : 'var(--line)'}`, background: on ? XANH : 'transparent', color: on ? '#000' : MO_SO }}>{c.so}</span>
+          <b style={{ color: on ? XANH : 'var(--fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.ten}</b>
+          {i < ds.length - 1 ? <span style={{ marginLeft: 'auto', color: MO_SO }}>→</span> : null}
+        </div>
+        <div style={{ fontSize: 11.5, color: MO_SO, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ color: c.ban ? VANG : MO_SO }}>{c.ban ? 'bạn bấm' : 'máy tự'}</span> · <span style={{ color: c.co ? 'var(--fg-1)' : MO_SO }}>{c.dem}</span></div>
+      </div>; })}
+  </div>;
+}
+
+/** tiến độ một bản máy đang dựng: dải vạch theo đúng thứ tự bước của máy dựng mẫu, bước hiện tại sáng; danh sách bước ở chữ rê */
+function TienDung({ buoc }: { buoc: string | null }) {
+  const k = Math.max(0, THU_TU_DUNG.indexOf(buoc ?? 'cho')), n = THU_TU_DUNG.length;
+  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
+    title={`máy đang ở bước ${k + 1}/${n}\n${THU_TU_DUNG.map((b, i) => `${i < k ? '✓' : i === k ? '▶' : '·'} ${BUOC_DUNG[b]}`).join('\n')}`}>
+    {THU_TU_DUNG.map((b, i) => <span key={b} style={{ width: i === k ? 14 : 6, height: 6, borderRadius: 3, background: i < k ? XANH : i === k ? LAM : 'var(--line)' }} />)}
+    <span style={{ fontSize: 11.5, color: LAM, marginLeft: 4 }}>{BUOC_DUNG[THU_TU_DUNG[k]!]} · {k + 1}/{n}</span>
+  </span>;
+}
 type Kq = { ok: boolean; chu: string } | null;
 /** báo lỗi / kết quả ngay dưới nút vừa bấm */
 const Bao = ({ kq }: { kq: Kq }) => kq
@@ -82,6 +113,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
     } catch (e) { setKqLen({ ok: false, chu: loiChu(e) }); } finally { setLen(false); }
   };
   const mv = useMediaViewer();
+  const dsRef = useRef<HTMLDivElement>(null);
 
   const dau = <div className="modal-head"><div><div className="id-line">creative của phim · {cid}</div>
     <h2 style={{ margin: 0, cursor: 'pointer' }} title="mở ngăn phim" onClick={() => openEntityDrawer('etp-phim', cid)}>{ok?.phim ?? 'đang đọc…'}</h2></div>
@@ -93,22 +125,45 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
   const soanDo = ok.soan.filter((s) => s.trang_thai !== 'xong' && s.id !== ban?.id);
   const nhan = (t: string, mau: string) => <span style={{ fontSize: 11, padding: '0 6px', borderRadius: 6, border: `1px solid ${mau}`, color: mau, whiteSpace: 'nowrap' }}>{t}</span>;
   const so = (n: number) => (mauChon?.cau_nhu ? n : n - 1);
+  const tiDs = () => dsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const nNhap = ok.soan.filter((s) => s.trang_thai === 'nhap' || s.trang_thai === 'loi').length, nDung = ok.soan.filter((s) => s.trang_thai === 'dung').length;
+  const nTv = ok.cr.filter((c) => !c.camp_id && !c.tu_choi).length, nCamp = ok.cr.filter((c) => c.camp_id).length, nChay = ok.cr.filter((c) => c.camp_tt === 'ACTIVE').length;
+  const chang: Chang[] = [
+    { so: 1, ten: 'Soạn', ban: true, dem: nNhap ? `${nNhap} nháp` : 'chưa có nháp', co: !!nNhap, bam: () => { if (!ban) { setBan(BAN_TRONG); setKqLuu(null); } },
+      re: 'Bạn chọn mẫu, gõ câu nhử / chữ quảng cáo (để trống thì máy tự viết). Gõ tới đâu tự lưu nháp tới đó.\nXong bấm "💾 Lưu vào thư viện" để gửi máy dựng.\nBấm ô này để mở bản soạn mới.' },
+    { so: 2, ten: 'Máy dựng', ban: false, dem: nDung ? `${nDung} đang dựng` : 'không có bản nào', co: !!nDung,
+      re: `Máy trên iMac lấy hàng mỗi 2 phút rồi tự làm lần lượt:\n${THU_TU_DUNG.map((b) => BUOC_DUNG[b]).join(' → ')}\nMỗi bản ~176₫. Ngăn này tự xem lại mỗi 15 giây khi đang có bản dựng.` },
+    { so: 3, ten: 'Thư viện', ban: false, dem: `${nTv} chờ lên camp`, co: !!nTv, bam: tiDs,
+      re: 'Dựng xong, creative tự vào thư viện và hiện ở danh sách dưới. Bấm ▶ để xem ngay.' },
+    { so: 4, ten: 'Lên camp', ban: true, dem: `${nCamp} đã có camp`, co: !!nCamp, bam: tiDs,
+      re: 'Bạn bấm "🚀 Lên camp" ở từng creative (hoặc tích nhiều cái rồi lên cùng lúc).\nMỗi creative một camp $1 theo lịch lên — ngoài 07–12h giờ VN thì hẹn 07:00 sáng.' },
+    { so: 5, ten: 'Chạy', ban: false, dem: `${nChay} đang chạy`, co: !!nChay, bam: tiDs,
+      re: 'Camp chạy rồi thì máy luật tự chấm theo luật đã chốt: tăng ngân sách hoặc tắt. Bấm nhãn "camp #…" để mở camp.' },
+  ];
+  const dang = ban ? 1 : nDung ? 2 : nTv ? 3 : nCamp ? 5 : 1;
+  const tieuDe = (n: number, t: string, phu?: string) => <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+    <span style={{ fontSize: 11, fontWeight: 700, color: MO_SO, letterSpacing: 0.5 }}>BƯỚC {n}</span><b style={{ fontSize: 14 }}>{t}</b>
+    {phu ? <span style={{ color: MO_SO, fontSize: 12 }}>{phu}</span> : null}</div>;
 
   return <Drawer onClose={onClose} width={760} padding={0}>{dau}
     <div style={{ padding: '10px 16px 20px', display: 'flex', flexDirection: 'column', gap: 16, fontSize: 13 }}>
+      {/* ── LỘ TRÌNH ── */}
+      <LoTrinh ds={chang} dang={dang} />
       {/* ── SOẠN ── */}
       {!ban ? <div>
+        {tieuDe(1, 'Soạn creative', soanDo.length ? 'bản đang dở — bấm để sửa tiếp' : 'chọn mẫu, gõ chữ, rồi gửi máy dựng')}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <button type="button" style={nut(XANH, true)} onClick={() => { setBan(BAN_TRONG); setKqLuu(null); }}>＋ Creative mới</button>
           {soanDo.map((s) => { const [t, m] = TT_SOAN[s.trang_thai];
             return <GuardedButton key={s.id} onClick={() => moBan(s)} reason={s.trang_thai === 'dung' ? 'máy đang dựng bản này — xong sẽ hiện ở danh sách dưới' : false}
               title={s.ghi ?? 'bấm sửa tiếp'} style={nut(m)}>
-              {tenMau(s.mau) ?? 'chưa chọn mẫu'} · {t}{s.trang_thai === 'dung' && s.buoc ? ` (${BUOC_DUNG[s.buoc] ?? 'đang làm'})` : ''}</GuardedButton>; })}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{tenMau(s.mau) ?? 'chưa chọn mẫu'} · {t}{s.trang_thai === 'dung' ? <TienDung buoc={s.buoc} /> : null}</span></GuardedButton>; })}
         </div>
         <Bao kq={kqLuu} />
       </div> : <div style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <b>{ban.id ? `Bản soạn #${ban.id}` : 'Creative mới'}</b>
+          <span style={{ fontSize: 11, fontWeight: 700, color: MO_SO, letterSpacing: 0.5 }}>BƯỚC 1</span>
+          <b style={{ fontSize: 14 }}>{ban.id ? `Soạn · bản #${ban.id}` : 'Soạn creative mới'}</b>
           <span style={{ color: luu === 'da' ? XANH : MO_SO, fontSize: 12 }}>{luu === 'dang' ? 'đang lưu nháp…' : luu === 'da' ? '✓ đã lưu nháp' : 'tự lưu khi gõ — đóng ngăn mở lại vẫn còn'}</span>
           <span style={{ flex: 1 }} />
           <button type="button" style={nut(MO_SO)} onClick={gap}>Gập</button>
@@ -136,7 +191,8 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <GuardedButton onClick={() => void guiDung()} reason={!ban.mau ? 'chọn mẫu trước (bước 1)' : gui ? 'đang gửi…' : false}
               title="máy trên iMac dựng theo mẫu, xong tự vào thư viện creative" style={nut(XANH, true)}>{gui ? 'đang gửi…' : '💾 Lưu vào thư viện'}</GuardedButton>
-            <span style={{ color: MO_SO, fontSize: 12 }}>máy dựng ~176₫ / bản (AI chọn khung{mauChon?.cau_nhu && !ban.cau.trim() ? ' + viết câu nhử' : ''})</span>
+            <span style={{ color: MO_SO, fontSize: 12 }} title={`AI chọn khung${mauChon?.cau_nhu && !ban.cau.trim() ? ' + viết câu nhử' : ''} · máy iMac lấy hàng mỗi 2 phút`}>
+              → sang <b style={{ color: 'var(--fg-1)' }}>bước 2</b>: máy tự dựng (~176₫ / bản), xong tự vào thư viện</span>
             <span style={{ flex: 1 }} />
             <button type="button" style={nut(DO)} onClick={() => void bo()}>Bỏ bản này</button>
           </div>
@@ -145,9 +201,10 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
       </div>}
 
       {/* ── CREATIVE ĐÃ CÓ ── */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <b>Creative đã có</b><span style={{ color: MO_SO }}>{ok.cr.length}{ok.con ? ` mới nhất · còn ${ok.con} cũ hơn` : ''}</span>
+      <div ref={dsRef} style={{ scrollMarginTop: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: MO_SO, letterSpacing: 0.5 }}>BƯỚC 3–5</span><b style={{ fontSize: 14 }}>Thư viện creative → lên camp</b>
+          <span style={{ color: MO_SO, fontSize: 12 }}>{ok.cr.length}{ok.con ? ` mới nhất · còn ${ok.con} cũ hơn` : ''}</span>
           <span style={{ flex: 1 }} />
           {chon.length ? <GuardedButton onClick={() => void lenCamp(chon)} reason={len ? 'đang lên…' : false} style={nut(VANG, true)}>{len && lenMot == null ? 'đang lên…' : `🚀 Lên camp ${chon.length} creative`}</GuardedButton> : null}
         </div>

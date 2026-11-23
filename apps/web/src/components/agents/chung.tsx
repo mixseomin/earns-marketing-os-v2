@@ -26,9 +26,9 @@ export function ChamTT({ kieu, ket, title }: { kieu: TT['kieu']; ket?: boolean; 
   return <i className="ag-cham" style={{ background: MAU_TT[ket ? 'ket' : kieu] }} title={title ?? (ket ? 'kẹt' : CHU_TT[kieu])} aria-label={ket ? 'kẹt' : CHU_TT[kieu]} />;
 }
 /** trạng thái một dòng: "đang làm · <việc> · 12′" / "rảnh · xong 14:05" / "tắt"; kẹt thì thêm lý do đỏ */
-export function ChuTT({ t }: { t: TT }) {
+export function ChuTT({ t, anPhut }: { t: TT; anPhut?: boolean }) {
   return <span className="ag-tt">
-    {t.kieu === 'lam' ? <><b className="ag-lam">làm</b> <span title={t.viec}>{t.viec}</span>{t.phut != null && <small> · {t.phut}′</small>}</>
+    {t.kieu === 'lam' ? <><b className="ag-lam">làm</b> <span title={t.viec}>{t.viec}</span>{!anPhut && t.phut != null && <small> · {t.phut}′</small>}</>
       : t.kieu === 'ranh' ? <>rảnh{t.xong && <small> · xong {gioVN(t.xong)}</small>}</>
       : <span className="ag-mo">{CHU_TT[t.kieu]}</span>}
     {t.ket.length > 0 && <span className="ag-ket" title={t.ket.join(' · ')}> · kẹt: {t.ket[0]}</span>}

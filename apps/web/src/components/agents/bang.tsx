@@ -7,12 +7,13 @@ import { DataTable, type DataColumn } from '@/components/ui';
 import { useShallowParam } from '@/lib/url-shallow';
 import type { Agent } from '@/lib/cty-agents-kieu';
 import { ThanhO, cotTheoRong, useKhungO } from '@/components/home/khung-o';
-import { ChamTT, ChuTT, NutBat, SuaModel, TenAgent, tien } from './chung';
+import { ChamTT, ChuTT, NutBat, SuaModel, TenAgent, gioVN, tien } from './chung';
 import { NganAgent } from './ho-so';
 
 const khongDau = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').toLowerCase();
 const LOAI: Record<string, string> = { cli: 'CLI', cong: 'CLI qua cổng', api: 'API', nguoi: 'Người' };
 const khopTt = (a: Agent, tt: string) => (tt === 'ket' ? a.tt.ket.length > 0 : tt === 'ranh' ? a.tt.kieu === 'ranh' || a.tt.kieu === 'chua' : a.tt.kieu === tt);
+const daNhan = (p: number) => (p < 60 ? `${p} phút` : `${Math.floor(p / 60)} giờ${p % 60 ? ` ${p % 60}′` : ''}`);
 const thu = (a: Agent) => (a.tt.ket.length ? 0 : a.tt.kieu === 'lam' ? 1 : a.tt.kieu === 'ranh' ? 2 : a.tt.kieu === 'chua' ? 3 : 4);
 
 export function BangAgents({ ds, admin, thang }: { ds: Agent[]; admin: boolean; thang: number }) {
@@ -28,7 +29,12 @@ export function BangAgents({ ds, admin, thang }: { ds: Agent[]; admin: boolean; 
   const cot: C[] = [
     { key: 'nguoi', uu: 1, header: 'Người', align: 'left', width: 150, sortValue: (a) => a.ten,
       cell: (a) => <span className="ag-nguoi"><ChamTT kieu={a.tt.kieu} ket={a.tt.ket.length > 0} /><TenAgent id={a.id} ten={a.ten} /></span> },
-    { key: 'tt', uu: 1, header: 'Trạng thái', align: 'left', sortValue: thu, cell: (a) => <ChuTT t={a.tt} /> },
+    { key: 'tt', uu: 1, header: 'Trạng thái', align: 'left', sortValue: thu, cell: (a) => <ChuTT t={a.tt} anPhut /> },
+    // góp ý #1791: số phút đã nhận việc trước nằm cuối chữ trạng thái, bị dấu … cắt mất → cột riêng, luôn hiện, bấm tiêu đề để xếp
+    { key: 'daNhan', uu: 1, header: 'Đã nhận', align: 'left', width: 84, title: 'Nhận việc đang làm được bao lâu rồi', sortValue: (a) => (a.tt.kieu === 'lam' && a.tt.phut != null ? -a.tt.phut : 1),
+      cell: (a) => (a.tt.kieu === 'lam' && a.tt.phut != null
+        ? <span title={a.tt.tu ? `Nhận việc lúc ${gioVN(a.tt.tu)}` : undefined}>{daNhan(a.tt.phut)}</span>
+        : <span className="ag-mo">—</span>) },
     { key: 'tuLam', uu: 1, header: 'Tự làm', align: 'left', width: 120, title: 'Bật / tắt việc người đó tự làm (nhịp cty, hoặc mọi việc máy người đó phụ trách)', sortValue: (a) => (a.nhip.bat ? 0 : 1),
       cell: (a) => (a.nhip.coNut ? <NutBat bat={a.nhip.bat} admin={admin} lenh={a.nhip.muc.startsWith('nguoi:') ? { lenh: 'may', muc: a.nhip.muc, bat: !a.nhip.bat } : { lenh: 'nhip', id: a.id, bat: !a.nhip.bat }}
         nhan={a.nhip.muc.startsWith('nguoi:') ? `${a.nhip.soChay}/${a.nhip.soViecMay} việc` : a.nhip.bat ? a.nhip.tanSuat ?? 'bật' : 'tắt'}

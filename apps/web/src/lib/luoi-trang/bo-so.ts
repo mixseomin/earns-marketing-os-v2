@@ -7,7 +7,7 @@ import type { O } from '../home/luoi';
 import { MAN, MAN_MAC_DINH, NHOM, WIDGET } from '../home/so';
 
 /** ngu: tham số ngữ cảnh widget đọc — p / days / ky của /home, tuDe, ghi, rong: như sổ /home */
-export type BoSoWidget = { ten: string; moTa: string; mac: readonly [number, number]; ngu?: readonly string[]; tuDe?: true; ghi?: true; rong?: true };
+export type BoSoWidget = { ten: string; moTa: string; mac: readonly [number, number]; ngu?: readonly string[]; tuDe?: true; ghi?: true; rong?: true; moi?: string };
 export type BoSoMan = { id: string; ten: string; kh: string; nhom: string; o: O[] };
 export type BoSoId = 'home';
 export type BoSo = {

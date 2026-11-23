@@ -13,7 +13,9 @@ export const NHOM: Record<NhomWidget, string> = { A: 'Toàn cảnh', B: 'Campaig
  *  nhiều bảng rộng cùng màn thì xếp thành tab trong MỘT ô trọn bề ngang, không chia đôi màn. scripts/check-home-widget.mjs chặn bố cục sai.
  *  nguon: 'cty' — widget KHÔNG thay tab nào của trang chủ cũ mà đọc DỮ LIỆU của cty.on.tc qua cổng /api/agents (lib/cty-agents.ts) rồi tự vẽ (components/agents/*).
  *  CẤM nhúng nguyên trang app khác vào ô (anh 20/11/2026) — scripts/check-home-widget.mjs luật 6 chặn. Mỗi widget khai đúng một trong hai: tab hoặc nguon. */
-export type WidgetSo = { ten: string; moTa: string; mac: [number, number]; ngu?: ('p' | 'days' | 'ky')[]; tuDe?: true; ghi?: true; rong?: true; tab?: string; nguon?: 'cty' };
+export type WidgetSo = { ten: string; moTa: string; mac: [number, number]; ngu?: ('p' | 'days' | 'ky')[]; tuDe?: true; ghi?: true; rong?: true; tab?: string; nguon?: 'cty';
+  /** ngày giờ widget vào sổ (ISO) — bố cục đã lưu TRƯỚC mốc này mà thiếu widget thì lúc đọc tự chèn thành tab vào ô chứa widget cùng ô ở bố cục dựng sẵn (lib/home/bo-cuc.ts), không ghi đè bản lưu */
+  moi?: string };
 export const RONG_BANG = 32;
 export const WIDGET = {
   A1: { ten: 'Dải số chính', moTa: 'doanh thu 30 ngày · chi QC · view → click → out · signup · camp chạy', mac: [48, 10], ngu: ['p', 'days'], tuDe: true, tab: 'camp' },
@@ -80,7 +82,7 @@ export const WIDGET = {
   M4: { ten: 'Lượt chạy kỹ sư', moTa: 'mọi phiên Claude Code của kỹ sư CLI: việc · kết · token vào / ra · chi phí', mac: [48, 32], rong: true, nguon: 'cty' },
   M5: { ten: 'Sổ sự kiện cty', moTa: 'ai gọi mô hình gì, gửi tin cho ai, quyết định, lỗi — lọc theo lượt / người / loại', mac: [48, 32], rong: true, nguon: 'cty' },
   M6: { ten: 'Sơ đồ tổ chức', moTa: 'cây phòng ban và nhân sự, bấm vào người hoặc phòng để mở hồ sơ', mac: [48, 40], nguon: 'cty' },
-  M7: { ten: 'Việc theo phòng', moTa: 'mỗi phòng một dòng: người đang làm / kẹt / rảnh / tắt · lượt kỹ sư đã sửa / không sửa / cần anh · việc máy bật / tắt / lỗi', mac: [48, 28], rong: true, nguon: 'cty' },
+  M7: { ten: 'Việc theo phòng', moTa: 'mỗi phòng một dòng: người đang làm / kẹt / rảnh / tắt · lượt kỹ sư đã sửa / không sửa / cần anh · việc máy bật / tắt / lỗi', mac: [48, 28], rong: true, nguon: 'cty', moi: '2026-11-23T07:00:00Z' },
   L2: { ten: 'Lối tắt', moTa: 'Luật campaign · Strategy Tests · Keyword Research · Lịch doanh thu', mac: [16, 20], tab: 'luat' },
 } as const satisfies Record<string, WidgetSo>;
 export type MaWidget = keyof typeof WIDGET;

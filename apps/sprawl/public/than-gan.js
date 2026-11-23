@@ -63,6 +63,38 @@ export function taoThanGan({ dsThap, tang, geos, vatLieu, mau }) {
           dat(kinh, a, yc, 0.02, t, cw, ch, 1, 0, _c.set(bam(cx + j, ti + 0.7) < 0.5 ? '#26323a' : '#3a4a52').clone()); }
         return;
       }
+      if (q >= 0.16 && q < 0.36) { // KHỐI NHÔ BỪA (anh 23/11/2026: "cửa sổ, ban công nhô ra một cách nham nhở"): phòng con thò ra thân, to nhỏ / sâu nông / cao thấp lệch nhau, không thẳng tầng
+        const u = (q - 0.16) / 0.2, v = bam(cx + 17.3, ti + 5.1), w2 = bam(cx + 2.9, ti + 11.7);
+        const W = 1.6 + v * 3.8, H = tang * (0.55 + w2 * 1.25), D = 0.7 + u * 2.2, t = (k - 0.5) * oR * 0.45, yb = yS + 0.3 + H / 2 + (v - 0.5) * 0.9;
+        const mT = v < 0.25 ? _c.copy(mVien).multiplyScalar(0.75 + w2 * 0.3).clone() : _c.copy(mDo).multiplyScalar(0.7 + w2 * 0.38).clone();
+        const khoi = (bw, bh, bd, bt, by, m) => {
+          dat(hop, a, by, bd / 2, bt, bw, bh, bd, 0, m);
+          dat(hop, a, by + bh / 2 + 0.06, bd / 2 + 0.06, bt, bw + 0.16, 0.12, bd + 0.14, 0, _c.copy(m).multiplyScalar(0.7).clone()); // nóc gờ
+          const nw = Math.max(1, Math.min(3, Math.floor(bw / 1.4))), cw = Math.min(0.9, bw / nw - 0.4), ch = Math.min(1.3, bh - 0.7);
+          if (ch > 0.4) for (let j = 0; j < nw; j++) { const tt = bt + (j - (nw - 1) / 2) * (bw / nw), yy = by + (bam(cx + j, ti + by) - 0.5) * 0.3;
+            dat(kinh, a, yy, bd + 0.02, tt, cw, ch, 1, 0, _c.set(bam(cx + j * 2, ti + 1.9) < 0.6 ? '#1f2a31' : '#4a5960').clone());
+            dat(hop, a, yy + ch / 2 + 0.05, bd + 0.05, tt, cw + 0.16, 0.1, 0.1, 0, mK); dat(hop, a, yy - ch / 2 - 0.05, bd + 0.08, tt, cw + 0.22, 0.08, 0.16, 0, mK); }
+          if (bd > 1.2) for (const sg of [-1, 1]) { const L = Math.hypot(bd * 0.8, bh * 0.5); dat(hop, a, by - bh / 2 - bh * 0.25, bd * 0.4, bt + sg * (bw / 2 - 0.15), 0.12, 0.12, L, -Math.atan2(bh * 0.5, bd * 0.8), mToi); } // thanh chống chéo dưới bụng
+        };
+        khoi(W, H, D, t, yb, mT);
+        if (v > 0.55) { const s2 = bam(cx + 4.4, ti + 2.2) < 0.5 ? -1 : 1; khoi(W * (0.4 + w2 * 0.3), H * 0.6, D * (0.5 + u * 0.3), t + s2 * W * 0.35, yb + H / 2 + H * 0.3 + 0.12, _c.copy(mT).multiplyScalar(0.85 + v * 0.25).clone()); } // khối con chồng lệch
+        if (w2 > 0.7) dat(hop, a, yb, D * 0.5, t + (v < 0.5 ? -1 : 1) * (W / 2 + 0.35), 0.7, H * 0.5, D * 0.5, 0, mXam(w2)); // hộp phụ bên hông
+        return;
+      }
+      if (q >= 0.36 && q < 0.44) { // SÀN THÉP ĐUA RA ở độ cao lẻ: sàn lưới + lan can + chống chéo, có người
+        const u = (q - 0.36) / 0.08, D = 1.8 + u * 1.6, W = 2.6 + bam(cx + 8.8, ti) * 3, t = (k - 0.5) * oR * 0.4, yd = yS + (bam(cx + 6.1, ti + 1.4) - 0.5) * 1.2;
+        dat(hop, a, yd, D / 2, t, W, 0.14, D, 0, _c.set('#4a4440').clone()); dat(hop, a, yd - 0.12, D - 0.05, t, W, 0.18, 0.1, 0, mToi);
+        for (let j = 0; j <= 5; j++) dat(cot, a, yd + 0.6, D - 0.06, t - W / 2 + 0.05 + j * (W - 0.1) / 5, 1, 1.1, 1);
+        for (const sg of [-1, 1]) { for (const dd of [0.4, D * 0.5, D - 0.4]) dat(cot, a, yd + 0.6, dd, t + sg * (W / 2 - 0.05), 1, 1.1, 1);
+          const L = Math.hypot(D * 0.85, 1.6); dat(hop, a, yd - 0.85, D * 0.43, t + sg * (W / 2 - 0.2), 0.1, 0.1, L, -Math.atan2(1.6, D * 0.85), mToi);
+          dat(hop, a, yd + 1.15, D / 2, t + sg * (W / 2 - 0.05), 0.06, 0.06, D, 0, mToi); }
+        dat(hop, a, yd + 1.15, D - 0.06, t, W, 0.06, 0.06, 0, mToi);
+        dat(hop, a, yd + 1.05, 0.06, t + (u - 0.5) * W * 0.5, 0.9, 2.05, 0.1, 0, mToi); // cửa ra sàn
+        const p = bam(cx + 3.7, ti + 9.2), rS = hs.rTai(yd) + 0.7;
+        if (p < 0.75) nguoi.push({ kieu: p < 0.35 ? 'qua' : 'dung', a: a + t / r, r: rS + p * (D - 1.2), y: yd + 0.07, nua: W / 2 - 0.6, t: p * 5, v: 0.5 + p, h: p * 30 });
+        if (p < 0.3) nguoi.push({ kieu: 'dung', a: a + (t + W * 0.25) / r, r: rS + D * 0.55, y: yd + 0.07, t: 0, v: 0, h: p * 70 });
+        return;
+      }
       if (q < 0.08) { const t = (k - 0.5) * oR * 0.5, yc = yS + tang * 0.5; // nắp kỹ thuật vuông + tay nắm
         dat(hop, a, yc, 0.04, t, 1.3, 1.3, 0.08, 0, _c.copy(mDo).multiplyScalar(0.7).clone());
         dat(hop, a, yc, 0.1, t + 0.45, 0.08, 0.35, 0.08, 0, mXam(k)); return; }

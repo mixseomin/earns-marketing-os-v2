@@ -19,25 +19,6 @@ const TT_SOAN: Record<SoanCr['trang_thai'], [string, string]> = { nhap: ['nháp'
 const BUOC_DUNG: Record<string, string> = { cho: 'chờ máy', trang_phim: 'trang phim', tai_tap: 'tải tập', chon_khung: 'chọn khung', ve_mau: 'vẽ mẫu', giong: 'giọng', video: 'video', thu_vien: 'thư viện', creative: 'tải creative', xong: 'xong' };
 const THU_TU_DUNG = ['cho', 'trang_phim', 'tai_tap', 'chon_khung', 've_mau', 'giong', 'video', 'thu_vien', 'creative'];
 
-// LỘ TRÌNH (anh 23/11/2026 #1784 "Ở drawer tạo phải có lộ trình, timeline... để ai cũng hiểu"): năm chặng một creative đi qua, ai làm (bạn bấm / máy tự),
-// số creative đang nằm ở từng chặng, chặng đang có việc sáng lên; giải thích dài nằm ở chữ rê. Số đếm lấy từ đúng dữ liệu ngăn đang hiện (soạn + creative đã có).
-type Chang = { so: number; ten: string; ban: boolean; dem: string; co: boolean; re: string; bam?: () => void };
-function LoTrinh({ ds, dang }: { ds: Chang[]; dang: number }) {
-  return <div style={{ display: 'flex', alignItems: 'stretch', border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
-    {ds.map((c, i) => { const on = c.so === dang;
-      return <div key={c.so} title={c.re} onClick={c.bam} style={{ flex: 1, minWidth: 0, padding: '8px 10px', cursor: c.bam ? 'pointer' : 'help',
-        background: on ? `color-mix(in srgb, ${XANH} 12%, transparent)` : 'transparent', borderLeft: i ? '1px solid var(--line)' : 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 20, height: 20, borderRadius: 10, flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700,
-            border: `1.5px solid ${on ? XANH : 'var(--line)'}`, background: on ? XANH : 'transparent', color: on ? '#000' : MO_SO }}>{c.so}</span>
-          <b style={{ color: on ? XANH : 'var(--fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.ten}</b>
-          {i < ds.length - 1 ? <span style={{ marginLeft: 'auto', color: MO_SO }}>→</span> : null}
-        </div>
-        <div style={{ fontSize: 11.5, color: MO_SO, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          <span style={{ color: c.ban ? VANG : MO_SO }}>{c.ban ? 'bạn bấm' : 'máy tự'}</span> · <span style={{ color: c.co ? 'var(--fg-1)' : MO_SO }}>{c.dem}</span></div>
-      </div>; })}
-  </div>;
-}
 
 /** tiến độ một bản máy đang dựng: dải vạch theo đúng thứ tự bước của máy dựng mẫu, bước hiện tại sáng; danh sách bước ở chữ rê */
 function TienDung({ buoc }: { buoc: string | null }) {
@@ -130,25 +111,9 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
   const soanDs = ok.soan.filter((s) => s.trang_thai !== 'xong');
   const nhan = (t: string, mau: string) => <span style={{ fontSize: 11, padding: '0 6px', borderRadius: 6, border: `1px solid ${mau}`, color: mau, whiteSpace: 'nowrap' }}>{t}</span>;
   const so = (n: number) => (mauChon?.cau_nhu ? n : n - 1);
-  const tiDs = () => setTab('ds');
-  const nNhap = ok.soan.filter((s) => s.trang_thai === 'nhap' || s.trang_thai === 'loi').length, nDung = ok.soan.filter((s) => s.trang_thai === 'dung').length;
-  const nTv = ok.cr.filter((c) => !c.camp_id && !c.tu_choi).length, nCamp = ok.cr.filter((c) => c.camp_id).length, nChay = ok.cr.filter((c) => c.camp_tt === 'ACTIVE').length;
-  const chang: Chang[] = [
-    { so: 1, ten: 'Soạn', ban: true, dem: nNhap ? `${nNhap} nháp` : 'chưa có nháp', co: !!nNhap, bam: () => { if (!ban) { setBan(BAN_TRONG); setKqLuu(null); } },
-      re: 'Bạn chọn mẫu, gõ câu nhử / chữ quảng cáo (để trống thì máy tự viết). Gõ tới đâu tự lưu nháp tới đó.\nXong bấm "💾 Lưu vào thư viện" để gửi máy dựng.\nBấm ô này để mở bản soạn mới.' },
-    { so: 2, ten: 'Máy dựng', ban: false, dem: nDung ? `${nDung} đang dựng` : 'không có bản nào', co: !!nDung,
-      re: `Máy trên iMac lấy hàng mỗi 2 phút rồi tự làm lần lượt:\n${THU_TU_DUNG.map((b) => BUOC_DUNG[b]).join(' → ')}\nMỗi bản ~176₫. Ngăn này tự xem lại mỗi 15 giây khi đang có bản dựng.` },
-    { so: 3, ten: 'Thư viện', ban: false, dem: `${nTv} chờ lên camp`, co: !!nTv, bam: tiDs,
-      re: 'Dựng xong, creative tự vào thư viện và hiện ở danh sách dưới. Bấm ▶ để xem ngay.' },
-    { so: 4, ten: 'Lên camp', ban: true, dem: `${nCamp} đã có camp`, co: !!nCamp, bam: tiDs,
-      re: 'Bạn bấm "🚀 Lên camp" ở từng creative (hoặc tích nhiều cái rồi lên cùng lúc).\nMỗi creative một camp $1 theo lịch lên — ngoài 07–12h giờ VN thì hẹn 07:00 sáng.' },
-    { so: 5, ten: 'Chạy', ban: false, dem: `${nChay} đang chạy`, co: !!nChay, bam: tiDs,
-      re: 'Camp chạy rồi thì máy luật tự chấm theo luật đã chốt: tăng ngân sách hoặc tắt. Bấm nhãn "camp #…" để mở camp.' },
-  ];
   const nSoan = ok.soan.filter((s) => s.trang_thai !== 'xong').length;
   const the = (k: 'ds' | 'soan', chu: string) => <button type="button" onClick={() => setTab(k)} style={{ all: 'unset', cursor: 'pointer', padding: '8px 14px', fontSize: 13.5,
     fontWeight: tab === k ? 700 : 500, color: tab === k ? 'var(--fg-1)' : MO_SO, borderBottom: `2px solid ${tab === k ? XANH : 'transparent'}` }}>{chu}</button>;
-  const dang = ban ? 1 : nDung ? 2 : nTv ? 3 : nCamp ? 5 : 1;
   const tieuDe = (n: number, t: string, phu?: string) => <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
     <span style={{ fontSize: 11, fontWeight: 700, color: MO_SO, letterSpacing: 0.5 }}>BƯỚC {n}</span><b style={{ fontSize: 14 }}>{t}</b>
     {phu ? <span style={{ color: MO_SO, fontSize: 12 }}>{phu}</span> : null}</div>;
@@ -166,7 +131,6 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
     <div style={{ padding: '10px 16px 20px', display: 'flex', flexDirection: 'column', gap: 16, fontSize: 13 }}>
       {tab === 'soan' ? <>
       {/* ── LỘ TRÌNH (chỉ ở màn soạn) ── */}
-      <LoTrinh ds={chang} dang={dang} />
       {/* ── SOẠN ── */}
       {/* KHUÔN HỘP THƯ (anh 23/11/2026: "Bản nháp cũng phải show danh sách, bấm vào thì bên phải là edit cho bản nháp đó; tạo mới dùng chung luôn") —
           danh sách bản nháp bên trái (＋ Creative mới đứng đầu), bên phải là MỘT khung soạn dùng chung cho bản mới lẫn bản cũ */}

@@ -539,8 +539,8 @@ const LUAT = [
   { card: '1780', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<SiteFavicon url="https://www.facebook.com" size={14} /></a>;', vi: 'ô Bài post chỉ còn icon Facebook' },
   { card: '1780', tep: 'apps/etp2/src/components/etp-view.tsx', cam: "{me ? 'Bài mẹ' : 'Bài'} ↗</a>", vi: 'không quay về chữ "Bài ↗" cạnh icon Facebook' },
   // #1784 (anh 23/11/2026 'Ở drawer tạo phải có lộ trình, timeline... để ai cũng hiểu'): ngăn creative phim có lộ trình 5 chặng + tiến độ máy dựng theo bước
-  { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: 'function LoTrinh(', vi: 'khung lộ trình 5 chặng Soạn → Máy dựng → Thư viện → Lên camp → Chạy' },
-  { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', mot: '<LoTrinh ds={chang} dang={dang} />', vi: 'lộ trình nằm đầu thân ngăn' },
+  // anh 23/11/2026 (ảnh khoanh đỏ dải 5 chặng: "Xoá cái này đi"): bỏ hẳn khung lộ trình khỏi ngăn — thay hai điều kiện cũ của #1784
+  { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', cam: 'LoTrinh', vi: 'không quay lại dải lộ trình 5 chặng Soạn → Máy dựng → Thư viện → Lên camp → Chạy (anh bảo xoá 23/11/2026)' },
   { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: '<TienDung buoc={s.buoc} />', vi: 'bản đang dựng hiện dải tiến độ theo bước máy' },
   { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', cam: "` (${BUOC_DUNG[s.buoc] ?? 'đang làm'})`", vi: 'không quay về chữ bước dựng trong ngoặc thay cho tiến độ' },
   // #1786 (anh 23/11/2026 'Ngu thế ai hiểu' — nút bản dở chỉ ghi "<tên mẫu> · nháp"): nút ghi việc + số bản, tên mẫu vào chữ rê

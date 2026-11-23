@@ -875,7 +875,7 @@ const NB_KIEU: { k: KieuNb['kieu']; ten: string; mo: string }[] = [
   { k: 'bo', ten: 'Sang bộ tài khoản khác', mo: 'Clone sang bộ tài khoản khác — KHÔNG dùng được used post (bài đăng thuộc Page của bộ gốc) nên đăng bài mới cùng creative camp gốc, $1; bỏ qua các cổng chỉ dành cho nhân trong cùng bộ. Vẫn qua cổng chấm sạch + rào chắn etp.' },
   { k: 'roas', ten: 'Camp ROAS', mo: 'Nhân bản với bid ROAS goal (giá thầu theo ROAS tối thiểu), dùng LẠI bài đăng cũ của camp gốc (giữ tương tác), ngân sách $5–20 (camp mới $5, lãi thì nuôi dần lên). Mức 0.9 / 1 / 1.1, hoặc cặp 0.9 + 1.1 một lần bấm hai camp (Dol 22/11/2026: camp ★ lên mà lãi → nhân thêm 2 camp bid 0.9, 1.1). Nguồn "creative mới" = creative đã duyệt cùng phim chưa có camp, $5–10. Hợp với camp đã chi > $100 mà ROI > 50%, hoặc camp ★ ROAS chi > $10 mà ROI > 50%. Mức ROAS nhập sai = lỗi camp — máy đọc lại, sai thì tạm dừng.' },
 ];
-function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'trang_thai' | 'ngan_sach' | 'nay' | 'qua' | 'thang'> & { cam?: CampEtpKho['cam'] }; /** nút chữ to (ngăn camp — điện thoại) */ lon?: boolean; /** bộ tài khoản khi đứng ngoài DieuKhienCtx */ boDs?: string[]; /** lệnh chờ áp khi đứng ngoài DieuKhienCtx */ choDs?: ChoAp[]; /** lịch sử khi đứng ngoài DieuKhienCtx */ lsDk?: LsDk }) {
+function DieuKhienCamp({ c, lon, tat, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'trang_thai' | 'ngan_sach' | 'nay' | 'qua' | 'thang'> & { cam?: CampEtpKho['cam'] }; /** nút chữ to (ngăn camp — điện thoại) */ lon?: boolean; /** #1789: nút ⏸ / ▶ ở cột TT — mở thẳng tab Bật/Tắt, sẵn câu xác nhận tắt (vẫn phải bấm Làm) */ tat?: boolean; /** bộ tài khoản khi đứng ngoài DieuKhienCtx */ boDs?: string[]; /** lệnh chờ áp khi đứng ngoài DieuKhienCtx */ choDs?: ChoAp[]; /** lịch sử khi đứng ngoài DieuKhienCtx */ lsDk?: LsDk }) {
   const router = useRouter();
   const ctx = useContext(DieuKhienCtx), bo = boDs ?? ctx?.bo ?? [], dsCho = choDs ?? ctx?.cho.get(c.camp_id) ?? [];
   const ls = lsDk ?? ctx?.ls(c.camp_id) ?? { tay: [], batTat: [], bac: [] };
@@ -899,7 +899,16 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
   const laSao = /★ ROAS/.test(c.ten ?? ''), saoLai = laSao && c.thang.chi > 10 && (rThang ?? 0) > 50;   // camp ★ ROAS vừa lên đã lãi (Dol 22/11/2026 "2 camp lên mà lãi luôn → duplicate thêm 2 camp, bid 0.9, 1.1")
   const goiNb: KieuNb['kieu'] | null = (c.thang.chi > 100 && (rThang ?? 0) > 50) || saoLai ? 'roas' : (rQua ?? -1) >= 30 ? 'thuong' : null;
   const lam = async (ten: string, f: () => Promise<{ ok: true; chu: string } | { loi: string }>) => {
-    setDang(ten); setKq(null); const r = await f(); setDang(null);
+    setDang(ten); setKq(null);
+    // #1789: lệnh hỏng giữa đường (máy chủ vừa lên bản → "An unexpected response was received from the server") trước đây làm khung đứng im ở "đang gửi máy…" — nay báo đỏ ngay dưới nút
+    let r: Awaited<ReturnType<typeof f>>;
+    try { r = await f(); } catch (e) {
+      setDang(null);
+      const m = String((e as Error)?.message ?? e);
+      setKq({ ok: false, o: ten, chu: `Lệnh CHƯA gửi được — máy chủ trả lỗi: ${m}\n${/unexpected response|Failed to find Server Action|fetch/i.test(m) ? 'Trang vừa lên bản mới: bấm F5 tải lại trang rồi làm lại.' : 'Bấm làm lại; còn lỗi thì gửi góp ý kèm câu này.'}` });
+      return;
+    }
+    setDang(null);
     if ('loi' in r) { setKq({ ok: false, chu: r.loi, o: ten }); return; }
     setKq({ ok: true, chu: r.chu, o: ten }); router.refresh();
   };
@@ -918,13 +927,20 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
   const hop: React.CSSProperties = { padding: 12, border: '1px solid var(--line)', borderRadius: 8, marginBottom: 12 };
   const o2: React.CSSProperties = { width: 70, fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'inherit' };
   // phim cấm (etp:phim-cam-quet-2011): khoá Bật / Tăng / Nhân bản — máy quét don_phim_cam tự tắt camp mỗi nhịp đồng bộ
+  if (c.cam && tat) return null;   // cột TT: camp phim cấm không có nút ⏸ / ▶ — nhãn CẤM đã hiện ở chỗ ⚙
   if (c.cam) return <NhanCam cam={c.cam} />;
+  const dangChay = c.trang_thai === 'ACTIVE';
   return <>
-    <button onClick={(e) => { e.stopPropagation(); setMo(true); setKq(null); setXem(null); setNs(String(c.ngan_sach)); setKieu(goiNb ?? 'thuong'); setNguonRoas('cu'); setNhieu(saoLai ? ROAS_CAP : null); setNsRoas('5'); setNsTay(''); setChay('lich'); setGioDat(''); }} title="điều khiển camp: bật / tắt · bậc ngân sách · nhân bản"
+    {/* #1789 anh "Cần option để tao tắt camp thủ công": nút tắt nằm ngay cột TT, mở thẳng tab Tắt với câu xác nhận sẵn — không phải bấm ⚙ rồi tìm tab */}
+    {tat ? <button onClick={(e) => { e.stopPropagation(); setMo(true); setKq(null); setXem(null); setEp(false); setGhi(''); setTab('tt');
+        setCho(dangChay ? { o: 'tt', chu: `tắt camp #${c.camp_id}`, f: () => campTay(c.camp_id, 'tat', { ep: false, ghi: '' }) } : null); }}
+      title={dangChay ? 'tắt camp này bằng tay (hỏi xác nhận trước khi gửi)' : 'bật lại camp này bằng tay'}
+      style={{ border: `1px solid ${dangChay ? '#f8717188' : 'var(--line)'}`, borderRadius: 5, background: 'var(--bg-2)', color: dangChay ? '#fca5a5' : 'var(--fg-1)', cursor: 'pointer', padding: '0 4px', fontSize: 11, lineHeight: '16px', flexShrink: 0 }}>{dangChay ? '⏸' : '▶'}</button>
+    : <button onClick={(e) => { e.stopPropagation(); setMo(true); setTab('ns'); setCho(null); setKq(null); setXem(null); setNs(String(c.ngan_sach)); setKieu(goiNb ?? 'thuong'); setNguonRoas('cu'); setNhieu(saoLai ? ROAS_CAP : null); setNsRoas('5'); setNsTay(''); setChay('lich'); setGioDat(''); }} title="điều khiển camp: bật / tắt · bậc ngân sách · nhân bản"
       style={lon ? { fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--accent, #60a5fa)', background: 'var(--accent-soft, #60a5fa18)', color: 'inherit', cursor: 'pointer', width: '100%', textAlign: 'left' }
         // #1553 mở lại 19/11/2026: ⚙ xám 12px không viền chìm hẳn cạnh số ngân sách → trông như chưa có điều khiển. Nay là nút có viền, chữ sáng, cỡ như số ngân sách
         // (màu trung tính — YDNI: một hàng một nút, không tô nhấn cả 74 dòng)
-        : { border: '1px solid var(--line)', borderRadius: 5, background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', padding: '0 5px', fontSize: 13, lineHeight: '18px' }}>{lon ? `⚙ Điều khiển camp${dsCho.length ? ` · ⏳ ${dsCho.length} chờ áp` : ''}` : '⚙'}</button>
+        : { border: '1px solid var(--line)', borderRadius: 5, background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', padding: '0 5px', fontSize: 13, lineHeight: '18px' }}>{lon ? `⚙ Điều khiển camp${dsCho.length ? ` · ⏳ ${dsCho.length} chờ áp` : ''}` : '⚙'}</button>}
     {mo ? <Drawer onClose={() => setMo(false)} width={520} padding={16}>
       <div onClick={(e) => e.stopPropagation()} style={{ fontSize: 12 }}>
         <DauCamp c={c} />
@@ -936,7 +952,7 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
         </div>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
           <label title="bỏ chặn mềm của máy: tắt camp đang lãi > 20%, tăng lại camp vừa bị giảm, nhịp tăng 24 giờ — thang bậc, trần $30, rào chắn etp vẫn giữ" style={{ display: 'flex', gap: 6, alignItems: 'flex-start', flex: 1, color: ep ? '#fbbf24' : 'var(--fg-2)', lineHeight: 1.4, cursor: 'pointer' }}>
-            <input type="checkbox" checked={ep} onChange={(e) => setEp(e.target.checked)} />
+            <input type="checkbox" checked={ep} onChange={(e) => { setEp(e.target.checked); setCho(null); }} />
             <span><b>Ép</b>{hd ? ' — bỏ chặn mềm của máy: tắt camp đang lãi > 20%, tăng lại camp vừa bị giảm, nhịp tăng 24 giờ. Thang bậc, trần $30 và rào chắn etp vẫn giữ.' : ''}</span>
           </label>
           <button onClick={() => setHd((v) => !v)} title={hd ? 'ẩn hướng dẫn' : 'hiện hướng dẫn từng mục'} style={{ ...nut, padding: '1px 8px', borderColor: hd ? 'var(--accent, #60a5fa)' : 'var(--line)' }}>ℹ</button>
@@ -2360,7 +2376,7 @@ const toSangDong = (hl: Set<number> | null | undefined, id: number, goc?: React.
 
 function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, dongCr, moCamp, moPhim, onTimDoi, khiTimTrong, hl }: { hl?: Set<number> | null; kyCay?: { tu: string; den: string }; onTimDoi?: (q: string) => void; khiTimTrong?: React.ReactNode; moCamp?: (id: number) => void; moPhim?: (k: string) => void; camps: CampEtpKho[]; hang?: CampEtpKho[]; du: DuLieuEtp; hep?: boolean; laiKy: (c: CampEtpKho) => SoTien; tenKy: string; moCr?: (cr: number, e: React.MouseEvent, camp?: number) => void; dongCr?: () => void }) {
   const coLich = du.cauHinh.find((k) => k.khoa === 'lich_gio')?.gia_tri === true, LT = luoiTrong(coLich);
-  const choCay = useContext(DieuKhienCtx)?.cho;   // vết ⏳ ở ô ngân sách dòng điện thoại
+  const dkCay = useContext(DieuKhienCtx), choCay = dkCay?.cho;   // vết ⏳ ở ô ngân sách dòng điện thoại · dkCay != null = chủ được điều khiển (nút ⏸ cột TT, #1789)
   const { boThang, thangMuc } = soThang(du);   // lịch giờ đang tắt → không có cột lịch
   const tlC = (k: string | null) => (k ? du.theLoai[k] ?? k : '—');
   const [xep, setXep] = useState<'lai' | 'tuoi'>('lai');
@@ -2550,7 +2566,9 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
       ? <span style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}><BadgeSx cid={k} ds={du.dongChay ?? []} kt={ktCua.get(k)} /></span> : null; }, cell: (c) => { if (c.camp_id < 0) { const a = c.creative_id ? anhCr.get(c.creative_id) : undefined; return <NutLenGio cr={c.creative_id} anh={a?.anh} video={a?.video} />; }   // ▶ Lên ngay / đặt giờ dòng xếp hàng (anh 22/11/2026)
         const x = ttCamp(c); const o0 = <span style={{ display: 'block', fontSize: 11, color: x.mau, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'help' }}>{x.chu}</span>;
         const o = choGio(c) ? <span style={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}><span style={{ flex: 1, minWidth: 0 }}>{o0}</span><NutLenGio camp={c.camp_id} lich={c.lich} /></span> : o0;   // 🕒 đổi giờ camp đã đẩy chưa chạy (anh 22/11/2026)
-        return c.trang_thai === 'ACTIVE' || c.giao === 'DISAPPROVED' ? <ReThe the={() => ({ ma: `#${c.camp_id}`, ten: c.ten, tieu: x.chu, mau: x.mau, moc: [{ ten: 'Trạng thái', mau: x.mau, chu: x.t }] })}>{o}</ReThe> : <ReDung c={c}>{o}</ReDung>; }, sortValue: (c) => ttCamp(c).chu },   // cột hẹp cố định — không ăn khoảng thừa của bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang")
+        const re = c.trang_thai === 'ACTIVE' || c.giao === 'DISAPPROVED' ? <ReThe the={() => ({ ma: `#${c.camp_id}`, ten: c.ten, tieu: x.chu, mau: x.mau, moc: [{ ten: 'Trạng thái', mau: x.mau, chu: x.t }] })}>{o}</ReThe> : <ReDung c={c}>{o}</ReDung>;
+        // #1789 anh "Cần option để tao tắt camp thủ công": ⏸ tắt / ▶ bật ngay cạnh chữ trạng thái (chỉ chủ) — mở khung điều khiển ở tab Tắt, phải bấm Làm mới gửi
+        return dkCay && c.camp_id > 0 ? <span style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}><span style={{ flex: 1, minWidth: 0 }}>{re}</span><DieuKhienCamp c={c} tat /></span> : re; }, sortValue: (c) => ttCamp(c).chu },   // cột hẹp cố định — không ăn khoảng thừa của bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang")
     { key: 'tuoi', header: 'Tuổi', width: 52, title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: tuoiTitle, cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)),
       // NÚT ＋ MỞ RỘNG ở dòng PHIM, thẳng một cột (anh 04/11/2026 "phải thẳng cột") — dòng tổng bảng (nhiều phim) không có
       total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k) ? <NutMoRong cid={k} cam={rs.find((x) => x.cam)?.cam} /> : null; } },   // ＋ thẳng cột trong cột Tuổi (hẹp 52); đồng hồ các đợt ở ô TT ngay bên trái

@@ -178,6 +178,7 @@ submit)
         cty) dir=/opt/cty ;;
         earns-marketing-os-v2) dir=/opt/earns-marketing-os-v2 ;;
         outreach) dir=/opt/outreach ;;
+        worlds) dir=/opt/worlds ;;
         dantranh) dir=/opt/dantranh ;;
         *) echo "submit #$id bị chặn: chưa biết thư mục deploy của repo $repo trên box3 để kiểm commit (thêm vào scripts/gop-y.sh)." >&2; exit 1 ;;
       esac

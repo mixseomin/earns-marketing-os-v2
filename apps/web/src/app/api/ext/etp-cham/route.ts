@@ -8,8 +8,11 @@ import { resolveExtUser } from '../_auth';
 //   GET  ?so=N  → nhận tối đa N creative trong hàng etp.cham_hang (nút "Chấm" trên trang ưu tiên, rồi creative mới) + tiêu chí (etp.tieu_chi)
 //               + luật từ cấm / CTA (xv_khoa_ngoai ethopex_mau_cam — dong-bo.py xuất từ kiem-thoai.py / cta_qc.py, một nguồn)
 //   POST {creative_id, buoc}                                           → báo bước đang làm (bảng chấm trực tiếp trên etp.on.tc)
-//   POST {creative_id, loi?, lop, diem, ly_do, khung, meta, afs, ket} → ghi etp.cham + đánh dấu hàng xong / lỗi
-type ViecCham = { creative_id: number; video: string; dur: number; doan: string | null; phim: string | null };
+//   POST {creative_id, loi?, lop, diem, ly_do, khung, meta, afs, ket} → ghi etp.cham + đánh dấu hàng xong / lỗi; lớp giọng lỗi → xếp hàng CHÉP LẠI GIỌNG (nguon='giong')
+//   POST {creative_id, giong}                                          → kết quả chép lại giọng: ghép lop.giong vào bản chấm, từ cấm trong lời kéo Meta ngôn từ (≤ 6)
+// (anh 23/11/2026 "Hook cũng ko giống với voice trong video ?": 1.358 bản chấm mất giọng vì Whisper 9423 — thẻ lấy chữ trên hình làm hook)
+type ViecCham = { creative_id: number; video: string; dur: number; doan: string | null; phim: string | null; nguon: string | null };
+const CAM_META = 5, XEM = 7;   // cùng ngưỡng worker etp-cham (apps/etp-cham-worker/src/index.ts)
 
 async function quyen(req: Request) {
   const u = await resolveExtUser(req);
@@ -34,9 +37,9 @@ export async function GET(req: Request) {
   const viec = (await db.execute(sql`with nhan as (
       update etp.cham_hang set trang_thai = 'dang', bat_dau = now(), buoc = 'Cloudflare nhận việc', nhat_ky = jsonb_build_array(jsonb_build_object('b', 'Cloudflare nhận việc', 'luc', now())) where creative_id in (
         select h.creative_id from etp.cham_hang h join etp.creative c on c.creative_id = h.creative_id and c.video is not null
-        where h.trang_thai = 'cho' and (h.thu_lai_luc is null or h.thu_lai_luc <= now()) order by (h.nguon = 'nut') desc, h.luc limit ${so} for update of h skip locked)
-      returning creative_id)
-    select c.creative_id, c.video, coalesce(c.den - c.tu, 85) + 4 dur, c.doan, p.ten phim
+        where h.trang_thai = 'cho' and (h.thu_lai_luc is null or h.thu_lai_luc <= now()) order by (h.nguon = 'nut') desc, (h.nguon = 'giong') desc, h.luc limit ${so} for update of h skip locked)
+      returning creative_id, nguon)
+    select c.creative_id, nhan.nguon, c.video, coalesce(c.den - c.tu, 85) + 4 dur, c.doan, p.ten phim
     from nhan join etp.creative c using (creative_id) left join etp.phim p on p.content_id = c.content_id`)) as unknown as ViecCham[];
   if (!viec.length) return NextResponse.json({ viec: [] });
   const [tieuChi, mau] = await Promise.all([
@@ -48,7 +51,8 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   if (!(await quyen(req))) return NextResponse.json({ loi: 'cấm' }, { status: 403 });
-  const b = (await req.json()) as { buoc?: string; creative_id: number; loi?: string | null; lop?: unknown; diem?: unknown; ly_do?: unknown; khung?: unknown; meta?: number | null; afs?: number | null; ket?: string | null };
+  const b = (await req.json()) as { buoc?: string; creative_id: number; loi?: string | null; lop?: unknown; diem?: unknown; ly_do?: unknown; khung?: unknown; meta?: number | null; afs?: number | null; ket?: string | null;
+    giong?: { luc: string; noi_dung: string; ngon_ngu: string | null; loi: string[] } };
   const id = Number(b.creative_id);
   if (!Number.isInteger(id) || id <= 0) return NextResponse.json({ loi: 'creative_id sai' }, { status: 400 });
   const db = getDb()!;
@@ -56,6 +60,28 @@ export async function POST(req: Request) {
     await db.execute(sql`update etp.cham_hang set buoc = ${b.buoc.slice(0, 200)}, nhat_ky = nhat_ky || jsonb_build_array(jsonb_build_object('b', ${b.buoc.slice(0, 200)}::text, 'luc', now()))
       where creative_id = ${id} and trang_thai = 'dang'`);
     return NextResponse.json({ ok: true });
+  }
+  if (b.giong && typeof b.giong.noi_dung === 'string') {
+    const cu = ((await db.execute(sql`select lop, diem, ly_do, loi from etp.cham where creative_id = ${id}`)) as unknown as
+      { lop: Record<string, unknown> | null; diem: Record<string, number> | null; ly_do: Record<string, string> | null; loi: string | null }[])[0];
+    if (cu) {
+      const loiLoi = (b.giong.loi ?? []).filter((x) => String(x).startsWith('lời')).slice(0, 20);
+      const lop = { ...(cu.lop ?? {}), giong: { ...b.giong, loi: loiLoi } }, diem = { ...(cu.diem ?? {}) }, ly = { ...(cu.ly_do ?? {}) };
+      if (loiLoi.length && 'meta.ngon_tu' in diem) {
+        const chuLoi = ((lop as { chu?: { loi?: string[] } }).chu?.loi ?? []).filter((x) => !x.startsWith('lời'));
+        diem['meta.ngon_tu'] = Math.min(diem['meta.ngon_tu']!, 6); ly['meta.ngon_tu'] = `máy đọc thấy từ cấm: ${[...chuLoi, ...loiLoi].join('; ')}`.slice(0, 300);
+      }
+      const vals = (g: string) => Object.entries(diem).filter(([k]) => k.startsWith(`${g}.`)).map(([, x]) => x);
+      const meta = vals('meta').length ? Math.min(...vals('meta')) : null, afs = vals('afs').length ? Math.min(...vals('afs')) : null;
+      const ket = meta == null ? null : meta <= CAM_META ? 'cam' : meta <= XEM || (afs != null && afs <= XEM) ? 'xem' : 'ok';
+      const loi = (cu.loi ?? '').split('; ').filter((x) => x && !x.startsWith('giọng:')).join('; ') || null;
+      await db.execute(sql`update etp.cham set lop = ${JSON.stringify(lop)}::jsonb, diem = ${JSON.stringify(diem)}::jsonb, ly_do = ${JSON.stringify(ly)}::jsonb,
+        meta = ${meta}, afs = ${afs}, ket = coalesce(${ket}, ket), loi = ${loi}, luc = now() where creative_id = ${id}`);
+    }
+    const tu = b.giong.noi_dung.split(/\s+/).filter(Boolean).length;
+    await db.execute(sql`update etp.cham_hang set trang_thai = 'xong', xong = now(), loi = null, buoc = 'xong · đã chép lại giọng',
+      nhat_ky = nhat_ky || jsonb_build_array(jsonb_build_object('b', ${`đã chép lại giọng ${tu} từ${cu ? '' : ' (chưa có bản chấm để ghép)'}`}::text, 'luc', now())) where creative_id = ${id}`);
+    return NextResponse.json({ ok: true, giong: tu });
   }
   if (b.lop && b.diem) {
     await db.execute(sql`insert into etp.cham (creative_id, doan, may, lop, diem, ly_do, khung, meta, afs, ket, loi)
@@ -65,6 +91,13 @@ export async function POST(req: Request) {
         ly_do = excluded.ly_do, khung = excluded.khung, meta = excluded.meta, afs = excluded.afs, ket = excluded.ket, loi = excluded.loi`);
   }
   const xong = !!(b.lop && b.diem);   // một lớp lỗi (vd giọng) vẫn có bản chấm — lỗi ghi kèm, cột lớp đó hiện "–"
+  // lớp GIỌNG lỗi (Whisper hết lượt thử) → hàng CHÉP LẠI GIỌNG sau 10 phút, không để thẻ lấy chữ trên hình làm hook mãi
+  if (xong && /(^|; )giọng:/.test(b.loi ?? '')) {
+    await db.execute(sql`update etp.cham_hang set trang_thai = 'cho', nguon = 'giong', bat_dau = null, xong = null, lan_thu = 0, thu_lai_luc = now() + interval '10 minutes',
+      loi = ${b.loi ?? null}, buoc = 'chờ chép lại giọng',
+      nhat_ky = nhat_ky || jsonb_build_array(jsonb_build_object('b', ${`đã chấm · ${b.ket ?? ''} · giọng lỗi → chép lại giọng sau 10 phút`}::text, 'luc', now())) where creative_id = ${id}`);
+    return NextResponse.json({ ok: true, chep_lai_giong: true });
+  }
   // LỖI TẠM THỜI → TỰ THỬ LẠI (anh 26/10/2026: "Lỗi thì phải có cách xử lý chứ mày cứ để mãi ở đấy?"): mất mạng, Cloudflare lỗi nội bộ, đường Claude lỗi, mos2 5xx…
   // xếp lại hàng chờ, giãn 5 / 15 / 45 phút, tối đa 3 lần. Lỗi do VIDEO (> 100 MB, không cắt được khung) không thử lại ở đây — apps/etp/cham-nhe.py dựng bản xem nhẹ rồi xếp lại.
   const loiVideo = /vượt giới hạn 100 MB|cắt được \d+\/\d+ khung|không tải được video \(4|không có trong kho/.test(b.loi ?? '');

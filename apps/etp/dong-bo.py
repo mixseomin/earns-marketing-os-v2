@@ -597,6 +597,14 @@ def main():
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "bai-qc.py"), "--so", "80"], capture_output=True, text=True, timeout=240)
         if '"thieu": 0' not in r.stdout or r.stderr.strip(): print(("bai-qc: " + r.stdout + r.stderr).strip()[-300:])
     except Exception as e: print(f"bai-qc: {e}")
+    # ── DỊCH SẴN chữ thẻ creative (anh 23/11/2026: "Phần dịch thì phải làm ngay từ lúc sinh ra creative !! … Chỉ các creative đang, chuẩn bị và sẽ chạy !!") —
+    # apps/etp2/scripts/dich-truoc.mts: camp ACTIVE · dòng thay thế · hàng chờ lên camp → etp.dich (khoá trùng thẻ), etp.dich_cr ghi creative đã dịch đủ. Sau bai-qc (cần chữ QC mới).
+    try:
+        goc = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+        r = subprocess.run([os.path.join(goc, "node_modules", ".bin", "tsx"), os.path.join(goc, "apps", "etp2", "scripts", "dich-truoc.mts"), "--so", "80"],
+                           capture_output=True, text=True, timeout=300, cwd=goc)
+        if r.returncode or '"loi": []' not in r.stdout: print(("dich-truoc: " + r.stdout + r.stderr).strip()[-300:])
+    except Exception as e: print(f"dich-truoc: {e}")
     # ── CHẤM CREATIVE MỌI THÀNH VIÊN (anh 31/10/2026) — nap-creative-ngoai.py --tu-dong, chỉ chạy khi etp.cau_hinh.cham_doi.bat
     try:
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nap-creative-ngoai.py"), "--tu-dong"], capture_output=True, text=True, timeout=180)

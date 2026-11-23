@@ -280,7 +280,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     // (4) camp lỗi đồng bộ / Meta từ chối (etp.camp.dong_bo = 'error' · giao = 'DISAPPROVED'). Chữ cắt 200 ký tự, thẻ nổi hiện đủ dòng.
     runNha<Ket>(sql`select * from (
         select r.content_id, 'creative' loai, r.creative_id id, left(case when h.trang_thai = 'loi' then 'chấm lỗi: ' || coalesce(h.loi, '?') else 'chờ chấm (' || coalesce(h.trang_thai, '') || ')' end, 200) chu, h.luc::text luc
-          from etp.cham_hang h join etp.creative r using (creative_id) where h.trang_thai in ('cho', 'dang', 'loi') and r.content_id is not null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
+          from etp.cham_hang h join etp.creative r using (creative_id) where h.trang_thai in ('cho', 'dang', 'loi') and h.nguon is distinct from 'giong' and r.content_id is not null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
         union all
         select r.content_id, 'creative', r.creative_id, left(case when coalesce(g.cho_duyet, '') <> '' then 'cổng chấm: chờ người duyệt (' || g.cho_duyet || ') — '
             when u.trang_thai = 'dang' then 'đang cắt bỏ khung vi phạm (máy cứu) — ' when u.trang_thai = 'loi' then 'máy cứu lỗi lần ' || u.lan || ': ' || coalesce(u.ly_do, '') || ' — '

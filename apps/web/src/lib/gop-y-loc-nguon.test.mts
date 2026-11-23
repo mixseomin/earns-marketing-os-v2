@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { boLocNguon } from './gop-y-loc-nguon';
+import { boLocNguon, laTrangTinh, trangRieng } from './gop-y-loc-nguon';
 
 const hien = (host: string, ref: string | null, src: string) => { const l = boLocNguon(host, ref); return new RegExp(l.mau).test(src) === l.khop; };
 const C = 'https://castle.on.tc/neuschwanstein.html', E = 'https://etp.on.tc/x', E2 = 'https://etp2.on.tc/', M = 'https://mos2.on.tc/?tab=taisan';
@@ -36,4 +36,22 @@ assert.equal(hien('mos2.on.tc', refD, 'https://dantranh2.on.tc/x'), true);
 assert.equal(hien('mos2.on.tc', refD, M), false);
 assert.equal(hien('mos2.on.tc', refD, C), false);
 assert.equal(hien('mos2.on.tc', null, D), false);
+// worlds / sprawl (23/11/2026: thiếu dòng trong sổ → hòm nhúng hiện cả 63 card mos2)
+const W = 'https://worlds.on.tc/#thanh-ri/chuoi', refW = 'https://mos2.on.tc/nhung/gop-y?trang=' + encodeURIComponent(W);
+assert.equal(hien('mos2.on.tc', refW, W), true);
+assert.equal(hien('mos2.on.tc', refW, M), false);
+assert.equal(hien('mos2.on.tc', refW, C), false);
+assert.equal(hien('mos2.on.tc', refW, ''), false);
+assert.equal(hien('mos2.on.tc', null, W), false);
+const SP = 'https://sprawl.on.tc/', refSP = 'https://mos2.on.tc/nhung/gop-y?trang=' + encodeURIComponent(SP);
+assert.equal(hien('mos2.on.tc', refSP, SP), true);
+assert.equal(hien('mos2.on.tc', refSP, W), false);
+assert.equal(hien('mos2.on.tc', null, SP), false);
+// tên giả không lọt: worlds.on.tc.evil / xworlds.on.tc
+assert.equal(trangRieng('worlds.on.tc.evil.com'), null);
+assert.equal(trangRieng('xworlds.on.tc'), null);
+assert.equal(trangRieng('worlds.on.tc:443')?.ten, 'Sổ Thế Giới');
+assert.equal(laTrangTinh('worlds.on.tc'), true);
+assert.equal(laTrangTinh('studio2.on.tc'), false);
+assert.equal(laTrangTinh('mos2.on.tc'), false);
 console.log('gop-y-loc-nguon: đạt');

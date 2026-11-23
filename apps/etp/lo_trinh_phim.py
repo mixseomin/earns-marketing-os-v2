@@ -246,7 +246,7 @@ def ghi_sx(q):
     o_du = (f"exists (select 1 from etp.creative c where c.creative_id = h.creative_id and (c.content_id in ({du}) or exists (select 1 from etp.ve_tay v"
             f" where v.loai = 'truc_tiep' and v.content_id = c.content_id and v.tao > now() - interval '24 hours')))")
     if ly: sx["giu_cham"] = int(q(f"""with g as (update etp.cham_hang h set trang_thai = 'giu_phanh', buoc = 'chờ phanh nhả (sổ luật san_xuat_theo_cho)'
-                                         where h.trang_thai = 'cho' and h.nguon <> 'nut' and not {o_du} returning 1) select count(*) from g""") or 0)
+                                         where h.trang_thai = 'cho' and h.nguon not in ('nut', 'giong') and not {o_du} returning 1) select count(*) from g""") or 0)
     sx["tra_cham"] = int(q(f"""with g as (update etp.cham_hang h set trang_thai = 'cho', buoc = null where h.trang_thai = 'giu_phanh' and ({'false' if ly else 'true'} or {o_du})
                                 returning 1) select count(*) from g""") or 0)
     return sx

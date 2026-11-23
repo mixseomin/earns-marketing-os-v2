@@ -1014,12 +1014,13 @@ function datAm() { const o = document.getElementById('tlAm'); if (!o || o.hidden
   o.style.left = `${Math.max(8, Math.min(Math.max(r.left, cu.left + 90), window.innerWidth - w - 8))}px`; o.style.top = `${r.top - h - 8 > 8 ? r.top - h - 8 : Math.min(r.bottom + 8, window.innerHeight - h - 8)}px`; }
 /** Từng dòng lời trong hộp "Lời đọc cảnh N" (góp ý #1783): nút ▶ nghe tiếng đang dùng của dòng đó + ảnh nhân vật nói (nếu có trong mẫu của phim), bấm ảnh → mở ngăn chi tiết nhân vật.
  *  Lấy từ bản ghi studio (tiếng đã đọc thật), cảnh mới sửa chưa lưu thì lùi về câu trên màn. */
-const nvTheoTen = (ten) => { const t = String(ten || '').trim().toLowerCase(); return t ? (D.that?.mau || []).find((m) => m.loai === 'nhan_vat' && String(m.ten || '').trim().toLowerCase() === t) : null; };
+// người nói trùng tên mẫu nhân vật → mẫu đó; không trùng (vd ngôi thứ nhất "Tôi") mà cảnh chỉ gắn đúng MỘT nhân vật → nhân vật đó; Lời dẫn / không tên → không có ảnh
+const nvTheoTen = (ten, g) => { const t = String(ten || '').trim().toLowerCase(); if (!t || t === 'lời dẫn') return null; const nv = (D.that?.mau || []).filter((m) => m.loai === 'nhan_vat'); const m = nv.find((x) => String(x.ten || '').trim().toLowerCase() === t); if (m) return m; const o = (Array.isArray(g?.nhan_vat) ? g.nhan_vat : []).map(Number), co = nv.filter((x) => o.includes(+x.id)); return co.length === 1 ? co[0] : null; };
 function veAmLoi(g, c) {
   const gt = (Array.isArray(g.thoai) ? g.thoai : []).filter((t) => t.loi);
   const ds = gt.length ? gt.map((t) => ({ ai: t.nhan_vat || 'Lời dẫn', cau: t.loi, url: t.url })) : c.thoai.length ? c.thoai.map((t) => ({ ai: t.ai, cau: t.cau, url: '' })) : c.loi ? [{ ai: '', cau: c.loi, url: g.thoai_url }] : [];
   if (!ds.length) return '<span class="nho">Cảnh chưa có lời</span>';
-  return `<div class="am-loi">${ds.map((d) => { const m = nvTheoTen(d.ai), dang = d.url && AM_NGHE.url === d.url && !AM_NGHE.a.paused;
+  return `<div class="am-loi">${ds.map((d) => { const m = nvTheoTen(d.ai, g), dang = d.url && AM_NGHE.url === d.url && !AM_NGHE.a.paused;
     const nv = m ? `<button type="button" class="am-nv" data-d="amNv" data-g="${m.id}" title="Mở chi tiết nhân vật ${esc(m.ten)}" aria-label="Mở chi tiết nhân vật ${esc(m.ten)}">${m.anh ? `<img src="${esc(nho(m.anh, 96))}" alt="">` : `<i>${esc(m.ten.slice(0, 1).toUpperCase())}</i>`}</button>` : '<span class="am-nv trong" aria-hidden="true"></span>';
     const nghe = d.url ? `<button type="button" class="bt ic-bt am-nghe" data-d="amNghe" data-g="${esc(d.url)}" aria-pressed="${!!dang}" title="${dang ? 'Dừng' : 'Nghe giọng đang dùng của dòng này'}" aria-label="${dang ? 'Dừng' : 'Nghe giọng hiện tại'}">${dang ? '■' : '▶'}</button>` : '<button type="button" class="bt ic-bt am-nghe" disabled title="Dòng này chưa có tiếng">▶</button>';
     return `<div class="am-dong">${nghe}${nv}<span>${d.ai ? `<b>${esc(d.ai)}:</b> ` : ''}${esc(d.cau.slice(0, 90)) || '<i>chưa có câu</i>'}</span></div>`; }).join('')}</div>`; }

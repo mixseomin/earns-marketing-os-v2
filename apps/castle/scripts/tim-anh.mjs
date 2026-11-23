@@ -5,6 +5,7 @@
 //   node apps/castle/scripts/tim-anh.mjs --xz 37,-13 [--r 100]       tìm quanh một toạ độ cảnh (x đông, z nam, mét)
 //   node apps/castle/scripts/tim-anh.mjs --ghi-cong              ảnh đã nằm trong anh/web mà sổ ghi công thiếu → tra lại nguồn theo tên tệp, ghi bổ sung
 //   … thêm --tai 1,3,5  → tải đúng các ảnh số đó trong danh sách vừa in (--tai het = tải hết)
+//   … ảnh tải hỏng (Commons 429 sau 6 lần thử) ghi vào .kho-goc/<lâu>-anh-web-hong.json, lượt sau bỏ qua 6 giờ; thêm --lai-hong để thử lại
 // Ảnh tải về: apps/castle/public/du-lieu/anh/web/<nguồn>-<id>.jpg; tác giả / giấy phép / toạ độ / hướng ghi vào public/du-lieu/<lâu>-anh-web.json (bắt buộc ghi công
 // khi dùng). Đo mặt tiền trên ảnh thì theo QUY-TRINH.md (đo điểm ảnh → du-lieu/<lâu>-mat-*.json). Khoá Mapillary: MLY_TOKEN hoặc vault acct #689 (~/bin/acct).
 // Tìm ảnh dùng chung máy chủ kênh: server/anh-quanh.mjs.
@@ -20,6 +21,9 @@ const arg = (k) => { const i = doiSo.indexOf(k); return i >= 0 ? doiSo[i + 1] : 
 const D = JSON.parse(readFileSync(join(PUB, 'du-lieu', `${LAU}.json`), 'utf8')), [la0, lo0] = D.tam, MX = 111320 * Math.cos((la0 * Math.PI) / 180);
 const raLatLng = (x, z) => [la0 - z / 111320, lo0 + x / MX];
 const THU = join(PUB, 'du-lieu', 'anh', 'web'), SO = du('anh-web');
+// sổ ảnh tải hỏng (ngoài public, không lên trang): .kho-goc/<lâu>-anh-web-hong.json — lượt sau bỏ qua trong 6 giờ, --lai-hong thử lại
+const HONG = join(PUB, '..', '.kho-goc', `${LAU}-anh-web-hong.json`), hong = existsSync(HONG) ? JSON.parse(readFileSync(HONG, 'utf8')) : {};
+const ghiHong = () => { mkdirSync(join(PUB, '..', '.kho-goc'), { recursive: true }); writeFileSync(HONG, JSON.stringify(hong, null, 1) + '\n'); };
 
 // đọc ANH-THAT-JSON:{…} trong chữ (ngoặc cân bằng — JSON lồng mảng / object)
 function docJsonSau(txt, nhan) {
@@ -36,9 +40,12 @@ async function taiVe(ds, the = null) {
   for (const a of ds) {
     const tep = tenTep(a.nguon, a.id), duong = join(THU, tep);
     if (!existsSync(duong)) {
+      // ảnh vừa hỏng (đã thử đủ 6 lần) trong 6 giờ qua → bỏ qua, không đốt thêm ~12 phút mỗi lần khối khác tìm trúng nó; --lai-hong thử lại hết
+      if (hong[tep] && Date.now() - hong[tep].luc < 6 * 3600e3 && !doiSo.includes('--lai-hong')) { console.error(`✗ ${a.nguon} ${a.id}: bỏ qua, tải hỏng lúc ${new Date(hong[tep].luc + 7 * 3600e3).toISOString().slice(11, 16)} (GMT+7) — chạy lại với --lai-hong`); continue; }
       const r = await taiMang(a.url || a.lon); // giãn nhịp + thử lại khi 429 / 5xx: server/tai-mang.mjs
-      if (!r.ok) { console.error(`✗ ${a.nguon} ${a.id}: tải lỗi ${r.status} (đã thử lại)`); continue; }
+      if (!r.ok) { console.error(`✗ ${a.nguon} ${a.id}: tải lỗi ${r.status} (đã thử lại)`); hong[tep] = { luc: Date.now(), ma: r.status, url: a.url || a.lon }; ghiHong(); continue; }
       writeFileSync(duong, Buffer.from(await r.arrayBuffer()));
+      if (hong[tep]) { delete hong[tep]; ghiHong(); }
     }
     const ghi = { tep: `anh/web/${tep}`, nguon: a.nguon, id: a.id, trang: a.trang, tacGia: a.tacGia, giayPhep: a.giayPhep, lat: a.lat, lng: a.lng, huong: a.huong ?? null, luc: a.luc ?? null, ...(the ? { the: +the } : {}) };
     const i = so.findIndex((x) => x.tep === ghi.tep); if (i >= 0) so[i] = { ...so[i], ...ghi }; else so.push(ghi);

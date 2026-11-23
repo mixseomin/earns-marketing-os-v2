@@ -8,6 +8,7 @@
 // Sổ đo: public/du-lieu/<lâu>-do-anh.json { anh: { <tệp>: camera + điểm khớp }, mat: { "khối#cạnh": { rang_cua: { gia_tri, nhip_m, tin, anh, ung_vien } } } }.
 //   node apps/castle/scripts/do-anh.mjs --khoi way/223110818[,way/…] [--tim] [--ghi] [--ghi-de] [--lam-lai]
 //       --tim      tìm + tải thêm ảnh quanh khối trước (scripts/tim-anh.mjs --tai het: Commons theo danh mục + Mapillary)
+//       --lai-hong cùng --tim: tải lại cả ảnh vừa hỏng trong 6 giờ qua (mặc định bỏ qua — sổ .kho-goc/<lâu>-anh-web-hong.json)
 //       --ghi      ghi số đạt vào <lâu>-cua-so.json (chỉ trường CHƯA có; --ghi-de: đè cả trường đã có). Không --ghi = chỉ in bảng.
 //       --cua      đếm thêm CỬA SỔ + GỜ NGANG (scripts/dem-cua-so.py): ghi khi mặt đang trống cửa và ảnh phủ ≥ 90 % cạnh; mặt đã có số thì chỉ so KHỚP / LỆCH
 //       --lam-lai  định vị lại cả ảnh đã có trong sổ đo
@@ -143,7 +144,7 @@ const kho = JSON.parse(readFileSync(join(KHO, 'kho.json'), 'utf8')), khoY = [Mat
 console.log(`   ${kho.length} góc nhìn (${KHO})`);
 
 const dienTich = (v) => Math.abs(v.reduce((a, p, i) => a + p[0] * v[(i + 1) % v.length][1] - v[(i + 1) % v.length][0] * p[1], 0)) / 2;
-if (co('--tim')) for (const id of [...KHOI].sort((a, b) => dienTich(D.khoi.find((k) => k.id === b).ngoai[0]) - dienTich(D.khoi.find((k) => k.id === a).ngoai[0])).slice(0, 4)) { /* 4 khối lớn nhất của nhóm: khối cạnh nhau ra cùng danh mục ảnh */ console.log(`   tìm ảnh quanh ${id}`); chay(process.execPath, [join(SC, 'tim-anh.mjs'), '--khoi', id, '--r', '80', '--tai', 'het', '--lau', LAU]); }
+if (co('--tim')) for (const id of [...KHOI].sort((a, b) => dienTich(D.khoi.find((k) => k.id === b).ngoai[0]) - dienTich(D.khoi.find((k) => k.id === a).ngoai[0])).slice(0, 4)) { /* 4 khối lớn nhất của nhóm: khối cạnh nhau ra cùng danh mục ảnh */ console.log(`   tìm ảnh quanh ${id}`); chay(process.execPath, [join(SC, 'tim-anh.mjs'), '--khoi', id, '--r', '80', '--tai', 'het', '--lau', LAU, ...(co('--lai-hong') ? ['--lai-hong'] : [])]); }
 const WEB = existsSync(du('anh-web')) ? JSON.parse(readFileSync(du('anh-web'), 'utf8')) : [], coTep = WEB.filter((a) => existsSync(join(PUB, 'du-lieu', a.tep)));
 const VK = V.join('_') + (VONG ? '_vong' : ''), raCu = join(KHO, 'khop.json'), nhoKhop = existsSync(raCu) && !co('--lam-lai') ? JSON.parse(readFileSync(raCu, 'utf8')) : {};
 // ảnh chưa có camera được thử ở tối đa 2 vùng (ảnh của vùng khác ghép hỏng ở vùng này là thường — không thử mãi); kết quả ghép của vùng nhớ ở khop.json: đổi ngưỡng không phải ghép lại

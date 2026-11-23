@@ -909,6 +909,23 @@ def mau_hang():
         except Exception as e: print(f"[{time.strftime('%H:%M:%S')}] máy dựng theo mẫu lỗi: {type(e).__name__}: {str(e)[:300]}", flush=True)
     MAU_HANG["th"] = threading.Thread(target=chay, daemon=True); MAU_HANG["th"].start()
 
+# XEM TRƯỚC BẢN SOẠN (anh 23/11/2026 "Chưa nhìn đc sp trc khi bấm sinh ra"): ngăn Creative của phim trên etp2 đổi mẫu / chữ / ô ghim → etp.cr_soan.xem_tt = 'cho'.
+# Vòng này (mỗi 10 giây, cùng tiến trình) thấy việc chờ thì chạy dung-mau.py --xem-soan trong một luồng: dựng ảnh tĩnh thật, không giọng / không nạp (~0₫). Một lượt một lúc.
+XEM_HANG = {"luot": 0.0, "th": None}
+def xem_hang():
+    if SX[0].get("khan") or time.time() - XEM_HANG["luot"] < 8 or (XEM_HANG["th"] and XEM_HANG["th"].is_alive()): return
+    XEM_HANG["luot"] = time.time(); py = os.path.expanduser("~/.venvs/poster-mau/bin/python")
+    if not os.path.exists(py): return
+    try: n = int(sql("select count(*) from etp.cr_soan where xem_tt = 'cho' and mau is not null") or 0)
+    except Exception: return   # cột chưa có (migration 0468 chưa áp) / box3 không tới được
+    if not n: return
+    def chay():
+        try:
+            with open(os.path.expanduser("~/Library/Logs/ethopex/dung-mau.log"), "a") as f:
+                subprocess.run([py, os.path.join(E, "dung-mau.py"), "--xem-soan"], stdout=f, stderr=subprocess.STDOUT, timeout=1800)
+        except Exception as e: print(f"[{time.strftime('%H:%M:%S')}] xem trước bản soạn lỗi: {type(e).__name__}: {str(e)[:300]}", flush=True)
+    XEM_HANG["th"] = threading.Thread(target=chay, daemon=True); XEM_HANG["th"].start()
+
 def tu_kiem():
     p = {"phanh": "chờ phanh nhả: PHANH CHỢ: x", "du_tru": [7]}
     assert cho_phanh(p, {"content_id": 1}, "poster") == p["phanh"] and cho_phanh(p, {"content_id": 1}, "camp") == p["phanh"] and cho_phanh(p, {"content_id": 1}, "chay") is None, "phanh: bước sản xuất + camp chờ, bước chờ camp chạy giữ nguyên"
@@ -969,6 +986,8 @@ def main(a):
         cuu()
         try: mau_hang()
         except Exception as e: print(f"hàng máy dựng theo mẫu lỗi: {str(e)[:160]}", flush=True)
+        try: xem_hang()
+        except Exception as e: print(f"xem trước bản soạn lỗi: {str(e)[:160]}", flush=True)
         time.sleep(10)
 
 if __name__ == "__main__": main(sys.argv[1:])

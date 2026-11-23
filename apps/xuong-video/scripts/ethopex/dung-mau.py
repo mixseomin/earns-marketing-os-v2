@@ -7,8 +7,9 @@ TRẠNG THÁI từng bước ghi etp.mau_dung (mau, content_id) → chân thẻ 
 Chạy (iMac, ~/.venvs/poster-mau/bin/python — có rembg):
   dung-mau.py <mã mẫu> <content_id> [--xem]   (--xem: chỉ dựng ảnh + video, không nạp thư viện / không tải creative)
   dung-mau.py --hang                           (mọi phim đã chọn cho mẫu có hàm vẽ mà chưa dựng)
-  dung-mau.py --bang <content_id>              (vẽ mọi mẫu trên một phim → bảng ghép xem trước, không giọng, không nạp)"""
-import colorsys, importlib.util, json, math, os, random, re, subprocess, sys, traceback, urllib.error, urllib.request
+  dung-mau.py --bang <content_id>              (vẽ mọi mẫu trên một phim → bảng ghép xem trước, không giọng, không nạp)
+  dung-mau.py --xem-soan                       (xem trước các bản soạn etp2 đang chờ — máy dòng phim gọi mỗi 10 giây khi có việc)"""
+import colorsys, copy, importlib.util, json, time, math, os, random, re, subprocess, sys, traceback, urllib.error, urllib.request
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps
 
 D = os.path.dirname(os.path.abspath(__file__))
@@ -576,8 +577,10 @@ tk = m.q("select ad_account_id from etp.tai_khoan where nha and ad_account_id is
 print(json.dumps({"ly": m.trang_chua_san(%d, tk)}, ensure_ascii=False))
 '''
 _NHO = {}
-def mot(ma, cid, xem=False, ban=1):
-    """dựng ban bản theo mẫu ma cho phim cid → danh sách creative_id (xem=True: chỉ tệp)"""
+def mot(ma, cid, xem=False, ban=1, tc_xem=None):
+    """dựng ban bản theo mẫu ma cho phim cid → danh sách creative_id (xem=True: chỉ tệp).
+    tc_xem = bản soạn etp2 cần XEM TRƯỚC ({cau, nhan, chu_dau, o}) — dựng đúng như bản thật sẽ ra (cùng ô ghim), chỉ ảnh tĩnh, không giọng / không nạp"""
+    XT = tc_xem is not None; CANH.clear()
     if ma not in HAM: raise SystemExit(f"mẫu {ma} chưa có hàm vẽ trong dung-mau.py")
     muc = next((x for x in SO if x["ma"] == ma), None)
     if not muc: raise SystemExit(f"mẫu {ma} không có trong sổ")
@@ -603,6 +606,7 @@ def mot(ma, cid, xem=False, ban=1):
     try:
         tt("tai_tap", g="tải 3 tập miễn phí + trích khung")
         p, lang, ten, tm = ngu_canh(cid)
+        if not p.get("url") and xem: raise RuntimeError("phim chưa có link tập — máy chưa trích được khung (bản dựng thật sẽ tự lấy link trước)")
         if not p.get("url"):
             # PHIM CHƯA CÓ LINK TẬP (anh 19/11/2026 "lỗi thì chúng mày phải chủ động mà sửa đi"): làm ĐÚNG bước Trang phim của dòng phim — thêm phim vào workspace
             # Ethopex của Nhà (nhan-ban.trang_chua_san → ensure-clone, idempotent) rồi gọi đồng bộ; trang có link tập 1 thì dong-bo điền etp.phim.url → lượt sau dựng tiếp
@@ -612,6 +616,7 @@ def mot(ma, cid, xem=False, ban=1):
             AT.sh("ssh", AT.B, "systemctl start --no-block etp-dong-bo", han=60)   # đồng bộ kho trang phim ngay, không chờ 10 phút
             tt("trang_phim", "cho", f"chờ Ethopex sinh trang + link tập 1 (lượt sau tự dựng tiếp) · {ly or 'trang phim đã đủ, chờ đồng bộ điền link'}"[:300])
             return []
+        if cid not in _NHO and xem: _NHO.update({cid: x for x in [doc_uv(tm)] if x})   # xem trước: khung đã xếp hạng nằm trên đĩa → không tải / không xếp lại (0₫)
         if cid not in _NHO:   # một phim chỉ tải tập / xếp khung / viết câu nhử MỘT lần trong tiến trình (bảng xem trước vẽ 12 mẫu)
             uv = AT.khung(cid, p["url"], tm)
             if not xem: ghi_poster(cid, p["url"], tm)
@@ -619,8 +624,8 @@ def mot(ma, cid, xem=False, ban=1):
             mt = TB.mo_ta(p["url"])
             uv, ly_xep, v = AT.xep_ai(ten, uv, mt, p.get("the_loai") or "") if len(uv) > 1 else (uv, "", 0); vnd += v
             if ly_xep: print(f"xếp khung: {ly_xep[:300]}", flush=True)
-            _NHO[cid] = {"uv": uv, "mo_ta": mt}
-        uv = _NHO[cid]["uv"]
+            _NHO[cid] = {"uv": uv, "mo_ta": mt}; ghi_uv(tm, _NHO[cid])
+        uv_du = copy.deepcopy(_NHO[cid]["uv"]); uv = copy.deepcopy(uv_du)   # bản sao: AT.anh cộng dồn k["xoa"] — không để lượt sau mang vệt xoá của lượt trước
         # BẢN SAU KHÁC BẢN TRƯỚC (anh 20/11/2026 "khi chọn cắt tiếp creative 1 lần nữa cho cùng phim thì làm sao để mẫu có sự khác đi ?"): trước đây lần nào cũng lấy khung xếp hạng 1,
         # cùng câu nhử, cùng câu đọc → ra bản y hệt. Giờ sổ etp.mau_dung nhớ khung + câu nhử đã dùng của (mẫu, phim): lần sau bỏ khung đã dùng, ưu tiên khung KHÁC CẢM XÚC,
         # câu nhử viết góc khác, câu đọc xoay theo số bản. Hết khung mới → dừng nói rõ (không lặp bản cũ).
@@ -634,11 +639,17 @@ def mot(ma, cid, xem=False, ban=1):
         if not uv: raise RuntimeError(f"phim này đã dùng hết {len(da_khung)} khung ứng viên cho mẫu — không còn khung mới để ra bản khác")
         if da_khung: uv = sorted(uv, key=lambda u: bool(u.get("cam_xuc")) and u.get("cam_xuc") in cx_dung)   # khác cảm xúc lên trước, giữ thứ hạng AI trong từng nhóm
         # BẢN ANH SOẠN (etp2 ngăn "Creative của phim", 23/11/2026): etp.mau_dung.tuy_chon = {soan, cau, nhan, chu_dau} — câu nhử anh gõ thay câu AI, chữ QC dòng đầu anh gõ
-        tc = {}
+        tc = dict(tc_xem) if XT else {}
         if not xem:
             try: tc = json.loads(AT.sql(f"alter table etp.mau_dung add column if not exists tuy_chon jsonb; select coalesce(tuy_chon::text, '') from etp.mau_dung where mau = {s_(ma)} and content_id = {int(cid)}") or "{}") or {}
             except Exception as e: print("đọc tuỳ chọn bản soạn lỗi — dựng như thường:", e, file=sys.stderr); tc = {}
         soan = int(tc.get("soan") or 0)
+        # Ô ANH GHIM (bước Thành phần): khung = đúng khung đó (không tự đổi khung, kể cả khung bản trước đã dùng) · khung_phu = nhân vật thứ hai · giong = đúng câu đọc
+        o_ = tc.get("o") or {}; tim = lambda g: next((u for u in uv_du if g and g.get("nguon") == "khung_phim" and khoa(u) == g.get("id")), None)
+        k_ghim, k2_ghim = tim(o_.get("khung")), tim(o_.get("khung_phu"))
+        if o_.get("khung") and not k_ghim: raise RuntimeError(f"khung anh ghim {o_['khung'].get('id')} không còn trong khung ứng viên của phim — ghim lại khung khác")
+        g_ghim = next((int(x.split(":")[1]) for x in [str((o_.get("giong") or {}).get("id") or "")] if re.fullmatch(r"[a-z]{2}:\d+", x)), None)
+        if k_ghim: uv = [k_ghim]
         def soan_tt(t, g=None, **k):   # ghi trạng thái về bản soạn của anh (nếu việc này đến từ bản soạn)
             if soan: AT.sql(f"update etp.cr_soan set trang_thai = {s_(t)}, cap_nhat = now()" + (f", ghi = {s_(g[:500])}" if g else "") + "".join(f", {c} = {int(v)}" for c, v in k.items()) + f" where id = {soan}")
         if (tc.get("cau") or "").strip(): _ct = tc["cau"].strip(); _cn = (tc.get("nhan") or "").strip(); _NHO[cid]["cau"] = (_ct, _cn if _cn and _cn.lower() in _ct.lower() else _ct.split()[-1])
@@ -649,15 +660,17 @@ def mot(ma, cid, xem=False, ban=1):
         for b in range(ban):
             cao_cho = CAN_CHO[ma]({"tm": tm, "ten": ten, "p": p, "cid": cid}) if ma in CAN_CHO else None; vnd += _CHI_LOGO[0]; _CHI_LOGO[0] = 0   # tách logo TRƯỚC khi chọn khung: không có logo thì dừng luôn, chưa tốn gì
             tot = None   # (che mặt, khung, nền, lớp, c) tốt nhất đã thử
+            nb = (300 if XT else 100) + b   # xem trước dùng tệp riêng — không đè tệp của lượt dựng thật đang chạy cùng thư mục phim
             for lan in range(min(len(uv), KHUNG_THU)):
                 k = uv[(b + lan) % len(uv)]; k["lang"] = lang   # uv đã bỏ khung các bản trước dùng
                 tt("ve_mau", g=f"bản {b + 1}/{ban}: vẽ mẫu trên khung {k['tap']}#{k['so']}" + (f" (khung xếp hạng {lan + 1} — các khung trước chữ che mặt / không đủ chỗ)" if lan else ""))
                 AT.CO_FREE, cu = False, AT.CO_FREE   # nền sạch không lớp Free — mẫu tự quyết lớp CTA của nó
-                try: nen, _ = AT.anh(cid, ten, k, tm, 100 + b)
+                try: nen, _ = AT.anh(cid, ten, k, tm, nb)
                 finally: AT.CO_FREE = cu
-                goc = os.path.join(tm, f"goc-{100 + b}.png"); khac = [os.path.join(tm, f"goc-{200 + b}.png")]
-                if ma in CAN_KHUNG2 and len(uv) > 1:   # nhân vật thứ hai từ khung xếp hạng kế
-                    k2 = uv[(b + 1) % len(uv)]; AT.sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k2["tap"] + ".mp4"), "-vf", f"{AT.LOC},select=eq(n\\,{k2['so'] - 1})", "-frames:v", "1", khac[0])
+                goc = os.path.join(tm, f"goc-{nb}.png"); khac = [os.path.join(tm, f"goc-{nb + 100}.png")]
+                if os.path.exists(khac[0]): os.remove(khac[0])
+                if ma in CAN_KHUNG2 and (k2_ghim or len(uv_du) > 1):   # nhân vật thứ hai: khung anh ghim, không ghim thì khung xếp hạng kế
+                    k2 = k2_ghim or next(u for u in uv_du[(b + 1):] + uv_du if khoa(u) != khoa(k)); AT.sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k2["tap"] + ".mp4"), "-vf", f"{AT.LOC},select=eq(n\\,{k2['so'] - 1})", "-frames:v", "1", khac[0])
                 mats = []
                 try:   # mọi mặt trên khung gốc (máy đọc Vision của anh-tinh) — khung 9:16 cắt từ khung gốc nên quy toạ độ dọc theo cùng tỉ lệ
                     jm = json.loads(subprocess.run([AT.may_doc(), "--mat", goc], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")
@@ -676,15 +689,17 @@ def mot(ma, cid, xem=False, ban=1):
                 if tot is None or cm < tot[0]: tot = (cm, k, nen_x, lop, c)
                 if cm <= CHE_MAT_TOI_DA: break
                 print(f"✗ khung {k['tap']}#{k['so']}: chữ phủ {cm:.0%} hộp mặt {CHE_MAT_HOP[0]} — thử khung kế", file=sys.stderr, flush=True)
+            if tot is None and k_ghim: raise RuntimeError(f"khung anh ghim {khoa(k_ghim)} không đủ chỗ dưới mặt cho khối chữ của mẫu — ghim khung khác (mặt cao hơn / ít người hơn)")
             if tot is None: raise RuntimeError(f"{min(len(uv), KHUNG_THU)} khung xếp hạng đầu đều không đủ chỗ dưới mặt cho khối chữ của mẫu (chữ không che mặt)")
-            if tot[0] > CHE_MAT_TOI_DA: raise RuntimeError(f"{min(len(uv), KHUNG_THU)} khung xếp hạng đầu, khung tốt nhất chữ vẫn phủ {tot[0]:.0%} hộp mặt (chuẩn ≤ {CHE_MAT_TOI_DA:.0%}) — chữ không che mặt")
+            if tot[0] > CHE_MAT_TOI_DA and XT: CANH.append(f"chữ phủ {tot[0]:.0%} hộp mặt (chuẩn ≤ {CHE_MAT_TOI_DA:.0%}) — bản thật sẽ bị chặn, ghim khung khác")
+            elif tot[0] > CHE_MAT_TOI_DA: raise RuntimeError(f"{min(len(uv), KHUNG_THU)} khung xếp hạng đầu, khung tốt nhất chữ vẫn phủ {tot[0]:.0%} hộp mặt (chuẩn ≤ {CHE_MAT_TOI_DA:.0%}) — chữ không che mặt")
             _, k, nen, lop, c = tot
-            chu = os.path.join(tm, f"chu-{ma}-{b}.png"); lop.save(chu)
-            out = os.path.join(tm, f"{ma}-{cid}-{b + 1}.mp4")
+            chu = os.path.join(tm, f"chu-{ma}-{b}{'-xem' if XT else ''}.png"); lop.save(chu)
+            out = os.path.join(tm, f"{ma}-{cid}-{b + 1}{'-xem' if XT else ''}.mp4")
             if xem:   # xem: ảnh ghép tĩnh, không giọng
                 Image.alpha_composite(Image.open(nen).convert("RGBA"), lop).convert("RGB").save(out.replace(".mp4", ".jpg"), quality=88); cr.append(out.replace(".mp4", ".jpg")); continue
             tt("giong", g="giọng đọc (cổng giọng chung)")
-            kg = AT.xoay_giong([p], None)[cid]; mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, (len(da_khung) + b) % len(AT.CAU[lang])); vnd += v   # câu đọc xoay theo số bản đã dựng
+            kg = AT.xoay_giong([p], None)[cid]; mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, g_ghim % len(AT.CAU[lang]) if g_ghim is not None else (len(da_khung) + b) % len(AT.CAU[lang])); vnd += v   # câu đọc xoay theo số bản đã dựng
             tt("video", g="dựng video 1080×1920")
             giay = AT.dung(nen, chu, mp3, out)
             tt("thu_vien", g=f"nạp thư viện ({giay}s)")
@@ -710,6 +725,62 @@ def mot(ma, cid, xem=False, ban=1):
                 if soan: soan_tt("loi", f"{type(e).__name__}: {str(e)[:300]}"); AT.sql(f"update etp.mau_dung set tuy_chon = null where mau = {s_(ma)} and content_id = {int(cid)}")
             except Exception: pass
         raise
+
+# ---------- XEM TRƯỚC BẢN SOẠN (etp2 ngăn Creative của phim, anh 23/11/2026) ----------
+CANH = []   # cảnh báo của lượt xem trước (chữ che mặt…) — bản xem vẫn ra để anh thấy, bản thật sẽ bị chặn
+XEM_BOX = "/var/lib/etp-xem"   # box3: ảnh xem trước + ảnh nhỏ khung ứng viên, trang etp2 đọc qua /etp/xem?f=<cid>/…
+def ghi_uv(tm, nho):
+    try: json.dump({"uv": nho["uv"], "mo_ta": nho.get("mo_ta") or "", **({"cau": list(nho["cau"])} if nho.get("cau") else {})}, open(os.path.join(tm, "xem-uv.json"), "w"), ensure_ascii=False)
+    except Exception as e: print("không ghi được khung đã xếp ra đĩa:", e, file=sys.stderr)
+def doc_uv(tm):
+    """khung đã xếp hạng của lượt dựng trước — chỉ dùng khi tập + ảnh nhỏ còn trên đĩa (máy dọn bộ nhớ đệm thì trích lại)"""
+    try:
+        j = json.load(open(os.path.join(tm, "xem-uv.json")))
+        if j.get("uv") and all(os.path.exists(os.path.join(tm, u["tap"] + ".mp4")) and os.path.exists(u["nho"]) for u in j["uv"]):
+            return {"uv": j["uv"], "mo_ta": j.get("mo_ta") or "", **({"cau": tuple(j["cau"])} if j.get("cau") else {})}
+    except Exception: pass
+    return None
+
+def day_khung(cid, tm):
+    """ảnh nhỏ khung ứng viên → box3 + etp.cr_khung (thư viện Khung phim của bước Thành phần). Chỉ đẩy khi bộ khung đổi."""
+    uv = (_NHO.get(cid) or {}).get("uv") or []
+    if not uv: return
+    khoa = [f"{u['tap']}#{u['so']}" for u in uv]
+    co = set((AT.sql(f"select khoa from etp.cr_khung where content_id = {int(cid)}") or "").splitlines())
+    if co == set(khoa): return
+    xa = f"{XEM_BOX}/{int(cid)}/k"; AT.sh("ssh", AT.B, f"mkdir -p {xa}")
+    r = AT.sh("rsync", "-a", *[u["nho"] for u in uv], f"{AT.B}:{xa}/", han=300)
+    if r.returncode: raise RuntimeError(f"đẩy ảnh khung lên box3 lỗi: {(r.stderr or r.stdout)[-200:]}")
+    vals = ",".join(f"({int(cid)}, {s_(k_)}, {s_(os.path.basename(u['nho']))}, {s_(u['tap'])}, {int(u['so'])}, {s_(u.get('cam_xuc'))}, {s_(u.get('nhan_vat'))}, {i + 1})" for i, (k_, u) in enumerate(zip(khoa, uv)))
+    AT.sql(f"delete from etp.cr_khung where content_id = {int(cid)}; insert into etp.cr_khung (content_id, khoa, tep, tap, so, cam_xuc, nhan_vat, hang) values {vals}")
+    print(f"[xem] phim #{cid}: {len(uv)} khung ứng viên → thư viện Khung phim", flush=True)
+
+def xem_soan():
+    """mọi bản soạn đang chờ xem trước → dựng ảnh tĩnh thật (mẫu + chữ + ô ghim), đẩy lên box3, ghi xem_anh. Anh sửa tiếp trong lúc dựng → dựng lại lượt sau."""
+    for _ in range(30):
+        r = AT.sql("select coalesce(json_agg(json_build_object('id', id, 'cid', content_id, 'mau', mau, 'cau', cau, 'nhan', nhan, 'chu_dau', chu_dau, 'o', o) order by xem_yc), '[]') "
+                   "from etp.cr_soan where xem_tt = 'cho' and mau is not null and trang_thai in ('nhap', 'loi')") or "[]"
+        ds = json.loads(r)
+        if not ds: return
+        for s in ds:
+            yc = AT.sql(f"update etp.cr_soan set xem_tt = 'dang' where id = {int(s['id'])} and xem_tt = 'cho' returning xem_yc::text")
+            if not yc: continue
+            cid, t0, anh, loi = int(s["cid"]), time.time(), None, None
+            try:
+                if s["mau"] not in HAM: raise RuntimeError(f"mẫu {s['mau']} chưa có hàm vẽ trong máy dựng")
+                fs = mot(s["mau"], cid, xem=True, tc_xem={"cau": s.get("cau") or "", "nhan": s.get("nhan") or "", "chu_dau": s.get("chu_dau") or "", "o": s.get("o") or {}})
+                if not fs: raise RuntimeError("phim trong sổ cấm — không dựng creative")
+                tm = os.path.join(AT.C, str(cid)); day_khung(cid, tm); ghi_uv(tm, _NHO[cid]) if cid in _NHO else None   # câu nhử AI vừa viết cũng nằm lại đĩa — lượt xem sau 0₫
+                ten_ = f"xem-{int(s['id'])}-{int(time.time())}.jpg"; f = os.path.join(tm, ten_)
+                im = Image.open(fs[0]).convert("RGB"); im.thumbnail((540, 960)); im.save(f, quality=85)
+                AT.sh("ssh", AT.B, f"mkdir -p {XEM_BOX}/{cid}"); r2 = AT.sh("rsync", "-a", f, f"{AT.B}:{XEM_BOX}/{cid}/", han=120); os.remove(f)
+                if r2.returncode: raise RuntimeError(f"đẩy ảnh xem trước lên box3 lỗi: {(r2.stderr or r2.stdout)[-200:]}")
+                anh, loi = f"{cid}/{ten_}", ("; ".join(CANH) or None)
+                print(f"[xem] bản soạn #{s['id']} · {s['mau']} · phim #{cid}: {time.time() - t0:.0f}s{' · ' + loi if loi else ''}", flush=True)
+            except Exception as e:
+                loi = f"{type(e).__name__}: {str(e)[:400]}"; print(f"[xem] bản soạn #{s['id']} lỗi: {loi}", file=sys.stderr, flush=True)
+            AT.sql(f"update etp.cr_soan set xem_tt = case when xem_yc > {s_(yc)}::timestamptz then 'cho' else {s_('xong' if anh else 'loi')} end, "
+                   f"xem_loi = {s_(loi)}, xem_xong = now(){', xem_anh = ' + s_(anh) if anh else ''} where id = {int(s['id'])}")
 
 def hang():
     """mọi phim anh chọn (etp.mau_phim) cho mẫu có hàm vẽ ở đây mà chưa dựng xong / chưa đang dựng"""
@@ -740,6 +811,7 @@ if __name__ == "__main__":
             update etp.mau_dung set buoc = 'cho', trang_thai = 'cho', cap_nhat = now(), ghi = {s_(('mẫu đã nâng cấp: ' + ghi_ + ' — chờ máy dựng bản mới')[:500])}
             where mau = {s_(ma_)} and content_id = {cid_} and trang_thai = 'cho_nang_cap' returning mau || ' · ' || content_id || ' → hàng chờ'""") or "không có việc nào đang chờ nâng cấp cho mẫu + phim này"); sys.exit(0)
     if a[0] == "--hang": hang()
+    elif a[0] == "--xem-soan": xem_soan()
     elif a[0] == "--bang": bang_xem(int(a[1]))
     elif a[0] == "--poster": print(ghi_poster(int(a[1]), ngu_canh(int(a[1]))[0].get("url")))   # ghi bù poster gốc cho phim đã dựng trước 19/11/2026
     else: print(json.dumps(mot(a[0], int(a[1]), "--xem" in a, int(a[a.index("--ban") + 1]) if "--ban" in a else 1)))

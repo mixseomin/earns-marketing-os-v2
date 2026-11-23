@@ -556,6 +556,15 @@ const LUAT = [
   { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: '<TienDung buoc={s.buoc} />', vi: 'bản đang dựng hiện dải tiến độ theo bước máy' },
   { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', cam: "` (${BUOC_DUNG[s.buoc] ?? 'đang làm'})`", vi: 'không quay về chữ bước dựng trong ngoặc thay cho tiến độ' },
   // #1786 (anh 23/11/2026 'Ngu thế ai hiểu' — nút bản dở chỉ ghi "<tên mẫu> · nháp"): nút ghi việc + số bản, tên mẫu vào chữ rê
+  { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: 'KHUÔN XEM TRƯỚC Ở GIỮA', vi: 'khung soạn xoay quanh một khung 9:16 to hiện creative thật máy dựng (anh 23/11/2026 "chưa nhìn được sản phẩm trước khi bấm sinh ra")' },
+  { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: 'void docXem(banId)', vi: 'máy đang dựng xem trước thì ngăn hỏi lại trạng thái, ảnh mới tự hiện' },
+  { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: 'onDrop={thaLen}', vi: 'kéo món thư viện thả thẳng lên khung xem trước được' },
+  { card: '1784', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', cam: 'mẫu đang chọn đứng cố định bên trái mọi bước sau', vi: 'không quay về ảnh minh hoạ mẫu 150px thay cho khung xem trước thật' },
+  { card: '1784', tep: 'apps/etp2/src/lib/actions/etp-cr-phim.ts', co: "xem_tt = case when ${v.mau}::text is null then xem_tt else 'cho' end", vi: 'mỗi lần lưu nháp có mẫu là xếp lượt xem trước cho máy dựng' },
+  { card: '1784', tep: 'apps/etp2/src/lib/actions/etp-cr-phim.ts', co: 'from etp.cr_khung', vi: 'thư viện Khung phim = khung máy dựng trích từ tập (đúng khoá tap#so máy tìm khi ghim), không phải ảnh creative cũ' },
+  { card: '1784', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'def xem_soan():', vi: 'máy dựng mẫu dựng ảnh xem trước theo bản soạn' },
+  { card: '1784', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'if k_ghim: uv = [k_ghim]', vi: 'máy dựng theo khung anh đã ghim, không tự chọn khung khác' },
+  { card: '1784', tep: 'apps/etp/dong_phim.py', co: 'xem_hang()', vi: 'vòng dong_phim sẵn có trên iMac nhận lượt xem trước (không thêm tiến trình mới)' },
   { card: '1786', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: '`✎ Sửa tiếp bản nháp #${s.id}`', vi: 'nút bản nháp ghi rõ "Sửa tiếp bản nháp #…"' },
   { card: '1786', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', cam: "{tenMau(s.mau) ?? 'chưa chọn mẫu'} · {t}", vi: 'không quay về nút chỉ ghi tên mẫu · nháp' },
   // #1788 (anh 23/11/2026 "danh sách 7 ngày gần nhất luôn luôn phải hiện"): ô ngày dòng phim / dòng tổng cộng mọi camp của phim, không chỉ camp lọt bộ lọc

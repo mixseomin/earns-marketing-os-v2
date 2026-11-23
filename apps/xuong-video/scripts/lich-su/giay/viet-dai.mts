@@ -61,7 +61,7 @@ const Cau = z.object({ chu: z.string().describe('MỘT câu đọc, ≤ 24 từ'
   loai: z.enum(['san_khau', 'ban_do', 'ho_so']), nam: z.number().int().nullable(),
   boi_canh: z.string().nullable(), nguoi: z.array(z.object({ id: z.string(), dang: z.enum(['goc', 'chi_tay', 'khoanh_tay', 'nam_dam', 'ngac_nhien', 'suy_nghi', 'buon', 'cuoi']), x: z.number().describe('0,15–0,85') })).describe('san_khau: 0–3 người'),
   so: z.object({ chu: z.string(), nhan: z.string() }).nullable().describe('số lớn đáng nhớ có trong câu'), dau: z.string().nullable().describe('con dấu 1–2 chữ cho khoảnh khắc lật ngược'),
-  ban_do: z.object({ tam: z.array(z.number()).describe('[lon, lat]'), zoom: z.number().describe('1 cả châu Âu – 6 một vùng'), ten: z.array(z.object({ tu: z.array(z.number()), den: z.array(z.number()) })), ghim: z.array(z.object({ o: z.array(z.number()), chu: z.string() })) }).nullable(),
+  ban_do: z.object({ tam: z.array(z.number()).describe('[lon, lat]'), zoom: z.number().describe('1 cả châu Âu – 6 một vùng'), ten: z.array(z.object({ tu: z.array(z.number()).describe('[lon, lat]'), den: z.array(z.number()).describe('[lon, lat]') })), ghim: z.array(z.object({ o: z.array(z.number()).describe('[lon, lat] độ địa lý thật, cùng hệ với tam'), chu: z.string() })) }).nullable(),
   anh: z.string().nullable().describe('ho_so: mã ảnh A…') });
 const Chuong = z.object({ cau: z.array(Cau) });
 const kiemChuong = (cs: z.infer<typeof Cau>[], nguon: string, tuCan: number) => { const loi: string[] = [], p = phang(nguon), so = cs.map((c) => c.chu).join(' ').split(/\s+/).length;

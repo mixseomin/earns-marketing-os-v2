@@ -480,6 +480,11 @@ def main():
              from (select distinct on (ref_id) ref_id, redirect_url from etp.trang_phim where redirect_url like 'http%' and link_ok is not false order by ref_id, sua desc) t
              where t.ref_id = p.content_id and coalesce(p.url, '') = ''""")
         # etp.creative dựng lại toàn bộ mỗi 10 phút: loại creative phải ghi vào xv_khoa_ngoai["ethopex_tu_choi"] (thay-tu-choi.py gop), UPDATE etp.creative.tu_choi bị xoá ở lượt sau (camp 108725 lên từ creative đã "loại" kiểu đó, 23/11/2026)
+        # GOM DẤU LOẠI GHI THẲNG (anh 23/11/2026 "sửa cho triệt để"): ai UPDATE etp.creative.tu_choi mà không qua kho gốc thì trước khi dựng lại bảng, dấu đó được
+        # chép vào xv_khoa_ngoai["ethopex_tu_choi"] (khoá đã có trong kho giữ nguyên) — không còn đường nào làm mất dấu loại sau 10 phút
+        q("""update xv_khoa_ngoai set gia_tri = coalesce((select jsonb_object_agg(creative_id::text, jsonb_build_object('camp', null, 'ly_do', tu_choi, 'nguon', 'ghi thẳng etp.creative',
+               'luc', to_char(now() at time zone 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD HH24:MI'))) from etp.creative where tu_choi is not null), '{}'::jsonb) || coalesce(gia_tri, '{}'::jsonb)
+             where ten = 'ethopex_tu_choi'""")
         dat, thay, tc = khoa("ethopex_cta_dat"), khoa("ethopex_cta_thay"), khoa("ethopex_tu_choi")
         thay_nguoc = {int(v): int(k) for k, v in thay.items()}
         rows = []

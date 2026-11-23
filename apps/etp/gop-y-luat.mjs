@@ -1715,4 +1715,7 @@ export const LUAT = [
   { card: 'free-dau-2311', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', cam: '("For Free.", "Watch the entire series', vi: 'giọng AT không mở bằng "For Free" — câu đầu là tên phim (anh 21/11 + 23/11/2026, camp 108721/108723/108725)' },
   { card: 'free-dau-2311', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', mot: 'assert not [m for l in CAU.values() for m in l if re.match(', vi: 'máy dừng nếu có mẫu giọng mở bằng Free/gratis' },
   { card: 'free-dau-2311', tep: 'apps/etp/dong-bo.py', co: 'loại creative phải ghi vào xv_khoa_ngoai["ethopex_tu_choi"]', vi: 'ghi chú: etp.creative.tu_choi là bảng dựng lại, loại phải vào kho gốc' },
+  { card: 'free-dau-2311', tep: 'apps/etp/dong-bo.py', co: "'nguon', 'ghi thẳng etp.creative'", vi: 'mỗi lượt đồng bộ gom dấu loại ghi thẳng etp.creative về kho gốc trước khi dựng lại' },
+  { card: 'free-dau-2311', tep: 'packages/db/migrations/0464_etp_cham_cong_loai.sql', co: "AND loai IS NULL AS duoc_len", vi: 'cổng chấm chặn creative đã loại / lời đọc mở bằng Free cho mọi đường lên camp' },
+  { card: 'free-dau-2311', tep: 'packages/db/migrations/0464_etp_cham_cong_loai.sql', co: "(for\\s+free|free|gratis)\\M", vi: 'cổng chấm soi lời đọc mở bằng Free / For Free / gratis' },
 ];

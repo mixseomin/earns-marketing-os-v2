@@ -463,6 +463,28 @@ def bo_ngon_ngu(sp_g, content_id, goc_id=None):
     if not phim_es(content_id, goc_id): return False
     tg = dict(sp_g.get("targeting") or {}); co = "locales" in tg; tg.pop("locales", None); sp_g["targeting"] = tg
     return co
+def la_doi(goc_id):   # camp gốc của người trong đội (kho etp.camp_ngoai)
+    return q(f"select 1 from etp.camp_ngoai where camp_id = {int(goc_id)}") == "1"
+# CLONE CAMP ĐỘI = DÙNG LẠI MỌI THỨ TRỪ NGÂN SÁCH (anh 23/11/2026: "Lên camp là phải dùng lại mọi thứ từ camp của đội từ creative, text, cấu hình,... trừ ngân sách").
+# Chặn TRƯỚC khi gửi: so gói sẽ gửi với camp gốc, lệch trường nào ngoài tên / ngân sách / trạng thái thì không lên. Tài khoản + Page đổi theo bộ (vật đang thử);
+# trang đích + video do Ethopex tự gán theo người lên camp (landing 34778 của đội trả 404 với tài khoản nhà, cùng site + cùng mẫu trang).
+GIONG_DOI_MIEN_C = {"name", "daily_budget", "status"}
+GIONG_DOI_MIEN_G = {"name"}
+def giong_doi(d, pl):
+    c = d["campaign"]; g = (d.get("ad_groups") or [{}])[0]; a = (g.get("ads") or [{}])[0]
+    BO = {"id", "campaign_id", "adset_id", "account_id", "start_time", "end_time", "stop_time", "created_time", "updated_time", "effective_status", "configured_status", "issues_info"}
+    pc = pl["campaign"]["source_payload"]; pg = pl["campaign"]["ad_groups"][0]["source_payload"]; pa = pl["campaign"]["ad_groups"][0]["ads"][0]
+    lech = []
+    sg = js(g.get("source_payload"))
+    if phim_es(a.get("content_id"), c.get("id")) and isinstance(sg.get("targeting"), dict):   # luật phim ES không nhắm ngôn ngữ (anh 23/11/2026) vẫn áp — chỉ trường locales được khác
+        sg = {**sg, "targeting": {k: v for k, v in sg["targeting"].items() if k != "locales"}}
+    for ten, goc, moi, mien in (("camp", js(c.get("source_payload")), pc, GIONG_DOI_MIEN_C), ("adset", sg, pg, GIONG_DOI_MIEN_G)):
+        for k in sorted((set(goc) | set(moi)) - BO - mien):
+            if goc.get(k) != moi.get(k): lech.append(f"{ten}.{k}: {str(goc.get(k))[:60]} → {str(moi.get(k))[:60]}")
+    for k in ("creative_id", "content_id", "domain"):
+        if (a.get(k) or "") != (pa.get(k) or ""): lech.append(f"ad.{k}: {a.get(k)} → {pa.get(k)}")
+    if pl.get("pixel_id_arb") != d.get("pixel_id"): lech.append(f"pixel: {d.get('pixel_id')} → {pl.get('pixel_id_arb')}")
+    if lech: raise ValueError("clone camp đội phải giống hệt gốc trừ ngân sách (anh 23/11/2026) — lệch: " + "; ".join(lech))
 def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, nhan=None, ep=False, hoi_cho=False, ns_tay=None):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
     — anh 22/10/2026 "camp cùng phim thì chủ động thêm góc khác"; trước đó phải đi br form (dung-camp.sh).
@@ -588,6 +610,7 @@ def main(a):
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None, "chay": lich}
     try:
         d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep, hoi_cho=hoi_cho and not moi and not thang, ns_tay=ns_tay); kq["ten"] = ten; bo = pl.pop("bo"); bai0 = bai = pl.pop("bai_cu", None); cr_bai = pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"]
+        if la_doi(goc) and not moi and not roas: giong_doi(d, pl)   # clone camp đội: giống hệt gốc trừ ngân sách, lệch thì không gửi
         if hoi_cho and not bai0: raise ChanLuat(f"camp gốc #{goc} không dùng được bài đăng cũ (không có mã bài / khác bộ) — đợt hồi chợ chỉ nhân bản bài cũ (anh 18/11/2026)")
         ly = None if NGOAI else (None if moi or ep else q(f"select etp.bo_chan_mo_camp('{bo}', {int(goc)})"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (0339); camp gốc tự thắng (3 ngày khép ROI ≥ 30%) thì miễn (0372, anh 30/10/2026)
         if ly: raise ChanLuat(ly)

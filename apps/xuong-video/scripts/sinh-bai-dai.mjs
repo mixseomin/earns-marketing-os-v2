@@ -53,7 +53,10 @@ for (const g of gocs.filter((x) => !daGoc.has(Number(x.id)) && (!chiGoc || chiGo
   const vb = JSON.parse(studio('--viet-bai-dai', JSON.stringify({ goc: g, slug: `dai-${g.id}`, tieu_de_cu: tieuDeCu, anh_da_dung: anhDaDung }), may).trim().split('\n').pop());
   tien += Number(vb.vnd ?? 0);
   if (!vb.ok) { console.log(`✗ góc #${g.id}: ${vb.loi} (${Math.round(vb.vnd ?? 0)}₫)`); if (/TỐN TIỀN/.test(vb.loi)) break; continue; }
-  const slug = slugDai(g.id, vb.tieu_de), dir = `${PB}/../out/bai/${may}/`; mkdirSync(dir, { recursive: true });
+  const gocSlug = slugDai(g.id, vb.tieu_de);
+  let slug = gocSlug, lanSlug = 2;
+  while (dsMay({ caLuuTru: true, may })[slug]) slug = `${gocSlug}-${lanSlug++}`;
+  const dir = `${PB}/../out/bai/${may}/`; mkdirSync(dir, { recursive: true });
   const tep = `${dir}${slug}.html`; writeFileSync(tep, vb.html);
   const cu = dsGocLai.get(Number(g.id));
   if (cu && cu.slug !== slug) {

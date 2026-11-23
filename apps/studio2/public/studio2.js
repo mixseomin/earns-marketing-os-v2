@@ -813,7 +813,12 @@ function veMuGiong(x) { const g = GIONG_NV[x.id];
   const ten = (id) => g.ds.find((v) => v.id === id)?.ten || id;
   return `<h5>Giọng</h5><div class="mu-giong">${g.voice ? `<p>Giọng cố định cả phim: <b>${esc(ten(g.voice))}</b> <small>${esc(g.model)}</small></p>` : `<p class="mu-trong">Chưa gắn giọng. Lượt đọc lời đầu tiên máy tự chọn một giọng riêng (khác các nhân vật khác) rồi giữ cho cả phim. Muốn chắc thì chọn ở dưới.</p>`}
     ${g.mau ? `<audio controls preload="none" src="${esc(g.mau)}"></audio>` : g.voice ? '<p class="nho">Chưa có bản nghe mẫu cho giọng này.</p>' : ''}
+    ${(() => { const da = loiDaThu(x.id); return da.length ? `<p class="nho">Lời đã thu${g.voice ? '' : ' (giọng máy đã dùng)'}:</p><div class="am-loi">${da.map((d) => `<div class="am-dong"><button type="button" class="am-nghe" data-d="amNghe" data-g="${esc(d.url)}" aria-pressed="${AM_NGHE.url === d.url && !AM_NGHE.a.paused}" title="Nghe dòng này">${AM_NGHE.url === d.url && !AM_NGHE.a.paused ? '■' : '▶'}</button><span>Cảnh ${esc(d.so)}: ${esc(d.cau)}</span></div>`).join('')}</div>` : ''; })()}
     ${g.ds.length ? `<label>Đổi giọng <small>0đ, áp cho các lượt đọc sau</small><select class="mu-giong-chon" data-nv="${x.id}"><option value="">Chọn giọng…</option>${g.ds.map((v) => `<option value="${esc(v.id)}"${v.id === g.voice ? ' selected' : ''}>${esc(v.ten)}</option>`).join('')}</select></label>` : '<p class="nho">Model giọng này không có danh sách giọng để chọn.</p>'}<p class="mu-loi" hidden></p></div>`; }
+/** Những dòng nhân vật này đã thu tiếng (tối đa 3) — nghe được giọng máy đang dùng thật kể cả khi chưa gắn giọng cố định. */
+function loiDaThu(id) { const ra = [];
+  for (const c of D.canh) { const g = GOC[c.id]; if (!g) continue; for (const t of (Array.isArray(g.thoai) ? g.thoai : [])) { if (ra.length >= 3) return ra; if (t.url && t.loi && +nvTheoTen(t.nhan_vat || 'Lời dẫn', g)?.id === +id) ra.push({ url: t.url, cau: t.loi, so: vt(c.id) + 1 }); } }
+  return ra; }
 async function napGiongNv(id) { if (GIONG_NV[id] || napGiongNv.dang?.[id]) return; (napGiongNv.dang ||= {})[id] = 1;
   try { const g = await goi('giongNvS2', D.that.phim, id); GIONG_NV[id] = g || { loi: 'không thấy nhân vật trong phim này' }; } catch (e) { GIONG_NV[id] = { loi: e.message || 'lỗi mạng' }; }
   delete napGiongNv.dang[id]; veMu(); }
@@ -1025,11 +1030,13 @@ function veAmLoi(g, c) {
     const nghe = d.url ? `<button type="button" class="bt ic-bt am-nghe" data-d="amNghe" data-g="${esc(d.url)}" aria-pressed="${!!dang}" title="${dang ? 'Dừng' : 'Nghe giọng đang dùng của dòng này'}" aria-label="${dang ? 'Dừng' : 'Nghe giọng hiện tại'}">${dang ? '■' : '▶'}</button>` : '<button type="button" class="bt ic-bt am-nghe" disabled title="Dòng này chưa có tiếng">▶</button>';
     return `<div class="am-dong">${nghe}${nv}<span>${d.ai ? `<b>${esc(d.ai)}:</b> ` : ''}${esc(d.cau.slice(0, 90)) || '<i>chưa có câu</i>'}</span></div>`; }).join('')}</div>`; }
 const AM_NGHE = { a: new Audio(), url: '' };
-AM_NGHE.a.addEventListener('ended', () => { AM_NGHE.url = ''; veAm(); });
-AM_NGHE.a.addEventListener('error', () => { if (AM_NGHE.url) bao('Không phát được tiếng của dòng này.'); AM_NGHE.url = ''; veAm(); });
+AM_NGHE.a.addEventListener('ended', () => { AM_NGHE.url = ''; veNghe(); });
+AM_NGHE.a.addEventListener('error', () => { if (AM_NGHE.url) bao('Không phát được tiếng của dòng này.'); AM_NGHE.url = ''; veNghe(); });
 function ngheAm(url) { const a = AM_NGHE.a;
-  if (AM_NGHE.url === url && !a.paused) { a.pause(); AM_NGHE.url = ''; return veAm(); }
-  AM_NGHE.url = url; a.src = url; a.currentTime = 0; a.play().catch(() => {}).finally(veAm); veAm(); }
+  if (AM_NGHE.url === url && !a.paused) { a.pause(); AM_NGHE.url = ''; return veNghe(); }
+  AM_NGHE.url = url; a.src = url; a.currentTime = 0; a.play().catch(() => {}).finally(veNghe); veNghe(); }
+// hộp Lời đọc vẽ lại; nút nghe trong khung nhân vật (ô Giọng) chỉ đổi ▶/■ tại chỗ, không vẽ lại cả khung
+function veNghe() { veAm(); document.querySelectorAll('.mu-giong .am-nghe').forEach((b) => { const on = b.dataset.g === AM_NGHE.url && !AM_NGHE.a.paused; b.textContent = on ? '■' : '▶'; b.setAttribute('aria-pressed', on); }); }
 document.addEventListener('input', (e) => { if (e.target.id === 'slYc' && E.sl) E.sl.yc = e.target.value; });   // gõ dở yêu cầu không mất khi trang vẽ lại
 /** "＋ Lớp lời" (anh 20/11/2026: "Giờ muốn thêm lớp voice thì làm thế nào ?"): thêm một người nói nữa vào cảnh — Lời dẫn, một nhân vật của phim, hoặc gõ tên mới.
  *  Câu mới là một dòng thoại trống của người đó; bản Pro hiện mỗi người nói thành một lớp riêng trên timeline. Gõ câu → Lưu về studio → bấm clip lời đó → Sinh. */

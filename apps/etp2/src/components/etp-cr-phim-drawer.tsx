@@ -107,7 +107,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
   const dau = <div className="modal-head"><div><div className="id-line">creative của phim · {cid}</div>
     <h2 style={{ margin: 0, cursor: 'pointer' }} title="mở ngăn phim" onClick={() => openEntityDrawer('etp-phim', cid)}>{ok?.phim ?? 'đang đọc…'}</h2></div>
     <button className="modal-close" onClick={onClose}>✕</button></div>;
-  if (!ok) return <Drawer onClose={onClose} width={760} padding={0}>{dau}<div style={{ padding: 16, color: du && 'loi' in du ? DO : MO_SO }}>{du && 'loi' in du ? du.loi : 'đang đọc…'}</div></Drawer>;
+  if (!ok) return <Drawer onClose={onClose} width={2400} padding={0}>{dau}<div style={{ padding: 16, color: du && 'loi' in du ? DO : MO_SO }}>{du && 'loi' in du ? du.loi : 'đang đọc…'}</div></Drawer>;
 
   const tenMau = (ma: string | null) => ok.mau.find((m) => m.ma === ma)?.ten ?? null;
   const mauChon = ok.mau.find((m) => m.ma === ban?.mau) ?? null;

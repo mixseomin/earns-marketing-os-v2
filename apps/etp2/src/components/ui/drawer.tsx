@@ -79,6 +79,9 @@ export function Drawer({
   discardLabel?: string;
 }) {
   const [w, setW] = useState(width);
+  // width đổi sau khi đã mở (vd ngăn đang-đọc 760 → ngăn đủ dữ liệu 2400, cùng một chỗ trong cây React) thì theo width mới —
+  // trước useState chỉ đọc lần đầu nên ngăn kẹt ở bề rộng lúc tải (etp2 ngăn creative phim 23/11/2026)
+  useEffect(() => { setW(width); }, [width]);
   const [askClose, setAskClose] = useState(false);
   // Portal chỉ chạy sau mount (SSR không có `document`; drawer luôn mở do tương tác client nên không kẹt hydrate).
   const [mounted, setMounted] = useState(false);

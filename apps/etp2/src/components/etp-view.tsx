@@ -2499,10 +2499,16 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
   const phimMap = useMemo(() => new Map(phim.map((p) => [p.k, p])), [phim]);
   const sd7 = (c: CampEtpKho) => ngay.map((d) => so.get(c.camp_id)?.get(d));
   // tổng các ngày trọn + hôm nay (ô cuối, chỉ số ngay.length) của một nhóm camp — dòng phim / dòng tổng của bảng
-  const tongNgay = (rs: CampEtpKho[]): SoTien[] => [...ngay.map((d) => rs.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 })),
-    rs.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 })];
-  // số camp có chi mỗi ngày, cùng thứ tự với tongNgay (ô cuối = hôm nay)
-  const demCamp = (rs: CampEtpKho[]): number[] => [...ngay.map((d) => rs.filter((c) => (so.get(c.camp_id)?.get(d)?.chi ?? 0) > 0).length), rs.filter((c) => c.nay.chi > 0).length];
+  // 7 NGÀY GẦN NHẤT CỦA DÒNG PHIM / DÒNG TỔNG LUÔN HIỆN (#1788 anh 23/11/2026 "danh sách 7 ngày gần nhất luôn luôn phải hiện"): ô ngày nhóm cộng MỌI camp
+  // của các phim đang hiện trong kho, không chỉ camp lọt bộ lọc — lọc Đang chạy chỉ còn camp mới tạo thì 17–21 vẫn ra số thật của phim, không trống "0 camp".
+  // Dòng camp vẫn là số của chính camp đó; cột Lãi kỳ vẫn theo bộ lọc. tongNgay + demCamp + gio cùng đi qua caPhim → một chỗ, không vá từng ô.
+  const khoPhim = useMemo(() => { const m = new Map<number, CampEtpKho[]>(); for (const c of du.camps) { if (c.camp_id <= 0) continue; const k = c.content_id ?? 0; m.set(k, [...(m.get(k) ?? []), c]); } return m; }, [du.camps]);
+  const caPhim = (rs: CampEtpKho[]): CampEtpKho[] => { const m = new Map<number, CampEtpKho>(); for (const k of new Set(rs.map((c) => c.content_id ?? 0))) for (const c of khoPhim.get(k) ?? []) m.set(c.camp_id, c); for (const c of rs) if (c.camp_id > 0) m.set(c.camp_id, c); return [...m.values()]; };
+  const tongNgay = (rs0: CampEtpKho[]): SoTien[] => { const rs = caPhim(rs0); return [...ngay.map((d) => rs.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 })),
+    rs.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 })]; };
+  // số camp có chi mỗi ngày, cùng thứ tự với tongNgay (ô cuối = hôm nay) — cũng đếm trên cả phim (caPhim), khớp số tiền ô
+  const idPhim = (rs: CampEtpKho[]): number[] => caPhim(rs).map((c) => c.camp_id);
+  const demCamp = (rs0: CampEtpKho[]): number[] => { const rs = caPhim(rs0); return [...ngay.map((d) => rs.filter((c) => (so.get(c.camp_id)?.get(d)?.chi ?? 0) > 0).length), rs.filter((c) => c.nay.chi > 0).length]; };
   // DÒNG CHỜ ANH DUYỆT (anh 22/11/2026 "Chờ duyệt thì tao phải xem được mày đang làm gì mới duyệt được"): ▶ Lên sẽ tạo đúng camp nào + cổng nào sẽ bỏ qua — máy KHÔNG tự lên dòng ★ ROAS
   const chuChoDuyet = (c: CampEtpKho) => { const x = c.xep, gio = c.lich ? new Date(c.lich) : null, vn = gio ? new Date(gio.getTime() + 7 * 3600_000) : null;
     const chuGio = !vn || gio!.getTime() <= Date.now() + 60_000 ? 'chạy ngay khi Ethopex / Meta đồng bộ xong' : `hẹn chạy ${String(vn.getUTCHours()).padStart(2, '0')}:${String(vn.getUTCMinutes()).padStart(2, '0')} ${String(vn.getUTCDate()).padStart(2, '0')}/${String(vn.getUTCMonth() + 1).padStart(2, '0')} giờ VN${c.roas != null ? ' (★ ROAS lên ban tối) — muốn giờ khác bấm 🕒 đặt giờ' : ''}`;
@@ -2569,9 +2575,9 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
     ...(coLich ? [{ key: 'lich', header: 'Lịch giờ', align: 'left' as const, cell: (c: CampEtpKho) => <LichCamp c={c} du={du} tl={tlC} gon />, sortValue: (c: CampEtpKho) => tlC(c.the_loai) }] : []),
     ...ngay.map((d, i): DataColumn<CampEtpKho> => ({ key: `roi${i}`, header: <NgayNhan d={d} />, align: 'center', width: 56, title: `ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)} — lọc 🔍 theo %`,
       cell: (c) => { const sd = sd7(c); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={maxLai([...sd, c.nay])} bac={bacO(c.camp_id, d)} gio={{ camps: [c.camp_id], ngay: d }} />; }, sortValue: (c) => roi(sd7(c)[i]),
-      total: (rs) => { const sd = tongNgay(rs); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả nhóm ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i]} max={maxLai(sd)} nhom n={demCamp(rs)[i]} gio={{ camps: rs.map((c) => c.camp_id), ngay: d }} />; } })),
+      total: (rs) => { const sd = tongNgay(rs); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả phim ${d.slice(8, 10)}/${d.slice(5, 7)} — mọi camp của phim, kể cả camp ngoài bộ lọc`} s={sd[i]} max={maxLai(sd)} nhom n={demCamp(rs)[i]} gio={{ camps: idPhim(rs), ngay: d }} />; } })),
     ...(!coNay ? [] : [{ key: 'nay', header: 'nay', align: 'center' as const, width: 56, title: 'ROI hôm nay — lọc 🔍 theo %', cell: (c) => <O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} ns={c.ngan_sach} max={maxLai([...sd7(c), c.nay])} mo bac={bacO(c.camp_id, du.nay)} gio={{ camps: [c.camp_id], ngay: du.nay }} />, sortValue: (c) => roi(c.nay),
-      total: (rs) => { const sd = tongNgay(rs), sn = sd[ngay.length]; return <O cot="roi-nay" v={roi(sn)} t="ROI cả nhóm hôm nay" s={sn} max={maxLai(sd)} mo nhom n={demCamp(rs)[ngay.length]} gio={{ camps: rs.map((c) => c.camp_id), ngay: du.nay }} />; } } as DataColumn<CampEtpKho>]),   // hôm nay = ô SAU ngày cuối (sd[ngay.length]); số cứng [7] lệch khi bảng còn 6 ngày → dòng phim trống NAY (#1489)
+      total: (rs) => { const sd = tongNgay(rs), sn = sd[ngay.length]; return <O cot="roi-nay" v={roi(sn)} t="ROI cả phim hôm nay — mọi camp của phim" s={sn} max={maxLai(sd)} mo nhom n={demCamp(rs)[ngay.length]} gio={{ camps: idPhim(rs), ngay: du.nay }} />; } } as DataColumn<CampEtpKho>]),   // hôm nay = ô SAU ngày cuối (sd[ngay.length]); số cứng [7] lệch khi bảng còn 6 ngày → dòng phim trống NAY (#1489)
     // LÃI HÔM NAY — CỘT CỐ ĐỊNH (anh 02/11/2026 #1508): không đổi theo kỳ đang chọn, luôn là ngày Ethopex hôm nay; dòng phim / dòng tổng cộng lại
     { key: 'lai_nay', header: 'Lãi nay', width: 104, title: 'lãi HÔM NAY (ngày Ethopex 07:00–07:00 VN) — cố định, không theo kỳ đang chọn', cell: (c) => <LaiCot s={c.nay} />, sortValue: (c) => Math.round((c.nay.thu - c.nay.chi) * 100) / 100,
       total: (rs) => <LaiCot s={rs.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 })} /> },
@@ -2648,7 +2654,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
           </span>)}
         {(() => { const tg = tongNgay(camps), tq = camps.reduce((a, c) => ({ chi: a.chi + c.qua.chi, thu: a.thu + c.qua.thu }), { chi: 0, thu: 0 });
           const o = (nhan: React.ReactNode, cot: string, t: string, sx: SoTien, st?: React.CSSProperties) => <span key={cot} data-cot={cot} data-cot-can="giua" title={t} style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.2, ...st }}>
-            {nhan}{hep ? <O0 v={roi(sx)} t={`${t} — tổng các camp đang hiện`} cot={`${cot}-tong`} s={sx} /> : null}</span>;
+            {nhan}{hep ? <O0 v={roi(sx)} t={`${t} — tổng mọi camp của các phim đang hiện`} cot={`${cot}-tong`} s={sx} /> : null}</span>;
           return <>{ngayHien.map((d) => { const i = ngay.indexOf(d); return o(<NgayNhan d={d} />, `roi-${i}`, `ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)}`, tg[i]!); })}
             {coQua ? o('qua', 'roi-qua', 'ROI hôm qua', tq) : null}
             {o('nay', 'roi-nay', 'ROI hôm nay', tg[ngay.length]!, { color: '#60a5fa', fontWeight: 600, background: hep ? undefined : 'rgba(59,130,246,.12)', borderRadius: '4px 4px 0 0' })}</>; })()}
@@ -2678,10 +2684,10 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
               return <span title="tổng ngân sách/ngày các camp đang bật (ACTIVE) của phim" style={{ display: 'flex', justifyContent: 'flex-end', width: hep ? undefined : 26, color: t >= 20 ? 'var(--fg)' : 'var(--fg-2)', fontWeight: t >= 20 ? 700 : undefined, opacity: t > 0 ? 1 : 0.35, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>${t}</span>; })()}
             {hep ? null : <span style={{ gridColumn: '6 / -1', display: 'flex', gap: 4, overflow: 'hidden' }}><LoaiPhim ds={p.all} lai={laiDai} /></span>}
             </span>
-            {(() => { const sd = ngay.map((d) => p.all.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 }));
-              const sn = p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 }), mx = coQua ? undefined : maxLai([...ngayHien.map((d) => sd[ngay.indexOf(d)]), sn]), dc = demCamp(p.all);
-              return <>{ngayHien.map((d) => ngay.indexOf(d)).map((i) => <O key={i} cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả phim ${ngay[i]!.slice(8, 10)}/${ngay[i]!.slice(5, 7)}`} s={sd[i]} max={mx} n={dc[i]} gio={{ camps: p.all.map((c) => c.camp_id), ngay: ngay[i]! }} />)}
-                {coQua ? <O cot="roi-qua" v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.qua.chi, thu: a.thu + c.qua.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm qua" /> : null}<O cot="roi-nay" v={roi(sn)} t="ROI cả phim hôm nay" s={coQua ? undefined : sn} max={mx} mo n={coQua ? undefined : dc[ngay.length]} ns={p.all.filter((c) => c.trang_thai === 'ACTIVE').reduce((a, c) => a + c.ngan_sach, 0)} gio={{ camps: p.all.map((c) => c.camp_id), ngay: du.nay }} /></>; })()}
+            {(() => { const sd = tongNgay(p.all);   // #1788: cả phim, kể cả camp ngoài bộ lọc
+              const sn = sd[ngay.length]!, mx = coQua ? undefined : maxLai([...ngayHien.map((d) => sd[ngay.indexOf(d)]), sn]), dc = demCamp(p.all);
+              return <>{ngayHien.map((d) => ngay.indexOf(d)).map((i) => <O key={i} cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả phim ${ngay[i]!.slice(8, 10)}/${ngay[i]!.slice(5, 7)}`} s={sd[i]} max={mx} n={dc[i]} gio={{ camps: idPhim(p.all), ngay: ngay[i]! }} />)}
+                {coQua ? <O cot="roi-qua" v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.qua.chi, thu: a.thu + c.qua.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm qua" /> : null}<O cot="roi-nay" v={roi(sn)} t="ROI cả phim hôm nay" s={coQua ? undefined : sn} max={mx} mo n={coQua ? undefined : dc[ngay.length]} ns={p.all.filter((c) => c.trang_thai === 'ACTIVE').reduce((a, c) => a + c.ngan_sach, 0)} gio={{ camps: idPhim(p.all), ngay: du.nay }} /></>; })()}
             <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><LaiCot s={p.all.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 })} /></span>
           </summary>
           {/* NHANH (anh 27/10/2026 "load chậm quá"): phần gập KHÔNG dựng — trước dựng sẵn mọi camp của mọi phim = 9 MB HTML, 776 biểu đồ */}

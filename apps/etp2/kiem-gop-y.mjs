@@ -539,6 +539,11 @@ const LUAT = [
   // #1786 (anh 23/11/2026 'Ngu thế ai hiểu' — nút bản dở chỉ ghi "<tên mẫu> · nháp"): nút ghi việc + số bản, tên mẫu vào chữ rê
   { card: '1786', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: '`✎ Sửa tiếp bản nháp #${s.id}`', vi: 'nút bản nháp ghi rõ "Sửa tiếp bản nháp #…"' },
   { card: '1786', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', cam: "{tenMau(s.mau) ?? 'chưa chọn mẫu'} · {t}", vi: 'không quay về nút chỉ ghi tên mẫu · nháp' },
+  // #1788 (anh 23/11/2026 "danh sách 7 ngày gần nhất luôn luôn phải hiện"): ô ngày dòng phim / dòng tổng cộng mọi camp của phim, không chỉ camp lọt bộ lọc
+  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const tongNgay = (rs0: CampEtpKho[]): SoTien[] => { const rs = caPhim(rs0);', vi: 'tổng ngày nhóm đi qua caPhim (cả phim)' },
+  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const demCamp = (rs0: CampEtpKho[]): number[] => { const rs = caPhim(rs0);', vi: 'đếm camp ngày nhóm đi qua caPhim' },
+  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const sd = tongNgay(p.all);', vi: 'dòng phim lưới tay dùng tongNgay, không tự cộng camp lọc' },
+  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'const sd = ngay.map((d) => p.all.reduce(', vi: 'không quay về dòng phim chỉ cộng camp lọt bộ lọc' },
 ];
 
 const loi = [];

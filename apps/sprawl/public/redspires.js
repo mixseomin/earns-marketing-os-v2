@@ -7,6 +7,7 @@ import { taoSong } from './song.js';
 import { TL, batTang } from './khop.js';
 import { taoNguoiGan } from './nguoi-gan.js';
 import { taoDoVo } from './do-vo.js';
+import { taoThanGan } from './than-gan.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const MAU_NGUOI = ['#2b2f36', '#4a3b33', '#c9b8a0', '#6d7f8c', '#8a3b2e', '#d8d2c4', '#3e5566', '#9b8a6a'];
@@ -114,10 +115,11 @@ function vatThap(gen) {
       float nh = mix(mix(bam(i0), bam(i0 + vec2(1, 0)), t0.x), mix(bam(i0 + vec2(0, 1)), bam(i0 + vec2(1, 1)), t0.x), t0.y);
       // sơn bong: mảng lớn, thưa, tắt dần khi xa (trước đây chấm trắng 1,7 m rắc khắp thân, nhìn từ xa thành nhiễu)
       float xa = 1.0 - smoothstep(0.25, 1.1, px);
-      float bong = smoothstep(0.82, 0.87, nh) * step(0.86, bam(floor(vec2(cung, vLo.y) / 16.0) + 4.4)) * xa;
+      float rach = (bam(floor(vec2(cung, vLo.y) / 0.3)) - 0.5) * 0.05 + (bam(floor(vec2(cung, vLo.y) / 0.9) + 1.3) - 0.5) * 0.05; // mép rách lởm chởm như ảnh mẫu, không mờ nhoè
+      float bong = step(0.845, nh + rach) * step(0.86, bam(floor(vec2(cung, vLo.y) / 16.0) + 4.4)) * xa;
       diffuseColor.rgb *= tam * (1.0 - 0.32 * vet) * (1.0 - 0.12 * bang);
       diffuseColor.rgb = mix(diffuseColor.rgb, uVien * (1.0 - 0.25 * vet), soc * 0.85);
-      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.74, 0.68), bong * 0.55);
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.84, 0.76, 0.7), bong * 0.8);
       diffuseColor.rgb *= (1.0 - 0.45 * mep) * (1.0 + 0.18 * sang) * (1.0 - 0.4 * chay) * (1.0 - 0.35 * laChop);
       diffuseColor.rgb = mix(diffuseColor.rgb, uVien * 0.8, max(khungCua, 0.0) * 0.55 * gan);
       vec3 kinh = mix(vec3(0.05, 0.06, 0.07), vec3(0.16, 0.19, 0.21), smoothstep(0.32, 0.78, f.y) * 0.7 + 0.3 * bam(o + 2.2));
@@ -208,7 +210,6 @@ function dungThap(R, H, gen, r, vKim, vMax = R * TL.vetDo) {
     const y = Math.min(batTang(hs.than * 0.94) - TL.tang, batTang(cuoi ? hs.than * (0.93 + r() * 0.02) : hs.than * (0.22 + 0.62 * (k + 0.3 + r() * 0.4) / nBC))); // sàn ban công = sàn tầng thật
     const rv = hs.rTai(y), rong = cuoi ? 4 + r() * 1 : 1.8 + r() * 1.8, ro = rv + rong, mv = r() < 0.35 ? vV : vBC;
     const kieu = cuoi ? 'kinh' : chon(r, ['lan', 'lan', 'kinh', 'tuong']);
-    dsBC.push(y);
     const gSan = new THREE.CylinderGeometry(ro, ro, 0.5, 72);
     const san = new THREE.Mesh(gSan, mv); san.position.y = y; g.add(san); va(gSan, 0, y, 0);
     if (kieu === 'lan') {
@@ -216,6 +217,7 @@ function dungThap(R, H, gen, r, vKim, vMax = R * TL.vetDo) {
       const n = Math.round(Math.PI * 2 * ro / 1.6), cot = new THREE.InstancedMesh(G_COT, vKim, n);
       for (let i = 0; i < n; i++) datRa(cot, i, (i / n) * Math.PI * 2, ro - 0.1, y + 0.8, 1, TL.lanCan, 1);
       g.add(cot); va(new THREE.CylinderGeometry(ro - 0.1, ro - 0.1, 1.2, 32, 1, true), 0, y + 0.85, 0);
+      dsBC.push({ y, cao: 1.6, san: [{ y: y + 0.25, ro, thua: 9 }] }); // than-gan.js: người đi vòng
     } else if (kieu === 'kinh') {
       const hk = TL.tang - 0.4, gV = new THREE.CylinderGeometry(ro - 0.2, ro - 0.2, hk, 72, 1, true);
       const vach = new THREE.Mesh(gV, V_KINH); vach.position.y = y + 0.25 + hk / 2; g.add(vach); va(gV, 0, y + 0.25 + hk / 2, 0);
@@ -227,9 +229,11 @@ function dungThap(R, H, gen, r, vKim, vMax = R * TL.vetDo) {
       const nc = Math.round(Math.PI * 2 * ro / 1.8), cot = new THREE.InstancedMesh(G_COT, vKim, nc);
       for (let i = 0; i < nc; i++) datRa(cot, i, (i / nc) * Math.PI * 2, ro + 0.1, y + 1.2 + hk, 1, 1.1, 1);
       g.add(cot); va(new THREE.CylinderGeometry(ro + 0.1, ro + 0.1, 1.2, 32, 1, true), 0, y + 1.25 + hk, 0);
+      dsBC.push({ y, cao: hk + 1.8, san: [{ y: y + 0.25, ro: ro - 0.2, thua: 10 }, { y: y + 0.65 + hk, ro: ro + 0.1, thua: 12 }] }); // trong đài kính + trên mái
     } else {
       const hc = 1.2 + r(), gT = new THREE.CylinderGeometry(ro, ro, hc, 72, 1, true);
       const tuong = new THREE.Mesh(gT, mv); tuong.position.y = y + 0.25 + hc / 2; g.add(tuong); va(gT, 0, y + 0.25 + hc / 2, 0);
+      dsBC.push({ y, cao: hc + 0.3, san: [{ y: y + 0.25, ro, thua: 11 }] });
     }
   }
   // cổ chóp: đai viền dày
@@ -294,7 +298,7 @@ function dungThap(R, H, gen, r, vKim, vMax = R * TL.vetDo) {
       kim.position.set(Math.cos(ga) * lech, yDinh - (a ? rc * 0.2 : 0) + cao / 2 - 1, Math.sin(ga) * lech); g.add(kim);
     }
   }
-  return { g, hs };
+  return { g, hs, bc: dsBC };
 }
 
 export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
@@ -361,14 +365,14 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
     const tang = TL.tang; // một chiều cao tầng cho mọi tháp — cầu nối, ban công, sàn vườn mới khớp nhau
     const gen = { dang, r: r(), mau: chon(r, MAU_DO), vien: chon(r, MAU_VIEN), oRong: 7 + r() * 2, tang, bang: tang * (6 + ((r() * 5) | 0)),
       tron: 0.96 + r() * 0.03, soc: r() < 0.15 ? 2 : 0, gan: 0, dinh: 'ang' }; // ảnh mẫu: thân trơn, không gân / sọc dọc / vảy; cửa tròn lớn thưa
-    const { g, hs } = dungThap(R, H, gen, r, vKim);
+    const { g, hs, bc } = dungThap(R, H, gen, r, vKim), chiTiet = [{ nut: g, hs, gen, bc }]; // chiTiet: than-gan.js dựng cửa 3D + người khi lại gần
     let rVa = hs.rMax;
     if (dang === 'chum') { // 2-3 tháp vệ tinh dính chân, thấp hơn, cùng họ màu
       const n = 2 + (r() < 0.5 ? 1 : 0), g0 = r() * 6.28;
       for (let k = 0; k < n; k++) {
         const gv = { ...gen, dang: 'non', gan: 0, dinh: 'ang', soc: 0, phu: 1 }, a = g0 + k * 6.28 / n;
         const dV = R * 0.8, v = dungThap(R * (0.36 + r() * 0.08), batTang(H * (0.45 + r() * 0.25)), gv, r, vKim, R * TL.vetDo - dV); // vệ tinh nằm gọn trong dấu chân
-        v.g.position.set(Math.cos(a) * dV, 0, Math.sin(a) * dV); g.add(v.g);
+        v.g.position.set(Math.cos(a) * dV, 0, Math.sin(a) * dV); g.add(v.g); chiTiet.push({ nut: v.g, hs: v.hs, gen: gv, bc: v.bc });
       }
       rVa = R * TL.vetDo;
     }
@@ -376,7 +380,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
     g.rotation.y = r() * 6.28;
     g.position.set(t.o[0], 0, t.o[1]);
     goc.add(g);
-    return { t, g, R: rVa, than: hs.than, rTai: hs.rTai, dang, va: null };
+    return { t, g, R: rVa, than: hs.than, rTai: hs.rTai, dang, va: null, chiTiet };
   });
 
   // ---------- đường phân cấp: đại lộ (lòng nhựa 2 làn mỗi chiều, vỉa hè rộng 8 m có chợ) · đường xe (1 làn mỗi chiều, vỉa hè) · lối đi bộ lát đá · phố nhỏ · đường tàu ----------
@@ -740,6 +744,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
 
   // ---------- phố sống: sương thành lớp, xe bay, xe đường, tàu, cầu + vườn treo (song.js) ----------
   const song = taoSong({ goc, ql, dsThap, nuaNut, LONG });
+  const thanGan = taoThanGan({ dsThap, tang: TL.tang, geos: [G_QUAN, G_AO, G_DA, G_TOC], vatLieu: vNguoi(true), mau: { quan: MAU_QUAN, ao: MAU_NGUOI, da: MAU_DA, toc: MAU_TOC } });
   // người gần camera né xe + né nhau (recast crowd) — bước 2 ô phố mẫu
   const nguoiGan = taoNguoiGan({ RAPIER, world, tuyen, LOP, LONG, nuaNut, nguoi: datNguoi, bo: boNguoi, geos: [G_QUAN, G_AO, G_DA, G_TOC], vatLieu: vNguoi(true), song, goc, bao,
     vatTinh: [[datQuay, 1.6], [datDo[0].slice(0, 3000), 0.3], [datDo[1].slice(0, 3000), 0.9], [datDo[2].slice(0, 3000), 0.9], [datDo[3].slice(0, 3000), 1.0], [datDo[4].slice(0, 3000), 1.0], [datDo[5].slice(0, 3000), 0.4], [datNguoi.filter((_, i) => aDi.getX(i) < 0.01), 0.35]] });
@@ -880,7 +885,8 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
     uNguoi.uT.value += dt;
     U_DEN.uTg.value += dt; song.khung(dt);
     if (cam && nguoiGan.khung(dt, cam)) canLoc = true;
+    if (cam && thapDo) thanGan.khung(dt, cam);
   }
 
-  return { goc, vatPho, khoacDat, duong: goc.children.filter((o) => o.isMesh && o.material.customProgramCacheKey?.().startsWith('duong-')), datLai, hien, khoet, khung, loc, ql, song, nguoiGan, doVo, monCua, sang: (v) => { uSang.uSang.value = v; }, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), get vaGan() { return vaGan.length; }, get vaCau() { return vaCau.length; }, ...song.tk } };
+  return { goc, vatPho, khoacDat, duong: goc.children.filter((o) => o.isMesh && o.material.customProgramCacheKey?.().startsWith('duong-')), datLai, hien, khoet, khung, loc, ql, song, nguoiGan, doVo, monCua, thanGan, sang: (v) => { uSang.uSang.value = v; }, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), get vaGan() { return vaGan.length; }, get vaCau() { return vaCau.length; }, ...song.tk } };
 }

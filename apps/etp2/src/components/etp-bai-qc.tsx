@@ -84,6 +84,8 @@ function NoiDungVideo({ nd, v }: { nd: NoiDungCr | null; v: LayVi }) {
           style={{ fontSize: 11, border: `1px solid ${mauTc(giu.diem)}`, color: mauTc(giu.diem), borderRadius: 4, padding: '0 4px', marginRight: 4, whiteSpace: 'nowrap', fontWeight: 700 }}>giữ 3s {giu.diem}/10</span>
         : <span data-giu-3s="chua" title="Creative này chấm trước khi có tiêu chí giữ người xem quá 3s — chỉ lượt chấm mới có điểm, không chấm lại hàng loạt"
           style={{ fontSize: 11, color: 'var(--fg-3, #888)', marginRight: 4, whiteSpace: 'nowrap' }}>giữ 3s: chưa chấm</span>}
+      {nd.hookTu === 'chu' && nd.giong !== 'khong' ? <span data-hook-tu="chu" title={`Giọng trong video chưa chép được nên hook đang tạm lấy dòng chữ đầu trên hình — chép xong giọng thì hook là câu đọc đầu${nd.giongLoi ? `\n${nd.giongLoi}` : ''}`}
+          style={{ fontSize: 11, color: '#f59e0b', marginRight: 4, whiteSpace: 'nowrap' }}>tạm lấy chữ trên hình</span> : null}
       <b>{nd.hook ?? '—'}</b></div>
     <DongVi d={v(nd.hook)} />
     <div style={DONG(2)} title={nd.chuVideo ?? ''}><span style={nhan}>🔤 Chữ trên video</span>{chuVideo ?? '—'}</div>
@@ -91,7 +93,10 @@ function NoiDungVideo({ nd, v }: { nd: NoiDungCr | null; v: LayVi }) {
     {/* #1779: lời đọc SAU câu hook (phần thoại còn lại của video) — không lặp câu hook, hiện tới 6 dòng (không hộp cuộn lồng trong thẻ nổi), rê vào xem đủ cả lời đọc + tóm tắt */}
     <div data-sau-hook={nd.sauHook ? 'co' : 'khong'} style={{ ...DONG(6), wordBreak: 'break-word' }}
       title={[nd.sauHook ?? nd.loiDoc, nd.tomTat ? `Tóm tắt: ${nd.tomTat}` : ''].filter(Boolean).join('\n\n')}>
-      <span style={nhan}>🎙 Lời đọc sau hook</span>{nd.sauHook ?? (nd.loiDoc ? 'không còn lời nào sau câu hook' : 'không có giọng')}</div>
+      <span style={nhan}>🎙 Lời đọc sau hook</span>{nd.sauHook ?? (nd.loiDoc ? 'không còn lời nào sau câu hook'
+        : nd.giong === 'chep_lai' ? <span data-giong="chep_lai" style={{ color: '#f59e0b' }} title={nd.giongLoi ?? ''}>⏳ máy đang chép lại giọng (lượt trước Cloudflare từ chối)</span>
+        : nd.giong === 'loi' ? <span data-giong="loi" style={{ color: '#f87171' }} title={nd.giongLoi ?? ''}>⚠ chép giọng lỗi — {nd.giongLoi}</span>
+        : 'video không có lời đọc')}</div>
     {nd.sauHook ? <DongVi d={v(loiSau)} dong={4} /> : null}
     {nd.tomTat ? <div data-tom-tat style={DONG(2)} title={nd.tomTat}><span style={nhan}>🧾 Tóm tắt</span>{nd.tomTat}</div> : null}
     <DongVi d={v(nd.tomTat)} />

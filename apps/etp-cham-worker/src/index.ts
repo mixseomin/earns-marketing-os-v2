@@ -11,7 +11,7 @@ interface Env {
 }
 type TieuChi = { nhom: string; ma: string; ten: string; mo_ta: string };
 type Mau = { thoai: string; thoai_hoa: string[]; cta: string; cta_hoa: string[]; phu: string; phu_hoa: string[]; nut_chuan: string };
-type Viec = { creative_id: number; video: string; dur: number; doan: string | null; phim: string | null };
+type Viec = { creative_id: number; video: string; dur: number; doan: string | null; phim: string | null; nguon?: string | null };
 type KetClaude = { noi_dung?: string; chu?: string; diem?: Record<string, number>; ly_do?: Record<string, string>; khung?: Record<string, number[]>; duong?: string; tien?: { vao: number; ra: number; vnd: number | null } };
 
 const MOS2 = 'https://mos2.on.tc/api/ext/etp-cham';
@@ -22,6 +22,15 @@ async function theoNhom<T, R>(ds: T[], n: number, f: (x: T, i: number) => Promis
   const ra: R[] = new Array(ds.length); let k = 0;
   await Promise.all(Array.from({ length: Math.min(n, ds.length) }, async () => { while (k < ds.length) { const i = k++; ra[i] = await f(ds[i]!, i); } }));
   return ra;
+}
+
+// LỖI TẠM của Workers AI / Media binding → THỬ LẠI giãn dần (anh 23/11/2026 "Hook cũng ko giống với voice trong video ?": 1.358 bản chấm mất lớp giọng vì
+// Whisper trả 9423 "Too many requests" khi mọi đoạn tiếng gọi song song — thẻ creative rơi về chữ trên hình làm hook). Lỗi không thuộc loại tạm thì ném ra ngay.
+const LOI_TAM = /9423|too many|\b429\b|rate.?limit|cancel|8004|internal server|cuda|out of memory|unknown error|timed? ?out|\b50[234]\b/i;
+async function thuLai<R>(f: () => Promise<R>, cho = [2, 6, 15, 30]): Promise<R> {
+  for (let i = 0; ; i++) {
+    try { return await f(); } catch (e) { if (i >= cho.length || !LOI_TAM.test(String(e))) throw e; await new Promise((r) => setTimeout(r, cho[i]! * 1000)); }
+  }
 }
 
 async function cat(env: Env, key: string, out: Record<string, unknown>, transform?: Record<string, unknown>): Promise<Uint8Array> {
@@ -92,48 +101,72 @@ function soat(mau: Mau | null, chu: string, loi_noi: string) {
 // BÁO BƯỚC về mos2 (bảng chấm trực tiếp trên etp.on.tc — anh 25/10/2026 "thiếu bảng live chi tiết") — lỗi báo không làm hỏng lượt chấm
 const bao = (env: Env, cr: number, buoc: string) => fetch(MOS2, { method: 'POST', headers: { authorization: `Bearer ${env.MOS2_EXT_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify({ creative_id: cr, buoc }) }).catch(() => null);
 
-async function chamMot(env: Env, v0: Viec, tc: TieuChi[], mau: Mau | null) {
-  let v = v0;
-  const cr = v.creative_id, key = `tam/${cr}.mp4`, loi: string[] = [];
+// VIDEO TẠM vào R2 MỘT lần (mỗi lượt Media binding cần luồng mới — cắt từ R2, không kéo lại từ box3) → trả độ dài thật. Chấm đủ và chép lại giọng dùng chung.
+async function taiTam(env: Env, v: Viec, key: string): Promise<Viec> {
+  const cr = v.creative_id;
   await bao(env, cr, 'tải video vào kho tạm Cloudflare');
-  const lop: Record<string, unknown> = {};
   // BẢN XEM NHẸ (apps/etp/cham-nhe.py trên box3 dựng 720p khi video > 100 MB / không cắt được khung, đẩy vào R2 nhe/<id>.mp4) — có thì dùng thay bản gốc
   const nhe = await env.R2.head(`nhe/${cr}.mp4`);
   let dai: number;
   if (nhe) { const o = await env.R2.get(`nhe/${cr}.mp4`); dai = nhe.size; await env.R2.put(key, o!.body); await bao(env, cr, `dùng bản xem nhẹ ${(dai / 1048576).toFixed(0)} MB`); }
   else {
-    // video tạm vào R2 MỘT lần (mỗi lượt Media binding cần luồng mới — cắt từ R2, không kéo lại từ box3)
     const r = await fetch(v.video); dai = Number(r.headers.get('content-length') ?? 0);
     if (!r.ok || !r.body || !dai) throw new Error(`không tải được video (${r.status})`);
     if (dai >= 100 * 1048576) { r.body.cancel(); throw new Error(`video ${(dai / 1048576).toFixed(0)} MB vượt giới hạn 100 MB của Cloudflare (cần bản xem nhẹ)`); }
     const { readable, writable } = new FixedLengthStream(dai); r.body.pipeTo(writable); await env.R2.put(key, readable);
   }
   const that = await doDaiMp4(env, key, dai); if (that && that > 1) v = { ...v, dur: that };
-  await bao(env, cr, `đã tải video ${(dai / 1048576).toFixed(0)} MB · dài ${v.dur.toFixed(0)}s · cắt ${SO_KHUNG} khung`);
+  await bao(env, cr, `đã tải video ${(dai / 1048576).toFixed(0)} MB · dài ${v.dur.toFixed(0)}s`);
+  return v;
+}
+
+// GIỌNG: từng đoạn ≤ 60s → Whisper, TUẦN TỰ (song song là chính chỗ Workers AI trả 9423) + thử lại lỗi tạm; gộp câu lặp liền nhau (Whisper hay lặp ảo trên nhạc)
+async function chepGiong(env: Env, key: string, dur: number): Promise<{ noi_dung: string; ngon_ngu: string | null }> {
+  const chu: { text: string; lang?: string }[] = [];
+  for (let t = 0; t < dur; t += 60) {
+    const d = Math.min(60, dur - t); if (d < 1) break;
+    const am = await thuLai(() => cat(env, key, { mode: 'audio', time: `${t}s`, duration: `${Math.floor(d)}s` }));
+    const k = await thuLai(() => env.AI.run('@cf/openai/whisper-large-v3-turbo', { audio: b64(am) })) as { text?: string; transcription_info?: { language?: string } };
+    chu.push({ text: (k.text ?? '').trim(), lang: k.transcription_info?.language });
+  }
+  const cau = chu.map((c) => c.text).join(' ').split(/(?<=[.!?¿¡])\s+/).filter(Boolean); const gon: string[] = [];
+  for (const c of cau) if (!gon.length || c.toLowerCase() !== gon[gon.length - 1]!.toLowerCase()) gon.push(c);
+  return { noi_dung: gon.join(' '), ngon_ngu: chu[0]?.lang ?? null };
+}
+
+// CHÉP LẠI GIỌNG (hàng etp.cham_hang nguon='giong'): bản chấm đã có nhưng lớp giọng lỗi → chỉ tải + chép giọng + soát từ cấm trong lời, không gọi Claude lại.
+// mos2 ghép lop.giong vào bản chấm cũ, kéo điểm Meta ngôn từ nếu lời có từ cấm (route /api/ext/etp-cham).
+async function giongMot(env: Env, v0: Viec, mau: Mau | null) {
+  const cr = v0.creative_id, key = `tam/${cr}.mp4`;
   try {
+    const v = await taiTam(env, v0, key);
+    await bao(env, cr, 'chép lại giọng (Whisper tuần tự, tự thử lại khi Cloudflare bận)');
+    const g = await chepGiong(env, key, v.dur);
+    return { creative_id: cr, giong: { luc: vn(), noi_dung: g.noi_dung.slice(0, 4000), ngon_ngu: g.ngon_ngu, loi: soat(mau, '', g.noi_dung).thoai } };
+  } finally { await env.R2.delete(key); }
+}
+
+async function chamMot(env: Env, v0: Viec, tc: TieuChi[], mau: Mau | null) {
+  const cr = v0.creative_id, key = `tam/${cr}.mp4`, loi: string[] = [];
+  const lop: Record<string, unknown> = {};
+  try {
+    const v = await taiTam(env, v0, key);
+    await bao(env, cr, `cắt ${SO_KHUNG} khung`);
     // ảnh: 20 khung chia đều, khung cuối sát thẻ kết
     const moc = Array.from({ length: SO_KHUNG }, (_, i) => Math.min(v.dur - 1.2, ((i + 0.5) * v.dur) / SO_KHUNG));
     let daCat = 0;
-    const anh = (await theoNhom(moc, 5, async (t) => { try { const a = await cat(env, key, { mode: 'frame', time: `${t.toFixed(1)}s`, format: 'jpg' }, { width: 384 }); if (++daCat % 5 === 0) await bao(env, cr, `cắt khung ${daCat}/${SO_KHUNG}`); return a; } catch { return null; } }))
+    const anh = (await theoNhom(moc, 3, async (t) => { try { const a = await thuLai(() => cat(env, key, { mode: 'frame', time: `${t.toFixed(1)}s`, format: 'jpg' }, { width: 384 }), [1, 4]); if (++daCat % 5 === 0) await bao(env, cr, `cắt khung ${daCat}/${SO_KHUNG}`); return a; } catch { return null; } }))
       .filter((x): x is Uint8Array => !!x);
     if (anh.length < SO_KHUNG / 2) throw new Error(`chỉ cắt được ${anh.length}/${SO_KHUNG} khung`);
     await Promise.all(anh.map((a, i) => env.R2.put(`khung/${cr}/${i + 1}.jpg`, a, { httpMetadata: { contentType: 'image/jpeg', cacheControl: 'public, max-age=31536000' } })));
     const goc = 'https://etp-cham.eimagini-info.workers.dev';
     lop.anh = { luc: vn(), so_khung: anh.length, giay: v.dur, khung_url: anh.map((_, i) => `${goc}/khung/${cr}/${i + 1}.jpg?v=${Date.now()}`) };
     await bao(env, cr, `đã cắt ${anh.length} khung · tách tiếng + chép giọng (Whisper)`);
-    // giọng: từng đoạn ≤ 60s → Whisper; gộp câu lặp liền nhau (Whisper hay lặp ảo trên nhạc)
+    // giọng lỗi sau mọi lượt thử → bản chấm vẫn ghi, mos2 xếp hàng CHÉP LẠI GIỌNG (nguon='giong') để thẻ không lấy chữ trên hình làm hook mãi
     let giong = '';
     try {
-      const doan: [number, number][] = []; for (let t = 0; t < v.dur; t += 60) doan.push([t, Math.min(60, v.dur - t)]);
-      const chu = await Promise.all(doan.filter(([, d]) => d >= 1).map(async ([t, d]) => {
-        const am = await cat(env, key, { mode: 'audio', time: `${t}s`, duration: `${Math.floor(d)}s` });
-        const k = await env.AI.run('@cf/openai/whisper-large-v3-turbo', { audio: b64(am) }) as { text?: string; transcription_info?: { language?: string } };
-        return { text: (k.text ?? '').trim(), lang: k.transcription_info?.language };
-      }));
-      const cau = chu.map((c) => c.text).join(' ').split(/(?<=[.!?¿¡])\s+/).filter(Boolean); const gon: string[] = [];
-      for (const c of cau) if (!gon.length || c.toLowerCase() !== gon[gon.length - 1]!.toLowerCase()) gon.push(c);
-      giong = gon.join(' ');
-      lop.giong = { luc: vn(), noi_dung: giong.slice(0, 4000), ngon_ngu: chu[0]?.lang ?? null, loi: [] };
+      const g = await chepGiong(env, key, v.dur); giong = g.noi_dung;
+      lop.giong = { luc: vn(), noi_dung: giong.slice(0, 4000), ngon_ngu: g.ngon_ngu, loi: [] };
     } catch (e) { loi.push(`giọng: ${String(e).slice(0, 120)}`); }
     // nội dung + chữ: Claude hai lượt độc lập, lấy điểm thấp
     await bao(env, cr, lop.giong ? `đã chép giọng ${giong.split(/\s+/).filter(Boolean).length} từ · Claude chấm 2 lượt` : 'giọng lỗi · Claude chấm 2 lượt');
@@ -173,9 +206,9 @@ async function chay(env: Env, so = 3) {
   const j = await r.json() as { viec: Viec[]; tieu_chi?: TieuChi[]; mau?: Mau | null };
   const kq = await Promise.all(j.viec.map(async (v) => {
     let ra: Record<string, unknown>;
-    try { ra = await chamMot(env, v, j.tieu_chi ?? [], j.mau ?? null); } catch (e) { ra = { creative_id: v.creative_id, loi: String(e).slice(0, 300) }; }
+    try { ra = v.nguon === 'giong' ? await giongMot(env, v, j.mau ?? null) : await chamMot(env, v, j.tieu_chi ?? [], j.mau ?? null); } catch (e) { ra = { creative_id: v.creative_id, loi: String(e).slice(0, 300) }; }
     await fetch(MOS2, { method: 'POST', headers: h, body: JSON.stringify(ra) });
-    return `#${v.creative_id} ${(ra.ket as string) ?? 'lỗi'}${ra.loi ? ` (${ra.loi})` : ''}`;
+    return `#${v.creative_id} ${(ra.ket as string) ?? (ra.giong ? 'giọng' : 'lỗi')}${ra.loi ? ` (${ra.loi})` : ''}`;
   }));
   return kq;
 }

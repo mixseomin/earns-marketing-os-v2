@@ -86,3 +86,15 @@ console.log('cham-kich-ban.test (không lời): ok');
   assert.ok(m.every((x) => x.dat), m.filter((x) => !x.dat).map((x) => x.ghi).join(' | '));
   console.log('cham-kich-ban.test: đầu tư cảm xúc ok');
 }
+
+// khung QC nhà (PAS) đủ 5 nhịp; giải pháp ở 35% phim đạt với QC, trượt với phim truyện
+{ const qb = ['Hook', 'Nỗi đau', 'Khuấy', 'Giải pháp', 'Demo', 'Bằng chứng', 'Ưu đãi + CTA'].map((ten) => ({ ten }));
+  const qp = [{ ten: 'A', beat: 'Hook' }, { ten: 'B', beat: 'Nỗi đau' }, { ten: 'C', beat: 'Giải pháp' }, { ten: 'D', beat: 'Ưu đãi + CTA' }];
+  const qc = [shot(2, 'A', 'Sáng vội?'), shot(5, 'B'), shot(6, 'C'), shot(4, 'C'), shot(3, 'D')];
+  const a = chamKichBan({ tap: { so: 1, beats: qb, phan_canh: qp }, canh: qc, kt: { laQc: true } });
+  assert.ok(a.muc.find((x) => x.key === 'nhip')!.dat, 'QC PAS phải đủ 5 nhịp');
+  assert.ok(a.muc.find((x) => x.key === 'vi_tri_lat')!.dat, 'QC: giải pháp ở 35% phim là đạt');
+  const b = chamKichBan({ tap: { so: 1, beats: qb, phan_canh: qp }, canh: qc, kt: {} });
+  assert.ok(!b.muc.find((x) => x.key === 'vi_tri_lat')!.dat, 'phim truyện: lật ở 35% vẫn là quá sớm');
+  assert.strictEqual(nhipCua('Ưu đãi + CTA'), 'ket'); assert.strictEqual(nhipCua('Demo'), null); }
+console.log('qc ok');

@@ -95,7 +95,7 @@ const canSinh = (c: ShotQt) => !c.keyframe_url;
 /** Cổng tiền kỳ cấp TẬP — áp cho mọi shot trước khi sinh keyframe. */
 /** Chấm kịch bản tập (cham-kich-ban.ts) theo dữ liệu cổng. */
 const chamTap = (tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'hanh_dong'>>)[]) =>
-  chamKichBan({ tap: { so: tap.so, beats: tap.beats, phan_canh: tap.phan_canh.map((p) => ({ ten: p.ten, beat: p.beat ?? '' })) }, canh, kt: { logline: phim.logline, series: phim.series, khong_loi: phim.khong_loi, the_loai: phim.the_loai } });
+  chamKichBan({ tap: { so: tap.so, beats: tap.beats, phan_canh: tap.phan_canh.map((p) => ({ ten: p.ten, beat: p.beat ?? '' })) }, canh, kt: { logline: phim.logline, series: phim.series, khong_loi: phim.khong_loi, the_loai: phim.the_loai, laQc: phim.laQc } });
 /** `canh` = các shot của tập (theo thứ tự) — có thì chấm cả hook 3 giây đầu. Phim có KINH THÁNH SERIES thì kịch bản chưa đạt (logline, 5 nhịp,
  *  hook) cũng chặn keyframe; phim lẻ chỉ hiện điểm trên thanh 🎬 Quy trình. */
 /** canhA = nhánh hook A của tập — bản người xem được kiểm trên nhánh A (kiem-nguoi-xem.ts), nên cổng phải so đúng nhánh đó, kể cả khi đang

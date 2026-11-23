@@ -3711,5 +3711,47 @@
   "anh": "c-Dvorac-Neuschwanstein-pro-elje.jpg",
   "doi_dom20": 6.3,
   "ly_do_doi_dom20": "21/11/2026 thẻ #1651: cua_thap ghi ngày 21/11, SAU lần dời tháp +6,3 m theo DOM20 (20/11, sua.json 32,9 → 39,2), nên số đã ở độ cao mới; doi-chi-tiet.mjs --ghi dời thêm +6,3 đưa ô cửa trên cùng lên 38,9 m, nằm trong chóp nón (thân tháp dựng tới ~36 m) → giữ số cũ, chỉ ghi doi_dom20 để máy không dời lần nữa"
+ },
+ "way/223110818#4": {
+  "khung": true,
+  "mau": {
+   "duoi": "#e9e7e1",
+   "tren": "#e9e7e1",
+   "y": 0
+  },
+  "hang_khung": [
+   {
+    "v0": 0.36,
+    "v1": 0.48,
+    "cum": [
+     [
+      0.18,
+      0.27,
+      1
+     ]
+    ]
+   },
+   {
+    "v0": 0.52,
+    "v1": 0.64,
+    "cum": [
+     [
+      0.58,
+      0.67,
+      1
+     ]
+    ]
+   }
+  ],
+  "ly_do": "mặt bắc khối Torbau (nhìn ra 337°): ảnh Mapillary 336577534524508 + 2852680028317489 (gpsvid, CC BY-SA 4.0, đã nắn méo; đọc bằng mắt 24/11/2026 — chưa định vị camera chắc, vị trí cửa ước theo khung) — toàn mặt đá vôi trắng (OSM ghi gạch đỏ #f44e25 cho cả khối, sai ở mặt này), hai cửa vòm nhỏ so le theo cầu thang trong; bát neo sắt chữ thập chưa dựng"
+ },
+ "way/223110818#5": {
+  "mau": {
+   "duoi": "#e9e7e1",
+   "tren": "#e9e7e1",
+   "y": 0
+  },
+  "hang": [],
+  "ly_do": "đoạn mặt bắc sát tháp tròn góc tây bắc Torbau: ảnh Mapillary 336577534524508 + 2852680028317489 (gpsvid, CC BY-SA 4.0, đã nắn méo; đọc bằng mắt 24/11/2026 — chưa định vị camera chắc, vị trí cửa ước theo khung) — đá vôi trắng, không cửa"
  }
 }

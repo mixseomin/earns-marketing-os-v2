@@ -4,7 +4,7 @@
 //   node apps/castle/scripts/tim-anh.mjs --khoi way/221599096 [--r 100]   tìm quanh tâm một khối OSM (Commons + Mapillary nhìn vào khối)
 //   node apps/castle/scripts/tim-anh.mjs --xz 37,-13 [--r 100]       tìm quanh một toạ độ cảnh (x đông, z nam, mét)
 //   node apps/castle/scripts/tim-anh.mjs --ghi-cong              ảnh đã nằm trong anh/web mà sổ ghi công thiếu → tra lại nguồn theo tên tệp, ghi bổ sung
-//   … thêm --tai 1,3,5  → tải đúng các ảnh số đó trong danh sách vừa in (--tai het = tải hết)
+//   … thêm --tai 1,3,5  → tải đúng các ảnh số đó trong danh sách IN LẦN TRƯỚC (ghi .kho-goc/<lâu>-tim-anh-cuoi.json, 1 ngày; --tai het = tìm mới + tải hết)
 //   … ảnh tải hỏng (Commons 429 sau 6 lần thử) ghi vào .kho-goc/<lâu>-anh-web-hong.json, lượt sau bỏ qua 6 giờ; thêm --lai-hong để thử lại
 // Ảnh tải về: apps/castle/public/du-lieu/anh/web/<nguồn>-<id>.jpg; tác giả / giấy phép / toạ độ / hướng ghi vào public/du-lieu/<lâu>-anh-web.json (bắt buộc ghi công
 // khi dùng). Đo mặt tiền trên ảnh thì theo QUY-TRINH.md (đo điểm ảnh → du-lieu/<lâu>-mat-*.json). Khoá Mapillary: MLY_TOKEN hoặc vault acct #689 (~/bin/acct).
@@ -47,12 +47,19 @@ async function taiVe(ds, the = null) {
       writeFileSync(duong, Buffer.from(await r.arrayBuffer()));
       if (hong[tep]) { delete hong[tep]; ghiHong(); }
     }
-    const ghi = { tep: `anh/web/${tep}`, nguon: a.nguon, id: a.id, trang: a.trang, tacGia: a.tacGia, giayPhep: a.giayPhep, lat: a.lat, lng: a.lng, huong: a.huong ?? null, luc: a.luc ?? null, ...(the ? { the: +the } : {}) };
-    const i = so.findIndex((x) => x.tep === ghi.tep); if (i >= 0) so[i] = { ...so[i], ...ghi }; else so.push(ghi);
+    const ghi = { tep: `anh/web/${tep}`, nguon: a.nguon, id: a.id, trang: a.trang, tacGia: a.tacGia, giayPhep: a.giayPhep, lat: a.lat, lng: a.lng, huong: a.huong ?? null, luc: a.luc ?? null,
+      ...(a.ongKinh ? { ongKinh: a.ongKinh } : {}), ...(the ? { the: +the } : {}) };
+    // ảnh đã nắn thẳng (khu-meo.py đổi tep → …-thang.jpg, giữ tepGoc) → vẫn là dòng cũ, giữ tep đã nắn
+    const i = so.findIndex((x) => x.tep === ghi.tep || x.tepGoc === ghi.tep); if (i >= 0) so[i] = { ...so[i], ...ghi, tep: so[i].tep }; else so.push(ghi);
     console.log(`✓ ${duong}  (${a.tacGia} · ${a.giayPhep} · cách ${a.kc ?? '?'} m${a.huong != null ? ` · hướng ${a.huong}°` : ''})`);
   }
+  // ảnh Mapillary tải trước khi sổ ghi ống kính (trước 24/11/2026) → tra bổ sung, không thì khu-meo không biết ảnh méo
+  const mly = layKhoaMly();
+  for (const x of so) if (x.nguon === 'mapillary' && !x.ongKinh && !x.khuMeo && mly) try { const c = await chiTietAnh('m:' + x.id, mly); if (c.ongKinh) x.ongKinh = c.ongKinh; } catch (e) { console.error(`✗ ống kính ${x.id}: ${e.message}`); }
   writeFileSync(SO, JSON.stringify(so, null, 1) + '\n');
   console.log(`ghi công: ${SO}`);
+  // nắn méo ống kính ngay khi tải (ảnh góc rộng → lỗ kim cùng tiêu cự) — do-anh.mjs / khop-lg.py coi mọi ảnh là lỗ kim
+  execFileSync('python3', [join(PUB, '..', 'scripts', 'khu-meo.py'), '--lau', LAU], { stdio: 'inherit' });
 }
 
 function layKhoaMly() { // khoá Mapillary: biến môi trường hoặc vault (không in ra)
@@ -109,7 +116,15 @@ if (arg('--khoi')) {
 else { console.error('cần --the <id> | --khoi <way/…> | --xz x,z'); process.exit(1); }
 const mly = layKhoaMly();
 const [lat, lng] = raLatLng(x, z), r = +(arg('--r') || 100);
-const kq = await timAnhQuanh({ lat, lng, r, mly });
+// --tai <số> trỏ vào DANH SÁCH ĐÃ IN lần trước (Commons / Mapillary trả tập khác nhau mỗi lần gọi: 40 → 43 ảnh, số 28 thành ảnh khác — 24/11/2026).
+// Danh sách mỗi lượt ghi .kho-goc/<lâu>-tim-anh-cuoi.json; lượt có --tai số dùng lại đúng danh sách đó nếu cùng chỗ + bán kính và chưa quá 1 ngày.
+const CUOI = join(PUB, '..', '.kho-goc', `${LAU}-tim-anh-cuoi.json`), khoaTim = `${ten}|${r}`, taiSo = arg('--tai') && arg('--tai') !== 'het';
+const cu = taiSo && existsSync(CUOI) ? JSON.parse(readFileSync(CUOI, 'utf8')) : null;
+const dungLai = cu && cu.khoa === khoaTim && Date.now() - cu.luc < 864e5;
+const kq = dungLai ? cu.kq : await timAnhQuanh({ lat, lng, r, mly });
+if (dungLai) console.log(`(dùng lại danh sách đã in lúc ${new Date(cu.luc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} — số thứ tự khớp lần in đó)`);
+else { mkdirSync(join(PUB, '..', '.kho-goc'), { recursive: true }); writeFileSync(CUOI, JSON.stringify({ khoa: khoaTim, luc: Date.now(), kq })); }
+if (taiSo && !dungLai) console.log('⚠ chưa có danh sách in trước cho đúng chỗ + bán kính này — số thứ tự dưới đây là của lần tìm MỚI');
 console.log(`ảnh thật quanh ${ten} — ${lat.toFixed(6)}, ${lng.toFixed(6)}, bán kính ${r} m: ${kq.anh.length} ảnh${kq.coMapillary ? '' : ' (không có khoá Mapillary: chỉ Commons)'}${kq.loi.length ? ' · lỗi: ' + kq.loi.join('; ') : ''}`);
 kq.anh.forEach((a, i) => console.log(`${String(i + 1).padStart(3)}. ${a.nguon.padEnd(9)} ${String(a.kc).padStart(4)} m ${a.huong != null ? `hướng ${String(a.huong).padStart(3)}°` : '          '} ${a.luc || '          '} ${a.giayPhep.padEnd(13)} ${a.id}\n      ${a.trang}`));
 const tai = arg('--tai');

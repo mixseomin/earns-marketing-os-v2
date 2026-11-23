@@ -27,10 +27,13 @@ async function commons(lat, lng, r) {
       tacGia: boThe(m.Artist?.value).slice(0, 80) || 'Wikimedia Commons', giayPhep: boThe(m.LicenseShortName?.value) || '?', luc: boThe(m.DateTimeOriginal?.value).slice(0, 10) || null };
   }).filter(Boolean);
 }
+// ống kính Mapillary (mô hình OpenSfM: camera_type + camera_parameters [f, k1, k2]) — ảnh GoPro góc rộng méo thùng (k1 −0,13, 24/11/2026: 3 ảnh Torbau trượt
+// định vị vì PnP coi ảnh là lỗ kim). tim-anh.mjs ghi vào sổ ảnh web, khu-meo.py nắn thẳng trước khi đo.
+const ongKinh = (x) => (x.camera_type ? { kieu: x.camera_type, thamSo: x.camera_parameters || null } : null);
 async function mapillary(lat, lng, r, mly) {
   if (!mly) return [];
   const mx = M * Math.cos(rad(lat)), dy = r / M, dx = r / mx;
-  const f = 'id,computed_geometry,computed_compass_angle,thumb_1024_url,thumb_2048_url,captured_at,creator,is_pano,camera_type,width,height';
+  const f = 'id,computed_geometry,computed_compass_angle,thumb_1024_url,thumb_2048_url,captured_at,creator,is_pano,camera_type,camera_parameters,width,height';
   const res = await taiMang(`https://graph.mapillary.com/images?access_token=${mly}&fields=${f}&bbox=${lng - dx},${lat - dy},${lng + dx},${lat + dy}&limit=500`, {}, { thoiGian: 20 });
   if (!res.ok) throw new Error('Mapillary ' + res.status);
   return ((await res.json()).data || []).filter((x) => !x.is_pano && x.camera_type !== 'spherical' && x.computed_geometry && x.thumb_1024_url).map((x) => {
@@ -38,7 +41,7 @@ async function mapillary(lat, lng, r, mly) {
     const lech = h == null ? null : Math.abs((((h - toi) % 360) + 540) % 360 - 180);
     return { nguon: 'mapillary', id: x.id, lat: la, lng: lo, kc: Math.round(kc), toi: Math.round(toi), huong: h == null ? null : Math.round(h), nhinVao: lech == null ? null : lech <= 40 || kc < 6,
       nho: x.thumb_1024_url, lon: x.thumb_2048_url || x.thumb_1024_url, rong: x.width, cao: x.height, trang: `https://www.mapillary.com/app/?pKey=${x.id}`,
-      tacGia: (x.creator?.username || 'Mapillary') + ' / Mapillary', giayPhep: 'CC BY-SA 4.0', luc: x.captured_at ? new Date(x.captured_at).toISOString().slice(0, 10) : null };
+      tacGia: (x.creator?.username || 'Mapillary') + ' / Mapillary', giayPhep: 'CC BY-SA 4.0', luc: x.captured_at ? new Date(x.captured_at).toISOString().slice(0, 10) : null, ongKinh: ongKinh(x) };
   }).filter((x) => x.kc <= r);
 }
 // ẢNH COMMONS THEO DANH MỤC PHẦN LÂU ĐÀI (anh 17/11/2026 đứng sân trên: Commons gần như không có hướng chụp — 1/50 — còn ảnh đúng nhất "Oberer Schlosshof"
@@ -122,11 +125,11 @@ export async function chiTietAnh(ma, mly = null) {
   }
   if (loai === 'm') {
     if (!mly) throw new Error('thiếu khoá Mapillary cho ảnh ' + id);
-    const x = await (await taiMang(`https://graph.mapillary.com/${id}?access_token=${mly}&fields=computed_geometry,computed_compass_angle,thumb_2048_url,captured_at,creator`, {}, { thoiGian: 20 })).json();
+    const x = await (await taiMang(`https://graph.mapillary.com/${id}?access_token=${mly}&fields=computed_geometry,computed_compass_angle,thumb_2048_url,captured_at,creator,camera_type,camera_parameters`, {}, { thoiGian: 20 })).json();
     if (!x.thumb_2048_url) throw new Error('Mapillary không trả ảnh ' + id);
     const [lo, la] = x.computed_geometry?.coordinates || [null, null];
     return { nguon: 'mapillary', id, lat: la, lng: lo, huong: x.computed_compass_angle == null ? null : Math.round(x.computed_compass_angle), url: x.thumb_2048_url,
-      trang: `https://www.mapillary.com/app/?pKey=${id}`, tacGia: (x.creator?.username || 'Mapillary') + ' / Mapillary', giayPhep: 'CC BY-SA 4.0', luc: x.captured_at ? new Date(x.captured_at).toISOString().slice(0, 10) : null };
+      trang: `https://www.mapillary.com/app/?pKey=${id}`, tacGia: (x.creator?.username || 'Mapillary') + ' / Mapillary', giayPhep: 'CC BY-SA 4.0', luc: x.captured_at ? new Date(x.captured_at).toISOString().slice(0, 10) : null, ongKinh: ongKinh(x) };
   }
   throw new Error('mã ảnh lạ: ' + ma);
 }

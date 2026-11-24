@@ -687,6 +687,9 @@ const LUAT = [
   { card: 'khoi', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'thanh_phan: (mau?.o ?? [])', vi: 'thành phần khối đọc từ sổ mẫu etp-mau-cr.json, không gõ tay' },
   { card: 'khoi', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'for (let i = 1; i <= soK; i++)', vi: 'mỗi dòng phim khối nở thành đủ số camp sắp lên' },
   { card: 'khoi', tep: 'apps/etp/dong_phim.py', co: 'if d.get("khoi"): return b_camp_khoi(d, truoc)', vi: 'bước camp của dòng khối đọc tham số từ khối, không hoi_cho' },
+  { card: '1836', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'groupBy={{ value: nhomCay', vi: 'bảng Cây nhóm theo một hàm khoá nhóm chung' },
+  { card: '1836', tep: 'apps/etp2/src/components/etp-view.tsx', co: '...nhomBang.map((k) => `p${k}`)', vi: 'Mở hết mở cả nhóm khối / nhóm chỉ có dòng sắp lên (lọc Đang sản xuất)' },
+  { card: '1836', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const moHet = tatCa.length > 0', vi: 'Gập hết / Mở hết xét đủ nhóm của bảng, không chỉ phim có camp thật' },
 ];
 
 const loi = [];

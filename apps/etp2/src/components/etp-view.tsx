@@ -2570,6 +2570,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
     .sort((a, b) => b.canh - a.canh || b.chi - a.chi);
   // MÁY TÍNH = DataTable kiểu cây (anh 29/10/2026 "dùng lại DataTable để có bộ filter full chi tiết hơn"): lọc 🔍 từng cột, lọc chọn nhiều (luật · loại · trạng thái),
   // tìm, sắp xếp, kéo giãn cột như trang Bảng; phim = nhóm cố định, bản nhân bản lồng dưới camp gốc. Mở / gập vẫn là moCay ('p<phim>' · 'c<camp>') — nút Mở hết + lưu máy giữ nguyên
+  const nhomCay = (c: CampEtpKho) => (c.sx?.khoi ? `k${c.sx.khoi.id}` : String(c.content_id ?? 0));   // khoá nhóm của bảng Cây — MỘT nguồn cho groupBy + nút Mở hết (#1836)
   const moBang = useMemo(() => new Set([...moCay].map((k) => (k[0] === 'p' ? `g:${k.slice(1)}` : k.slice(1)))), [moCay]);
   const phimMap = useMemo(() => new Map(phim.map((p) => [p.k, p])), [phim]);
   // sd7 / tongNgay / idPhim / demCamp (dòng camp, dòng phim cả phim, dòng tổng cả tài khoản) nằm ở useCotNgay — một nguồn cho Cây + Thiết lập (#1819)
@@ -2696,9 +2697,11 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
   // MỞ HẾT · CHÚ GIẢI — máy tính: đứng đầu thanh tìm của bảng (dính khi cuộn, anh 31/10/2026 bố cục lại) · điện thoại: hàng nút dính riêng như cũ
   const nutCay = <>
     {/* MỞ / GẬP HẾT (anh 28/10/2026): mọi phim + mọi camp có bản nhân trong danh sách đang lọc */}
-    {(() => { const tatCa = [...phim.map((p) => `p${p.k}`), ...phim.flatMap((p) => p.all.filter((c) => con.m.has(c.camp_id)).map((c) => `c${c.camp_id}`))];
+    {(() => { // #1836 (anh 25/11/2026 "lỗi bấm ko tác dụng", lọc Đang sản xuất): nhóm của bảng = nhomCay (khối 'k<id>' + phim của cả dòng ⏳ xếp hàng) — trước chỉ lấy theoPhim (camp thật) nên khối / nhóm chỉ có dòng sắp lên không bao giờ được mở
+          const nhomBang = hep ? [] : [...new Set((hang?.length ? [...con.ds, ...hang] : con.ds).map(nhomCay))];
+          const tatCa = [...new Set([...phim.map((p) => `p${p.k}`), ...nhomBang.map((k) => `p${k}`), ...phim.flatMap((p) => p.all.filter((c) => con.m.has(c.camp_id)).map((c) => `c${c.camp_id}`))])];
           // "đã mở hết" = mọi phim VÀ mọi camp có bản nhân đều mở (anh 29/10/2026 #1481): trước chỉ xét phim → bản nhân mới mọc sau lần mở vẫn gập mà nút đã báo Gập hết
-          const moHet = phim.length > 0 && tatCa.every((k) => moCay.has(k));
+          const moHet = tatCa.length > 0 && tatCa.every((k) => moCay.has(k));
           return <button onClick={() => doiMo(tatCa, !moHet)} title={moHet ? 'gập mọi phim' : 'mở mọi phim + bản nhân bản'} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: 'inherit', cursor: 'pointer' }}>{moHet ? '⊟ Gập hết' : '⊞ Mở hết'}</button>; })()}
     {<button onClick={() => setGiai((v) => !v)} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: 'inherit', cursor: 'pointer' }}>{giai ? 'Ẩn chú giải' : 'Chú giải'}</button>}
   </>;
@@ -2706,7 +2709,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
   // + dòng XẾP HÀNG: creative đã duyệt chưa camp (du.hangCr, camp_id < 0) nằm trong nhóm phim — anh 22/11/2026 "duyệt rồi thì phải cho vào table bên dưới"
   const hangCay = hang?.length ? [...con.ds, ...hang] : con.ds;   // #1767: dòng ⏳ chờ duyệt đã qua bộ lọc (hangLoc) — không nối thẳng du.hangCr nữa (hiện cả khi lọc Đang chạy)
   const bangCay = hep ? null : <DataTable rows={hangCay} columns={cotCay} getRowKey={(c) => String(c.camp_id)} persistKey="etp-cay" minWidth={1100} fixedLayout defaultSort={[{ key: 'lai', dir: 'desc' }]}
-    tree={{ parent: () => null, open: moBang, onOpen: doiMoBang }} groupBy={{ value: (c) => (c.sx?.khoi ? `k${c.sx.khoi.id}` : String(c.content_id ?? 0)), label: nhanPhim }}
+    tree={{ parent: () => null, open: moBang, onOpen: doiMoBang }} groupBy={{ value: nhomCay, label: nhanPhim }}
     rowData={(c) => ({ 'camp-dong': c.camp_id })}
     rowStyle={(c) => { const mau = loiNb.get(c.camp_id) ? '#ef4444' : giam(c) ? '#f59e0b' : null; const mo = con.them.has(c.camp_id) ? { opacity: 0.55 } : {}; return toSangDong(hl, c.camp_id, mau ? { ...mo, boxShadow: `inset 3px 0 ${mau}`, background: `${mau}14` } : con.them.has(c.camp_id) ? mo : undefined); }}
     searchText={(c) => `${c.camp_id} ${c.ten ?? ''} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tlC(c.the_loai ?? null)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…"

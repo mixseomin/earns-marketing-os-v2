@@ -99,6 +99,7 @@ import { nhip } from '@/lib/nhip';   // tự làm mới chỉ khi tab hiện (12
 import { TabDoiThu } from './etp-doi-thu';   // tab Phim đối thủ (anh giao 19/11/2026)
 import { TabMauCr } from './etp-mau-cr';   // tab Mẫu creative (anh giao 19/11/2026)
 import { KhungBaiQc } from './etp-bai-qc';
+import { CamCauHinh } from './etp-camp-cau-hinh';
 import { ThietLapCamp } from './etp-thiet-lap';   // tab Camp › ⚙ Thiết lập (anh 24/11/2026)
 import { ChipCrPhim, useDemCrPhim } from './etp-cr-phim-chip';   // 🎬 N · ＋ trên hàng phim (anh 23/11/2026)   // khung bài QC như người xem thấy (anh 20/11/2026)
 
@@ -3705,20 +3706,23 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         const r = c?.creative_id ? crAnh.get(c.creative_id) : undefined, ch = c?.creative_id ? du.cham[c.creative_id] : undefined;
         const st = soThang(du), b = c ? dauBac(c, baoCampBang.get(c.camp_id)) : null, tl = c ? tinhLuat({ c, ba: ba3(du, c), bao: baoCampBang.get(c.camp_id), ...st, xet: du.xetLuat?.[c.camp_id] }) : null;
         const O = ({ ten, children }: { ten: string; children: React.ReactNode }) => <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '6px 8px', minWidth: 0 }}><div style={{ fontSize: 10, color: 'var(--fg-3, #777)' }}>{ten}</div><div style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{children}</div></div>;
-        return <Drawer onClose={dong} width={440} padding={14}>
+        return <Drawer onClose={dong} width={1080} padding={14}>{/* ngăn camp = trang cấu hình Ethopex (anh 24/11/2026 "giống config page bên etho với các page y hệt") */}
           {!c ? <div style={{ color: 'var(--fg-2)' }}>Không thấy camp #{nganCamp} trong kho (đã lưu trữ hoặc chưa đồng bộ).</div> : <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingRight: 28 }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} /><b style={{ fontSize: 15, color: laRoas(c) ? MAU_ROAS : undefined }}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} />
               <span style={{ color: 'var(--fg-3, #777)', marginLeft: 'auto' }}>{tuoiChu(tuoiNgay(c.tao))} ngày</span></div>
             <div style={{ fontWeight: 600, lineHeight: 1.3 }}>{c.phim ?? c.ten}</div>
             {c.phim && c.ten && c.ten !== c.phim ? <div style={{ color: 'var(--fg-2)', marginTop: -6, wordBreak: 'break-word', userSelect: 'all' }}>{c.ten}</div> : null}{/* tên camp thật (anh 31/10/2026 #1494) */}
+            <CamCauHinh campId={c.camp_id} phim={c.phim}
+              xemTruoc={c.creative_id ? <KhungBaiQc cr={c.creative_id} camp={c.camp_id} anh={r?.anh ?? null} video={r?.video ?? null} caoMedia="46dvh" /> : null}
+              soLieu={<div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 560 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
               <O ten={`bậc ${b!.bac + 1}/${BAC_NS.length}`}>${c.ngan_sach}</O><O ten="ROI nay"><Roi s={c.nay} /></O><O ten="ROI qua"><Roi s={c.qua} /></O><O ten={khNay ? 'lãi nay' : `lãi ${khNhan.toLowerCase()}`}><Lai s={khNay ? c.nay : ckh(c.camp_id)} /></O></div>
             {quyen?.vai === 'chu' && !du.nguoi.ngoai ? <DieuKhienCamp c={c} lon boDs={Object.keys(du.boTk).sort()} choDs={choMap.get(c.camp_id) ?? []} lsDk={lsCamp(c.camp_id)} /> : null}{/* #1553: điện thoại mở ngăn camp → điều khiển ở đây (ô ⚙ cạnh ngân sách chỉ có ở bảng máy tính) */}
             <BieuNgay ngay={ngay6} sd={ngay6.map((d) => soCamp(c.camp_id, d))} nay={c.nay} ns={[...nsCuoiNgay(c.ngan_sach, du.lsBac[c.camp_id], ngay6), c.ngan_sach]} />
             <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px' }}>{tl!.chinh ? <div style={{ marginBottom: 6 }}><ChipO chinh={tl!.chinh} /></div> : null}<ThanLuat t={tl!} gon /></div>
             {r ? <TheCr r={r} ch={ch} k={crKh.get(r.creative_id)} khTen={khNay ? undefined : khNhan} tc={du.tieuChi} /> : null}
-            {c.creative_id ? <div style={{ maxWidth: 360 }}><KhungBaiQc cr={c.creative_id} camp={c.camp_id} anh={r?.anh ?? null} video={r?.video ?? null} caoMedia="46dvh" /></div> : null}{/* bài QC như người xem thấy (anh 20/11/2026) */}
             <details><summary style={{ cursor: 'pointer', color: 'var(--fg-2)' }}>Lịch sử bậc · 30 ngày</summary><TheBac ls={du.lsBac[c.camp_id] ?? []} d={b!.d} /></details>
+            </div>} />{/* bài QC như người xem thấy (anh 20/11/2026) = khối Ad preview ở trang Ad */}
           </div>}
         </Drawer>; })() : null}
       {xem ? (() => {

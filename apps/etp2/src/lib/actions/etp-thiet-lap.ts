@@ -70,6 +70,9 @@ export async function docThietLap(ids: number[]): Promise<ThietLap | { loi: stri
       c_mua: S(cp.buying_type), c_gia: S(c.source_bidding_strategy) ?? S(cp.bid_strategy) ?? S(r.chien_luoc), c_ns: ns(c.budget_daily ?? r.ngan_sach), c_ns_tron: ns(c.budget_lifetime || null),
       c_ns_chia: cp.is_adset_budget_sharing_enabled == null ? null : cp.is_adset_budget_sharing_enabled ? 'bật' : 'tắt', c_dac_biet: ds(cp.special_ad_categories) ?? 'không',
       c_dsa: [S(cp.dsa_beneficiary), S(cp.dsa_payor)].filter(Boolean).join(' / ') || null, c_tt: S(c.state) ?? S(r.trang_thai), c_meta: S(c.source_status), c_giao: S(c.delivery_status) ?? S(r.giao),
+      // thêm cho ngăn camp kiểu trang cấu hình Ethopex (anh 24/11/2026 "drawer hiện ra giống config page bên etho với các page y hệt")
+      c_build: S(c.build_name), c_epc: ns(Number(c.min_epc) || null), c_che_do: cp.daily_budget || cp.lifetime_budget ? 'Campaign budget' : 'Ad set budget',
+      c_loi: gon([S(c.error), S(c.warning) && `⚠ ${S(c.warning)}`].filter(Boolean).join('\n') || null),
       // 2. AD SET
       g_ten: gon(S(g.name)), g_toi_uu: S(g.optimization_goal) ?? S(gp.optimization_goal), g_tinh_phi: S(gp.billing_event) ?? S(g.billing_event), g_dich: S(gp.destination_type),
       g_su_kien: S(po.custom_event_type), g_pixel: S(po.pixel_id) ?? ds(L(du.pixel).map((x) => J(x).pixel_id)), g_roas: ns(bc.roas_average_floor ?? (Number(g.target_roas) || null) ?? r.roas),
@@ -78,10 +81,13 @@ export async function docThietLap(ids: number[]): Promise<ThietLap | { loi: stri
       g_ngon_ngu: ds(t.locales), g_tuoi: t.age_min || t.age_max ? `${S(t.age_min) ?? '?'}–${S(t.age_max) ?? '?'}` : null, g_gioi: ds(t.genders),
       g_adv: ta.advantage_audience == null ? null : ta.advantage_audience ? 'bật' : 'tắt', g_nen: gon(ds(t.publisher_platforms)), g_vi_tri: gon(vt), g_thiet_bi: ds(t.device_platforms),
       g_an_toan: gon(ds(t.brand_safety_content_filter_levels)), g_vung_qd: gon(ds(gp.regional_regulated_categories)), g_ext: S(g.external_group_id), g_meta: S(g.source_status), g_giao: S(g.delivery_status),
+      g_tt: S(g.status), g_epc: ns(Number(g.min_epc) || null), g_cpa: ns(Number(g.target_cpa) || null), g_dsa_b: S(gp.dsa_beneficiary) ?? S(cp.dsa_beneficiary), g_dsa_p: S(gp.dsa_payor) ?? S(cp.dsa_payor),
+      g_kich: g.pending_activation ? 'chờ kích hoạt' : null, g_loi: gon([S(g.error), S(g.warning) && `⚠ ${S(g.warning)}`].filter(Boolean).join('\n') || null),
       // 3. AD
       a_page: S(a.facebook_page_id) ?? S(r.page_id), a_page_ten: S(r.pten), a_mien: S(a.domain) ?? S(r.ten_mien), a_lp: S(a.landing_page_id), a_phim: S(a.content_id) ?? S(r.content_id),
       a_url: S(a.final_url) ?? S(r.final_url), a_tags: S(a.url_tags), a_bai_co: S(a.is_existing_post), a_bai: S(a.effective_object_story_id), a_ext: S(a.external_ad_id), a_ext_cr: S(a.external_creative_id),
       a_video: S(a.video_id), a_meta: S(a.source_status), a_giao: S(a.delivery_status),
+      a_ten: gon(S(a.name)), a_kich: a.pending_activation ? 'chờ kích hoạt' : null, a_loi: gon([S(a.error), S(a.warning) && `⚠ ${S(a.warning)}`].filter(Boolean).join('\n') || null),
       // 4. CREATIVE — form chữ
       f_cr: S(r.creative_id), f_kieu: kieu, f_cta: cta, f_tt: S(a.status) ?? S(r.trang_thai), f_link: link, f_chinh: gon(L(chinh).map((x) => S(x)).filter(Boolean).join('\n') || null),
       f_tieu: gon(L(tieu).map((x) => S(x)).filter(Boolean).join('\n') || null), f_mo_ta: gon(L(moTa).map((x) => S(x)).filter(Boolean).join('\n') || null),

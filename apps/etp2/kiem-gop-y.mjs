@@ -634,6 +634,9 @@ const LUAT = [
   { card: 'roas-mac-dinh', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', cam: "...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), '--tay', ...(o ?", vi: 'lệnh lên creative không còn nhánh camp $1' },
   { card: 'roas-mac-dinh', tep: 'apps/etp2/src/components/etp-dong.tsx', cam: '$1/ngày, ${chuLich()}', vi: 'nút lên creative không hứa $1/ngày' },
   { card: 'roas-mac-dinh', tep: 'apps/etp2/src/components/etp-lich-phim.tsx', cam: 'mỗi camp $1/ngày', vi: 'xác nhận dòng phim ghi đúng tiền ★ ROAS' },
+  { card: 'drawer-camp-etho', tep: 'apps/etp2/src/components/etp-camp-cau-hinh.tsx', co: '>Campaign structure</div>', vi: 'ngăn camp = trang cấu hình Ethopex: cây Campaign → Ad set → Ad bên trái (anh 24/11/2026 "giống config page bên etho với các page y hệt")' },
+  { card: 'drawer-camp-etho', tep: 'apps/etp2/src/components/etp-camp-cau-hinh.tsx', mot: '<Khoi ten="Budget & schedule">', vi: 'trang Ad set giữ đủ khối như Ethopex (Conversion · Budget & schedule · Audience · Ad transparency · Placements)' },
+  { card: 'drawer-camp-etho', tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<CamCauHinh campId={c.camp_id}', vi: 'ngăn camp (nganCamp) dựng bằng CamCauHinh, số liệu nhà là một trang trong cây — không quay về ngăn 440px một cột' },
 ];
 
 const loi = [];

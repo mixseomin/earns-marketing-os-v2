@@ -20,6 +20,7 @@ export interface TablePref {
   g?: string;                                       // gom nhóm theo cột (thanh lọc tự động, loc-tu-dong.ts)
   o?: string[];                                     // thứ tự NHÓM người dùng đặt trong menu ⚙ cột (thu-tu-cot.ts)
   oc?: string[];                                    // thứ tự CỘT trong từng nhóm
+  dd?: boolean;                                     // false = tắt ghim khối tiêu đề (nhãn nhóm + tên cột) khi cuộn — etp2 #1824; thiếu = ghim
 }
 
 const Ctx = createContext<Record<string, TablePref>>({});

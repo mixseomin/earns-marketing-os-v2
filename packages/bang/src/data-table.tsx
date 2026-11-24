@@ -442,6 +442,10 @@ export function DataTable<T>({
     onDrop: (e: ReactDragEvent) => { e.preventDefault(); if (keoMuc && keoMuc.loai === loai && keoMuc.g === g) doiViTri(loai, keoMuc.k, k, g); setKeoMuc(null); },
   });
   const coThuTuRieng = !!(thuTu.n?.length || thuTu.c?.length);
+  // GHIM TIÊU ĐỀ BẬT / TẮT (etp2 #1824 anh 24/11/2026 "Sao nhóm cột này lại sticky? Phải có option bật/tắt nó"): khối tiêu đề (nhãn nhóm + tên cột) mặc định
+  // dính mép trên khi cuộn; công tắc trong menu ⚙ Columns tắt được, nhớ theo persistKey (cookie, server đọc sẵn nên F5 không nháy)
+  const [dinhDau, setDinhDauTho] = useState(pref.dd !== false);
+  const setDinhDau = (v: boolean) => { setDinhDauTho(v); writeTablePref(persistKey, { dd: v ? undefined : false }); };
   const menuCot = (gs: DataGroup[]) => {
     const theoKhoa = new Map(gs.map((g) => [g.key, g] as const));
     const colTheoKhoa = new Map(columns.map((c) => [c.key, c] as const));
@@ -496,6 +500,11 @@ export function DataTable<T>({
           })}
           {coThuTuRieng && <button type="button" onClick={() => setThuTu({})} title="Bỏ thứ tự đã đổi, về thứ tự gốc của bảng"
             style={{ marginTop: 2, padding: '3px 9px', borderRadius: 4, border: '1px dashed var(--line)', background: 'transparent', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)', textAlign: 'left' }}>↺ Thứ tự mặc định</button>}
+          {theoTrang && <button type="button" data-nut="ghim-tieu-de" aria-pressed={dinhDau} onClick={() => setDinhDau(!dinhDau)}
+            title={dinhDau ? 'Đang ghim: nhãn nhóm + tên cột dính trên cùng khi cuộn xuống — bấm để thôi ghim' : 'Đang thôi ghim: tiêu đề trôi theo bảng — bấm để ghim lại'}
+            style={{ marginTop: 4, padding: '6px 9px 3px', borderRadius: 4, border: 0, borderTop: '1px solid var(--line)', background: 'transparent', color: dinhDau ? 'var(--fg-1)' : 'var(--fg-3)', cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)', textAlign: 'left', whiteSpace: 'nowrap' }}>
+            {dinhDau ? '☑' : '☐'} Ghim tiêu đề khi cuộn
+          </button>}
         </div>
       </details>
     );
@@ -718,7 +727,7 @@ export function DataTable<T>({
   const gapNhomRef = useRef(gapNhom); gapNhomRef.current = gapNhom;
   const coGom = !!cotGom;
   useEffect(() => {
-    if (!theoTrang || effView !== 'table' || !coGom) { setNhomDinh((o) => (o === null ? o : null)); return; }
+    if (!theoTrang || effView !== 'table' || !coGom || !dinhDau) { setNhomDinh((o) => (o === null ? o : null)); return; }
     const gapNhom = (v: string) => gapNhomRef.current(v);
     let sc: HTMLElement | null = thanRef.current?.parentElement ?? null;
     while (sc && !/(auto|scroll)/.test(getComputedStyle(sc).overflowY)) sc = sc.parentElement;
@@ -744,7 +753,7 @@ export function DataTable<T>({
     const nghe = () => { if (!hen) hen = requestAnimationFrame(xet); };
     nguon.addEventListener('scroll', nghe, { passive: true }); window.addEventListener('resize', nghe); xet();
     return () => { nguon.removeEventListener('scroll', nghe); window.removeEventListener('resize', nghe); if (hen) cancelAnimationFrame(hen); };
-  }, [theoTrang, effView, coGom, pageRows, visible.length]);   // chỉ gắn lại khi bảng / dòng đổi — cuộn đã có bộ nghe riêng (góp ý #giao-20261120T1141-chuyen-ie76)
+  }, [theoTrang, effView, coGom, pageRows, visible.length, dinhDau]);   // chỉ gắn lại khi bảng / dòng đổi — cuộn đã có bộ nghe riêng (góp ý #giao-20261120T1141-chuyen-ie76)
   const nhDinh = nhomDinh != null ? cacNhom.find((x) => x.v === nhomDinh) : undefined;
   // BẢN DÍNH KHÔNG CHIẾM CHỖ (etp2 #1713 anh 20/11/2026, đáy Cây camp): bản dính dòng nhóm nằm trong khối tiêu đề .dt-dau (phần tử sticky vẫn chiếm chỗ) → hiện là đẩy
   // thân bảng xuống một dòng. Hai hệ quả cùng gốc: (1) trang dài/ngắn một dòng → ở đáy trình duyệt kẹp vị trí cuộn; (2) neo cuộn (scroll anchoring) của trình duyệt
@@ -1024,7 +1033,7 @@ export function DataTable<T>({
       <>
       {theoTrang && (
         <div ref={dauRef} className="dt-dau" onScroll={dongCuon('dau')}
-             style={{ position: khungThap ? 'relative' : 'sticky', top: khungThap ? 0 : dinhTren, zIndex: 6, overflowX: 'auto', margin: '0 -8px', background: 'var(--bg-2)', boxShadow: '0 1px 0 var(--line)' }}>
+             style={{ position: khungThap || !dinhDau ? 'relative' : 'sticky', top: khungThap || !dinhDau ? 0 : dinhTren, zIndex: 6, overflowX: 'auto', margin: '0 -8px', background: 'var(--bg-2)', boxShadow: '0 1px 0 var(--line)' }}>
           <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: cotDo.bang || '100%', minWidth: cotDo.bang ? undefined : minWidth }}>
             {cotDo.w.length ? <colgroup>{cotDo.w.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup> : null}{/* bảng tiêu đề dính và bảng thân là HAI <table>: luôn khai bề rộng đo từ thân bằng colgroup (có hay không hàng nhãn nhóm) để cột tiêu đề luôn khớp cột thân */}
             <thead>{hangNhom()}{hangDau(true)}</thead>

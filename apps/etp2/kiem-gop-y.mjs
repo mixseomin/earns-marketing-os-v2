@@ -7,6 +7,9 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1824, tep: 'packages/bang/src/data-table.tsx', mot: 'data-nut="ghim-tieu-de"', vi: 'menu ⚙ Columns có công tắc Ghim tiêu đề khi cuộn (anh 24/11/2026 "Sao nhóm cột này lại sticky? Phải có option bật/tắt nó")' },
+  { card: 1824, tep: 'packages/bang/src/data-table.tsx', co: "position: khungThap || !dinhDau ? 'relative' : 'sticky'", vi: 'tắt công tắc thì khối tiêu đề (nhãn nhóm + tên cột) thôi dính khi cuộn' },
+  { card: 1824, tep: 'packages/bang/src/table-prefs.tsx', co: 'dd?: boolean;', vi: 'lựa chọn ghim / thôi ghim nhớ theo bảng (cookie), F5 không mất' },
   { card: 1818, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "phu={`#${c.creative_id}`} them={crThem(c)}", vi: 'ô Phim · creative (bảng Camp + nhóm Creative ở Thiết lập) hiện nhãn loại creative · ngôn ngữ · độ dài dưới tên phim (anh 24/11/2026 "Show thêm thông tin creative như Loại creative")' },
   { card: 1818, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "phu={`#${c.creative_id} ${c.dang ?? ''}`}", vi: 'không quay về chữ loại thô sau mã creative (trống khi creative chưa phân loại)' },
   { card: 1818, tep: 'apps/etp2/src/components/etp-view.tsx', co: '{them ? <> · {them}</> : null}', vi: 'PhimO in phần thông tin creative ở dòng phụ' },

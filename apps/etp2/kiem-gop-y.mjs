@@ -694,6 +694,7 @@ const LUAT = [
   { card: 'khoi-nut', tep: 'apps/etp2/src/components/etp-khoi.tsx', co: 'data-o="drawer-khoi"', vi: 'ngăn sửa tham số / phim / số camp của khối' },
   { card: 'khoi-nut', tep: 'apps/etp2/src/components/etp-view.tsx', cam: "'chờ anh duyệt' : 'đang chạy'", vi: 'nhãn khối không còn "chờ anh duyệt" mà không có nút' },
   { card: 'khoi', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'thanh_phan: (mau?.o ?? [])', vi: 'thành phần khối đọc từ sổ mẫu etp-mau-cr.json, không gõ tay' },
+  { card: 'khoi-nut', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'rs.filter((c) => !c.sx?.khoi).map((c) => c.content_id ?? 0)', vi: 'nhóm khối không cộng ROI/ngày của camp cũ cùng phim' },
   { card: 'khoi-nut', tep: 'apps/etp2/src/lib/etp-doc.ts', cam: 'for (let i = 1; i <= soK; i++)', vi: 'MỘT dòng mỗi phim khối (anh 25/11 bỏ nở so_camp dòng giống hệt)' },
   { card: 'khoi', tep: 'apps/etp/dong_phim.py', co: 'if d.get("khoi"): return b_camp_khoi(d, truoc)', vi: 'bước camp của dòng khối đọc tham số từ khối, không hoi_cho' },
   { card: '1836', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'groupBy={{ value: nhomCay', vi: 'bảng Cây nhóm theo một hàm khoá nhóm chung' },

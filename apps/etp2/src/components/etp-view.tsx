@@ -2420,7 +2420,8 @@ function useCotNgay(du: DuLieuEtp) {
   // 7 NGÀY GẦN NHẤT CỦA DÒNG PHIM / DÒNG TỔNG LUÔN HIỆN (#1788 anh 23/11/2026 "danh sách 7 ngày gần nhất luôn luôn phải hiện"): ô ngày nhóm cộng MỌI camp
   // của các phim đang hiện trong kho, không chỉ camp lọt bộ lọc. Dòng camp vẫn là số của chính camp đó. tongNgay + demCamp + gio cùng đi qua caPhim → một chỗ, không vá từng ô.
   const khoPhim = useMemo(() => { const m = new Map<number, CampEtpKho[]>(); for (const c of du.camps) { if (c.camp_id <= 0) continue; const k = c.content_id ?? 0; m.set(k, [...(m.get(k) ?? []), c]); } return m; }, [du.camps]);
-  const caPhim = (rs: CampEtpKho[]): CampEtpKho[] => { const m = new Map<number, CampEtpKho>(); for (const k of new Set(rs.map((c) => c.content_id ?? 0))) for (const c of khoPhim.get(k) ?? []) m.set(c.camp_id, c); for (const c of rs) if (c.camp_id > 0) m.set(c.camp_id, c); return [...m.values()]; };
+  // dòng KHỐI (chưa có camp) không kéo camp cũ của cùng phim vào nhóm khối — trước hàng đầu khối hiện ROI/ngày của camp đang chạy (anh 25/11/2026)
+  const caPhim = (rs: CampEtpKho[]): CampEtpKho[] => { const m = new Map<number, CampEtpKho>(); for (const k of new Set(rs.filter((c) => !c.sx?.khoi).map((c) => c.content_id ?? 0))) for (const c of khoPhim.get(k) ?? []) m.set(c.camp_id, c); for (const c of rs) if (c.camp_id > 0) m.set(c.camp_id, c); return [...m.values()]; };
   // #1788 lần 3: DÒNG TỔNG = CẢ TÀI KHOẢN (tk = true) — cộng thẳng sổ ngày (so = du.soNgay: mọi camp có chi / thu, kể cả camp đã tắt), không theo bộ lọc;
   // khớp số Ethopex 17–20/11 = 62–92 camp · 215–311 USD/ngày. Dòng nhóm phim (tk = false) vẫn cộng cả phim qua caPhim.
   const tkCamp = useMemo(() => [...new Set([...so.keys(), ...du.camps.filter((c) => c.camp_id > 0).map((c) => c.camp_id)])], [so, du.camps]);

@@ -333,7 +333,7 @@ def dem_doan(cr):
     d = _DOAN.get(cr)
     return sum(n for c, n in DEM_CR.items() if (_DOAN.get(c) == d if d else c == cr))
 import so_dang as DG   # SỔ DẠNG một nơi (etp-dang.json) — apps/etp đã ở sys.path
-DANG_TINH = tuple(x["dang"] for x in DG.DS if x.get("tinh"))
+DANG_TINH = tuple(x["dang"] for x in DG.DS if x.get("tinh") or x.get("khong_doan"))   # + dạng dựng từ MỘT khung (sổ khong_doan, vd AD ảnh động 24/11/2026: #113993 bị chặn "cùng đoạn" với bản AT #113295 cùng phim) — mốc giây không phải đoạn phim
 def cung_doan_dang_chay(cr):
     """creative mới cr trùng ĐOẠN (cùng phim + cùng mốc giây) với camp đang chạy / vừa tạo dù creative mang mã khác → mã creative đó, không thì None.
     03/11/2026 lô pm-03110155: máy tự lên 8 camp lúc 03:12–03:51, Claude chạy tay `phim-moi.py len` lại → tải lại thành creative mới #64996–#65005, cổng

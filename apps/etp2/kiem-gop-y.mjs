@@ -603,6 +603,8 @@ const LUAT = [
   { card: 'anh-dong', tep: 'apps/web/src/lib/etp-dang.json', co: '"dang": "ảnh động", "ma": "AD"', vi: 'sổ dạng máy Python đọc (so_dang.py) cũng có AD' },
   { card: 'anh-dong', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'dem: du.camps.filter((c) => c.dang === d).length })).filter((o) => o.dem)', vi: 'bộ lọc Loại không giấu dạng chưa có camp (AD mới phải hiện)' },
   { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'dang = muc["dung_cho"][0] if ma in DONG', vi: 'creative ảnh động nạp đúng dạng AD, không lẫn vào poster động' },
+  { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if x.get("tinh") or x.get("khong_doan"))', vi: 'dạng dựng từ một khung (AD) không bị chặn trùng đoạn với ảnh tĩnh cùng phim' },
+  { card: 'anh-dong', tep: 'apps/web/src/lib/etp-dang.json', co: '"ma": "AD", "nhom": "poster động", "mau": "#14b8a6", "khong_dau": "anh dong", "dong": null, "tinh": false, "khong_doan": true', vi: 'sổ dạng máy đọc: AD mang khong_doan' },
 ];
 
 const loi = [];
@@ -619,6 +621,9 @@ if (readFileSync(join(GOC, 'apps/etp2/src/lib/etp-bang-luat.json'), 'utf8') !== 
   loi.push('sổ luật etp2 lệch sổ máy luật — chép lại: cp apps/web/src/lib/etp-bang-luat.json apps/etp2/src/lib/etp-bang-luat.json');
 if (readFileSync(join(GOC, 'apps/etp2/src/components/etp-phanh-cho.tsx'), 'utf8') !== readFileSync(join(GOC, 'apps/web/src/components/etp-phanh-cho.tsx'), 'utf8'))
   loi.push('biển phanh chợ hai trang lệch nhau — chép lại: cp apps/etp2/src/components/etp-phanh-cho.tsx apps/web/src/components/etp-phanh-cho.tsx');
+// SỔ DẠNG HAI BẢN (24/11/2026: máy Python đọc apps/web, etp2 đọc bản chép — thêm cờ một bên là máy không thấy)
+if (readFileSync(join(GOC, 'apps/etp2/src/lib/etp-dang.json'), 'utf8') !== readFileSync(join(GOC, 'apps/web/src/lib/etp-dang.json'), 'utf8'))
+  loi.push('sổ dạng etp2 lệch sổ máy — chép lại: cp apps/etp2/src/lib/etp-dang.json apps/web/src/lib/etp-dang.json');
 // TEMPLATE TRONG LƯỚI (anh 15/11/2026 "sao bố cục lại bị tràn ra ngoài màn hình": template Thành phố cao 20 hàng trong lưới 18) — mọi ô của mọi template nằm trong cot × hang, không chồng nhau
 { const so = JSON.parse(readFileSync(join(GOC, 'apps/etp2/src/lib/etp-widget.json'), 'utf8'));
   for (const [ma, t] of Object.entries(so.template)) for (const [i, o] of t.o.entries()) {

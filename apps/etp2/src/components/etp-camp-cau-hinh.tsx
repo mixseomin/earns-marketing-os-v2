@@ -19,6 +19,8 @@ const MA: Record<string, string> = {
   WEBSITE: 'Website', PURCHASE: 'Purchase', COMPLETE_REGISTRATION: 'Complete registration', ADD_TO_CART: 'Add to cart', IMPRESSIONS: 'Impressions',
   ACTIVE: 'On', PAUSED: 'Off', ARCHIVED: 'Archived', DELETED: 'Deleted',
 };
+// mã locale Meta (targeting.locales) — chỉ ghi mã đã chắc; mã khác in nguyên số
+const LOCALE: Record<string, string> = { '6': 'English (US)', '24': 'English (UK)' };
 const gioVn = (iso: string) => {
   const t = Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso.replace(' ', 'T') : `${iso.replace(' ', 'T')}Z`);
   if (!Number.isFinite(t)) return null;
@@ -158,7 +160,7 @@ export function CamCauHinh({ campId, soLieu, xemTruoc, phim }: {
       {v('g_kieu_vt') ? <Truong nhan="Location types" gt={v('g_kieu_vt')} /> : null}
       <Truong nhan="Age" gt={v('g_tuoi')} />
       <Truong nhan="Genders" gt={gioi(v('g_gioi'))} />
-      <Truong nhan="Languages" gt={v('g_ngon_ngu') ?? 'All languages'} />
+      <Truong nhan="Languages" gt={v('g_ngon_ngu') == null ? 'All languages' : v('g_ngon_ngu')!.split(', ').map((x) => LOCALE[x] ? `${LOCALE[x]} (${x})` : x).join(', ')} />
       {v('g_adv') ? <Truong nhan="Advantage+ audience" gt={v('g_adv')} /> : null}
     </Khoi>
     <Khoi ten="Ad transparency">

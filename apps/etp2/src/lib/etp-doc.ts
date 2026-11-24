@@ -544,7 +544,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     hangCr.push({ camp_id: kh ? -(20_000_000 + n(r.id) * 10) : -(10_000_000 + n(r.id)),
       ten: `🏭 đang sản xuất · ${(r.loai as string) ?? '?'} · ${b} · ★ ROAS ${ro} · $${ns}${kh ? ` · khối #${kh.id} · ${(r.phim as string) ?? `#${r.content_id}`} · ${soK} camp` : sc && sc > 1 ? ` · ${sc} camp` : ''}`,
       sx: { dong: n(r.id), buoc: b, so_camp: kh ? soK : sc, ai: (r.ai as string) ?? null, khoi: kh, tieng, khuon: kh?.khuon && tieng ? kh.khuon[tieng] ?? null : null }, mien: kh?.mien ?? null,
-      bo: (r.bo as string) || (r.bo_moi as string) || null, trang_thai: 'ACTIVE', giao: null, ngan_sach: ns, creative_id: null, content_id: r.content_id == null ? null : n(r.content_id), goc: null,
+      bo: (r.bo as string) || (r.bo_moi as string) || null, trang_thai: 'ACTIVE', giao: null, ngan_sach: kh && soK ? ns * soK : ns, creative_id: null, content_id: r.content_id == null ? null : n(r.content_id), goc: null,
       lich: gioKhung, tao: (r.tao as string) ?? null, loi: null, dong_bo: 'dang_sx', phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.loai as string) ?? null,
       ban: null, giong: null, doan: null, cung_doan: 0, thang: st(0, 0), qua: st(0, 0), nay: st(0, 0), lich_tat: false, nuoc: [], ab: null, dong: null, roas: ro, chien_luoc: 'LOWEST_COST_WITH_MIN_ROAS' }); }
   // gộp creative / phim từ camp (cùng nguồn số)

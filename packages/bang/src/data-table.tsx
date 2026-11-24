@@ -631,13 +631,15 @@ export function DataTable<T>({
     const gap = gapNhom(nh.v);
     // TÊN NHÓM TRÀN SANG các cột liền sau không có số tổng (anh 29/10/2026 etp "dòng tên phim thì gộp với cột trạng thái + tuổi cho rộng ra"): ô đầu colSpan tới cột có total đầu tiên
     // tên được nới ba cột gộp tới 600px rồi mới cắt … (thử width:0 thì cột Phim co về bề rộng mã camp → tên còn hẹp hơn trước, 29/10/2026)
-    let gop = 1; while (gop < visible.length && !visible[gop]!.total) gop++;
+    // cột CÓ hàm tổng nhưng trả trống cho đúng nhóm này cũng là chỗ trống → tên tràn qua luôn (etp2 #1823 anh 24/11/2026 "tận dụng không gian này để mở rộng tên phim": ô TT dòng phim trống vì đồng hồ sản xuất tạm ẩn mà tên vẫn bị cắt)
+    const tongNhom = visible.map((c, ci) => (ci > 0 && c.total ? c.total(nh.rows) : null));
+    let gop = 1; while (gop < visible.length && (tongNhom[gop] == null || tongNhom[gop] === false)) gop++;
     const doiNhom = () => (tree && groupBy ? tree.onOpen([`g:${nh.v}`], gap) : setDongNhom((d) => (gap ? d.filter((x) => x !== nh.v) : [...d, nh.v])));
     return <tr key={`g:${nh.v}`} className={dinh ? 'dt-nhom dt-nhom-dinh' : 'dt-nhom'} data-nhom={dinh ? undefined : nh.v} onClick={doiNhom} style={{ cursor: 'pointer', background: 'var(--bg-2)' }}>
       {visible.map((c, ci) => (ci > 0 && ci < gop ? null :
         <td key={c.key} colSpan={ci === 0 && gop > 1 ? gop : undefined} style={{ ...cellStyle(c, { fontWeight: 700, background: 'var(--bg-2)', ...(ci === 0 ? { textAlign: 'left', color: 'var(--fg-1)' } : {}) }, ci), ...(ci === 0 && gop > 1 ? { width: undefined, maxWidth: undefined } : {}) }}>
           {ci === 0 ? ((x: ReactNode) => (gop > 1 ? <div style={{ maxWidth: 600, overflow: 'hidden' }}>{x}</div> : x))(groupBy?.label ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: '100%' }}><span style={{ width: 12, flex: 'none', color: 'var(--fg-3)' }}>{gap ? '▸' : '▾'}</span>{groupBy.label(nh.v, nh.rows)}</span>
-            : <>{gap ? '▸' : '▾'} {nh.v} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {nh.rows.length}</span></>) : c.total ? c.total(nh.rows) : null}
+            : <>{gap ? '▸' : '▾'} {nh.v} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {nh.rows.length}</span></>) : tongNhom[ci]}
         </td>
       ))}
     </tr>;

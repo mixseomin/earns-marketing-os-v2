@@ -22,6 +22,8 @@ const LUAT = [
   { card: 1813, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'vAi.length', vi: 'nút Sửa (AI) chỉ hiện khi còn vấn đề sửa được' },
   { card: 1813, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', cam: ' — ad đang chạy chữ cũ', vi: 'không còn báo đỏ "ad đang chạy chữ cũ"' },
   { card: 1817, tep: 'packages/bang/src/data-table.tsx', mot: 'const colsXep = useMemo(() => xepCot(columns, thuTu.n, thuTu.c)', vi: 'bảng vẽ cột theo thứ tự nhóm / cột người dùng đặt trong menu ⚙ cột (lưu theo bảng)' },
+  { card: 1823, tep: 'packages/bang/src/data-table.tsx', co: "let gop = 1; while (gop < visible.length && (tongNhom[gop] == null || tongNhom[gop] === false)) gop++;", vi: 'dòng nhóm: tên tràn qua cả cột có hàm tổng nhưng trả trống cho nhóm đó (ô TT dòng phim) — không bị cắt cạnh ô trống' },
+  { card: 1823, tep: 'apps/etp2/src/components/etp-view.tsx', co: "// cột Thị trường đứng SAU TT (#1823", vi: 'cây Camp: cột Thị trường đứng sau TT, không chen giữa tên phim và ô TT trống' },
   { card: 1817, tep: 'packages/bang/src/data-table.tsx', co: 'const visibleDu = colsXep.filter(', vi: 'cột hiện lấy từ danh sách đã xếp, không từ mảng columns thô' },
   { card: 1817, tep: 'packages/bang/src/data-table.tsx', co: '{nhomXep.map((k, i) => {', vi: 'menu ⚙ cột liệt kê nhóm theo đúng thứ tự trên bảng (thuTuNhom), có ⠿ kéo + ↑↓ cho nhóm và cho cột' },
   { card: 1817, tep: 'packages/bang/src/data-table.tsx', cam: '{groups.map((g) => {', vi: 'menu ⚙ cột không liệt kê theo mảng groups thô (thứ tự lệch bảng — "bừa bãi")' },

@@ -3751,6 +3751,12 @@
     "da_goc": 0,
     "ly_do_da_goc": "góp ý #1652 (24/11/2026): ảnh Mapillary 170611085036166 + 336577534524508 (gpsvid, CC BY-SA 4.0): cả mặt xây đá vôi khối đều một màu, góc cạnh không có đá góc khác màu/khác cỡ; máy do-anh.mjs cũng không thấy dải đá xen ở đầu cạnh (0 đoạn)"
  },
+ "way/223110818#8": {
+  "rang_cua": 0,
+  "vom_nho": 0,
+  "da_goc": 0,
+  "ly_do": "góp ý #1652 (24/11/2026): cạnh này KHÔNG LỘ RA NGOÀI — nằm lọt trong mặt bằng khối cổng way/223110820: mặt ngoài 223110820#13 (35,59,-21,35 → 36,86,-18,38) song song, cùng dài 3,2 m, đứng trước 0,6 m và cao 18,9–36,6 m, trùm kín tường cánh (đỉnh 29,1 m); bắn 15 tia từ phía sân trước cổng vào mặt này (5 đoạn × 3 độ cao) đều chạm khối cổng ở 0,6–0,9 m trước mặt. Ảnh Commons Dvorac Neuschwanstein - dio pročelja (Silverije, CC BY-SA 4.0) thấy trọn cạnh #7 kề bên nhưng máy do-anh.mjs đo được 0 % cạnh này (chỗ đó trên ảnh là mặt khối cổng, răng cưa / vòm của nó ghi ở 223110820#13). Không có mặt tường thật → 0 răng cưa, 0 vòm nhỏ, 0 đá góc"
+ },
  "way/223110818#5": {
   "mau": {
    "duoi": "#e9e7e1",

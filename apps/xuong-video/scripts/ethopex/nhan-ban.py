@@ -505,6 +505,12 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
     roas + moi (anh 18/11/2026, đợt lên hồi chợ — sổ luật hoi_cho): camp ★ ROAS từ CREATIVE MỚI trên khuôn (ad = creative mới, không phải bài cũ; bộ đổi được).
     hoi_cho (đợt lên hồi chợ): nhân bản BÀI CŨ của camp từng lãi trước đợt sụt — camp gốc đã tắt vẫn dùng được bài đăng (như ROAS)."""
     d = api(f"/api/v1/campaigns/{goc_id}"); c = d["campaign"]; g = (d.get("ad_groups") or [{}])[0]; a = (g.get("ads") or [{}])[0]
+    # AD KHÔNG MANG PHIM (24/11/2026, camp #108852 ★ ROAS creative mới): Ethopex trả content_id = 0 trên ad dựng từ creative, dù creative + phim có thật
+    # → nhánh ROAS "dùng lại creative + content" bỏ qua, gãy "không có mã bài đăng"; nhánh nhân bản thường gửi content 0. Sổ etp.camp giữ phim
+    # (dong-bo lấp từ camp gốc) → lấp content_id từ sổ trước mọi nhánh, một chỗ cho cả lớp.
+    if not int(a.get("content_id") or 0) and str(goc_id).isdigit():
+        ct = q(f"select coalesce(nullif(c.content_id, 0), (select nullif(g.content_id, 0) from etp.camp g where g.camp_id = c.goc)) from etp.camp c where c.camp_id = {int(goc_id)}")
+        if ct.isdigit() and int(ct): a = {**a, "content_id": int(ct)}
     # ROAS: chọn theo số all time, camp gốc tắt rồi vẫn dùng được bài đăng. moi (--creative): camp gốc chỉ là KHUÔN cấu hình (Ad Set, pixel, nước, ngôn ngữ),
     # creative thay hẳn → khuôn tạm dừng vẫn dùng được (26/10/2026: khuôn #65110 / #65734 bị tắt vì creative QC spy → mọi lượt lên camp mới gãy "camp gốc đang PAUSED")
     # ep (sang bộ khác theo lệnh anh, 28/10/2026 "lên bộ 3 như bộ 1"): camp thắng bộ 1 đã bị luật chấm tắt vẫn là khuôn + bài đăng dùng được

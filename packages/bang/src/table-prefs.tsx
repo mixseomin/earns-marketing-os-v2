@@ -18,6 +18,8 @@ export interface TablePref {
   v?: 'card' | 'table';                             // chế độ nhìn
   q?: string;                                       // ô tìm/lọc chung (searchText) — sống qua F5
   g?: string;                                       // gom nhóm theo cột (thanh lọc tự động, loc-tu-dong.ts)
+  o?: string[];                                     // thứ tự NHÓM người dùng đặt trong menu ⚙ cột (thu-tu-cot.ts)
+  oc?: string[];                                    // thứ tự CỘT trong từng nhóm
 }
 
 const Ctx = createContext<Record<string, TablePref>>({});

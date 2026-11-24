@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent, type DragEvent as ReactDragEvent } from 'react';
 import { batDauKeo, docRongCot, ghiRongCot } from './keo-rong';
 import { useTableSort, type SortSpec, type ThSort } from './use-table-sort';
 import { AnchoredPopover } from './anchored-popover';
@@ -12,6 +12,7 @@ import { readShallowParam, writeShallowParam } from './url-shallow';
 import { cotDanhMuc, chuoiTim, gomNhom, locChon, docChon, type CotLoc } from './loc-tu-dong';
 import { LocChonNhieu, ChonGomNhom } from './thanh-loc';
 import { useKhungO } from './khung-o';
+import { xepCot, thuTuNhom, doiCho } from './thu-tu-cot';
 
 // DataTable — the house pattern for "a LOT of columns without overflowing the layout".
 // Lifted from the SEO Sites Overview table (the reference): dense mono cells + optional
@@ -405,7 +406,12 @@ export function DataTable<T>({
     return out;
   }, [rows, q, timCuaDong, activeFilters, columns]);
 
-  const visibleDu = columns.filter((c) => !c.group || shown[c.group] !== false);
+  // THỨ TỰ nhóm + cột (thu-tu-cot.ts, etp2 #1817): bảng và menu ⚙ cột cùng đọc MỘT thứ tự — đổi trong menu là bảng đổi theo, lưu theo persistKey.
+  const [thuTu, setThuTuTho] = useState<{ n?: string[]; c?: string[] }>(() => ({ n: pref.o, c: pref.oc }));
+  const setThuTu = (n: { n?: string[]; c?: string[] }) => { setThuTuTho(n); writeTablePref(persistKey, { o: n.n, oc: n.c }); };
+  const colsXep = useMemo(() => xepCot(columns, thuTu.n, thuTu.c), [columns, thuTu]);
+  const nhomXep = thuTuNhom(columns, (groups ?? []).map((g) => g.key), thuTu.n);
+  const visibleDu = colsXep.filter((c) => !c.group || shown[c.group] !== false);
   // TRONG Ô WIDGET /home (khung-o.tsx KhungO — anh 20/11/2026 "màn hình đã bé lại mà show hết ra thì xem được à"): cột không vừa ô thì tự ẩn từ phải
   // sang (giữ tối thiểu 2 cột đầu), chip "+n cột" trên thanh công cụ bật lại cả bảng (khi đó cuộn ngang trong khung). Ngoài ô (trang thường) không đổi gì.
   const rongO = useKhungO(), trongO = rongO > 0;
@@ -416,6 +422,84 @@ export function DataTable<T>({
   // không khớp là hai câu nói cùng một chuyện, cái sau còn trông như số liệu thật.
   const hasTotals = visible.some((c) => c.total);
   const onCount = (groups ?? []).filter((g) => shown[g.key] !== false).length;
+
+  // MENU ⚙ CỘT — MỘT khối cho cả thanh gọn lẫn thanh đủ (trước đây chép hai bản, cùng liệt kê theo mảng `groups` nên lệch thứ tự bảng).
+  // Nhóm xếp theo đúng thứ tự trên bảng; ⠿ kéo thả hoặc ↑↓ để đổi; ▸ mở danh sách cột của nhóm để đổi thứ tự cột.
+  const [moNhomCot, setMoNhomCot] = useState('');
+  const [keoMuc, setKeoMuc] = useState<{ loai: 'n' | 'c'; k: string; g?: string } | null>(null);
+  const cotCuaNhom = (g: string) => colsXep.filter((c) => c.group === g).map((c) => c.key);
+  const doiViTri = (loai: 'n' | 'c', k: string, toi: string | -1 | 1, g?: string) => {
+    if (loai === 'n') { const n = doiCho(nhomXep, k, toi); if (n !== nhomXep) setThuTu({ ...thuTu, n }); return; }
+    const ds = cotCuaNhom(g!); const moi = doiCho(ds, k, toi); if (moi === ds) return;
+    const bo = new Set(ds); setThuTu({ ...thuTu, c: [...(thuTu.c ?? []).filter((x) => !bo.has(x)), ...moi] });
+  };
+  const nutNho: CSSProperties = { background: 'transparent', border: 0, color: 'var(--fg-3)', cursor: 'pointer', fontSize: 11, padding: '0 3px', lineHeight: 1 };
+  const keoProps = (loai: 'n' | 'c', k: string, g?: string) => ({
+    draggable: true,
+    onDragStart: (e: ReactDragEvent) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', k); setKeoMuc({ loai, k, g }); },
+    onDragEnd: () => setKeoMuc(null),
+    onDragOver: (e: ReactDragEvent) => { if (keoMuc && keoMuc.loai === loai && keoMuc.g === g) e.preventDefault(); },
+    onDrop: (e: ReactDragEvent) => { e.preventDefault(); if (keoMuc && keoMuc.loai === loai && keoMuc.g === g) doiViTri(loai, keoMuc.k, k, g); setKeoMuc(null); },
+  });
+  const coThuTuRieng = !!(thuTu.n?.length || thuTu.c?.length);
+  const menuCot = (gs: DataGroup[]) => {
+    const theoKhoa = new Map(gs.map((g) => [g.key, g] as const));
+    const colTheoKhoa = new Map(columns.map((c) => [c.key, c] as const));
+    return (
+      <details ref={colsRef} className="dt-cols" style={{ position: 'relative' }}>
+        <summary style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', userSelect: 'none' }}>
+          ⚙ Columns <span style={{ color: 'var(--fg-3)' }}>{onCount}/{gs.length}</span>
+        </summary>
+        <div data-comp="ui.MenuCot" style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 20, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 6, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 220, maxHeight: '70vh', overflowY: 'auto', boxShadow: '0 6px 20px rgba(0,0,0,.35)' }}>
+          {nhomXep.map((k, i) => {
+            const g = theoKhoa.get(k); if (!g) return null;
+            const on = shown[g.key] !== false;
+            const cots = cotCuaNhom(g.key);
+            const mo = moNhomCot === g.key;
+            const dangKeoToi = keoMuc?.loai === 'n' && keoMuc.k !== g.key;
+            return (
+              <div key={g.key} data-nhom-cot={g.key}>
+                <div {...keoProps('n', g.key)} style={{ display: 'flex', alignItems: 'center', gap: 2, borderRadius: 4, outline: dangKeoToi ? '1px dashed var(--line)' : undefined, opacity: keoMuc?.loai === 'n' && keoMuc.k === g.key ? 0.4 : 1 }}>
+                  <span title="Kéo để đổi thứ tự nhóm" style={{ cursor: 'grab', color: 'var(--fg-3)', fontSize: 12, padding: '0 2px', userSelect: 'none' }}>⠿</span>
+                  <button type="button" onClick={() => toggle(g.key)} title={g.title ?? (on ? 'Bấm để ẩn nhóm' : 'Bấm để hiện nhóm')}
+                    style={{
+                      flex: 1, padding: '4px 9px', borderRadius: 4, textAlign: 'left',
+                      background: on ? band(g.color) ?? 'var(--bg-1)' : 'transparent',
+                      border: `1px solid ${on ? g.color ?? 'var(--line)' : 'transparent'}`,
+                      color: on ? g.color ?? 'var(--fg-1)' : 'var(--fg-3)',
+                      cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)',
+                      textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: on ? 600 : 400, whiteSpace: 'nowrap',
+                    }}>
+                    {on ? '✓ ' : '  '}{g.label}
+                  </button>
+                  {cots.length > 1 && <button type="button" onClick={() => setMoNhomCot(mo ? '' : g.key)} aria-expanded={mo} title={`${cots.length} cột — bấm để đổi thứ tự cột trong nhóm`} style={{ ...nutNho, fontSize: 10, whiteSpace: 'nowrap' }}>{mo ? '▾' : '▸'} {cots.length}</button>}
+                  <button type="button" disabled={i === 0} onClick={() => doiViTri('n', g.key, -1)} title="Đưa nhóm lên trước" style={{ ...nutNho, opacity: i === 0 ? 0.3 : 1 }}>↑</button>
+                  <button type="button" disabled={i === nhomXep.length - 1} onClick={() => doiViTri('n', g.key, 1)} title="Đưa nhóm ra sau" style={{ ...nutNho, opacity: i === nhomXep.length - 1 ? 0.3 : 1 }}>↓</button>
+                </div>
+                {mo && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1, margin: '3px 0 4px 18px', paddingLeft: 6, borderLeft: `2px solid ${g.color ?? 'var(--line)'}` }}>
+                    {cots.map((ck, j) => {
+                      const c = colTheoKhoa.get(ck)!;
+                      return (
+                        <div key={ck} data-cot-menu={ck} {...keoProps('c', ck, g.key)} style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 11, color: on ? 'var(--fg-2)' : 'var(--fg-3)', opacity: keoMuc?.loai === 'c' && keoMuc.k === ck ? 0.4 : 1 }}>
+                          <span title="Kéo để đổi thứ tự cột" style={{ cursor: 'grab', color: 'var(--fg-3)', fontSize: 12, padding: '0 2px', userSelect: 'none' }}>⠿</span>
+                          <span title={c.title} style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>{c.header}</span>
+                          <button type="button" disabled={j === 0} onClick={() => doiViTri('c', ck, -1, g.key)} title="Đưa cột sang trái" style={{ ...nutNho, opacity: j === 0 ? 0.3 : 1 }}>↑</button>
+                          <button type="button" disabled={j === cots.length - 1} onClick={() => doiViTri('c', ck, 1, g.key)} title="Đưa cột sang phải" style={{ ...nutNho, opacity: j === cots.length - 1 ? 0.3 : 1 }}>↓</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {coThuTuRieng && <button type="button" onClick={() => setThuTu({})} title="Bỏ thứ tự đã đổi, về thứ tự gốc của bảng"
+            style={{ marginTop: 2, padding: '3px 9px', borderRadius: 4, border: '1px dashed var(--line)', background: 'transparent', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)', textAlign: 'left' }}>↺ Thứ tự mặc định</button>}
+        </div>
+      </details>
+    );
+  };
 
   // Sort — shared multi-column engine (plain click = 1 cột ↑/↓/tắt · Shift+click = thêm cột phụ;
   // persist theo persistKey). Một implementation duy nhất cho mọi bảng — xem useTableSort / SortArrow.
@@ -472,7 +556,14 @@ export function DataTable<T>({
 
   // Ô ghim phải có nền ĐỤC, không thì cột cuộn phía dưới nhìn xuyên qua thành chữ chồng chữ.
   // ghim(i): cột i có ghim không + mép trái. Cột ≥ 2 cần bề rộng đo (cotDo) — chưa đo xong thì chỉ ghim cột đầu.
-  const soGhim = stickyCols ?? (stickyFirst ? 1 : 0);
+  // Ghim theo CỘT chứ không theo số: người đổi thứ tự nhóm thì chỉ ghim phần đầu còn là cột ghim gốc (không ghim nhầm cột vừa kéo lên).
+  const soGhimGoc = stickyCols ?? (stickyFirst ? 1 : 0);
+  const soGhim = useMemo(() => {
+    if (colsXep === columns) return soGhimGoc;
+    const goc = new Set(columns.filter((c) => !c.group || shown[c.group] !== false).slice(0, soGhimGoc).map((c) => c.key));
+    let n = 0; while (n < visible.length && goc.has(visible[n]!.key)) n++;
+    return Math.max(Math.min(1, soGhimGoc), n);
+  }, [colsXep, columns, soGhimGoc, shown, visible]);
   const ghim = (i: number): { left: number; cuoi: boolean } | null => {
     if (i < 0 || i >= soGhim) return null;
     if (i === 0) return { left: 0, cuoi: soGhim === 1 || cotDo.w.length < soGhim };
@@ -812,29 +903,7 @@ export function DataTable<T>({
           // ⚙ Columns — collapsed by default (YDNI). <details> cho phần mở/đóng; bấm ra ngoài đóng
           // bằng listener ở trên. Right-aligned so it sits where controls conventionally live. Chế độ THẺ
           // không có cột nên ẩn nút này (cột là khái niệm của bảng).
-          <details ref={colsRef} className="dt-cols" style={{ position: 'relative' }}>
-            <summary style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', userSelect: 'none' }}>
-              ⚙ Columns <span style={{ color: 'var(--fg-3)' }}>{onCount}/{groups.length}</span>
-            </summary>
-            <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 20, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 6, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 150, boxShadow: '0 6px 20px rgba(0,0,0,.35)' }}>
-              {groups.map((g) => {
-                const on = shown[g.key] !== false;
-                return (
-                  <button key={g.key} type="button" onClick={() => toggle(g.key)} title={g.title}
-                    style={{
-                      padding: '4px 9px', borderRadius: 4, textAlign: 'left',
-                      background: on ? band(g.color) ?? 'var(--bg-1)' : 'transparent',
-                      border: `1px solid ${on ? g.color ?? 'var(--line)' : 'transparent'}`,
-                      color: on ? g.color ?? 'var(--fg-1)' : 'var(--fg-3)',
-                      cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)',
-                      textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: on ? 600 : 400, whiteSpace: 'nowrap',
-                    }}>
-                    {on ? '✓ ' : '  '}{g.label}
-                  </button>
-                );
-              })}
-            </div>
-          </details>
+          menuCot(groups)
           )}
           {/* Chuyển ▪ Thẻ / ≡ Bảng — chỉ khi uncontrolled (controlled thì caller tự làm nút chung). */}
           {showViewToggle && (
@@ -897,29 +966,7 @@ export function DataTable<T>({
           // ⚙ Columns — collapsed by default (YDNI). <details> cho phần mở/đóng; bấm ra ngoài đóng
           // bằng listener ở trên. Right-aligned so it sits where controls conventionally live. Chế độ THẺ
           // không có cột nên ẩn nút này (cột là khái niệm của bảng).
-          <details ref={colsRef} className="dt-cols" style={{ position: 'relative' }}>
-            <summary style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', userSelect: 'none' }}>
-              ⚙ Columns <span style={{ color: 'var(--fg-3)' }}>{onCount}/{groups.length}</span>
-            </summary>
-            <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 20, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 6, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 150, boxShadow: '0 6px 20px rgba(0,0,0,.35)' }}>
-              {groups.map((g) => {
-                const on = shown[g.key] !== false;
-                return (
-                  <button key={g.key} type="button" onClick={() => toggle(g.key)} title={g.title}
-                    style={{
-                      padding: '4px 9px', borderRadius: 4, textAlign: 'left',
-                      background: on ? band(g.color) ?? 'var(--bg-1)' : 'transparent',
-                      border: `1px solid ${on ? g.color ?? 'var(--line)' : 'transparent'}`,
-                      color: on ? g.color ?? 'var(--fg-1)' : 'var(--fg-3)',
-                      cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)',
-                      textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: on ? 600 : 400, whiteSpace: 'nowrap',
-                    }}>
-                    {on ? '✓ ' : '  '}{g.label}
-                  </button>
-                );
-              })}
-            </div>
-          </details>
+          menuCot(groups)
           )}
           {/* Chuyển ▪ Thẻ / ≡ Bảng — chỉ khi uncontrolled (controlled thì caller tự làm nút chung). */}
           {showViewToggle && (

@@ -204,7 +204,7 @@ PHÂN LOẠI CÂU (loai_cau) — làm TRƯỚC mọi thứ:
 - kien_thuc: hỏi kiến thức làm video (móc câu, nhịp, góc máy, độ dài, khung truyện, cách viết lời…). Trả lời ngắn (2–5 câu), áp vào ĐÚNG phim / tập / cảnh đang mở và CẨM NANG GÓI nếu có (nêu bước / luật của gói). Người dùng muốn áp luôn thì chỉ đưa việc sinh_* làm đề xuất; KHÔNG dùng sua_* — muốn sửa thì người dùng gõ lệnh. Câu ngoài làm video → ngoai_hd = true, nói không thuộc phạm vi.
 - bao_loi: người dùng báo lỗi / máy chạy sai / nút hỏng / kết quả lạ. KHÔNG tự sửa, hanh_dong = []; tra_loi tóm lỗi một câu, nếu HƯỚNG DẪN có cách xử thì chỉ cách đó, rồi mời bấm "Gửi thành góp ý" để đội xử. ngoai_hd = true.
 ngoai_hd = false trừ các trường hợp ghi ở trên.
-chi_cho: câu hoi_dung hỏi một nút / chỗ cụ thể (hoặc bao_loi về một nút) → điền khoá của CHỖ đó, màn sẽ tự mở tới và tô sáng; tra_loi khi đó nói "Đã mở tới …" + chỗ nằm. Không có chỗ khớp hoặc câu khác → chuỗi rỗng. chi_canh = số cảnh người dùng nhắc tới (vd "cảnh 3" → 3), không nhắc → 0.
+chi_cho: câu hoi_dung hỏi một nút / chỗ cụ thể (hoặc bao_loi về một nút) → điền khoá của CHỖ đó, màn sẽ tự mở tới và tô sáng; tra_loi khi đó nói "Đã mở tới …" + chỗ nằm; màn đã tự chuyển bản, mở widget / tab và chọn sẵn cảnh, nên KHÔNG bảo người dùng tự chọn cảnh hay tự mở tab. Không có chỗ khớp hoặc câu khác → chuỗi rỗng. chi_canh = số cảnh người dùng nhắc tới (vd "cảnh 3" → 3), không nhắc → 0.
 CHỖ: ${CHO_MAN_S2.map(([k, t]) => `${k} = ${t}`).join('; ')}
 
 HƯỚNG DẪN STUDIO 2:

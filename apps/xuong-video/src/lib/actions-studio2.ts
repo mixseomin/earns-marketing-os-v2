@@ -24,6 +24,7 @@ import type { LoaiPhim } from './xuong-video/kieu';
 import { quyTrinh, phimQt, type MucQt } from './xuong-video/quy-trinh';
 import { docKinhThanh, locNhanh } from './xuong-video/kieu';
 import { MAU_PHIM } from './xuong-video/mau';
+import { HUONG_DAN_S2 } from './huong-dan-s2';
 
 export type LuotSinh = { id: number; canh_id: number; loai: string; dich: string; provider: string; model: string; trang_thai: string; loi: string; cents: number;
   luc: string; xong_luc: string; output_url: string | null; nhan: string; nguon: unknown;
@@ -132,9 +133,11 @@ const VIEC_THEO_LOAI: Record<DoiTuongAi['loai'], string[]> = {
   canh: ['sua_canh', 'gan_nhan_vat', 'them_thanh_phan', 'bo_thanh_phan', 've_mau', 'tao_nhan_vat', 'sinh_lai_anh', 'sinh_lai_clip'], giong: ['sua_thoai', 'sinh_lai_giong'], td: ['sua_canh', 'sinh_td'], nhac: ['sua_tap', 'sinh_nhac'], tap: ['sua_tap', 'sinh_nhac'], mau: ['sua_mau', 've_mau'] };
 const TEN_TRUONG: Record<string, string> = { hanh_dong_vi: 'mô tả hành động', goc_may: 'góc máy', chu_man: 'chữ trên màn', thoi_luong_s: 'thời lượng (giây)', cam_xuc: 'cảm xúc 1–10',
   am_thanh: 'tiếng động', ten: 'tên tập', tom_tat: 'tóm tắt', nhac_mo_ta: 'mô tả nhạc nền' };
+const LOAI_CAU = ['lenh', 'hoi_dung', 'kien_thuc', 'bao_loi'] as const;
+export type LoaiCauAi = (typeof LOAI_CAU)[number];
 const TEN_LOAI: Record<string, string> = { boi_canh: 'bối cảnh', dao_cu: 'đạo cụ', cau_kien: 'chi tiết', san_pham: 'sản phẩm', phong_cach: 'phong cách' };
 export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuongAi, cau: string, lichSu: { ai: 'nguoi' | 'may'; chu: string }[] = []):
-  Promise<{ ok: true; tra_loi: string; da_lam: ViecAi[]; de_xuat: ViecAi[]; model: string } | { ok: false; loi: string }> {
+  Promise<{ ok: true; tra_loi: string; da_lam: ViecAi[]; de_xuat: ViecAi[]; model: string; loai_cau: LoaiCauAi; ngoai_hd: boolean } | { ok: false; loi: string }> {
   const db = getDb(), me = await getCurrentUser(); if (!db || !me) return { ok: false, loi: 'không có quyền' };
   const pid = Number(phimId), tid = Number(tapId), loai = (VIEC_THEO_LOAI[doiTuong?.loai] ? doiTuong.loai : 'tap') as DoiTuongAi['loai'], hoi = String(cau ?? '').trim().slice(0, 1500);
   if (!hoi) return { ok: false, loi: 'chưa có câu lệnh' };
@@ -168,7 +171,10 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
   const duoc = VIEC_THEO_LOAI[loai];
   const VIEC = z.object({ loai: z.enum(['sua_canh', 'sua_thoai', 'sua_tap', 'sua_mau', 'gan_nhan_vat', 'them_thanh_phan', 'bo_thanh_phan', 've_mau', 'tao_nhan_vat', 'sinh_lai_anh', 'sinh_lai_clip', 'sinh_lai_giong', 'sinh_td', 'sinh_nhac']),
     truong: z.enum(['', ...Object.keys(TRUONG_CANH), ...TRUONG_TAP, 'mo_ta'] as [string, ...string[]]), gia_tri: z.string(), dong: z.number(), yeu_cau: z.string(), nhan_vat_ids: z.array(z.number()), loai_tp: z.enum(['nhan_vat', 'dao_cu', 'san_pham', 'boi_canh']) });
-  const KHUON = z.object({ tra_loi: z.string(), hanh_dong: z.array(VIEC) });
+  const KHUON = z.object({ loai_cau: z.enum(LOAI_CAU), ngoai_hd: z.boolean(), tra_loi: z.string(), hanh_dong: z.array(VIEC) });
+  // CÂU HỎI (anh 24/11/2026): hỏi cách dùng Studio 2 → trả lời từ sổ hướng dẫn; hỏi kiến thức làm video → trả lời theo cẩm nang gói của phim đang mở
+  const pRow = ((await db.execute(sql`SELECT kinh_thanh->>'goi' AS goi FROM xv_phim WHERE id = ${pid}`)) as unknown as Row[])[0];
+  const goi = pRow?.goi ? camNangGoi(String(pRow.goi)) : null;
   const system = `Bạn là trợ lý dựng video trong Studio 2. Người dùng đang chọn MỘT đối tượng (${loai === 'canh' ? 'một cảnh / keyframe' : loai === 'giong' ? 'lời đọc của một cảnh' : loai === 'td' ? 'tiếng động của một cảnh' : loai === 'nhac' ? 'nhạc nền của tập' : loai === 'mau' ? 'một MẪU của phim (nhân vật / đồ vật / sản phẩm / bối cảnh), ảnh mẫu dùng chung cho mọi cảnh có nó' : 'cả tập'}).
 Đọc câu lệnh, trả JSON: tra_loi = một hai câu tiếng Việt có dấu, không xưng "tôi" (viết kiểu "Đã đổi …" / "Đề xuất …"), nói đã làm gì (hoặc hỏi lại nếu lệnh không rõ); hanh_dong = các việc cần làm, CHỈ dùng các loại: ${duoc.join(', ')}.
 - sua_canh: truong là MỘT trong: ${Object.keys(TRUONG_CANH).map((k) => `${k} = ${TEN_TRUONG[k]}`).join('; ')}. Chọn đúng trường người dùng nói tới ("chữ trên màn" = chu_man, KHÔNG phải hanh_dong_vi). gia_tri = giá trị mới đầy đủ (số thì ghi số). ${loai === 'td' ? 'Ở đây chỉ dùng truong am_thanh.' : ''}
@@ -189,14 +195,28 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
 ${loai === 'mau' ? `- sua_mau: truong là ten (tên mẫu, ngắn) hoặc mo_ta (mô tả hình dáng mà máy vẽ ảnh mẫu theo); gia_tri = giá trị mới ĐẦY ĐỦ. Sửa mo_ta thì viết lại cả mô tả cho cụ thể: hình dáng, màu, chữ / logo in trên đó (ghi nguyên văn), chất liệu.
 - ve_mau: vẽ lại ảnh mẫu (tốn credit), yeu_cau = ý ngắn cho lượt vẽ (tiếng Việt). Người dùng muốn ẢNH mẫu khác đi → LUÔN sua_mau mo_ta trước (mô tả mới) rồi ve_mau. Chỉ đổi tên thì không cần vẽ lại.
 ` : ''}- sinh_lai_anh / sinh_lai_clip / sinh_lai_giong / sinh_td / sinh_nhac: tốn credit, chỉ đề xuất khi người dùng muốn hình / clip / giọng / âm thanh khác đi; yeu_cau = mô tả ngắn cái cần khác (tiếng Việt).
-Gọi cảnh bằng "cảnh <so>" (so trong NGỮ CẢNH), không lấy số trong tên cảnh. Trường không dùng để chuỗi rỗng, dong = 0, nhan_vat_ids = []. Không bịa dữ liệu ngoài ngữ cảnh. Lệnh chỉ hỏi thì hanh_dong = [].`;
+Gọi cảnh bằng "cảnh <so>" (so trong NGỮ CẢNH), không lấy số trong tên cảnh. Trường không dùng để chuỗi rỗng, dong = 0, nhan_vat_ids = []. Không bịa dữ liệu ngoài ngữ cảnh.
+
+PHÂN LOẠI CÂU (loai_cau) — làm TRƯỚC mọi thứ:
+- lenh: người dùng muốn đổi đối tượng đang chọn (sửa chữ, gắn người, sinh lại…). Xử như trên.
+- hoi_dung: hỏi CÁCH DÙNG Studio 2 (nút nào, ở đâu, tốn credit không, sao không bấm được). Trả lời CHỈ từ HƯỚNG DẪN STUDIO 2 bên dưới: chỉ đúng tên nút + chỗ nằm, 1–4 câu. HƯỚNG DẪN không nói tới → ngoai_hd = true, tra_loi nói thẳng sổ hướng dẫn chưa có, mời bấm "Hỏi đội"; KHÔNG đoán tên nút / chức năng. hanh_dong = [].
+- kien_thuc: hỏi kiến thức làm video (móc câu, nhịp, góc máy, độ dài, khung truyện, cách viết lời…). Trả lời ngắn (2–5 câu), áp vào ĐÚNG phim / tập / cảnh đang mở và CẨM NANG GÓI nếu có (nêu bước / luật của gói). Người dùng muốn áp luôn thì chỉ đưa việc sinh_* làm đề xuất; KHÔNG dùng sua_* — muốn sửa thì người dùng gõ lệnh. Câu ngoài làm video → ngoai_hd = true, nói không thuộc phạm vi.
+- bao_loi: người dùng báo lỗi / máy chạy sai / nút hỏng / kết quả lạ. KHÔNG tự sửa, hanh_dong = []; tra_loi tóm lỗi một câu, nếu HƯỚNG DẪN có cách xử thì chỉ cách đó, rồi mời bấm "Gửi thành góp ý" để đội xử. ngoai_hd = true.
+ngoai_hd = false trừ các trường hợp ghi ở trên.
+
+HƯỚNG DẪN STUDIO 2:
+${HUONG_DAN_S2}
+${goi ? `\nCẨM NANG GÓI CỦA PHIM NÀY (${goi.ten}):\n${JSON.stringify({ mo_ta: goi.mo_ta, ti_le: goi.ti_le, do_dai_s: goi.do_dai_s, khung: goi.khung, luat: goi.luat })}` : ''}`;
   const user = `NGỮ CẢNH:\n${JSON.stringify(ngCanh)}\n\n${lichSu.slice(-6).map((m) => `${m.ai === 'nguoi' ? 'Người dùng' : 'Bạn'}: ${String(m.chu).slice(0, 400)}`).join('\n')}\nNgười dùng: ${hoi}`;
   const r = await sinhJson({ schema: KHUON, system, user, max_tokens: 1500, ten: 'lenh-ai-s2' });
   if (!r.ok) return { ok: false, loi: `máy AI chưa trả lời được: ${r.loi}` };
   const da_lam: ViecAi[] = [], de_xuat: ViecAi[] = [], vaCanh: Record<string, unknown> = {}, vaTap: Record<string, unknown> = {}; let thoaiMoi: typeof thoai | null = null;
   const ghiChu: string[] = [];   // câu báo thay lời model khi máy chặn tạo trùng
   const vaMau: Record<string, string> = {};
-  for (const v of r.data.hanh_dong.slice(0, 8)) {
+  const loaiCau: LoaiCauAi = r.data.loai_cau, ngoaiHd = !!r.data.ngoai_hd || loaiCau === 'bao_loi';
+  // câu hỏi / báo lỗi KHÔNG sửa gì: hỏi cách dùng + báo lỗi bỏ hết việc; kiến thức chỉ giữ thẻ sinh lại (người dùng xác nhận mới tốn credit)
+  const viec = loaiCau === 'lenh' ? r.data.hanh_dong : loaiCau === 'kien_thuc' ? r.data.hanh_dong.filter((v) => v.loai.startsWith('sinh_')) : [];
+  for (const v of viec.slice(0, 8)) {
     if (!duoc.includes(v.loai)) continue;
     if (v.loai === 'sua_canh' && cn && TRUONG_CANH[v.truong] && (loai !== 'td' || v.truong === 'am_thanh')) {
       const moi = TRUONG_CANH[v.truong] === 'so' ? Number(v.gia_tri) : v.gia_tri; if (TRUONG_CANH[v.truong] === 'so' && !Number.isFinite(moi)) continue;
@@ -251,7 +271,7 @@ Gọi cảnh bằng "cảnh <so>" (so trong NGỮ CẢNH), không lấy số tro
   else if ('loi_thoai' in vaCanh) da_lam.push({ loai: 'sua_canh', truong: 'loi_thoai', cu: cn!.loi_thoai ?? '', moi: vaCanh.loi_thoai, canhId: Number(cn!.id), nhan: `Sửa lời đọc cảnh ${Math.round(Number(cn!.thu_tu))}` });
   if (cn && Object.keys(vaCanh).length) { const k = await suaCanh(Number(cn.id), vaCanh as Parameters<typeof suaCanh>[1]); if (k && (k as { ok?: boolean }).ok === false) return { ok: false, loi: `không sửa được cảnh: ${(k as { loi?: string }).loi}` }; }
   if (Object.keys(vaTap).length) { const k = await suaTap(tid, vaTap as Parameters<typeof suaTap>[1]); if (k && (k as { ok?: boolean }).ok === false) return { ok: false, loi: `không sửa được tập: ${(k as { loi?: string }).loi}` }; }
-  return { ok: true, tra_loi: ghiChu.length ? ghiChu.join(' ') : r.data.tra_loi, da_lam, de_xuat, model: r.model };
+  return { ok: true, tra_loi: ghiChu.length ? ghiChu.join(' ') : r.data.tra_loi, da_lam, de_xuat, model: r.model, loai_cau: loaiCau, ngoai_hd: ngoaiHd };
 }
 
 /** LỊCH SỬ LỆNH AI theo tập, trên máy chủ (anh 21/11/2026: mở ở máy khác phải thấy hết). Mỗi tin có id + u (số lần sửa);
@@ -362,11 +382,14 @@ export async function datQuyenS2(userId: number, dung: boolean, sinh: boolean): 
  *  + luật dựng nhấn (luat-dung.ts). Thư viện đổi thì cẩm nang đổi theo. Chỉ đọc, ai dùng được Studio 2 cũng xem được. */
 export async function camNangS2(): Promise<{ key: string; ten: string; ic: string; nhom: string; mo_ta: string; loai: string; ti_le: string; do_dai_s: [number, number]; tham_chieu: string;
   khung: { ten: string; beats: { ten: string; mo_ta: string }[] } | null; khan_gia: string[]; luat: { ten: string; luat: string }[] }[]> {
-  return GOI_THE_LOAI.map((g) => { const k = CAU_TRUC[khoaKhung(g.loai, g.the_loai, g.khung)];
-    return { key: g.key, ten: g.ten, ic: g.ic, nhom: g.nhom, mo_ta: g.mo_ta, loai: g.loai, ti_le: g.ti_le, do_dai_s: g.do_dai_s, tham_chieu: g.tham_chieu,
-      khung: k ? { ten: k.ten, beats: k.beats.map((b) => ({ ten: b.ten, mo_ta: b.mo_ta })) } : null, khan_gia: g.khan_gia.map((y) => hieuUngKG(y)?.ten ?? y),
-      luat: g.luat.map((l) => { const x = luatDung(l); return { ten: x?.ten ?? l, luat: x?.luat ?? '' }; }) }; });
+  return GOI_THE_LOAI.map(motGoi);
 }
+/** một gói thể loại đọc cho người (widget Cẩm nang) và cho Lệnh AI (câu hỏi kiến thức của phim đang mở) — một bản duy nhất */
+function motGoi(g: (typeof GOI_THE_LOAI)[number]) { const k = CAU_TRUC[khoaKhung(g.loai, g.the_loai, g.khung)];
+  return { key: g.key, ten: g.ten, ic: g.ic, nhom: g.nhom, mo_ta: g.mo_ta, loai: g.loai, ti_le: g.ti_le, do_dai_s: g.do_dai_s, tham_chieu: g.tham_chieu,
+    khung: k ? { ten: k.ten, beats: k.beats.map((b) => ({ ten: b.ten, mo_ta: b.mo_ta })) } : null, khan_gia: g.khan_gia.map((y) => hieuUngKG(y)?.ten ?? y),
+    luat: g.luat.map((l) => { const x = luatDung(l); return { ten: x?.ten ?? l, luat: x?.luat ?? '' }; }) }; }
+function camNangGoi(key: string) { const g = goiTheoKey(key); return g ? motGoi(g) : null; }
 
 /** VẼ LẠI ẢNH MẪU của một anchor (Studio 2 › nút "Vẽ lại ảnh mẫu" — anh 20/11/2026 "Đổi ảnh… phải có các nút sinh thủ công cho người dùng"): ảnh mẫu cũ vào
  *  thùng rác của studio (xoaAnhGoc, khôi phục được ở studio) rồi sinh MỘT ảnh gốc mới từ mô tả — không lấy ảnh cũ làm danh tính. TỐN TIỀN: một lượt model ảnh. */

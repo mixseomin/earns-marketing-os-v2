@@ -51,6 +51,16 @@
         "lenh": "--sinh-game",
         "vnd_de": 0,
         "ve": "dạng game Only ONE, 0₫, không gọi AI (may-dung.mts --sinh-game)"
+      },
+      "yesterdays-news-tonight": {
+        "lenh": "iMac: node apps/xuong-video/scripts/lich-su/chay-kenh.mjs --kenh parody --ep",
+        "vnd_de": 1100,
+        "ve": "mỗi lần MỘT tập đầy đủ + thumbnail thiết kế (~1.100₫), chạy đúng số tập thiếu"
+      },
+      "mia-calloway": {
+        "lenh": "iMac: node apps/xuong-video/scripts/sx-may.mjs --slug <slug mới> (dang_tu = ngày thiếu, dang_bai = facebook, kieu_sx = reel_canh9_free, phim thật chưa dùng)",
+        "vnd_de": 15,
+        "ve": "Mia lịch bài persona: thêm đúng MỘT đề Reel cắt cảnh 9s FREE vào mau/may/mia-reel-*.json rồi --nap-nguon + --slug dựng bài. Không --sinh-kho (19/11/2026)."
       }
     }
   }

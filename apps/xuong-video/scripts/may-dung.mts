@@ -312,8 +312,7 @@ if (a.includes('--nap')) {
   // máy đi ĐƯỜNG RIÊNG (kieu-sx.json › _kho.duong_rieng: kênh lịch sử làm tập đầy đủ + thumbnail, Mia theo lịch bài) không lấp bằng đề short — 19/11/2026
   // --sinh-kho cho kênh lịch sử ra 2 bài top-n / so-sanh link trống, không thumbnail, Phòng Nội dung chặn cứng. Từ chối, in đúng lệnh của máy.
   { const K = JSON.parse((await import('node:fs')).readFileSync(new URL('../kieu-sx.json', import.meta.url), 'utf8'))._kho ?? {};
-    const LENH: Record<string, string> = { 'yesterdays-news-tonight': 'iMac: node apps/xuong-video/scripts/lich-su/chay-kenh.mjs --kenh parody --ep — mỗi lần MỘT tập đầy đủ + thumbnail thiết kế (~1.100₫), chạy đúng số tập thiếu' };
-    if ((K.duong_rieng ?? []).includes(ma)) { console.error(`✗ máy ${ma} đi đường riêng — KHÔNG --sinh-kho. Lấp kho: ${LENH[ma] ?? 'lệnh riêng của máy (kieu-sx.json › _kho)'}`); process.exit(1); } }
+    if ((K.duong_rieng ?? []).includes(ma)) { console.error(`✗ máy ${ma} đi đường riêng — KHÔNG --sinh-kho. Lấp kho: ${K.rieng?.[ma]?.lenh ?? 'chưa khai kieu-sx.json › _kho.rieng.' + ma + '.lenh'}`); process.exit(1); } }
   const N = Math.max(1, Math.min(40, Number(lay('--sinh-kho')) || 10)), m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
   const { sinhDe } = await import('../src/lib/xuong-video/may-de');
   const sp = await spCua(ma), dl = (sp.ngach ?? []).includes('du-lich');

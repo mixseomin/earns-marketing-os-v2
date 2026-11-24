@@ -1761,6 +1761,8 @@ export const LUAT = [
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'fixedLayout cuonNgang minWidth={0}', vi: 'cột giữ bề ngang, kéo cột không ép cột khác co dồn, cuộn ngang (anh 24/11/2026)' },
   { card: 'thiet-lap-2411', tep: 'packages/bang/src/data-table.tsx', co: 'setRong({}); if (khoaRong) ghiRongCot(khoaRong, {}); }}>↺</button>}', vi: 'đã kéo cột → ↺ trong nút hover tiêu đề đưa mọi cột về bề ngang gọn' },
   { card: 'thiet-lap-2411', tep: 'packages/bang/src/data-table.tsx', co: 'Math.max(Math.floor(x * heSo * 100) / 100, Math.min(x, SAN_CO))', vi: 'mọi DataTable: co theo khung không ép cột dưới 64px — hết chỗ thì cuộn ngang (mos2 Tài sản)' },
+  { card: 'thiet-lap-2411', tep: 'packages/bang/src/bang.css', co: '.dt-th-actions { position: fixed; left: var(--dt-act-x', vi: 'nút hover tiêu đề cột neo DƯỚI ô, không đè tên cột (anh 24/11/2026)' },
+  { card: 'thiet-lap-2411', tep: 'packages/bang/src/data-table.tsx', co: 'onMouseEnter={datNutDuoi} onMouseMove={datNutDuoi}', vi: 'th ghi toạ độ cho nút hover nằm dưới ô' },
   { card: 'thiet-lap-2411', tep: 'packages/bang/src/data-table.tsx', co: 'const heSo = !cuonNgang &&', vi: 'DataTable cuonNgang: không co tỉ lệ cho vừa khung' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', cam: "wordBreak: 'break-word', width: rong", vi: 'ô không khoá cứng bề ngang — khoá thì kéo chuột không thu hẹp được cột' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: "path.join(process.cwd(), '..', 'etp', 'form-chu.json')", vi: 'ô form so với đúng một nguồn form-chu.json' },

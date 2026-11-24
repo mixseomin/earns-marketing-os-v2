@@ -20,9 +20,12 @@
 /* Adminer-style header: hover a column name → reveal sort + filter buttons (absolute, so no layout
    shift). Active sort arrow + filter flag render inline separately and stay visible. */
 .dt-th-name:hover { color: var(--fg-1); }
-.dt-th-actions { position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
+/* Nút hover KHÔNG đè tên cột (anh 24/11/2026 "bị che tên thì phải cho hiện lên trên hoặc xuống dưới"): fixed, neo NGAY DƯỚI mép phải ô tiêu đề
+   (toạ độ --dt-act-x/--dt-act-y do th ghi lúc rê chuột). fixed để thoát khung cuộn ngang của hàng tiêu đề (overflow cắt mọi thứ lòi ra ngoài ô). */
+.dt-th-actions { position: fixed; left: var(--dt-act-x, -999px); top: var(--dt-act-y, -999px); transform: translateX(-100%); z-index: 60;
   display: inline-flex; gap: 2px; align-items: center; opacity: 0; pointer-events: none;
-  transition: opacity .1s ease; background: var(--bg-2); border-radius: 5px; padding: 1px; }
+  transition: opacity .1s ease; background: var(--bg-2); border: 1px solid var(--line); border-radius: 0 0 5px 5px; padding: 1px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.35); }
 .dt-th:hover .dt-th-actions { opacity: 1; pointer-events: auto; }
 .dt-th-actions button { font-size: 10px; line-height: 1; padding: 2px 4px; border-radius: 4px;
   border: 1px solid var(--line); background: var(--bg-1); color: var(--fg-2); cursor: pointer; }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import { batDauKeo, docRongCot, ghiRongCot } from './keo-rong';
 import { useTableSort, type SortSpec, type ThSort } from './use-table-sort';
 import { AnchoredPopover } from './anchored-popover';
@@ -658,10 +658,13 @@ export function DataTable<T>({
                 const cf = colFilters[c.key];
                 const filtering = !!cf && (isNullaryOp(cf.op) || cf.val.trim() !== '');
                 const searchOpen = searchCol === c.key;
+                // nút hover neo DƯỚI ô tiêu đề (bang.css .dt-th-actions fixed) — không đè tên cột
+                const datNutDuoi = (e: ReactMouseEvent<HTMLTableCellElement>) => { const r = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.setProperty('--dt-act-x', `${Math.round(r.right - 2)}px`); e.currentTarget.style.setProperty('--dt-act-y', `${Math.round(r.bottom - 1)}px`); };
                 // Header kiểu Adminer: hover tên cột → hiện 2 nút (sắp xếp + lọc). Mũi tên sort chỉ hiện khi
                 // đang bật; cột đang lọc có cờ ⚑. Nút nằm trong .dt-th-actions (CSS ẩn, hover mới hiện).
                 return (
-                  <th key={c.key} className="dt-th" style={{ ...headStyle(c, ci), userSelect: 'none', ...(dao && theoTrang && cotDo.w[ci] ? { width: cotDo.w[ci], minWidth: cotDo.w[ci], maxWidth: cotDo.w[ci], boxSizing: 'border-box' } : {}) }}   /* KHÔNG đặt position ở đây: headStyle đang cho sticky (ghim tiêu đề + cột đầu), ghi relative sau spread là vứt sạch. sticky cũng làm mốc cho .dt-th-actions như relative. */ title={c.title}>
+                  <th key={c.key} className="dt-th" style={{ ...headStyle(c, ci), userSelect: 'none', ...(dao && theoTrang && cotDo.w[ci] ? { width: cotDo.w[ci], minWidth: cotDo.w[ci], maxWidth: cotDo.w[ci], boxSizing: 'border-box' } : {}) }}   /* KHÔNG đặt position ở đây: headStyle đang cho sticky (ghim tiêu đề + cột đầu), ghi relative sau spread là vứt sạch. */ title={c.title}
+                      onMouseEnter={datNutDuoi} onMouseMove={datNutDuoi}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
                       <span className="dt-th-name" onClick={dao && ts ? ts.onClick : undefined}
                             title={sortable ? `${c.title ? c.title + ' · ' : ''}bấm để sắp xếp (↑/↓/tắt) · Shift+bấm = thêm cột phụ` : undefined}

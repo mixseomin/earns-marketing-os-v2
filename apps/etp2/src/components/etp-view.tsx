@@ -2600,7 +2600,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
     const tam = useDangLenTam(c.creative_id ?? -c.camp_id, du.luc), x = tam && c.xep && !c.xep.gui ? { ...c.xep, gui: tam, truoc: null } : c.xep;
     if (dangSxCr(c)) return <span data-o="dang-sx-ngan" title={chuDangSx(c)} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, fontSize: 10.5, lineHeight: 1.25, cursor: 'help' }}>   {/* #1832 */}
       <span style={{ color: '#a78bfa', fontWeight: 600 }}>đang sản xuất · {c.sx?.buoc ?? '?'}</span>
-      {c.sx?.khoi ? <span data-o="khoi-camp">khối #{c.sx.khoi.id} · camp {c.sx.thu ?? 1}/{c.sx.so_camp ?? c.sx.khoi.cr_camp}</span> : null}
+      {c.sx?.khoi ? <span data-o="khoi-camp"><b>{c.phim ?? `#${c.content_id ?? '?'}`}</b> · khối #{c.sx.khoi.id} · camp {c.sx.thu ?? 1}/{c.sx.so_camp ?? c.sx.khoi.cr_camp}</span> : null}
       <span>★{c.roas} · ${c.ngan_sach} · {g ? `${String(g.getUTCHours()).padStart(2, '0')}:${String(g.getUTCMinutes()).padStart(2, '0')} VN` : 'chưa hẹn'}</span></span>;
     return <span data-o="cho-duyet-ngan" title={chuChoDuyet({ ...c, xep: x })} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, fontSize: 10.5, lineHeight: 1.25, cursor: 'help' }}>
       {x?.gui ? <span data-o="dang-len" data-tam={tam ? '1' : undefined} style={{ color: 'var(--good, #17c964)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}><Den mau={MAU_DEN.cho} song t="đã gửi lệnh lên, chờ Ethopex tạo camp" />đang lên · {gioVn(x.gui)}</span>

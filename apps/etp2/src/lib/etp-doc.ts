@@ -500,7 +500,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     from etp.cho_anh_duyet_cr h join etp.cham_duyet u on u.creative_id = h.creative_id and u.ok join etp.creative r on r.creative_id = h.creative_id
       left join etp.phim f on f.content_id = r.content_id left join etp.cau_hinh x on x.khoa = 'len_cr_roas'
     where not exists (select 1 from etp.camp c where c.creative_id = h.creative_id) order by h.creative_id`).catch((e) => { console.error('etp hangCr', e); return []; });
-  // giờ chạy THẬT của ▶ Lên: khung cố định 08h / 21h VN gần nhất (nhan-ban.gio_len, anh 24/11/2026) — cả ★ ROAS lẫn camp $1
+  // giờ chạy THẬT của ▶ Lên: khung cố định 22h VN gần nhất (nhan-ban.gio_len, anh 24/11/2026) — cả ★ ROAS lẫn camp $1
   const gioKhung = new Date(gioLen()).toISOString();
   const hangCr: CampEtpKho[] = hangRs.map((r) => { const ro = r.ro == null ? Number(BANG_LUAT.hoi_cho.roas) : Number(r.ro), ns = r.ns == null ? Number(BANG_LUAT.hoi_cho.ns) : Number(r.ns), cr = n(r.creative_id);   // ngoài sổ len_cr_roas = ★ ROAS mặc định hoi_cho (anh 24/11/2026)
     const lang = r.lang === 'es' ? 'es' : 'en', nk = docNhatKyLen(cr);   // #1770: đã bấm lên mà camp chưa vào sổ = đang lên

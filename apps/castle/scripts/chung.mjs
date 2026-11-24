@@ -15,6 +15,13 @@ const i = process.argv.indexOf('--lau');
 export const LAU = i > 0 ? process.argv[i + 1] : process.env.LAU || 'neuschwanstein';
 export const doiSo = process.argv.slice(2).filter((a, k, ds) => a !== '--lau' && ds[k - 1] !== '--lau'); // tham số còn lại (bỏ --lau <tên>)
 export const du = (ten) => join(PUB, 'du-lieu', `${LAU}-${ten}.json`);
+// <lâu>.json với mặt bằng ĐÚNG như trang dựng: khối OSM có "ngoai" (≥ 3 điểm) trong <lâu>-sua.json (keo-mep-dom20.py ghi) thì thay vòng ngoài — cùng luật ns.js
+// và toa_do_bayern.dsKhoi() bên Python. Máy nào cần mặt bằng khối thì đọc qua đây, không JSON.parse thẳng <lâu>.json (trước 24/11/2026 ba máy tìm / so ảnh nhìn mặt bằng OSM thô).
+export function docLau() {
+  const D = JSON.parse(readFileSync(join(PUB, 'du-lieu', `${LAU}.json`), 'utf8')), S = existsSync(du('sua')) ? JSON.parse(readFileSync(du('sua'), 'utf8')) : {};
+  for (const k of D.khoi) if (Array.isArray(S[k.id]?.ngoai) && S[k.id].ngoai.length >= 3) { k.ngoaiGoc = k.ngoai; k.ngoai = [S[k.id].ngoai]; }
+  return D;
+}
 const PW = process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs';
 const LOAI = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.jpg': 'image/jpeg', '.png': 'image/png', '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream', '.svg': 'image/svg+xml', '.css': 'text/css' };
 

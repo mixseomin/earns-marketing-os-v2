@@ -75,6 +75,9 @@ const NT = await fetch(`./du-lieu/${ten}-noi-that.json`, { cache: 'no-cache' }).
 // KHỐI OSM KHÔNG CÓ (ảnh thật có, OSM chưa vẽ): mục sua.json khoá "them/<tên>" mang "ngoai" = mặt bằng [[x, z], …] (đo trên bản đồ độ cao ảnh 3D,
 // scripts/khop-khoi.mjs → <lâu>-cach3.json) + thẻ như khối OSM — dựng chung đường với khối OSM (căn nhà nhỏ chân Viereckturm, góp ý #1632)
 for (const [id, e] of Object.entries(SUA)) if (Array.isArray(e?.ngoai) && e.ngoai.length >= 3 && !D.khoi.some((k) => k.id === id)) D.khoi.push({ id, ngoai: [e.ngoai], trong: [], tags: {}, them: true });
+// MẶT BẰNG KÉO THEO DOM20 (scripts/keo-mep-dom20.py, 24/11/2026): khối OSM có sẵn mà sua.json mang "ngoai" = mặt bằng thay (mép tường đo trên DOM20 chính thức;
+// OSM vẽ lệch cục bộ tới 1,3 m ở mặt tây Palas + lô-gia). ?mat=osm = mặt bằng OSM thô để so. Máy Python đọc cùng mặt bằng qua toa_do_bayern.dsKhoi().
+if (new URLSearchParams(location.search).get('mat') !== 'osm') for (const k of D.khoi) if (!k.them && Array.isArray(SUA[k.id]?.ngoai) && SUA[k.id].ngoai.length >= 3) { k.ngoaiGoc = k.ngoai; k.ngoai = [SUA[k.id].ngoai]; }
 for (const k of D.khoi) if (SUA[k.id]) { k.tagsGoc = { ...k.tags }; for (const [a, b] of Object.entries(SUA[k.id])) if (!a.startsWith('ly_do') && a !== 'ngoai') k.tags[a] = String(b); }
 
 // ---------- cảnh

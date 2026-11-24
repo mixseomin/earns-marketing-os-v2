@@ -35,7 +35,7 @@ if '--anh' in sys.argv:
     from PIL import Image, ImageDraw
     E, N = utm(0, 0); j0, i0 = int((E - 631000) / 0.2), int((5269000 - N) / 0.2); r = 900; a = dom[i0 - 550:i0 + 550, j0 - r:j0 + r]; dat = np.array(Image.fromarray(dgm).resize((5000, 5000)))[i0 - 550:i0 + 550, j0 - r:j0 + r]
     h = np.clip((a - dat) / 70, 0, 1); im = Image.fromarray((np.stack([h, h, h], -1) ** 0.6 * 255).astype('uint8')).convert('RGB'); v = ImageDraw.Draw(im)
-    for k in json.load(open(G.parent.parent / 'public/du-lieu/neuschwanstein.json'))['khoi']:
-        if not k.get('ngoai'): continue
-        pts = [((utm(x + dx, z + dz)[0] - 631000) / 0.2 - (j0 - r), (5269000 - utm(x + dx, z + dz)[1]) / 0.2 - (i0 - 550)) for x, z in k['ngoai'][0]]; v.line(pts, fill=(255, 60, 60), width=2)
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); from toa_do_bayern import dsKhoi  # so-dom20.json vừa ghi ở trên
+    for k in dsKhoi():
+        pts = [((utm(x + dx, z + dz)[0] - 631000) / 0.2 - (j0 - r), (5269000 - utm(x + dx, z + dz)[1]) / 0.2 - (i0 - 550)) for x, z in k['v']]; v.line(pts, fill=(255, 60, 60), width=2)
     im.save(sys.argv[sys.argv.index('--anh') + 1]); print('ảnh:', sys.argv[sys.argv.index('--anh') + 1])

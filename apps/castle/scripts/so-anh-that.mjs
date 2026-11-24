@@ -14,11 +14,11 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
-import { GOC, PUB, LAU, du, doiSo, moTrang, nhip } from './chung.mjs';
+import { GOC, PUB, LAU, du, doiSo, moTrang, nhip, docLau } from './chung.mjs';
 const co = (c) => doiSo.includes(c), gt = (c) => { const k = doiSo.indexOf(c); return k < 0 ? null : doiSo[k + 1]; };
 const PY = join(homedir(), '.venvs/castle-khop/bin/python'), PYS = join(GOC, 'scripts', 'so-anh-that.py');
 if (co('--tu-kiem')) process.exit(spawnSync(PY, ['-W', 'ignore', PYS, '--tu-kiem'], { stdio: 'inherit' }).status);
-const D = JSON.parse(readFileSync(join(PUB, 'du-lieu', `${LAU}.json`), 'utf8')), SO = JSON.parse(readFileSync(du('do-anh'), 'utf8')).anh;
+const D = docLau(), SO = JSON.parse(readFileSync(du('do-anh'), 'utf8')).anh;
 // ảnh BỐ CỤC mặt tiền (<lâu>-mat-*.json, khối anh có camera PnP riêng): là ảnh đo hoa văn nên phải có trong mọi lượt so trước / sau — không chỉ ảnh của do-anh.json
 for (const f of readdirSync(join(PUB, 'du-lieu')).filter((f) => f.startsWith(`${LAU}-mat-`) && f.endsWith('.json'))) {
   const a = JSON.parse(readFileSync(join(PUB, 'du-lieu', f), 'utf8')).anh, c = a?.camera; if (!c || !a.tep || SO[a.tep]) continue;

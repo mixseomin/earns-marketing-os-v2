@@ -21,7 +21,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync } from 'no
 import { execFileSync, spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { homedir, tmpdir } from 'node:os';
-import { GOC, PUB, LAU, du, doiSo } from './chung.mjs';
+import { GOC, PUB, LAU, du, doiSo, docLau } from './chung.mjs';
 
 process.env.KMP_DUPLICATE_LIB_OK = 'TRUE'; // torch + opencv cùng nạp libomp → khop-lg.py chết 'OMP Error #15' (20/11/2026)
 const PY = join(homedir(), '.venvs/castle-khop/bin/python'), SC = join(GOC, 'scripts'), KHO_GOC = join(GOC, '.kho-goc', LAU);
@@ -130,7 +130,7 @@ if (co('--ghi-tu-so')) { // ghi mọi số ĐẠT đang nằm trong sổ đo và
     if (d.go_y?.gia_tri?.length && CS[mat]?.go_y === undefined) { moi = chenTruong(moi, mat, { go_y: d.go_y.gia_tri, do_may_go_y: `máy đo ${d.go_y.luc} (scripts/do-anh.mjs --cua, không AI): ảnh ${d.go_y.anh.split('/').pop()}` }); d.go_y.da_ghi = true; n++; console.log(`   ${mat} gờ ${d.go_y.gia_tri.join(', ')}`); } }
   if (n) { JSON.parse(moi); writeFileSync(du('cua-so'), moi); writeFileSync(du('do-anh'), JSON.stringify(so, null, 1) + '\n'); } console.log(`đã ghi ${n} trường từ sổ đo`); process.exit(0); }
 const KHOI = (gt('--khoi') || '').split(',').filter(Boolean); if (!KHOI.length) { console.error('dùng: do-anh.mjs --khoi way/…[,way/…] [--tim] [--ghi] [--ghi-de] [--lam-lai] | --tu-kiem'); process.exit(1); }
-const D = JSON.parse(readFileSync(join(PUB, 'du-lieu', `${LAU}.json`), 'utf8')), M = 111320, C = Math.cos(D.tam[0] * Math.PI / 180), raLatLng = (x, z) => [+(D.tam[0] - z / M).toFixed(7), +(D.tam[1] + x / (M * C)).toFixed(7)];
+const D = docLau(), M = 111320, C = Math.cos(D.tam[0] * Math.PI / 180), raLatLng = (x, z) => [+(D.tam[0] - z / M).toFixed(7), +(D.tam[1] + x / (M * C)).toFixed(7)];
 const dinh = KHOI.flatMap((id) => { const k = D.khoi.find((b) => b.id === id); if (!k) { console.error('không có khối ' + id); process.exit(1); } return k.ngoai[0]; });
 const lam = (v, f) => f(v / 10) * 10, V = [lam(Math.min(...dinh.map((p) => p[0])) - 45, Math.floor), lam(Math.max(...dinh.map((p) => p[0])) + 45, Math.ceil), lam(Math.min(...dinh.map((p) => p[1])) - 45, Math.floor), lam(Math.max(...dinh.map((p) => p[1])) + 45, Math.ceil)];
 const VONG = co('--vong') ? (/^[\d,]+$/.test(gt('--vong') || '') ? gt('--vong') : '70,120,190,280') : null, RV = VONG ? Math.max(...VONG.split(',').map(Number)) : 0;

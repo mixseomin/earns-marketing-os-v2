@@ -8,14 +8,14 @@ import json, math, pathlib, subprocess, sys, numpy as np, tifffile
 from matplotlib.path import Path as P
 G = pathlib.Path(__file__).resolve().parent.parent; BY = G / 'du-lieu-goc/bayern'
 dom = tifffile.imread(BY / 'dom20-32631_5268.tif')
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); from toa_do_bayern import EN, canh, E0, N0, C as c, S as s   # độ dời OSM → DOM20 đọc từ so-dom20.json
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); from toa_do_bayern import EN, canh, E0, N0, C as c, S as s, dsKhoi   # độ dời OSM → DOM20 đọc từ so-dom20.json
 MOC, GOC = -4.16, 946.2
 def H(x, z):
     E, N = EN(x, z)
     return float(dom[int((5269000 - N) / 0.2), int((E - 631000) / 0.2)] - MOC - GOC)
-D = json.load(open(G / 'public/du-lieu/neuschwanstein.json')); KH = {k['id']: k for k in D['khoi']}
+KH = {k['id']: k for k in dsKhoi() if not k['them']}  # mặt bằng như trang dựng; bỏ khối them/ (gồm chính them/mep-san-* máy này ghi)
 DAI, LANG = 'way/223069513', ['way/1573692064', 'way/1573692063', 'way/1573692065']
-dai = np.array(KH[DAI]['ngoai'][0])
+dai = np.array(KH[DAI]['v'])
 
 def lui(poly, d):  # điểm lưới 0,5 m nằm sâu ≥ d trong đa giác
     pp = P(poly); x0, z0 = poly.min(0); x1, z1 = poly.max(0)
@@ -24,7 +24,7 @@ def lui(poly, d):  # điểm lưới 0,5 m nằm sâu ≥ d trong đa giác
 
 VO = {DAI, 'way/223311650'}  # dải + vỏ Ritterhaus (chứa cả ba khối) không tính là khối che
 def ngoaiKhac(ds, id_):  # bỏ điểm rơi vào khối khác (tháp tròn 223069511 đè góc 065: p95 lên 51 m)
-    kh = [P(k['ngoai'][0]) for k in D['khoi'] if k['id'] not in VO | {id_}]; return [p for p in ds if not any(q.contains_point(p) for q in kh)]
+    kh = [P(k['v']) for k in KH.values() if k['id'] not in VO | {id_}]; return [p for p in ds if not any(q.contains_point(p) for q in kh)]
 def do(poly, id_=''):
     h = np.array([H(*p) for p in ngoaiKhac(lui(poly, 0.5), id_)]); return h, round(float(np.percentile(h, 95)), 2), round(float(np.percentile(h, 95) - np.percentile(h, 5)), 1)
 
@@ -37,7 +37,7 @@ def huong(poly, ID):  # sống mái theo trục dài (along) hay ngắn (across)
 
 ra, AN = {}, {'building:part', 'height', 'roof:levels'}
 for i in LANG:
-    k = np.array(KH[i]['ngoai'][0]); chung = [p for p in k[:-1] if min(np.linalg.norm(dai - p, axis=1)) < 0.05]  # đỉnh láng giềng nằm trên cạnh dải
+    k = np.array(KH[i]['v']); chung = [p for p in k[:-1] if min(np.linalg.norm(dai - p, axis=1)) < 0.05]  # đỉnh láng giềng nằm trên cạnh dải
     a, b = max(((p, r) for p in chung for r in chung), key=lambda pr: np.linalg.norm(pr[0] - pr[1])); d = (b - a) / np.linalg.norm(b - a); n = np.array([-d[1], d[0]])
     if P(dai).contains_point(tuple((a + b) / 2 + n * 0.8)) is False: n = -n
     # bề sâu dải tại khoảng này: đi từ cạnh chung theo n tới khi ra khỏi dải

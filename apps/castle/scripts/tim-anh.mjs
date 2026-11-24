@@ -13,12 +13,12 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
-import { PUB, du, LAU, doiSo } from './chung.mjs';
+import { PUB, du, LAU, doiSo, docLau } from './chung.mjs';
 import { timAnhQuanh, chiTietAnh } from '../server/anh-quanh.mjs';
 import { taiMang } from '../server/tai-mang.mjs';
 
 const arg = (k) => { const i = doiSo.indexOf(k); return i >= 0 ? doiSo[i + 1] : null; };
-const D = JSON.parse(readFileSync(join(PUB, 'du-lieu', `${LAU}.json`), 'utf8')), [la0, lo0] = D.tam, MX = 111320 * Math.cos((la0 * Math.PI) / 180);
+const D = docLau(), [la0, lo0] = D.tam, MX = 111320 * Math.cos((la0 * Math.PI) / 180);
 const raLatLng = (x, z) => [la0 - z / 111320, lo0 + x / MX];
 const THU = join(PUB, 'du-lieu', 'anh', 'web'), SO = du('anh-web');
 // sổ ảnh tải hỏng (ngoài public, không lên trang): .kho-goc/<lâu>-anh-web-hong.json — lượt sau bỏ qua trong 6 giờ, --lai-hong thử lại

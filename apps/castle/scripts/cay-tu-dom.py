@@ -10,16 +10,16 @@ dom = tifffile.imread(BY / 'dom20-32631_5268.tif'); dgm = tifffile.imread(BY / '
 tan = dom - cv2.resize(dgm, (5000, 5000), interpolation=cv2.INTER_LINEAR); tan[(dom < -1000)] = 0
 t = cv2.GaussianBlur(tan, (0, 0), 3); dinh = (t == cv2.dilate(t, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (23, 23)))) & (t >= 5)   # cửa sổ 4,6 m
 I, J = np.nonzero(dinh); E = 631000 + (J + 0.5) * 0.2; N = 5269000 - (I + 0.5) * 0.2
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); from toa_do_bayern import EN, canh, E0, N0, C as c, S as s   # độ dời OSM → DOM20 đọc từ so-dom20.json
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); from toa_do_bayern import EN, canh, E0, N0, C as c, S as s, dsKhoi   # độ dời OSM → DOM20 đọc từ so-dom20.json
 x, z = canh(E, N); h = t[I, J]
-K = json.load(open(G / 'public/du-lieu/neuschwanstein.json'))['khoi']
+K = dsKhoi()  # mặt bằng như trang dựng (sua.json ghi đè + khối them/), không đọc OSM thô
 def trong(px, pz, v):
     r = np.zeros(px.shape, bool); n = len(v)
     for i in range(n):
         (xi, zi), (xj, zj) = v[i], v[i - 1]; m = ((zi > pz) != (zj > pz)) & (px < (xj - xi) * (pz - zi) / ((zj - zi) or 1e-9) + xi); r ^= m
     return r
 nha = np.zeros(len(x), bool)
-for k in K: v = k['ngoai'][0]; nha |= trong(x, z, v) | trong(x + 3, z, v) | trong(x - 3, z, v) | trong(x, z + 3, v) | trong(x, z - 3, v)
+for k in K: v = k['v']; nha |= trong(x, z, v) | trong(x + 3, z, v) | trong(x - 3, z, v) | trong(x, z + 3, v) | trong(x, z - 3, v)
 ra = [[round(float(a), 1), round(float(b), 1), round(float(hh), 1)] for a, b, hh, n_ in zip(x, z, h, nha) if not n_ and hh < 50]
 vung = [round(float(x.min()), 1), round(float(x.max()), 1), round(float(z.min()), 1), round(float(z.max()), 1)]
 json.dump({'nguon': 'DOM20 − DGM1 chính thức Bavaria (CC BY 4.0), scripts/cay-tu-dom.py 2026-11-20', 'vung': vung, 'cay': ra}, open(G / 'public/du-lieu/neuschwanstein-cay.json', 'w'), separators=(',', ':'))

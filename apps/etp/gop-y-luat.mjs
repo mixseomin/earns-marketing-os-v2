@@ -1774,4 +1774,5 @@ export const LUAT = [
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'const k = await guiGopY({ loai: \'loi\'', cam: "key: 'form', header:", vi: 'hover ô Vấn đề có nút 🛠 Sửa (AI) gửi góp ý cho kỹ sư sửa tận gốc; không còn cột Form riêng' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'ghimDau={ghimMoi}', vi: 'camp mới lên / mới tạo (24 giờ) luôn nằm trên cùng (anh 24/11/2026)' },
   { card: 'thiet-lap-2411', tep: 'packages/bang/src/data-table.tsx', co: 'ghimDau?: (row: T) => number | null | undefined;', vi: 'DataTable ghimDau: dòng ghim luôn đầu bảng, bất kể cột đang xếp' },
+  { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: '<details className="tl-gon"', vi: 'danh sách dài (nước nhắm / nước loại…) thu gọn: vài mục đại diện + "+N", bấm mở (anh 24/11/2026)' },
 ];

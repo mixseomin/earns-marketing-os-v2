@@ -118,8 +118,14 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
     if (kieu === 'tt') return oTt(s);
     if (kieu === 'bat') return /^(bật|true)$/i.test(s) ? <b style={{ color: '#4ade80' }}>✓</b> : /^(tắt|false|không)$/i.test(s) ? <span style={{ color: 'var(--fg-3)' }}>✗</span> : <span style={{ fontSize: 11 }}>{s}</span>;
     if (kieu === 'gio') return <span style={{ fontSize: 11, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{gioVn(s)}</span>;
+    if (kieu === 'ds') { const m = s.includes('\n') ? s.split('\n') : s.split(', ');
+      // DANH SÁCH DÀI THU GỌN (anh 24/11/2026 "Thu gọn dạng collapsed. Chỉ hiện 1 vài cái đại diện"): > GON_TRAN mục → GON_HIEN mục đầu + "+N", bấm mở / gập
+      if (m.length > GON_TRAN) return <details className="tl-gon" onClick={(e) => e.stopPropagation()} title={s}>
+        <summary style={{ cursor: 'pointer', listStyle: 'none', fontSize: 11, whiteSpace: 'nowrap' }}>{m.slice(0, GON_HIEN).join(s.includes('\n') ? ' · ' : ', ')} <b style={{ color: 'var(--accent, #f472b6)', fontWeight: 600 }}>+{m.length - GON_HIEN}</b></summary>
+        {o(s, undefined, true)}</details>; }
     return o(s, undefined, kieu === 'ds');
   };
+  const GON_TRAN = 6, GON_HIEN = 4;
   // bề rộng SÁT tên hoặc nội dung (anh 24/11/2026 "thu gọn cho sát với tên hoặc nội dung"): max(nội dung ước, tiêu đề) — tên dài nằm ở dải nhóm + hover, tiêu đề cột ngắn
   const rongCot = (header: string, rong: number) => Math.round(Math.max(rong + 16, header.length * 7 + 26));
   const PHAI: Kieu[] = ['tien', 'so'];
@@ -141,8 +147,8 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
     C('g_ten', 'b2', 'Tên ad set', 200, undefined, 'ds'), C('g_toi_uu', 'b2', 'Tối ưu', 70, 'optimization goal', 'ds'), C('g_tinh_phi', 'b2', 'Tính phí', 70, 'billing event', 'ds'), C('g_dich', 'b2', 'Đích', 60, 'destination type', 'ds'),
     C('g_su_kien', 'b2', 'Sự kiện', 60, 'custom event', 'ds'), C('g_pixel', 'b2', 'Pixel', 110, undefined, 'ma'), C('g_roas', 'b2', 'ROAS sàn', 30, undefined, 'so'), C('g_ns', 'b2', 'NS', 30, 'ngân sách ad set $', 'tien'),
     C('g_attr', 'b2', 'Attribution', 150, undefined, 'ds'), G('g_bat_dau', 'b2', 'Bắt đầu', 'giờ VN'), G('g_ket_thuc', 'b2', 'Kết thúc', 'giờ VN'), C('g_lich', 'b2', 'Lịch', 70, 'lịch giờ nhà', 'ds'),
-    C('g_so_nuoc', 'b3', 'Nước', 20, 'số nước nhắm', 'so'), C('g_nuoc', 'b3', 'Nước nhắm', 220, undefined, 'ds'), C('g_kieu_vt', 'b3', 'Kiểu VT', 70, 'kiểu vị trí', 'ds'),
-    C('g_so_loai', 'b3', 'Loại', 20, 'số nước loại', 'so'), C('g_loai_nuoc', 'b3', 'Nước loại', 260, undefined, 'ds'),
+    C('g_so_nuoc', 'b3', 'Nước', 20, 'số nước nhắm', 'so'), C('g_nuoc', 'b3', 'Nước nhắm', 130, undefined, 'ds'), C('g_kieu_vt', 'b3', 'Kiểu VT', 70, 'kiểu vị trí', 'ds'),
+    C('g_so_loai', 'b3', 'Loại', 20, 'số nước loại', 'so'), C('g_loai_nuoc', 'b3', 'Nước loại', 130, undefined, 'ds'),
     C('g_ngon_ngu', 'b3', 'Ngôn ngữ', 50, 'mã ngôn ngữ', 'ds'), C('g_tuoi', 'b3', 'Tuổi', 40, undefined, 'so'), C('g_gioi', 'b3', 'Giới', 24, undefined, 'ds'), C('g_adv', 'b3', 'Adv+', 20, 'Advantage+ đối tượng', 'bat'),
     C('g_nen', 'b3', 'Nền tảng', 150, undefined, 'ds'), C('g_vi_tri', 'b3', 'Vị trí', 280, undefined, 'ds'), C('g_thiet_bi', 'b3', 'Thiết bị', 80, undefined, 'ds'), C('g_an_toan', 'b3', 'An toàn', 120, 'lọc an toàn thương hiệu', 'ds'),
     C('g_vung_qd', 'b3', 'Vùng QĐ', 110, 'vùng có quy định', 'ds'), C('g_ext', 'b3', 'ID ad set', 110, 'mã ad set trên Meta', 'ma'), C('g_meta', 'b3', 'Meta', 56, 'ad set trên Meta', 'tt'), C('g_giao', 'b3', 'Phân phối', 70, 'ad set phân phối', 'tt'),
@@ -163,7 +169,7 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
     <div style={{ fontSize: 11.5, color: 'var(--fg-2)', margin: '6px 0 4px', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
       <span>{du.dong.length} camp theo lọc ở trên</span>
       <span style={{ color: coDo ? '#f87171' : coVd ? '#fbbf24' : '#4ade80' }}>{coVd ? `✗ ${coVd} camp có vấn đề (${coDo} đỏ) · ${lech} lệch form chữ` : '✓ không camp nào có vấn đề'}</span>
-      <style>{'.tl-vd{position:relative;min-height:16px}.tl-vd .tl-sua{display:none;position:absolute;top:-2px;right:-4px;font-size:11px;padding:1px 7px;border-radius:4px;border:1px solid #f59e0b;background:#422006;color:#fde68a;cursor:pointer}td:hover .tl-vd .tl-sua,tr:hover .tl-vd .tl-sua{display:inline-block}.tl-vd .tl-sua:disabled{opacity:.6;cursor:wait}'}</style>
+      <style>{'.tl-vd{position:relative;min-height:16px}.tl-vd .tl-sua{display:none;position:absolute;top:-2px;right:-4px;font-size:11px;padding:1px 7px;border-radius:4px;border:1px solid #f59e0b;background:#422006;color:#fde68a;cursor:pointer}td:hover .tl-vd .tl-sua,tr:hover .tl-vd .tl-sua{display:inline-block}.tl-vd .tl-sua:disabled{opacity:.6;cursor:wait}.tl-gon summary::-webkit-details-marker{display:none}.tl-gon[open] summary b{display:none}'}</style>
       {du.thieu ? <span style={{ color: '#fbbf24' }}>{du.thieu} camp kho chưa đọc cấu hình Ethopex (bai-qc.py đọc dần mỗi lượt đồng bộ)</span> : null}
       <span title="apps/etp/form-chu.json">Form chuẩn: {form?.creative_type} · {form?.call_to_action} · {form?.link_url} · “{form?.primaryTexts.join(' / ')}” · “{form?.headlines.join(' / ')}” · “{form?.descriptions.join(' / ')}”</span>
     </div>

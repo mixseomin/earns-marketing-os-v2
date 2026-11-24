@@ -8,7 +8,9 @@ import { join } from 'node:path';
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
   { card: 1826, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<span data-o="loai-truoc-cr"', vi: 'cây camp: huy hiệu loại creative (CT / CC / PO…) đứng ngay trước ô creative (anh 24/11/2026 "chuyển badge thể loại creative ra trước creative")' },
-  { card: 1826, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} />", vi: 'ô camp của cây không còn huy hiệu loại dạt phải (đã chuyển sang trước creative)' },
+  { card: 1829, tep: 'apps/etp2/src/components/etp-camp-cau-hinh.tsx', mot: "gridTemplateColumns: rong ? 'fit-content(180px) minmax(0, 1fr)'", vi: 'ngăn cấu hình camp: cột nhãn co theo chữ dài nhất của khối (tối đa 180px), giá trị sát nhãn, không còn khoảng trống giữa (anh 24/11/2026 "tối ưu chỗ này")' },
+  { card: 1829, tep: 'apps/etp2/src/components/etp-camp-cau-hinh.tsx', cam: "'minmax(130px, 200px) minmax(0, 1fr)'", vi: 'không quay lại cột nhãn cố định 200px để trống giữa nhãn và giá trị' },
+  { card: 1826, tep: 'apps/etp2/src/components/etp-view.tsx', cam:"gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} />", vi: 'ô camp của cây không còn huy hiệu loại dạt phải (đã chuyển sang trước creative)' },
   { card: 1827, tep: 'apps/etp2/src/components/etp-view.tsx', co: '#{c.camp_id}</b><MucBid c={c} nho />', vi: 'ô camp trên Cây hiện mức ROAS bid (0.9 · 1.0 · 1.1 …) ngay sau số camp (anh 24/11/2026 "Show ROAS level vào đây")' },
   { card: 1827, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function MucBid(', vi: 'một chỗ hiện mức ROAS bid dùng chung cho bảng ★ ROAS và Cây — không chép tay' },
   { card: 1827, tep: 'apps/etp2/src/components/etp-view.tsx', co: "cell: (c) => <MucBid c={c} />,", vi: 'cột ROAS bid bảng ★ ROAS dùng cùng hàm MucBid' },

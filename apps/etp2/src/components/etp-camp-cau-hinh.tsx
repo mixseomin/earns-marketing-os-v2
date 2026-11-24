@@ -84,7 +84,7 @@ export function CamCauHinh({ campId, soLieu, xemTruoc, phim }: {
   // ── khối + trường (Ethopex: R title / Mo label·value; trống = "Not selected") ──
   const Khoi = ({ ten, children }: { ten: string; children: ReactNode }) => <section style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px' }}>
     <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8 }}>{ten}</div>
-    <div style={{ display: 'grid', gridTemplateColumns: rong ? 'minmax(130px, 200px) minmax(0, 1fr)' : 'minmax(0, 1fr)', columnGap: 12, rowGap: rong ? 6 : 2 }}>{children}</div></section>;
+    <div style={{ display: 'grid', gridTemplateColumns: rong ? 'fit-content(180px) minmax(0, 1fr)' : 'minmax(0, 1fr)', columnGap: 16, rowGap: rong ? 6 : 2 }}>{children}</div></section>;
   const Truong = ({ nhan, gt, ma, chu }: { nhan: string; gt: string | null | undefined; ma?: boolean; chu?: string }) => {
     const ten = gt != null && ma ? MA[gt] : undefined;
     return <>

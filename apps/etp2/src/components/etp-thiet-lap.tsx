@@ -79,20 +79,22 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
   // PHẢI GIỐNG NHAU ở mọi camp (Fable soát 24/11/2026: chỉ danh sách cố định này, không so số đông mọi cột — cột khác khác nhau là bình thường): lệch số đông = vàng
   const GIONG: [string, string][] = [['c_muc_tieu', 'Mục tiêu'], ['g_pixel', 'Pixel'], ['g_su_kien', 'Sự kiện'], ['g_attr', 'Attribution'], ['g_nuoc', 'Nước nhắm'],
     ['g_loai_nuoc', 'Nước loại'], ['g_vi_tri', 'Vị trí'], ['g_an_toan', 'An toàn thương hiệu']];
+  // mục của một danh sách: dòng "Facebook: feed, story" → "Facebook feed", "Facebook story" (cùng tên vị trí ở hai nền không lẫn nhau)
+  const mucDs = (s: string) => s.split('\n').flatMap((l) => { const i = l.indexOf(': '); return i > 0 ? l.slice(i + 2).split(', ').map((x) => `${l.slice(0, i)} ${x}`) : l.split(', '); }).map((x) => x.trim()).filter(Boolean);
+  // so theo TẬP mục, không theo chuỗi: Vị trí cùng 20 mục mà xếp khác thứ tự trước bị báo lệch oan (4 camp, soát 24/11/2026)
+  const tap = (s: string) => [...new Set(mucDs(s))].sort().join('\n');
   const soDong: Record<string, string> = {};
   for (const [k] of GIONG) {
     const dem = new Map<string, number>(); let n = 0;
-    for (const r of du?.dong ?? []) { const s = chu(r[k]); if (s != null) { n++; dem.set(s, (dem.get(s) ?? 0) + 1); } }
+    for (const r of du?.dong ?? []) { const s0 = chu(r[k]), s = s0 == null ? null : tap(s0); if (s != null) { n++; dem.set(s, (dem.get(s) ?? 0) + 1); } }
     const top = [...dem].sort((a, b) => b[1] - a[1])[0];
     if (top && dem.size > 1 && top[1] * 2 > n) soDong[k] = top[0];   // có số đông rõ (> nửa) mới so; chia đôi thì không biết bên nào đúng → không báo
   }
-  // mục của một danh sách: dòng "Facebook: feed, story" → "Facebook feed", "Facebook story" (cùng tên vị trí ở hai nền không lẫn nhau)
-  const mucDs = (s: string) => s.split('\n').flatMap((l) => { const i = l.indexOf(': '); return i > 0 ? l.slice(i + 2).split(', ').map((x) => `${l.slice(0, i)} ${x}`) : l.split(', '); }).map((x) => x.trim()).filter(Boolean);
   const ke = (m: string[]) => m.length > 4 ? `${m.slice(0, 4).join(', ')} +${m.length - 4}` : m.join(', ');
   // KHÁC SỐ ĐÔNG = chỉ phần chênh (anh 24/11/2026 lần soát: in cả hai bản thì hai đầu giống hệt nhau, không đọc ra khác ở đâu)
   const chenh = (s: string, d: string) => { const a = mucDs(s), b = mucDs(d), A = new Set(a), B = new Set(b);
     const them = a.filter((x) => !B.has(x)), thieu = b.filter((x) => !A.has(x));
-    return them.length || thieu.length ? [them.length ? `thêm ${ke(them)}` : '', thieu.length ? `thiếu ${ke(thieu)}` : ''].filter(Boolean).join(' · ') : 'cùng mục, khác thứ tự'; };
+    return them.length || thieu.length ? [them.length ? `thêm ${ke(them)}` : '', thieu.length ? `thiếu ${ke(thieu)}` : ''].filter(Boolean).join(' · ') : ''; };
   const vanDe = (r: DongTl): VanDe[] => {
     const v: VanDe[] = [], thay = new Set<string>();
     const them = (chu: string, laDo: boolean, ai = true) => { const k = chu.replace(/^[^:]*:\s*/, '').slice(0, 80); if (!thay.has(k)) { thay.add(k); v.push({ chu, do: laDo, ai }); } };
@@ -110,7 +112,7 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
     if (chu(r.s_cho)) them('Chờ kích hoạt', false);
     for (const d of (chu(r.s_loi) ?? '').split('\n').filter(Boolean)) them(`Lỗi ${d}`, !/^[^:]*⚠/.test(d));
     if (!r.du_luc) them('Kho chưa đọc cấu hình Ethopex', false);
-    for (const [k, ten] of GIONG) { const s = chu(r[k]), d = soDong[k]; if (d != null && s != null && s !== d) them(`${ten} khác số đông: ${chenh(s, d)}`, false); }
+    for (const [k, ten] of GIONG) { const s = chu(r[k]), d = soDong[k]; if (d != null && s != null && tap(s) !== d) them(`${ten} khác số đông: ${chenh(s, d)}`, false); }
     return v;
   };
   const vanDeHien = (r: DongTl) => vanDe(r).filter((x) => muc === 'do' ? x.do : muc === 'vang' ? !x.do : true);

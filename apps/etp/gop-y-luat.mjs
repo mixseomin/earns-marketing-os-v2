@@ -1778,4 +1778,5 @@ export const LUAT = [
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: '.tl-vd-ds:hover .tl-sua{display:inline-block}', cam: 'tr:hover .tl-vd .tl-sua', vi: 'nút 🛠 Sửa (AI) chỉ hiện khi rê vào chính danh sách vấn đề, không phải cả dòng (anh 24/11/2026)' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: "muc === 'do' ? x.do : muc === 'vang' ? !x.do : true", vi: 'lọc Vấn đề theo mức: chọn đỏ thì chỉ camp có đỏ và ô chỉ hiện vấn đề đỏ, không hiện vàng (anh 24/11/2026)' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'stickyCols={2 + cotNay.length}', vi: 'cột hiệu suất Hôm nay ghim ngay sau cột Vấn đề (anh 24/11/2026)' },
+  { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'if (!henGio && /^active$/i.test(chu(r.c_tt)', vi: 'ad set tắt vì giờ bắt đầu / lịch còn ở tương lai = hẹn giờ, không báo vấn đề (24/11/2026)' },
 ];

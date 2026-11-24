@@ -74,7 +74,10 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
     const lf = loiForm(r);
     if (lf.length) them(`Form chữ lệch ${lf.length}/6: ${lf.map((k) => TEN_FORM[k]).join(', ')}${/^chữ cũ/.test(chu(r.f_nguon) ?? '') ? ' — ad đang chạy chữ cũ' : ''}`, true);
     for (const [k, ten] of TT_CAP) { const s = chu(r[k]); if (s && (TT_LOI.test(s) || TT_TREO.test(s))) them(`${ten}: ${s.toLowerCase().replace(/_/g, ' ')}`, TT_LOI.test(s)); }
-    if (/^active$/i.test(chu(r.c_tt) ?? '')) for (const [k, ten] of [['g_giao', 'ad set'], ['a_giao', 'ad']] as const) { const s = chu(r[k]); if (s && /paused/i.test(s) && !/campaign_paused/i.test(s)) them(`Camp bật nhưng ${ten} đang tắt (${s.toLowerCase().replace(/_/g, ' ')})`, false); }
+    // ad set / ad ADSET_PAUSED khi giờ bắt đầu (start_time UTC không Z, hoặc lịch nhà) còn ở tương lai = đang HẸN GIỜ, không phải vấn đề
+    const tuongLai = (x: string | null) => { if (!x) return false; const t = Date.parse(/[zZ]|[+-]\d\d(:?\d\d)?$/.test(x) ? x.replace(' ', 'T') : `${x.replace(' ', 'T')}Z`); return Number.isFinite(t) && t > Date.now(); };
+    const henGio = tuongLai(chu(r.g_bat_dau)) || tuongLai(chu(r.g_lich));
+    if (!henGio && /^active$/i.test(chu(r.c_tt) ?? '')) for (const [k, ten] of [['g_giao', 'ad set'], ['a_giao', 'ad']] as const) { const s = chu(r[k]); if (s && /paused/i.test(s) && !/campaign_paused/i.test(s)) them(`Camp bật nhưng ${ten} đang tắt (${s.toLowerCase().replace(/_/g, ' ')})`, false); }
     if (chu(r.s_cho)) them('Chờ kích hoạt', false);
     for (const d of (chu(r.s_loi) ?? '').split('\n').filter(Boolean)) them(`Lỗi ${d}`, !/^[^:]*⚠/.test(d));
     if (!r.du_luc) them('Kho chưa đọc cấu hình Ethopex', false);

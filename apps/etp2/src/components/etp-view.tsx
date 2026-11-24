@@ -21,7 +21,7 @@ import { Dem, KeToan, tienKT, mauLai, MAU_DANG, MA_DANG, BadgeDang, BadgeDangNga
 import { CAM_CHAN, nguonCam } from '@/lib/etp-phim-cam';
 import { NHOM_QC, cotQc, BieuDoQc } from '@/components/etp-qc-trang';   // card etp:qc-adsense-camp-2311
 import { gopQc, chuoiQc, type DongQc, type GopQc } from '@/lib/qc-trang';
-import { NHOM_DANG } from '@/lib/etp-dang';
+import { NHOM_DANG, DS_DANG, dangTheoTen } from '@/lib/etp-dang';
 import { maGiong } from '@/lib/etp-dang';
 import { lyDoChan, chuChan, type TieuChi } from '@/lib/etp-chan';
 import { openEntityDrawer } from '@/lib/entity-drawer';
@@ -325,14 +325,14 @@ function DaiLuat({ opts, chon, onChon }: { opts: { value: string; label: string;
 const DAU_LUAT: Record<string, [string, string, string]> = { tang: ['↑', '#4ade80', 'máy luật: sắp tăng bậc'], dau_phien: ['↑', '#4ade80', 'máy luật: sắp tăng bậc (đầu phiên)'], tang30: ['↑', '#4ade80', 'máy luật: sắp lên trần $30'],
   ha: ['↓', '#fb923c', 'máy luật: sắp giảm bậc'], tat: ['✕', '#f87171', 'máy luật: đề xuất tắt'], giam: ['↘', '#f59e0b', 'máy luật: ROI đang tụt'], moc30: ['★', '#facc15', 'máy luật: đủ tiêu chí bid ROAS'] };
 // ô Phim của bảng Camp / Creative: ảnh nhỏ + tên MỘT dòng cắt "…" (hover xem đủ) + dòng phụ — chữ không bao giờ tràn sang cột bên (anh 26/10/2026: "ko để dính vào … gọn hơn")
-function PhimO({ anh, ten, title, phu, cung = 0, video }: { anh: React.ReactNode; ten: string; title?: string; phu: string; cung?: number; video?: string | null }) {
+function PhimO({ anh, ten, title, phu, cung = 0, video, them }: { anh: React.ReactNode; ten: string; title?: string; phu: string; cung?: number; video?: string | null; /** thông tin creative sau mã (#1818: loại · ngôn ngữ · độ dài) */ them?: React.ReactNode }) {
   const cat: React.CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
   return (
     <span title={title ?? ten} style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, maxWidth: '100%', paddingRight: 8, boxSizing: 'border-box' }}>
       {anh}
       <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, lineHeight: 1.25 }}>
         <span style={cat}>{ten}</span>
-        <span style={{ ...cat, color: 'var(--fg-3)', fontSize: 11 }}>{phu.trim()}{cung > 1 ? <span title={`${cung} camp cùng đoạn video`}> · ⚔{cung}</span> : null}{video ? <> · <a href={video} target="_blank" rel="noreferrer">video</a></> : null}</span>
+        <span style={{ ...cat, color: 'var(--fg-3)', fontSize: 11 }}>{phu.trim()}{them ? <> · {them}</> : null}{cung > 1 ? <span title={`${cung} camp cùng đoạn video`}> · ⚔{cung}</span> : null}{video ? <> · <a href={video} target="_blank" rel="noreferrer">video</a></> : null}</span>
       </span>
     </span>
   );
@@ -3134,6 +3134,18 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     ? <img src={r.anh} alt="" loading="lazy" onMouseEnter={(e) => noiAnh.mo({ anh: r.anh!, video: r.video, cr: r.creative_id || undefined }, e)} onMouseLeave={noiAnh.dongTre} style={{ width: 20, height: 36, objectFit: 'cover', borderRadius: 3, background: '#000', verticalAlign: 'middle', cursor: 'zoom-in', flex: 'none' }} />
     : <span style={{ display: 'inline-block', width: 20, height: 36, borderRadius: 3, flex: 'none', background: 'var(--bg-2, #222)', verticalAlign: 'middle' }} />; };
   const tl = (k: string | null) => (k ? du.theLoai[k] ?? k : '—');
+  /** THÔNG TIN CREATIVE dưới tên phim (#1818 anh 24/11/2026 "Show thêm thông tin creative như Loại creative"): nhãn loại (sổ dạng) · ngôn ngữ · độ dài đoạn;
+   *  mô tả loại + thể loại phim + đoạn cắt nằm ở chữ rê (YDNI). Camp chưa có loại thì đoán theo tên camp; creative không có trong kho nhà → chữ mờ "chưa phân loại". */
+  const crThem = (c: CampEtpKho) => {
+    const r = c.creative_id ? crAnh.get(c.creative_id) : null;
+    const goc = c.dang ?? r?.dang ?? null, d = goc ?? dangTheoTen(c.ten);
+    const dai = r?.tu != null && r?.den != null && r.den > r.tu ? Math.round(r.den - r.tu) : null;
+    const lang = (r?.lang ?? '').toUpperCase();
+    const moTa = d ? DS_DANG.find((x) => x.dang === d)?.mo_ta : null;
+    const chuRe = [d ? `Loại creative: ${d}${goc ? '' : ' (đoán theo tên camp)'}${moTa ? ` — ${moTa}` : ''}` : `Creative #${c.creative_id ?? '—'} chưa có trong kho creative nhà nên chưa biết loại`,
+      c.the_loai ? `Thể loại phim: ${tl(c.the_loai)}` : '', lang ? `Ngôn ngữ: ${lang}` : '', dai ? `Đoạn video: giây ${Math.round(r!.tu!)}–${Math.round(r!.den!)} (${dai} giây)` : ''].filter(Boolean).join('\n');
+    return <span data-cr-them title={chuRe}>{d ? <BadgeDang d={d} ban={c.ban ?? r?.ban} giong={c.giong ?? r?.giong} /> : <span style={{ fontStyle: 'italic' }}>chưa phân loại</span>}{lang ? ` · ${lang}` : ''}{dai ? ` · ${dai}s` : ''}</span>;
+  };
   // camp mà dải số đầu trang cộng: tab Camp / ★ ROAS có lọc → CHỈ phần đã lọc (anh 27/10/2026 "khi có lọc thì con số phải là của riêng phần đã lọc"), còn lại = mọi camp (khai sau `camps`)
   const nay0 = cong(du.camps.map((c) => c.nay)), qua0 = cong(du.camps.map((c) => c.qua));
   const dk = du.cauHinh.find((c) => c.khoa === 'dung_khan')?.gia_tri === true;
@@ -3273,7 +3285,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const chay = nguon.filter(dangChay), choChayDs = nguon.filter(choChay);   // #1770: gồm camp vừa lên còn đang tạo
   const cotCamp: DataColumn<CampEtpKho>[] = [
     { key: 'id', header: 'Camp', align: 'left', cell: (c) => <span style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} /><span style={laRoas(c) ? { color: MAU_ROAS, fontWeight: 600 } : undefined}>#{c.camp_id}</span> <TT c={c} /></span>, sortValue: (c) => c.camp_id },
-    { key: 'phim', header: 'Phim · creative', align: 'left', width: 260, cell: (c) => <PhimO anh={anh(c.creative_id)} ten={c.phim ?? c.ten} title={c.ten} phu={`#${c.creative_id} ${c.dang ?? ''}`} cung={c.cung_doan} />, sortValue: (c) => c.phim ?? '' },
+    { key: 'phim', header: 'Phim · creative', align: 'left', width: 260, cell: (c) => <PhimO anh={anh(c.creative_id)} ten={c.phim ?? c.ten} title={c.ten} phu={`#${c.creative_id}`} them={crThem(c)} cung={c.cung_doan} />, sortValue: (c) => c.phim ?? '' },
     { key: 'bai', header: 'Bài post', align: 'left', width: 80, title: 'link bài post Facebook của camp (bản Used post chưa có mã → bài của camp mẹ) — bấm mở tab mới', sortValue: (c) => baiCuaCamp(c, du.camps)?.bai ?? '', cell: (c) => <OBai c={c} kho={du.camps} /> },
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (c) => <span style={{ fontSize: 12 }}>{tl(c.the_loai)}</span>, sortValue: (c) => c.the_loai ?? '' },
     ...(du.cauHinh.find((k) => k.khoa === 'lich_gio')?.gia_tri === true ? [{key: 'lich', header: 'Lịch giờ', align: 'left', title: 'lịch bật / tắt theo thể loại: 07h · 08h–12h · 13h–19h · 20h–06h (xanh BẬT, xám TẮT, viền = khung đang chạy) — sửa ở Camp › Lịch giờ', cell: (c) => <LichCamp c={c} du={du} tl={tl} />, sortValue: (c) => (c.lich_tat ? 1 : 0) }] as DataColumn<CampEtpKho>[] : []),
@@ -3587,7 +3599,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         <LichGio du={du} tl={tl} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'thietlap' ? (
         <ThietLapCamp camps={camps} hep={hep} them={{   /* nhóm cột phụ: creative + hiệu suất hiện tại — chính cột của bảng Camp (anh 24/11/2026) */
-          cot: cotCamp.filter((k) => k.key === 'phim' || /^(nay|qua|kh)_/.test(k.key)).map((k) => (k.key === 'phim' ? { ...k, group: 'cr', width: 200 } : k)),
+          cot: cotCamp.filter((k) => k.key === 'phim' || /^(nay|qua|kh)_/.test(k.key)).map((k) => (k.key === 'phim' ? { ...k, group: 'cr', width: 250 } : k)),
           nhom: [{ key: 'cr', label: 'Creative', color: '#34d399', title: 'phim · creative đang gắn vào camp (bấm ảnh xem video)' }, ...NHOM] }} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
         <CayCamp camps={camps} hang={hangLoc} hl={hlCamp} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e, camp) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr, camp }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} />

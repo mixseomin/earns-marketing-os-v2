@@ -16,10 +16,10 @@ def do_ab(q, ma):
     ab = json.loads(q(f"select row_to_json(a)::text from etp.ab a where ma = '{ma}'") or "null")
     if not ab: return f"{ma}: không có trong sổ etp.ab"
     rows = q(f"""select a.nhanh, count(distinct a.camp_id), coalesce(sum(n.chi), 0), coalesce(sum(n.thu), 0),
-                   count(distinct a.camp_id) filter (where a.camp_id in (select s.camp_id from etp.so_ngay s join etp.camp_ab b on b.camp_id = s.camp_id and b.ab = '{ma}'
+                   count(distinct a.camp_id) filter (where a.camp_id in (select s.camp_id from etp.so_ngay_ca s join etp.camp_ab b on b.camp_id = s.camp_id and b.ab = '{ma}'
                      where s.ngay > (b.tao at time zone 'utc')::date and s.ngay < (now() at time zone 'utc')::date group by s.camp_id having sum(s.thu) > sum(s.chi) and sum(s.chi) >= 1)),
                    count(n.ngay)
-                 from etp.camp_ab a left join etp.so_ngay n on n.camp_id = a.camp_id and n.ngay > (a.tao at time zone 'utc')::date and n.ngay < (now() at time zone 'utc')::date
+                 from etp.camp_ab a left join etp.so_ngay_ca n on n.camp_id = a.camp_id and n.ngay > (a.tao at time zone 'utc')::date and n.ngay < (now() at time zone 'utc')::date
                  where a.ab = '{ma}' and a.loai_tru is null group by 1 order by 1""").splitlines()
     ten = {k: (v or {}).get("ten", k) for k, v in (ab.get("nhanh") or {}).items()}
     dong = []

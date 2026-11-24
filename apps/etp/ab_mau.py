@@ -15,10 +15,14 @@ R = os.path.dirname(os.path.abspath(__file__)); LAM = os.path.join(R, "..", "xuo
 KHO = r"""
 alter table etp.ab add column if not exists mau jsonb;
 alter table etp.camp_ab add column if not exists loai_tru text;
+-- SỐ NGÀY CẢ NHÀ LẪN ĐỘI (anh 24/11/2026 AB09: nhánh đối chứng là camp gốc của đội — etp.so_ngay chỉ có camp nhà, camp đội ở etp.so_ngay_ngoai; hai bộ id không trùng)
+create or replace view etp.so_ngay_ca as
+  select camp_id, ngay, chi, thu from etp.so_ngay union all
+  select o.camp_id, o.ngay, o.chi, o.thu from etp.so_ngay_ngoai o where not exists (select 1 from etp.so_ngay n where n.camp_id = o.camp_id and n.ngay = o.ngay);
 create or replace view etp.ab_so as
 with n as (
   select a.ab, a.nhanh, a.camp_id, coalesce(sum(s.chi), 0) chi, coalesce(sum(s.thu), 0) thu
-  from etp.camp_ab a left join etp.so_ngay s on s.camp_id = a.camp_id and s.ngay >= (a.tao at time zone 'utc')::date and s.ngay < (now() at time zone 'utc')::date
+  from etp.camp_ab a left join etp.so_ngay_ca s on s.camp_id = a.camp_id and s.ngay >= (a.tao at time zone 'utc')::date and s.ngay < (now() at time zone 'utc')::date
   where a.loai_tru is null group by 1, 2, 3),
 x as (
   select b.ma, n.nhanh, count(n.camp_id) camp, count(n.camp_id) filter (where n.chi >= 1) co_chi, round(sum(n.chi), 2) chi, round(sum(n.thu), 2) thu,
@@ -63,6 +67,19 @@ insert into etp.ab (ma, kieu, ten, gia_thuyet, bat_dau, ket_thuc, cach_chia, nha
   '2026-11-16', '2026-12-16', 'ứng viên vào nhánh đang ít camp hơn (cặp); camp dính luật tắt khác (L4…) hoặc đã thuộc A/B khác đứng ngoài',
   '{"thu": {"ten": "giữ ở $10, không tắt", "cach": "giu10"}, "doi": {"ten": "tắt như luật", "cach": "tat"}}', '{"camp": 0, "chi": 0, "ngay": 21}')
 on conflict (ma) do nothing;
+-- AB09 BỘ TÀI KHOẢN NHÀ vs ĐỘI (anh 24/11/2026: "Thử xem có phải do bộ tk ?" — "mỗi lần 1 kế hoạch rồi gom chúng vào"): camp gốc của đội = đối chứng, bản sao y nguyên
+-- (creative, chữ, cấu hình, tên miền marcusbeilby.com — chỉ khác bộ tk, Page, ngân sách; nhan-ban.py giong_doi) ở bộ Nhà = thử. tao = lúc bản sao lên, cặp đo cùng ngày.
+insert into etp.ab (ma, kieu, ten, gia_thuyet, bat_dau, ket_thuc, cach_chia, nhanh, mau) values
+ ('AB09', 'bo_tk', 'Bộ tk Nhà vs Đội — cùng camp',
+  'Cùng phim, creative, chữ, cấu hình, tên miền: camp ở bộ tk Nhà lỗ hơn camp gốc của đội vì bộ tk / Page (CPM cao hơn) chứ không vì phim hay tên miền? Số trước (20–23/11): Kiên +10% ROI ($345), Nhà −12% ($449); Mỹ cùng giá lượt vào $0,118 nhưng thu /1.000 lượt $141,6 vs $114,7.',
+  '2026-11-23', '2026-11-30', 'tay theo cặp: camp gốc đội = đối chứng · bản sao ở bộ Nhà = thử — 108671 (Sơn) → 109046 (bộ 1 $10), 109048 (bộ 2 $5) · 108634 (Sơn) → 109047 (bộ 1 $10), 109049 (bộ 2 $5) · 108746 (Kiên, ROAS1 $5) → 109178 (bộ 1 $5)',
+  '{"thu": {"ten": "bản sao ở bộ tk Nhà", "cach": "sao_nha"}, "doi": {"ten": "camp gốc của đội", "cach": "goc_doi"}}', '{"camp": 3, "chi": 20, "ngay": 3}')
+on conflict (ma) do nothing;
+insert into etp.camp_ab (camp_id, ab, nhanh, tao) values
+ (108671, 'AB09', 'doi', '2026-11-23 11:00+00'), (108634, 'AB09', 'doi', '2026-11-23 11:00+00'), (108746, 'AB09', 'doi', '2026-11-24 02:11+00'),
+ (109046, 'AB09', 'thu', '2026-11-23 11:00+00'), (109047, 'AB09', 'thu', '2026-11-23 11:01+00'), (109048, 'AB09', 'thu', '2026-11-23 11:16+00'),
+ (109049, 'AB09', 'thu', '2026-11-23 11:18+00'), (109178, 'AB09', 'thu', '2026-11-24 02:11+00')
+on conflict (camp_id) do nothing;
 """
 
 # AB04 — điều kiện vào: ★ ROAS đang chạy $20, 3 ngày đã khép đủ ở $20, tiêu TB ≥ 90% ngân sách, ROI 3 ngày ≥ +30%, chưa thuộc A/B nào

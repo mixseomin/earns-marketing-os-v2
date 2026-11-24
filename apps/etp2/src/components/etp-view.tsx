@@ -2386,7 +2386,7 @@ const ghiTo = (m: ToChon) => O_TO.filter((k) => m[k]?.length).map((k) => `${k}:$
 const toSangDong = (hl: Set<number> | null | undefined, id: number, goc?: React.CSSProperties): React.CSSProperties | undefined =>
   hl?.has(id) ? { ...goc, ...TO_SANG, boxShadow: goc?.boxShadow ? `${goc.boxShadow}, inset 0 0 0 1px #facc15` : TO_SANG.boxShadow } : goc;
 
-function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, dongCr, moCamp, moPhim, onTimDoi, khiTimTrong, hl }: { hl?: Set<number> | null; kyCay?: { tu: string; den: string }; onTimDoi?: (q: string) => void; khiTimTrong?: React.ReactNode; moCamp?: (id: number) => void; moPhim?: (k: string) => void; camps: CampEtpKho[]; hang?: CampEtpKho[]; du: DuLieuEtp; hep?: boolean; laiKy: (c: CampEtpKho) => SoTien; tenKy: string; moCr?: (cr: number, e: React.MouseEvent, camp?: number) => void; dongCr?: () => void }) {
+function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp, moPhim, onTimDoi, khiTimTrong, hl }: { hl?: Set<number> | null; onTimDoi?: (q: string) => void; khiTimTrong?: React.ReactNode; moCamp?: (id: number) => void; moPhim?: (k: string) => void; camps: CampEtpKho[]; hang?: CampEtpKho[]; du: DuLieuEtp; hep?: boolean; laiKy: (c: CampEtpKho) => SoTien; tenKy: string; moCr?: (cr: number, e: React.MouseEvent, camp?: number) => void; dongCr?: () => void }) {
   const coLich = du.cauHinh.find((k) => k.khoa === 'lich_gio')?.gia_tri === true, LT = luoiTrong(coLich);
   const dkCay = useContext(DieuKhienCtx), choCay = dkCay?.cho;   // vết ⏳ ở ô ngân sách dòng điện thoại · dkCay != null = chủ được điều khiển (nút ⏸ cột TT, #1789)
   const { boThang, thangMuc } = soThang(du);   // lịch giờ đang tắt → không có cột lịch
@@ -2415,12 +2415,11 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
   const tuoi = (c: CampEtpKho) => tuoiNgay(c.tao);
   // ngayGan = 6 ngày ĐÃ KHÉP gần nhất, cố định — chỉ cho dấu cảnh báo (vạch cam ROI giảm 2 ngày liền) luôn nhìn hiện tại
   const ngayGan = [6, 5, 4, 3, 2, 1].map((k) => new Date(Date.parse(du.nay) - k * 86_400_000).toISOString().slice(0, 10));
-  // CỘT NGÀY THEO KỲ ĐANG CHỌN (#1516 anh 03/11/2026 'đã chọn time period ở trên thì mọi thứ ở dưới cũng phải lọc theo… giờ đang show all time'): các ngày đã khép
-  // nằm trong kỳ, tối đa 6 ngày cuối kỳ (kỳ 7 ngày mặc định = y như cũ); cột 'nay' chỉ có khi kỳ chứa hôm nay. Không truyền kỳ / All time = 6 ngày gần nhất
-  const kyTu = kyCay?.tu ?? KY_DAU, kyDen = kyCay?.den ?? du.nay;
-  const ngay = useMemo(() => { const den = kyDen < du.nay ? kyDen : ngayCong(du.nay, -1), ds: string[] = [];
-    for (let d = den; d >= kyTu && ds.length < 6; d = ngayCong(d, -1)) ds.unshift(d); return ds; }, [kyTu, kyDen, du.nay]);
-  const coNay = kyDen >= du.nay;
+  // CỘT NGÀY CỐ ĐỊNH 7 NGÀY GẦN NHẤT (#1788 anh 24/11/2026 "danh sách cột 7 ngày gần nhất vẫn phải hiện cố định ko phụ thuộc vào khung ngày ở trên"):
+  // luôn 6 ngày đã khép trước hôm nay + cột 'nay', bất kể kỳ chọn ở thanh trên. Kỳ chọn chỉ còn đổi cột Lãi kỳ (laiKy).
+  // du.soNgay nạp mọi ngày có chi / thu (etp-doc.ts qSoNgay, không lọc theo kỳ) nên đổi kỳ không làm trống ô.
+  const ngay = useMemo(() => [6, 5, 4, 3, 2, 1].map((k) => ngayCong(du.nay, -k)), [du.nay]);
+  const coNay = true;
   const soN = hep ? Math.max(1, Math.min(6, Math.floor(((rong || 360) - 330) / 42))) : 6;
   const coQua = hep && soN === 1;   // đứng dọc: qua → nay (anh 28/10/2026: cùng chiều thời gian với biểu đồ ngăn chi tiết); đủ chỗ: các ngày theo thứ tự thời gian + nay
   const ngayHien = coQua ? [] : ngay.slice(-soN);
@@ -3196,13 +3195,16 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const hopLoc = useCallback((c: CampEtpKho) => luatLoc.startsWith(`${DA_LAM}tat:`) || hopLocV(loc, c), [loc, luatLoc, hopLocV]);
   // BỘ LỌC CAMP CÓ TÊN (anh 02/11/2026 "tại sao ko còn hiện camp nào? Filter nào gây ra phải highlight chứ?"): MỘT danh sách vừa lọc cây / bảng, vừa chỉ ra
   // ô lọc nào đang ẩn camp người dùng gõ trong ô tìm (ô đó viền đỏ) — thêm bộ lọc mới thì thêm vào đây, không lọc riêng chỗ khác
+  const ngay7 = useMemo(() => [0, 1, 2, 3, 4, 5, 6].map((k) => ngayCong(du.nay, -k)), [du.nay]);
+  const coChi7 = useCallback((c: CampEtpKho) => c.nay.chi > 0 || ngay7.some((d) => coChi.has(`${c.camp_id}|${d}`)), [ngay7, coChi]);
   const BO_LOC_DU = useMemo((): [string, (c: CampEtpKho) => boolean][] => [['loc', hopLoc], ['luat', hopLuat], ['phim', (c) => !phimLoc || xemCamp !== 'bang' || c.content_id === phimLoc],
     ['dang', (c) => !dangLoc || c.dang === dangLoc], ['bo', (c) => !boHieu || c.bo === boHieu], ['lai', locLai], ['tuoi', locTuoi], ['ro', (c) => !roLoc || (roLoc === 'co') === laRoas(c)], ['ab', (c) => !abLoc || (!!c.ab && (abLoc === c.ab.ma || abLoc === `${c.ab.ma}|${c.ab.nhanh}`))],
-    // #1516 (anh 03/11/2026 'đã chọn time period ở trên thì mọi thứ ở dưới cũng phải lọc theo'): kỳ ≠ Tất cả → chỉ camp có chi trong kỳ hoặc tạo trong kỳ
+    // DANH SÁCH 7 NGÀY GẦN NHẤT LUÔN HIỆN (#1788 anh 24/11/2026 "cố định ko phụ thuộc vào khung ngày ở trên"): camp có chi trong 6 ngày đã khép + hôm nay luôn qua ô kỳ;
+    // kỳ chỉ THÊM camp (có chi / thu trong kỳ, hoặc tạo trong kỳ), không bớt đi camp của 7 ngày gần nhất
     // camp ĐANG CHẠY / có chi hôm nay chỉ được giữ khi kỳ CHỨA hôm nay (19/11/2026 mở lại: trước giữ ở mọi kỳ → chọn Hôm qua vẫn lẫn camp không đụng gì hôm qua = 'show all time');
     // hero Hôm nay / Hôm qua không lệch vì dải số bỏ qua ô 'ky' (theoKy)
     // có CHI hoặc có THU trong kỳ (doanh thu về trễ của camp không chi trong kỳ vẫn cộng vào hero kỳ — 19/11/2026 bỏ sót làm bảng Lãi hôm qua −13,67 ≠ hero −11,80)
-    ['ky', (c) => kh === 'tat_ca' || (khCamp.get(c.camp_id)?.chi ?? 0) > 0 || (khCamp.get(c.camp_id)?.thu ?? 0) > 0 || (!!c.tao && ngayKh(c.tao.slice(0, 10))) || (khK.den >= du.nay && (c.trang_thai === 'ACTIVE' || c.nay.chi > 0))]], [kh, khK.den, du.nay, khCamp, ngayKh, hopLoc, hopLuat, phimLoc, xemCamp, dangLoc, boHieu, locLai, locTuoi, roLoc, abLoc]);   // mỗi ô lọc trong BO_LOC phải có ở đây — thiếu abLoc thì chọn A/B không lọc gì (05/11/2026)
+    ['ky', (c) => kh === 'tat_ca' || coChi7(c) || (khCamp.get(c.camp_id)?.chi ?? 0) > 0 || (khCamp.get(c.camp_id)?.thu ?? 0) > 0 || (!!c.tao && ngayKh(c.tao.slice(0, 10))) || (khK.den >= du.nay && (c.trang_thai === 'ACTIVE' || c.nay.chi > 0))]], [kh, khK.den, du.nay, khCamp, ngayKh, coChi7, hopLoc, hopLuat, phimLoc, xemCamp, dangLoc, boHieu, locLai, locTuoi, roLoc, abLoc]);   // mỗi ô lọc trong BO_LOC phải có ở đây — thiếu abLoc thì chọn A/B không lọc gì (05/11/2026)
   // #1781 (anh 23/11/2026 "chỉ muốn HL mà đổi trong filter hiện tại sẽ lọc hết"): TÔ SÁNG KHÔNG BAO GIỜ rút ô nào khỏi bộ lọc — ô nào cũng luôn lọc theo giá trị đang chọn;
   // tô là tập RIÊNG mỗi ô (toChon[k] = các mục anh bấm 🖍), chỉ tô vàng camp TRONG danh sách đã lọc. Trước kia bật 🖍 cho một ô là ô đó thôi lọc → muốn giữ Lọc
   // chay,cho,duyet mà tô một mục cùng ô thì mất cả lọc; nay hai việc độc lập, tô được cả mục trong chính ô đang lọc
@@ -3583,7 +3585,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
-        <CayCamp camps={camps} hang={hangLoc} hl={hlCamp} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e, camp) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr, camp }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} kyCay={kh === 'tat_ca' ? undefined : khK} />
+        <CayCamp camps={camps} hang={hangLoc} hl={hlCamp} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e, camp) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr, camp }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} />
       ) : tab === 'camp' ? (
         <>
         <TongPhim du={du} ckh={ckh} anh={anh} tl={tl} khTen={khNhan} chon={phimLoc} onChon={doiPhim} />

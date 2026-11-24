@@ -9,6 +9,9 @@ const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
   { card: 1826, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<span data-o="loai-truoc-cr"', vi: 'cây camp: huy hiệu loại creative (CT / CC / PO…) đứng ngay trước ô creative (anh 24/11/2026 "chuyển badge thể loại creative ra trước creative")' },
   { card: 1826, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} />", vi: 'ô camp của cây không còn huy hiệu loại dạt phải (đã chuyển sang trước creative)' },
+  { card: 1827, tep: 'apps/etp2/src/components/etp-view.tsx', co: '#{c.camp_id}</b><MucBid c={c} nho />', vi: 'ô camp trên Cây hiện mức ROAS bid (0.9 · 1.0 · 1.1 …) ngay sau số camp (anh 24/11/2026 "Show ROAS level vào đây")' },
+  { card: 1827, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function MucBid(', vi: 'một chỗ hiện mức ROAS bid dùng chung cho bảng ★ ROAS và Cây — không chép tay' },
+  { card: 1827, tep: 'apps/etp2/src/components/etp-view.tsx', co: "cell: (c) => <MucBid c={c} />,", vi: 'cột ROAS bid bảng ★ ROAS dùng cùng hàm MucBid' },
   { card: 1825, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const demO = useMemo(', vi: 'số cạnh mục của mọi ô lọc đếm trên camp qua các ô lọc KHÁC (anh 24/11/2026 "con số này phải update theo filter đang chọn")' },
   { card: 1825, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'dem: du.camps.filter(', vi: 'không ô lọc nào đếm số trên cả kho (Loại AD ghi 2 mà bấm vào trống)' },
   { card: 1825, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'const dem: Record<string, number> = { all: du.camps.length', vi: 'ô Lọc (trạng thái) đếm theo các ô lọc khác' },

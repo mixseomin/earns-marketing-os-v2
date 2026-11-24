@@ -1409,8 +1409,7 @@ function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpK
   const cotRoas: DataColumn<CampEtpKho>[] = [
     { ...cot[0]!, cell: (c, i) => reCamp(c, cot[0]!.cell(c, i)) },
     { key: 'muc', header: 'ROAS bid', title: 'ROAS goal THẬT đang đặt trên Ethopex (Ad Set bid_constraints, kho etp đồng bộ 10 phút) — đỏ = khác mức ghi trong tên camp hoặc camp không còn bid ROAS',
-      cell: (c) => { const ten = mucRoas(c.ten), lech = c.roas == null || (ten != null && Math.abs(ten - c.roas) > 1e-6) || (!!c.chien_luoc && c.chien_luoc !== 'LOWEST_COST_WITH_MIN_ROAS');
-        return <b style={{ color: lech ? '#f87171' : undefined }} title={`${c.chien_luoc ?? 'chưa đồng bộ'} · tên camp ghi ${ten ?? '—'}`}>{c.roas == null ? (ten ? `${ten}?` : '—') : c.roas}</b>; },
+      cell: (c) => <MucBid c={c} />,
       sortValue: (c) => c.roas ?? mucRoas(c.ten) ?? 0 },
     { key: 'goc', header: 'Nhân từ', title: 'camp gốc (dùng lại bài đăng của camp này)', cell: (c) => reCamp(c, <span style={{ textDecoration: 'underline dotted' }}>#{gocRoas(c.ten) ?? '—'}</span>), sortValue: (c) => gocRoas(c.ten) ?? 0 },
     { key: 'tt', header: 'Trạng thái', align: 'left', cell: (c) => <span style={{ fontSize: 12, color: daTat(c) ? 'var(--fg-2)' : choGio(c) ? '#f59e0b' : choChay(c) ? '#60a5fa' : '#4ade80' }}>{tt(c)}</span>, sortValue: (c) => tt(c) },
@@ -2198,6 +2197,16 @@ function bangAb(cap: NonNullable<NonNullable<CampEtpKho['ab']>['cap']>, ban: num
     dong: [[<span key="b">Bản sao <b>#{ban}</b> · Nhà</span>, ns(cap.ban.ns, cap.ban.trang), oSoAb(cap.ban.nay), oSoAb(cap.ban.tu)],
       [<span key="g">Gốc <b>#{cap.goc}</b> · {cap.gocNguoi ?? 'đội'}</span>, ns(cap.doi.ns, cap.doi.trang), oSoAb(cap.doi.nay), oSoAb(cap.doi.tu)]] };
 }
+/** MỨC ROAS BID của camp (0.9 · 1 · 1.1 …) — MỘT chỗ hiện cho cột "ROAS bid" bảng ★ ROAS và ô camp trên Cây (#1827 anh 24/11/2026 "Show ROAS level vào đây").
+ *  roas THẬT trên Ethopex (bid_constraints, đồng bộ 10 phút) trước; chưa đồng bộ thì mức ghi trong tên kèm "?"; đỏ = lệch tên / không còn bid ROAS. nho: ô camp Cây — camp không phải ROAS thì không hiện. */
+function MucBid({ c, nho }: { c: CampEtpKho; nho?: boolean }) {
+  const ten = mucRoas(c.ten);
+  if (nho && (!laRoas(c) || (c.roas == null && ten == null))) return null;
+  const lech = c.roas == null || (ten != null && Math.abs(ten - c.roas) > 1e-6) || (!!c.chien_luoc && c.chien_luoc !== 'LOWEST_COST_WITH_MIN_ROAS');
+  return <b data-o="muc-bid" style={{ color: lech ? '#f87171' : nho ? MAU_ROAS : undefined, ...(nho ? { fontSize: 11, fontVariantNumeric: 'tabular-nums', cursor: 'help' } : {}) }}
+    title={`ROAS bid ${c.roas ?? '—'} · ${!c.chien_luoc ? 'chưa đồng bộ' : c.chien_luoc === 'LOWEST_COST_WITH_MIN_ROAS' ? 'đang thầu theo ROAS' : 'không còn thầu theo ROAS'} · tên camp ghi ${ten ?? '—'}${lech ? ' · đỏ = khác mức ghi trong tên hoặc camp không còn bid ROAS' : ''}`}>{c.roas == null ? (ten ? `${ten.toFixed(1)}?` : '—') : c.roas.toFixed(1)}</b>;
+}
+
 function NhanAb({ ab, ban }: { ab?: CampEtpKho['ab']; ban?: number }) {
   if (!ab) return null; const thu = ab.nhanh === 'thu', mau = thu ? '#a78bfa' : '#94a3b8', cap = ab.cap && ban ? ab.cap : null;
   return <ReThe rong={cap ? 560 : 380} cao={cap ? 400 : 320} the={() => ({ ma: ab.ma, ten: ab.ten, tieu: thu ? 'Nhánh THỬ' : 'Nhánh ĐỐI CHỨNG', mau, rong: cap ? 560 : 380, bang: cap ? bangAb(cap, ban as number) : null, moc: [
@@ -2596,7 +2605,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><span style={{ minWidth: 22 }} /></span></span>;
         const n = dem(c); return <span data-o="camp-cay" style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} />
         <b data-nut="mo-camp" onClick={moCamp ? (e) => { e.preventDefault(); e.stopPropagation(); moCamp(c.camp_id); } : undefined} title={moCamp ? 'mở ngăn chi tiết camp' : undefined}
-          style={{ ...(laRoas(c) ? { color: MAU_ROAS } : {}), ...(moCamp ? { cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 } : {}) }}>#{c.camp_id}</b><CoNuoc nuoc={c.nuoc ?? []} /><NhanAb ab={c.ab} ban={c.camp_id} />
+          style={{ ...(laRoas(c) ? { color: MAU_ROAS } : {}), ...(moCamp ? { cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 } : {}) }}>#{c.camp_id}</b><MucBid c={c} nho /><CoNuoc nuoc={c.nuoc ?? []} /><NhanAb ab={c.ab} ban={c.camp_id} />
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}>
         {/* bỏ dấu ⚠ nhân bản lỗi (#1524 anh 04/11/2026 "bỏ các thông báo lỗi này · chỉnh thể loại thẳng cột"): ô số bản nhân luôn rộng 22px → badge loại thẳng một cột */}
         {n ? <ReThe the={() => ({ ma: `#${c.camp_id}`, ten: c.ten, tieu: `${n} bản nhân`, mau: '#94a3b8', moc: [{ ten: 'Nhân bản', mau: '#94a3b8', so: `x${n}`, chu: 'camp nhân y nguyên từ camp này (cùng creative) — mở ▶ xem từng bản' }] })}><span style={{ color: 'var(--fg-2)', fontSize: 11, minWidth: 22, textAlign: 'right', cursor: 'help' }}>x{n}</span></ReThe>

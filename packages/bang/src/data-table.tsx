@@ -37,7 +37,7 @@ export interface DataColumn<T> {
   cell: (row: T, index: number) => ReactNode;
   cellTitle?: (row: T, index: number) => string | undefined; // per-cell tooltip
   onCellClick?: (row: T, index: number) => void;             // click THIS cell (stops row propagation)
-  total?: (rows: T[]) => ReactNode;     // if ANY column sets this, a totals row renders
+  total?: (rows: T[], o?: { tong?: boolean }) => ReactNode;     // if ANY column sets this, a totals row renders · o.tong = dòng Tổng cuối bảng (không phải dòng nhóm)
   // Sort: set this → header becomes clickable, cycles ↑asc → ↓desc → off. Return the comparable
   // value for a row (number sorts numerically, string via localeCompare; null/undefined sort last).
   // Omit → column not sortable (e.g. action/icon columns). Sort is client-side + uncontrolled.
@@ -693,7 +693,7 @@ export function DataTable<T>({
     <tr className="dt-tong" style={{ background: TONG_BG }}>
       {visible.map((c, ci) => (
         <td key={c.key} style={cellStyle(c, { fontWeight: 700, background: TONG_BG, borderTop: '2px solid color-mix(in srgb, var(--accent, #60a5fa) 55%, transparent)', color: c.group ? groupMeta.get(c.group)?.color : undefined, ...(ci === 0 && !c.total ? { textAlign: 'left', color: 'var(--fg-1)' } : {}) }, ci)}>
-          {c.total ? c.total(shownRows) : ci === 0 ? <>Tổng <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {shownRows.length} dòng</span></> : null}
+          {c.total ? c.total(shownRows, { tong: true }) : ci === 0 ? <>Tổng <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {shownRows.length} dòng</span></> : null}
         </td>
       ))}
     </tr>

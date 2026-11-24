@@ -579,8 +579,14 @@ const LUAT = [
   { card: '1786', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', co: '`✎ Sửa tiếp bản nháp #${s.id}`', vi: 'nút bản nháp ghi rõ "Sửa tiếp bản nháp #…"' },
   { card: '1786', tep: 'apps/etp2/src/components/etp-cr-phim-drawer.tsx', cam: "{tenMau(s.mau) ?? 'chưa chọn mẫu'} · {t}", vi: 'không quay về nút chỉ ghi tên mẫu · nháp' },
   // #1788 (anh 23/11/2026 "danh sách 7 ngày gần nhất luôn luôn phải hiện"): ô ngày dòng phim / dòng tổng cộng mọi camp của phim, không chỉ camp lọt bộ lọc
-  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const tongNgay = (rs0: CampEtpKho[]): SoTien[] => { const rs = caPhim(rs0);', vi: 'tổng ngày nhóm đi qua caPhim (cả phim)' },
-  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const demCamp = (rs0: CampEtpKho[]): number[] => { const rs = caPhim(rs0);', vi: 'đếm camp ngày nhóm đi qua caPhim' },
+  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const tongNgay = (rs0: CampEtpKho[], tk = false): SoTien[] => { if (tk) return [...ngay.map(tongTk)', vi: 'tổng ngày: dòng Tổng (tk) cộng cả tài khoản từ sổ ngày, dòng phim qua caPhim' },
+  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const demCamp = (rs0: CampEtpKho[], tk = false): number[] => { if (tk) return [...ngay.map((d) => [...so.values()]', vi: 'đếm camp dòng Tổng = mọi camp có chi trong sổ ngày (62–92 camp 17–20/11 như Ethopex)' },
+  // #1788 lần 3 (anh 23/11/2026 "Ai cho mày ẩn" · "Ko làm à"): bộ lọc trạng thái HIỆN TẠI không giấu camp có chi trong 7 ngày gần nhất; dòng Tổng = cả tài khoản
+  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', mot: '|| (coChi7(c) && hopLocV(boTrangThai(loc), c))', vi: 'camp có chi 7 ngày / hôm nay qua nhóm Trạng thái của ô Lọc (camp tiêu 17–20/11 rồi tắt vẫn hiện)' },
+  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'const hopLoc = useCallback((c: CampEtpKho) => luatLoc.startsWith(`${DA_LAM}tat:`) || hopLocV(loc, c), [loc, luatLoc, hopLocV]);', vi: 'không quay về ô Lọc trạng thái giấu camp đã tắt có chi 7 ngày' },
+  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const tk = !!o?.tong, sd = tongNgay(rs, tk);', vi: 'ô ngày dòng Tổng cuối bảng đọc cờ tong của DataTable → cả tài khoản' },
+  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const tg = tongNgay(camps, true)', vi: 'dải tổng trên đầu (điện thoại) cũng cả tài khoản' },
+  { card: '1788', tep: 'packages/bang/src/data-table.tsx', mot: 'c.total(shownRows, { tong: true })', vi: 'DataTable báo cột biết đang vẽ dòng Tổng cuối bảng (khác dòng nhóm)' },
   { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const sd = tongNgay(p.all);', vi: 'dòng phim lưới tay dùng tongNgay, không tự cộng camp lọc' },
   { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'const sd = ngay.map((d) => p.all.reduce(', vi: 'không quay về dòng phim chỉ cộng camp lọt bộ lọc' },
 ];

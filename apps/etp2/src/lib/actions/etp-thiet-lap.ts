@@ -3,7 +3,8 @@
 // "chia nhóm thì giống như các bước lên camp của hệ thống Etho để còn biết sai đúng ở đâu").
 // Nguồn THẬT, chỉ đọc: etp.bai_camp.du = GET /api/v1/campaigns/<id> trọn (apps/etp/bai-qc.py — camp ACTIVE đọc lại sau 6 giờ)
 // + etp.bai_cr = chữ creative (asset_spec) đọc lúc lên + etp.camp. Form chữ chuẩn = apps/etp/form-chu.json (một nguồn với chu-qc.py / ap-form-chu.py).
-// Chữ AD đang mang trên Meta: camp tạo TRƯỚC lúc creative được đưa về form (bai_cr.form_luc) giữ chữ cũ (Meta giữ bản creative riêng) → dòng đó lấy chữ cũ ở bai_cr.
+// Chữ AD đang mang trên Meta: camp tạo TRƯỚC lúc creative được đưa về form (bai_cr.form_luc) giữ chữ cũ (Meta giữ bản creative riêng) → dòng đó lấy chữ cũ ở bai_cr,
+// trừ khi ad đã được gắn lại creative form (ap-form-chu.py --ad ghi bai_camp.chu_form_luc).
 // Gói gọn: danh sách dài lặp lại giữa các camp (nước, vị trí…) gom vào bảng chữ chung `chung`, dòng chỉ giữ số thứ tự.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -41,7 +42,7 @@ export async function docThietLap(ids: number[]): Promise<ThietLap | { loi: stri
   const rows = (await db.execute(sql`select c.camp_id, c.ten, c.bo, c.ad_account_id, c.trang_thai, c.giao, c.dong_bo, c.ngan_sach, c.creative_id, c.content_id, c.roas, c.chien_luoc, c.lich, c.loi camp_loi,
       to_char(c.tao at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') tao, b.page_id, b.ten_mien, b.final_url, b.du,
       to_char(b.du_luc at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') du_luc, p.ten pten,
-      r.kieu, r.cta, r.link, r.chinh, r.tieu_de, r.mo_ta, to_char(r.form_luc at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') form_luc, (r.form_luc is not null and c.tao < r.form_luc) chu_cu
+      r.kieu, r.cta, r.link, r.chinh, r.tieu_de, r.mo_ta, to_char(r.form_luc at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') form_luc, (r.form_luc is not null and c.tao < r.form_luc and b.chu_form_luc is null) chu_cu
     from etp.camp c left join etp.bai_camp b using (camp_id) left join etp.bai_cr r on r.creative_id = c.creative_id
       left join etp.tai_nguyen p on p.loai = 'page' and (p.id = b.page_id or p.external_id = b.page_id::text)
     where c.camp_id = any(${sql.raw(`array[${ma.join(',')}]::int[]`)})`)) as unknown as Record<string, unknown>[];

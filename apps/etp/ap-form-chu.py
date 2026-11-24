@@ -6,8 +6,12 @@ Form = apps/etp/form-chu.json (một nguồn: chu-qc.py tạo creative mới cũ
   · trước khi PATCH: chữ cũ đang nằm ở etp.bai_cr (bai-qc.py đọc lúc lên) được GIỮ NGUYÊN — đó là chữ ad trên Meta đang mang; ghi etp.bai_cr.form_luc = lúc đưa về form
     → etp2 tab Thiết lập: camp tạo TRƯỚC form_luc vẫn chạy chữ cũ (Meta giữ bản creative riêng, external_creative_id), camp tạo SAU = chữ form
   · KHÔNG gắn lại creative vào ad đang có (cái gác CamThayCreative — anh 03/11/2026) — ad cũ đổi chữ chỉ khi anh lệnh riêng
+  · --ad (anh 24/11/2026 "chủ động fix luôn các camp bị lỗi này ngay để còn áp dụng luôn"): gắn lại ĐÚNG creative đó (đã về form) vào ad của camp
+    → Ethopex đẩy bản creative mới lên Meta. Mỗi camp phải có vé TRỰC TIẾP việc doi_cr (cong.py --ve-truc-tiep doi_cr --camp <id> --lenh "<câu anh>");
+    cửa CamThayCreative đốt vé lúc gửi. Meta duyệt lại ad + camp đang chạy mất pha học. Xong ghi etp.bai_camp.chu_form_luc.
 Dùng (box3): python3 ap-form-chu.py            — chỉ đếm, in mẫu
-             python3 ap-form-chu.py --chay     — PATCH thật"""
+             python3 ap-form-chu.py --chay     — PATCH thật
+             python3 ap-form-chu.py --ad <camp>:<vé> [<camp>:<vé> …]"""
 import concurrent.futures as cf, json, os, sys, urllib.request
 D = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, D); import ethopex_api as EA
 F = json.load(open(os.path.join(D, "form-chu.json")))
@@ -37,6 +41,24 @@ def patch(cid):
         EA._q(f"update etp.bai_cr set form_luc = now() where creative_id = {cid} and form_luc is null")
         return cid, "ok"
     except Exception as e: return cid, str(e)[:160]
+
+def gan_lai(camp, ve):
+    """gắn lại creative (đã về form) vào ad của camp — vé trực tiếp doi_cr qua ETP_VE"""
+    r = EA._q(f"select ad_id, creative_id from etp.camp where camp_id = {int(camp)} and ad_id is not null and creative_id is not null")
+    if "|" not in r: return camp, "kho không có ad_id / creative_id"
+    ad, cr = (int(x) for x in r.split("|"))
+    c = EA.api(f"/api/v1/creatives/{cr}"); c = c.get("data", c)
+    if not dung_form(c): return camp, f"creative {cr} chưa về form — không gắn"
+    os.environ["ETP_VE"] = ve
+    try: EA.api("/api/v1/campaigns/update", {"ads": [{"ad_id": ad, "creative_id": cr}]})
+    except Exception as e: return camp, f"{type(e).__name__}: {str(e)[:160]}"
+    finally: os.environ.pop("ETP_VE", None)
+    EA._q(f"update etp.bai_camp set chu_form_luc = now() where camp_id = {int(camp)}")
+    return camp, "ok"
+
+if __name__ == "__main__" and "--ad" in sys.argv:
+    kq = [gan_lai(*x.split(":", 1)) for x in sys.argv[sys.argv.index("--ad") + 1:] if ":" in x]   # tuần tự: mỗi lệnh một vé trong ETP_VE
+    print(json.dumps({"gan_lai": len(kq), "ok": sum(k[1] == "ok" for k in kq), "hong": [k for k in kq if k[1] != "ok"]}, ensure_ascii=False)); sys.exit(0)
 
 if __name__ == "__main__":
     toi = (EA.jwt_tai(EA.T) or {}).get("user_id")

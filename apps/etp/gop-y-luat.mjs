@@ -1779,4 +1779,7 @@ export const LUAT = [
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: "muc === 'do' ? x.do : muc === 'vang' ? !x.do : true", vi: 'lọc Vấn đề theo mức: chọn đỏ thì chỉ camp có đỏ và ô chỉ hiện vấn đề đỏ, không hiện vàng (anh 24/11/2026)' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'stickyCols={2 + cotNay.length}', vi: 'cột hiệu suất Hôm nay ghim ngay sau cột Vấn đề (anh 24/11/2026)' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'if (!henGio && /^active$/i.test(chu(r.c_tt)', vi: 'ad set tắt vì giờ bắt đầu / lịch còn ở tương lai = hẹn giờ, không báo vấn đề (24/11/2026)' },
+  { card: 'thiet-lap-2411', tep: 'apps/etp/ethopex_api.py', co: 'if x and CG.ve_hop_le("doi_cr", [nha_ad[ad]], loai="truc_tiep", dung=True', vi: 'đổi creative ad chưa bị từ chối chỉ khi có vé TRỰC TIẾP doi_cr đúng camp, đốt lúc gửi (anh 24/11/2026)' },
+  { card: 'thiet-lap-2411', tep: 'apps/etp/ap-form-chu.py', co: 'os.environ["ETP_VE"] = ve', vi: 'ap-form-chu --ad gắn lại creative form qua vé từng camp, không tự miễn gác' },
+  { card: 'thiet-lap-2411', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: 'and b.chu_form_luc is null) chu_cu', vi: 'ad đã gắn lại creative form thì hết báo chữ cũ' },
 ];

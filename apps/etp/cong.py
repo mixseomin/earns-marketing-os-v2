@@ -227,7 +227,7 @@ TRAN_TUYET = 30   # trần tuyệt đối $/camp/ngày (anh 14/11/2026) — kiem
 # (ethopex_api.api) đốt vé lúc gửi lệnh — một vé một lệnh. Lỗi đọc vé = không vé (an toàn trước).
 VE_PHUT = int(_BL["mot_cua"]["ve_phut"])   # sổ luật chung mot_cua (anh 18/11/2026)
 assert _BL["mot_cua"]["mien_phanh"] == ["ve_tay", "truc_tiep"], "phanh chợ chỉ miễn thao tác tay có vé (18/11) + vé lệnh trực tiếp của anh (20/11/2026) — sổ luật mot_cua lệch mã"
-VE_VIEC = {"tang": "tang", "bat": "bat", "nhan_ban": "nhan_ban", "tao_camp": "nhan_ban"}   # tạo camp từ creative = cùng loại vé lên camp
+VE_VIEC = {"tang": "tang", "bat": "bat", "nhan_ban": "nhan_ban", "tao_camp": "nhan_ban", "doi_cr": "doi_cr"}   # tạo camp từ creative = cùng loại vé lên camp · doi_cr = gắn lại creative cho ad chưa bị từ chối (chỉ vé trực tiếp, anh 24/11/2026)
 VE_XIN = ("apps/etp2/src/lib/actions/etp-tay.ts", "apps/etp2/src/lib/actions/etp-dong.ts", "apps/etp2/src/lib/actions/etp-sua.ts", "apps/etp2/src/lib/etp-ve.ts",
           "apps/web/src/lib/actions/etp-dong.ts", "apps/web/src/lib/actions/etp-sua.ts", "apps/web/src/lib/etp-ve.ts")   # + worker/ethopex.mjs xuNut (nút Telegram) ở repo cty
 def _ma_ve(ma):

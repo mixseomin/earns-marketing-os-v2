@@ -6,7 +6,7 @@
 --   Hậu kiểm (apps/etp/hau_kiem.py, dong-bo.py gọi mỗi lượt): camp mới / ngân sách tăng / camp bật trên Ethopex mà không có dòng cho qua ở đây → canh_bao đỏ.
 create table if not exists etp.ve_tay (
   ma text primary key,
-  viec text not null check (viec in ('tang', 'bat', 'nhan_ban')),
+  viec text not null check (viec in ('tang', 'bat', 'nhan_ban', 'doi_cr')),
   camp_id integer,
   content_id integer,
   ai text not null,
@@ -52,3 +52,8 @@ create table if not exists etp.cua (
 );
 create index if not exists etp_cua_camp on etp.cua (camp_id, luc desc);
 create index if not exists etp_cua_luc on etp.cua (luc desc);
+-- doi_cr (anh 24/11/2026 "chủ động fix luôn các camp bị lỗi này ngay để còn áp dụng luôn"): vé TRỰC TIẾP đổi creative cho ad CHƯA bị Meta từ chối
+--   (gắn lại creative đã về form chữ) — chỉ loai 'truc_tiep', mỗi vé một camp. Cửa CamThayCreative (ethopex_api.py) miễn đúng ad của camp có vé.
+alter table etp.ve_tay drop constraint if exists ve_tay_viec_check;
+alter table etp.ve_tay add constraint ve_tay_viec_check check (viec in ('tang', 'bat', 'nhan_ban', 'doi_cr'));
+alter table etp.bai_camp add column if not exists chu_form_luc timestamptz;   -- lúc ad được gắn lại creative đã về form (ap-form-chu.py --ad) → etp2 hết báo "chữ cũ"

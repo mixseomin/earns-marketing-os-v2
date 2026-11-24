@@ -417,6 +417,8 @@ def api(duong, body=None, timeout=90):
             d = _goi(f"/api/v1/campaigns/{nha_ad[ad]}", None, timeout)
             x = next((y for g in d.get("ad_groups") or [] for y in g.get("ads") or [] if int(y.get("id") or 0) == ad), None)
             if not x or not (x.get("delivery_status") == "DISAPPROVED" or "DISAPPROVED" in str(x.get("error") or "").upper()):
+                # LỆNH TRỰC TIẾP đổi creative (anh 24/11/2026 "chủ động fix luôn các camp bị lỗi này ngay"): vé loai 'truc_tiep' việc doi_cr ĐÚNG camp này → cho qua + đốt vé
+                if x and CG.ve_hop_le("doi_cr", [nha_ad[ad]], loai="truc_tiep", dung=True, cho=f"doi_cr ad {ad} → creative {a.get('creative_id')}"): continue
                 raise CamThayCreative(f"ad #{ad} (camp #{nha_ad[ad]}) không bị Meta từ chối — cấm tự ý đổi creative (anh 03/11/2026)")
     ids = _id_cham(duong, body if not isinstance(body, list) else {"x": body})
     if body is not None and duong.endswith("/campaigns/facebook"):   # tạo camp (đã qua tài khoản nhà + $1 + cửa ở trên)

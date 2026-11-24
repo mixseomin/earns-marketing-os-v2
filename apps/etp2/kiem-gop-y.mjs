@@ -593,6 +593,9 @@ const LUAT = [
   { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'clip, v = chuyen_dong(nen, tm, cid, ma, b); vnd += v; giay = dung_dong(clip, chu, mp3, out)', vi: 'mẫu ảnh động đi đường AI chuyển động, ₫ cộng vào sổ' },
   { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'fade=in:st={DONG_HIEN}:d=0.4:alpha=1', vi: 'logo + nút hiện ở giây 1,5, không hiện từ đầu' },
   { card: 'anh-dong', tep: 'apps/etp2/src/lib/etp-mau-cr.json', co: '"ma": "dt_anh_dong_logo"', vi: 'sổ mẫu có mục Ảnh động logo gốc + CTA' },
+  { card: 'anh-dong', tep: 'apps/etp2/src/lib/etp-dang.json', co: '"dang": "ảnh động", "ma": "AD"', vi: 'bộ lọc Loại có dạng AD ảnh động (anh 24/11/2026 "Thêm vào đây")' },
+  { card: 'anh-dong', tep: 'apps/web/src/lib/etp-dang.json', co: '"dang": "ảnh động", "ma": "AD"', vi: 'sổ dạng máy Python đọc (so_dang.py) cũng có AD' },
+  { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'dang = muc["dung_cho"][0] if ma in DONG', vi: 'creative ảnh động nạp đúng dạng AD, không lẫn vào poster động' },
 ];
 
 const loi = [];

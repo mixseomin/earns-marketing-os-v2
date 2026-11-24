@@ -659,7 +659,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
     if ma not in HAM: raise SystemExit(f"mẫu {ma} chưa có hàm vẽ trong dung-mau.py")
     muc = next((x for x in SO if x["ma"] == ma), None)
     if not muc: raise SystemExit(f"mẫu {ma} không có trong sổ")
-    dang = "poster động" if ma in DONG or (muc["loai"] == "bo_cuc" and "poster động" in muc["dung_cho"]) else "ảnh tĩnh"   # ảnh động nạp cụm poster động (sổ dạng chưa có dạng riêng)
+    dang = muc["dung_cho"][0] if ma in DONG else "poster động" if (muc["loai"] == "bo_cuc" and "poster động" in muc["dung_cho"]) else "ảnh tĩnh"   # mẫu trong DONG: dạng lấy từ dung_cho của sổ mẫu (dạng AD của sổ dạng — anh 24/11/2026)
     dang_o = ["tai_tap"]   # bước đang làm — lỗi thì ghi ĐÚNG bước hỏng (19/11/2026: ghi buoc='loi' làm Máy SX không biết hỏng ở nhịp nào)
     da_ghi = [0]   # ₫ đã ghi lên nhật ký — mỗi lần đổi bước, phần tiêu thêm (vnd − da_ghi) ghi vào dòng của bước vừa xong (#1716)
     def tt(b, t="dang", g=None, **k):

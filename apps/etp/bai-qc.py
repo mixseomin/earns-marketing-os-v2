@@ -15,7 +15,11 @@ T = lambda v: ("$B$" + str(v).replace("$B$", "") + "$B$") if v not in (None, "")
 EA._q("""create table if not exists etp.bai_cr (creative_id int primary key, kieu text, cta text, link text, chinh jsonb, tieu_de jsonb, mo_ta jsonb,
            loi text, lan_loi int not null default 0, luc timestamptz not null default now());
          create table if not exists etp.bai_camp (camp_id int primary key, page_id bigint, ten_mien text, final_url text,
-           loi text, lan_loi int not null default 0, luc timestamptz not null default now())""")
+           loi text, lan_loi int not null default 0, luc timestamptz not null default now());
+         alter table etp.bai_camp add column if not exists du jsonb, add column if not exists du_luc timestamptz""")
+# du = TRỌN CẤU HÌNH camp như các bước lên camp Etho (anh 24/11/2026 tab Thiết lập "chi tiết mọi config của từng camp … chia nhóm giống các bước lên camp"):
+#   camp (objective, bid, ngân sách, DSA…) · ad set (tối ưu, pixel/sự kiện, ROAS sàn, attribution, giờ chạy, nước, nước loại, ngôn ngữ, vị trí, Advantage) · ad (Page, landing, URL, tags) · pixel
+#   — bỏ media_info (link ảnh dài) chỉ giữ video_id. Camp ACTIVE đọc lại sau 6 giờ (ROAS / ngân sách / trạng thái đổi), camp khác đọc một lần.
 
 def ds_l(v):   # Ethopex trả list hoặc chuỗi JSON của list
     if isinstance(v, str):
@@ -33,7 +37,21 @@ def cr_thieu():
 
 def camp_thieu():
     return [int(l) for l in EA._q(f"""select c.camp_id from etp.camp c left join etp.bai_camp b using (camp_id)
-        where b.camp_id is null or (b.page_id is null and b.lan_loi < 3) order by (c.trang_thai = 'ACTIVE') desc, c.camp_id desc limit {SO}""").split()]
+        where b.camp_id is null or (b.page_id is null and b.lan_loi < 3) or (b.du is null and b.lan_loi < 3)
+           or (c.trang_thai = 'ACTIVE' and b.du_luc < now() - interval '6 hours')
+        order by (b.du is null) desc, (c.trang_thai = 'ACTIVE') desc, c.camp_id desc limit {SO}""").split()]
+
+def _js(v):
+    if isinstance(v, str) and v.strip()[:1] in "{[":
+        try: return json.loads(v)
+        except Exception: return v
+    return v
+
+def du_camp(d):
+    c = dict(d.get("campaign") or {}); c["source_payload"] = _js(c.get("source_payload"))
+    g = dict((d.get("ad_groups") or [{}])[0]); a = dict((g.pop("ads", None) or [{}])[0]); g["source_payload"] = _js(g.get("source_payload"))
+    m = _js(a.pop("media_info", None)); a["video_id"] = (m or {}).get("video_id") if isinstance(m, dict) else None; a["source_payload"] = _js(a.get("source_payload"))
+    return {"camp": c, "nhom": g, "ad": a, "pixel": d.get("pixel_mappings") or [], "link": d.get("link")}
 
 def mot_cr(cr):
     try:
@@ -54,8 +72,8 @@ def mot_camp(cid):
         d = EA._goi(f"/api/v1/campaigns/{cid}", None, 60) or {}
         a = ((d.get("ad_groups") or [{}])[0].get("ads") or [{}])[0]
         p = a.get("facebook_page_id")
-        EA._q(f"""insert into etp.bai_camp (camp_id, page_id, ten_mien, final_url) values ({cid}, {int(p) if str(p or '').isdigit() else 'null'}, {T(a.get('domain'))}, {T(a.get('final_url'))})
-            on conflict (camp_id) do update set page_id = excluded.page_id, ten_mien = excluded.ten_mien, final_url = excluded.final_url, loi = null, luc = now()""")
+        EA._q(f"""insert into etp.bai_camp (camp_id, page_id, ten_mien, final_url, du, du_luc) values ({cid}, {int(p) if str(p or '').isdigit() else 'null'}, {T(a.get('domain'))}, {T(a.get('final_url'))}, {J(du_camp(d))}::jsonb, now())
+            on conflict (camp_id) do update set page_id = excluded.page_id, ten_mien = excluded.ten_mien, final_url = excluded.final_url, du = excluded.du, du_luc = now(), loi = null, luc = now()""")
         return "ok"
     except Exception as e:
         EA._q(f"insert into etp.bai_camp (camp_id, loi, lan_loi) values ({cid}, {T(str(e)[:300])}, 1) on conflict (camp_id) do update set loi = excluded.loi, lan_loi = etp.bai_camp.lan_loi + 1, luc = now()")

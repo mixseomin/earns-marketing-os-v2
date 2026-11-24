@@ -99,6 +99,7 @@ import { nhip } from '@/lib/nhip';   // tự làm mới chỉ khi tab hiện (12
 import { TabDoiThu } from './etp-doi-thu';   // tab Phim đối thủ (anh giao 19/11/2026)
 import { TabMauCr } from './etp-mau-cr';   // tab Mẫu creative (anh giao 19/11/2026)
 import { KhungBaiQc } from './etp-bai-qc';
+import { ThietLapCamp } from './etp-thiet-lap';   // tab Camp › ⚙ Thiết lập (anh 24/11/2026)
 import { ChipCrPhim, useDemCrPhim } from './etp-cr-phim-chip';   // 🎬 N · ＋ trên hàng phim (anh 23/11/2026)   // khung bài QC như người xem thấy (anh 20/11/2026)
 
 type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'dt' | 'mau' | 'dong' | 'tv' | 'tn' | 'luat' | 'insight';
@@ -2940,7 +2941,7 @@ const ghepNang = (d: DuLieuEtp, x: PhanNang): DuLieuEtp => ({ ...d, nhe: false, 
   cham: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { ...c, ...(x.chamCt[Number(k)] ?? {}) }])) });
 
 // KIỂU XEM tab Camp. Lên bậc ('bac') đã bỏ (anh 08/11/2026) — thay bằng NÚT Logs mở ngăn kéo (components/etp-logs.tsx), không phải một kiểu xem
-const XEM_CAMP_V = ['cay', 'bang', 'lich'] as const;
+const XEM_CAMP_V = ['cay', 'bang', 'thietlap', 'lich'] as const;
 type XemCamp = typeof XEM_CAMP_V[number];
 const laXemCamp = (v: string | null | undefined): v is XemCamp => (XEM_CAMP_V as readonly string[]).includes(v ?? '');
 const ngayCong = (d: string, n: number) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86_400_000).toISOString().slice(0, 10);
@@ -3085,7 +3086,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const doi = (x: Partial<typeof hienTai>, lam: () => void) => { urlTu({ ...hienTai, ...x }); startTransition(lam); };
   // BẤM TAB CHÍNH = VÀO KIỂU XEM ĐẦU TIÊN (anh 28/10/2026 "nếu bấm ngay vẫn vào cái đầu tiên như bình thường"); rê chuột = menu con chọn thẳng kiểu xem
   const doiTab = (t: Tab) => doi({ tab: t, ...(t === 'camp' ? { xemCamp: 'cay' } : t === 'creative' ? { xemCr: 'hq' } : {}) }, () => { setTab(t); if (t === 'camp') setXemCamp('cay'); if (t === 'creative') setXemCr('hq'); });
-  const XEM_CAMP = ([['cay', '🌳 Cây', 'phim → camp gốc → bản nhân bản, nhân bản lỗi, ROI giảm'], ['bang', '☰ Bảng', 'bảng đủ cột, lọc / xếp'], ['lich', '⏱ Lịch giờ', 'bật / tắt camp theo thể loại × khung giờ VN']] as const).filter(([v]) => !laNguoi || v !== 'lich');   // Lịch giờ = lịch nhà
+  const XEM_CAMP = ([['cay', '🌳 Cây', 'phim → camp gốc → bản nhân bản, nhân bản lỗi, ROI giảm'], ['bang', '☰ Bảng', 'bảng đủ cột, lọc / xếp'], ['thietlap', '⚙ Thiết lập', 'mọi cấu hình từng camp, cột gom theo các bước lên camp Etho (anh 24/11/2026)'], ['lich', '⏱ Lịch giờ', 'bật / tắt camp theo thể loại × khung giờ VN']] as const).filter(([v]) => !laNguoi || v !== 'lich');   // Lịch giờ = lịch nhà
   const XEM_CR = ([['hq', 'Hiệu quả', 'lãi, ROI, chi theo ngày'], ['soat', '🛡 Quét nội dung', 'lỗi nội dung Meta hay từ chối: khoả thân, cưỡng ép, máu, vũ khí'], ['sx', '🏭 Đang sx', 'creative đang sản xuất: cắt góc, soát đoạn, dựng lại CTA, chấm'], ['dc', 'Điểm chạm', 'hook · nội dung · voice · chữ · CTA — giá trị nào kéo CTR / S CVR / ROI']] as const).filter(([v]) => !laNguoi || v === 'hq');   // quét / sx / điểm chạm = dữ liệu nhà
   const menuCamp = XEM_CAMP.map(([v, nhan, t]) => ({ key: v, label: nhan, title: t, active: tab === 'camp' && xemCamp === v, href: () => urlCua({ ...hienTai, tab: 'camp', xemCamp: v }).href, onPick: () => doi({ tab: 'camp', xemCamp: v }, () => { setTab('camp'); setXemCamp(v); }) }));
   const menuCr = XEM_CR.map(([v, nhan, t]) => ({ key: v, label: nhan, title: t, active: tab === 'creative' && xemCr === v, href: () => urlCua({ ...hienTai, tab: 'creative', xemCr: v }).href, onPick: () => doi({ tab: 'creative', xemCr: v }, () => { setTab('creative'); setXemCr(v); }) }));
@@ -3211,7 +3212,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const BO_LOC = BO_LOC_DU;
   const KHOP = useMemo((): Record<string, (v: string, c: CampEtpKho) => boolean> => ({ loc: hopLocV, luat: hopLuatV, lai: locLaiV, tuoi: locTuoiV,
     dang: (v, c) => c.dang === v, ro: (v, c) => (v === 'co') === laRoas(c), ab: (v, c) => !!c.ab && (v === c.ab.ma || v === `${c.ab.ma}|${c.ab.nhanh}`) }), [hopLocV, hopLuatV, locLaiV]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const phamViTo = tab === 'camp' && (xemCamp === 'cay' || xemCamp === 'bang');
+  const phamViTo = tab === 'camp' && (xemCamp === 'cay' || xemCamp === 'bang' || xemCamp === 'thietlap');
   const toCua = (k: string) => (phamViTo ? { chon: toChon[k] ?? [], doi: (v: string[]) => { const m = { ...toChon, [k]: v }; if (!v.length) delete m[k]; doi({ hl: ghiTo(m) }, () => setToChon(m)); } } : undefined);
   const camps =useMemo(() => du.camps.filter((c) => BO_LOC.every(([, f]) => f(c))), [du.camps, BO_LOC]);
   // dòng ⏳ chờ duyệt (chưa có camp) đi qua CÙNG bộ lọc — trừ ô kỳ (chưa tạo, chưa chi) — #1767
@@ -3584,6 +3585,8 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         <TabRoas camps={campRoas} tong={roasTong} ungVien={du.roas} cot={cotCamp.filter((k) => k.key !== 'lich' && k.key !== 'tl')} nhom={NHOM} du={du} anh={anh} />
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
+      ) : tab === 'camp' && xemCamp === 'thietlap' ? (
+        <ThietLapCamp camps={camps} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
         <CayCamp camps={camps} hang={hangLoc} hl={hlCamp} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e, camp) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr, camp }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} />
       ) : tab === 'camp' ? (

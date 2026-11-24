@@ -6,6 +6,7 @@
   · xếp: số ngày chạy (cột 8) rồi số Page → câu đầu primary text = HOOK của QC chạy lâu nhất, nguyên văn
   · tiêu đề / mô tả: tách từ chính QC đó (khối chữ spy = primary · TÊN MIỀN · tiêu đề · mô tả · nút); không có mới dùng tên phim
   · CTA: nút của QC spy chạy lâu nhất (Watch more → WATCH_MORE); ETP_CTA ghi đè; không có → WATCH_MORE
+  ⚠ 24/11/2026 TẤT CẢ phần trên chỉ còn in tham khảo: chữ lên creative = FORM_CHU (apps/etp/form-chu.json), anh cấm tự viết
   · mọi câu qua cổng thoại (kiem-thoai.soat) + luật CTA Support Ads (cta_qc.sai_luat / phu_kich_thich); KHÔNG còn câu chung tự viết
   · spy không có QC nào → chữ đầu thư viện (chu_dau) hoặc câu mẫu Dol 09/11, và in CẢNH BÁO cho người duyệt
 Dùng: chu-qc.py <lo.json của dung-lo-dai> <chu.tsv> <lô (vd 2110ns)> <url gốc video R2> <ra.json> [ten.tsv: id..ten ở cột 6 | -] [dạng, mặc định "phim dai"]"""
@@ -57,6 +58,13 @@ def tach_tieu_de(sau, ten=""):
 def qua_cong(c):   # cổng thoại + luật CTA Support Ads cho MỌI câu chữ lên creative
     return c and not KT.soat(c) and not CQ.sai_luat(c) and not CQ.phu_kich_thich(c) and not APP.search(c)
 
+# FORM CHỮ CỐ ĐỊNH (anh 24/11/2026: "Form đúng phải thế này !!" rồi "Tao cấm mày tự viết + sửa chỗ đó trong mọi phim, mọi camp"):
+# MỌI creative, MỌI phim, MỌI ngôn ngữ dùng đúng một bộ chữ này — KHÔNG lấy chữ spy, KHÔNG tự viết, KHÔNG ETP_CTA ghi đè.
+# Phần đọc spy phía trên chỉ còn để in tham khảo; không đi vào creative. Sửa creative đã lên: ap-form-chu.py (PATCH /api/v1/creatives/<id>).
+_F = json.load(open(os.path.join(D, "..", "..", "..", "etp", "form-chu.json")))   # apps/etp/form-chu.json — sổ form duy nhất
+FORM_CHU = {"call_to_action": _F["call_to_action"], "link_url": _F["link_url"],
+            "asset_spec": {"primaryTexts": _F["primaryTexts"], "headlines": _F["headlines"], "descriptions": _F["descriptions"]}}
+
 def main(lo, tsv, ma_lo, goc_url, ra, ten_tsv=None, dang="phim dai"):
     ten_tsv = ten_tsv if ten_tsv and ten_tsv != "-" else None   # "-" = không có danh sách tên kho (để truyền được tham số dang)
     if ten_tsv:   # danh sách tên phim kho (vd ethopex_uu_tien) để nhận QC ghép nhầm
@@ -100,8 +108,7 @@ def main(lo, tsv, ma_lo, goc_url, ra, ten_tsv=None, dang="phim dai"):
             print(f"⚠ {cid} {ten}: spy không có QC nào → primary text dự phòng, người duyệt soát chữ", file=sys.stderr)
         f = x.get("ten_tep") or os.path.basename(x["file"])   # tên tệp trên kho có thể khác tệp máy (kho phat <tep> … <ten>)
         items.append({"name": f"{ma_lo} {ten} {nn.upper()} - {dang} {int(x['tu'])}-{int(x['den'])}s", "content_id": int(cid), "creative_type": "single_video", "traffic_source": "facebook",
-                      "status": "active", "call_to_action": os.environ.get("ETP_CTA") or (nut[0] if nut else "WATCH_MORE"), "link_url": "search.com", "image_url": [], "video_url": [f"{goc_url.rstrip('/')}/{f}"],
-                      "asset_spec": {"primaryTexts": pt[:5], "headlines": tieu[:5] or [ten], "descriptions": mota[:5] or ["Episodios completos gratis" if nn == "es" else "Watch Full Episodes!"]}})
+                      "status": "active", "image_url": [], "video_url": [f"{goc_url.rstrip('/')}/{f}"], **FORM_CHU})
     json.dump(items, open(ra, "w"), ensure_ascii=False, indent=1)
     for i in items: print(i["content_id"], "|", i["call_to_action"], "|", i["asset_spec"]["headlines"][0][:50], "|", i["asset_spec"]["primaryTexts"][0][:110])
 

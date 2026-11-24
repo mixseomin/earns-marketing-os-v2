@@ -37,8 +37,9 @@ const gioVn = (iso: string | null) => {
   return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 };
 
-export function ThietLapCamp<T extends CampCo>({ camps, them, moCamp, trangThai, keHoach }: { camps: T[]; hep?: boolean; them?: CotThem<T>; moCamp?: (id: number) => void; trangThai?: (c: T) => { chu: string; mau: string; t: string };
+export function ThietLapCamp<T extends CampCo>({ camps: campThat, keDong, them, moCamp, trangThai, keHoach }: { camps: T[]; /** dòng khối 📝 kế hoạch (hangCr, camp_id < 0) — không nằm trong camps nên truyền riêng */ keDong?: T[]; hep?: boolean; them?: CotThem<T>; moCamp?: (id: number) => void; trangThai?: (c: T) => { chu: string; mau: string; t: string };
   /** dòng chưa có camp (khối 📝 Đang lên kế hoạch) → camp DỰ KIẾN: chép cấu hình camp khuôn + ô khối đè (anh 25/11/2026) */ keHoach?: (c: T) => Omit<KeTl, 'id'> | null }) {
+  const camps = useMemo(() => (keDong?.length ? [...campThat, ...keDong] : campThat), [campThat, keDong]);
   const theoId = useMemo(() => new Map(camps.map((c) => [c.camp_id, c])), [camps]);
   const ids = useMemo(() => camps.map((c) => c.camp_id).filter((x) => x > 0), [camps]);
   const keTl = useMemo(() => (keHoach ? camps.filter((c) => c.camp_id < 0).flatMap((c) => { const k = keHoach(c); return k ? [{ ...k, id: c.camp_id }] : []; }) : []), [camps, keHoach]);

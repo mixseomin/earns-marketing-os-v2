@@ -3306,6 +3306,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const camps =useMemo(() => du.camps.filter((c) => BO_LOC.every(([, f]) => f(c))), [du.camps, BO_LOC]);
   // dòng ⏳ chờ duyệt (chưa có camp) đi qua CÙNG bộ lọc — trừ ô kỳ (chưa tạo, chưa chi) — #1767
   const hangLoc = useMemo(() => (du.hangCr ?? []).filter((c) => BO_LOC.every(([k, f]) => k === 'ky' || f(c))), [du.hangCr, BO_LOC]);
+  const keDongTl = useMemo(() => hangLoc.filter((c) => c.sx?.ke), [hangLoc]);   // dòng khối 📝 kế hoạch nằm ở hangCr chứ không ở camps → Thiết lập nhận riêng (25/11/2026)
   // #1781 tập camp tô vàng = camp TRONG danh sách đã lọc khớp ít nhất một mục 🖍 của MỖI ô có tô (cùng ô = HOẶC, khác ô = VÀ — y cách các ô lọc gộp nhau); dòng chờ duyệt cũng vậy
   const hlCamp = useMemo(() => { const ks = phamViTo ? O_TO.filter((k) => toChon[k]?.length) : []; if (!ks.length) return null;
     return new Set([...camps, ...hangLoc].filter((c) => ks.every((k) => (toChon[k] ?? []).some((v) => !!KHOP[k]?.(v, c)))).map((c) => c.camp_id)); }, [phamViTo, toChon, KHOP, camps, hangLoc]);
@@ -3677,9 +3678,9 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'thietlap' ? (
-        <ThietLapCamp camps={[...camps, ...hangLoc.filter((c) => c.sx?.ke)]} hep={hep} them={{   /* nhóm cột phụ: creative + 7 ngày gần nhất (chính dải ngày của Cây, thay nhóm Hôm nay / Hôm qua — anh 24/11/2026 #1819) + kỳ chọn */
+        <ThietLapCamp camps={camps} hep={hep} them={{   /* nhóm cột phụ: creative + 7 ngày gần nhất (chính dải ngày của Cây, thay nhóm Hôm nay / Hôm qua — anh 24/11/2026 #1819) + kỳ chọn */
           cot: [...cotCamp.filter((k) => k.key === 'phim' || /^kh_/.test(k.key)).map((k) => (k.key === 'phim' ? { ...k, group: 'cr', width: 250 } : k)), ...cotNgay],
-          nhom: [{ key: 'cr', label: 'Creative', color: '#34d399', title: 'phim · creative đang gắn vào camp (bấm ảnh xem video)' }, NHOM_NGAY, ...NHOM.filter((g) => g.key === 'kh')] }} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} trangThai={ttCamp} keHoach={keHoachTl} />
+          nhom: [{ key: 'cr', label: 'Creative', color: '#34d399', title: 'phim · creative đang gắn vào camp (bấm ảnh xem video)' }, NHOM_NGAY, ...NHOM.filter((g) => g.key === 'kh')] }} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} trangThai={ttCamp} keHoach={keHoachTl} keDong={keDongTl} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
         <CayCamp camps={camps} hang={hangLoc} hl={hlCamp} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e, camp) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr, camp }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} />
       ) : tab === 'camp' ? (

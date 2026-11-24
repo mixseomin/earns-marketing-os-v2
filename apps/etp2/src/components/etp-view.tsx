@@ -2493,7 +2493,10 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
   // bản USED POST (' bai-cu ', creative rỗng) đăng lại đúng bài của camp mẹ → mang creative của mẹ; trước bỏ sót (19/11/2026: #88929 hiện ×4, sổ có 6 bản giống hệt)
   const giongHet = (c: CampEtpKho): number => { let n = 0; const di = (id: number, crMe: number | null) => { for (const x of conHet.get(id) ?? []) { const cr = !x.creative_id && laBaiCu(x) ? crMe : x.creative_id; if (cr != null && cr === c.creative_id) n++; di(x.camp_id, cr); } }; di(c.camp_id, c.creative_id); return n; };
   // Ô CREATIVE — MỘT bản cho dòng cây điện thoại / lưới cũ và cột Creative của bảng (anh 29/10/2026 #1476: bản chép tay ở bảng mất mã + điểm chấm + ×N đã sửa ở #1465 #1474)
-  const oCr = (c: CampEtpKho) => { const cr = c.creative_id ? anhCr.get(c.creative_id) : undefined;
+  // #1826 (anh 24/11/2026 "chuyển badge thể loại creative ra trước creative"): huy hiệu loại (CT / CC / PO.1.KD…) đứng NGAY TRƯỚC ô creative, không nằm ở ô camp; ô huy hiệu rộng cố định → ô creative thẳng một cột
+  const oCr = (c: CampEtpKho) => <span data-o="loai-truoc-cr" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+    <span style={{ minWidth: 46, display: 'inline-flex', justifyContent: 'flex-end', flex: 'none' }}><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} /></span>{oCrGoc(c)}</span>;
+  const oCrGoc = (c: CampEtpKho) => { const cr = c.creative_id ? anhCr.get(c.creative_id) : undefined;
     // USED POST (#1561, anh 12/11/2026 — luật Ethopex 11/11 "nhân bản phải kèm used post"): bản nhân bài cũ không có creative riêng → trước hiện ô xám "chưa chấm", anh tưởng máy không dùng
     if (!c.creative_id && laBaiCu(c)) return <span data-cot="creative" title={`USED POST — ad dùng lại bài đăng của camp gốc${c.goc ? ` #${c.goc}` : ''} (giữ tương tác), không đăng creative mới`} style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 6px', border: '1px solid #4ade80', borderRadius: 4, color: '#4ade80', fontSize: 10.5, whiteSpace: 'nowrap' }}>used post</span>;
     return (
@@ -2542,7 +2545,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
           <span data-cot="tuoi" data-cot-can="phai" title={tuoiTitle(c)} style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tuoi(c) == null ? '' : <>{tuoiChu(tuoi(c))} <span style={{ fontSize: 10 }}>ngày</span></>}</span>
           <span data-cot="ngan-sach"><BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} /></span>
           <span data-cot="luat" style={{ minWidth: 0 }}><ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} /></span>
-          {oCr(c)}
+          {oCrGoc(c)}
           <span data-cot="loai-cr"><BadgeDang d={c.dang} ban={c.ban} giong={c.giong} ngan /></span>
           {coLich ? <span data-cot="lich" style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}><LichCamp c={c} du={du} tl={tlC} gon /></span> : null}
         </span>
@@ -2590,11 +2593,11 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
       // loại (CC…) + số bản nhân (x9 / ⚠) DẠT PHẢI ô, thẳng một cột ở mọi tầng cây — trước bám sau số camp nên thụt theo tầng (anh 31/10/2026 #1493 "cho sang phải")
       cell: (c) => { if (c.camp_id < 0) return <span data-o="camp-cay" data-xep-hang="" title={chuChoDuyet(c)} style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0, cursor: 'help' }}>   {/* khuôn dòng camp thật, ID = ⏳ chờ (anh 22/11/2026 "trình bày gần giống camp đang có, chỉ thiếu ID") */}
           <span style={{ width: 8, textAlign: 'center', fontSize: 10 }}>⏳</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /><b style={{ color: laRoas(c) ? MAU_ROAS : '#60a5fa', opacity: 0.75 }}>cr #{c.creative_id}</b>
-          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} /><span style={{ minWidth: 22 }} /></span></span>;
+          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><span style={{ minWidth: 22 }} /></span></span>;
         const n = dem(c); return <span data-o="camp-cay" style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} />
         <b data-nut="mo-camp" onClick={moCamp ? (e) => { e.preventDefault(); e.stopPropagation(); moCamp(c.camp_id); } : undefined} title={moCamp ? 'mở ngăn chi tiết camp' : undefined}
           style={{ ...(laRoas(c) ? { color: MAU_ROAS } : {}), ...(moCamp ? { cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 } : {}) }}>#{c.camp_id}</b><CoNuoc nuoc={c.nuoc ?? []} /><NhanAb ab={c.ab} ban={c.camp_id} />
-        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} />
+        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}>
         {/* bỏ dấu ⚠ nhân bản lỗi (#1524 anh 04/11/2026 "bỏ các thông báo lỗi này · chỉnh thể loại thẳng cột"): ô số bản nhân luôn rộng 22px → badge loại thẳng một cột */}
         {n ? <ReThe the={() => ({ ma: `#${c.camp_id}`, ten: c.ten, tieu: `${n} bản nhân`, mau: '#94a3b8', moc: [{ ten: 'Nhân bản', mau: '#94a3b8', so: `x${n}`, chu: 'camp nhân y nguyên từ camp này (cùng creative) — mở ▶ xem từng bản' }] })}><span style={{ color: 'var(--fg-2)', fontSize: 11, minWidth: 22, textAlign: 'right', cursor: 'help' }}>x{n}</span></ReThe>
           : <span style={{ minWidth: 22 }} />}</span></span>; } },
@@ -2626,9 +2629,9 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
       // dòng PHIM (mọi camp cùng một phim) = thẻ vòng thử phim + bão hoà; dòng tổng bảng (nhiều phim) để trống
       total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k != null && rs.every((x) => x.content_id === k) ? <ChipPhim ph={phCua.get(k)} bh={bhCua.get(k)} /> : null; } },
     // MỌI CỘT CÓ BỀ RỘNG CỐ ĐỊNH, khoảng thừa vào cột đệm cuối bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang" — trước TT rồi Tuổi lần lượt ăn khoảng trống)
-    { key: 'cr', header: 'Creative · điểm chấm', align: 'left', width: 200, title: 'creative camp đang chạy (mã + điểm chấm Meta · AFS, ×N = số lần nhân bản giống hệt) — rê xem video', sortValue: (c) => c.creative_id ?? 0, cell: (c) => oCr(c) },
+    { key: 'cr', header: 'Creative · điểm chấm', align: 'left', width: 250, title: 'loại creative (CT, CC, PO…) + creative camp đang chạy (mã + điểm chấm Meta · AFS, ×N = số lần nhân bản giống hệt) — rê xem video', sortValue: (c) => c.creative_id ?? 0, cell: (c) => oCr(c) },
     { key: 'bai', header: 'Bài post', align: 'left', width: 80, title: 'link bài post Facebook của camp (bản Used post chưa có mã → bài của camp mẹ) — bấm mở tab mới', sortValue: (c) => baiCuaCamp(c, du.camps)?.bai ?? '', cell: (c) => <OBai c={c} kho={du.camps} /> },
-    /* bỏ cột Loại riêng (#1538 anh 05/11/2026 "Bỏ cột này !!"): badge loại đã nằm ở ô camp (BadgeDangNgan, dạt phải thẳng cột) */
+    /* bỏ cột Loại riêng (#1538 anh 05/11/2026 "Bỏ cột này !!"): badge loại nằm NGAY TRƯỚC ô creative (oCr, #1826 anh 24/11/2026 — trước ở ô camp) */
     ...(coLich ? [{ key: 'lich', header: 'Lịch giờ', align: 'left' as const, cell: (c: CampEtpKho) => <LichCamp c={c} du={du} tl={tlC} gon />, sortValue: (c: CampEtpKho) => tlC(c.the_loai) }] : []),
     // dải 6 ngày đã khép + nay = hàm chung useCotNgay (Thiết lập dùng cùng, #1819); Cây không có hàng nhóm cột nên bỏ nhãn nhóm
     ...cotNgay.map(({ group: _g, ...k }) => k),

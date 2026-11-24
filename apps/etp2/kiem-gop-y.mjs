@@ -7,6 +7,8 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1826, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<span data-o="loai-truoc-cr"', vi: 'cây camp: huy hiệu loại creative (CT / CC / PO…) đứng ngay trước ô creative (anh 24/11/2026 "chuyển badge thể loại creative ra trước creative")' },
+  { card: 1826, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} />", vi: 'ô camp của cây không còn huy hiệu loại dạt phải (đã chuyển sang trước creative)' },
   { card: 1825, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const demO = useMemo(', vi: 'số cạnh mục của mọi ô lọc đếm trên camp qua các ô lọc KHÁC (anh 24/11/2026 "con số này phải update theo filter đang chọn")' },
   { card: 1825, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'dem: du.camps.filter(', vi: 'không ô lọc nào đếm số trên cả kho (Loại AD ghi 2 mà bấm vào trống)' },
   { card: 1825, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'const dem: Record<string, number> = { all: du.camps.length', vi: 'ô Lọc (trạng thái) đếm theo các ô lọc khác' },

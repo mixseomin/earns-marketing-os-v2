@@ -1701,6 +1701,16 @@ export const LUAT = [
   { card: 'cho-anh-duyet-2211', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: 'insert into etp.cho_anh_duyet (tv_id, ghi)', vi: 'khung chỉ định --anh tự vào hàng chờ anh duyệt' },
   { card: 'es-khong-ngon-ngu-2311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: '    bo_ngon_ngu(sp_g, a.get("content_id"), goc_id)', vi: 'camp phim ES bỏ locales khỏi targeting Ad Set (anh 23/11/2026 "ko đc target ngôn ngữ cho phim Es")' },
   { card: 'es-khong-ngon-ngu-2311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'tg.pop("locales", None); sp_g["targeting"] = tg', vi: 'bo_ngon_ngu thật sự xoá trường locales' },
+  // LUẬT CỐ ĐỊNH — CẤM THAY ĐỔI (anh 24/11/2026 "Sửa toàn bộ phần ngôn ngữ người xem và ngôn ngữ link phim giống của Kiên. Và set đây là rule cố định, cấm thay đổi"):
+  // khuôn Kiên (64 camp đọc API) = Ad Set không targeting.locales, mọi phim; link hl=es chỉ phim ES, phim EN không hl
+  { card: 'ngon-ngu-co-dinh-2411', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: '    if not phim_es(content_id, goc_id): return False', vi: 'bo_ngon_ngu bỏ locales cho MỌI phim, không chỉ phim ES' },
+  { card: 'ngon-ngu-co-dinh-2411', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: '    if isinstance(sg.get("targeting"), dict):   # luật cố định không nhắm ngôn ngữ', vi: 'clone camp đội: miễn so locales cho mọi phim' },
+  { card: 'ngon-ngu-co-dinh-2411', tep: 'apps/etp/ethopex_api.py', co: 'and co_ngon_ngu(body):', vi: 'cửa API chặn mọi lệnh tạo / sửa camp mang locales (CamNgonNgu)' },
+  { card: 'ngon-ngu-co-dinh-2411', tep: 'apps/etp/ethopex_api.py', co: 'def co_ngon_ngu(body):', vi: 'hàm bắt locales cả trong source_payload chuỗi JSON lồng' },
+  { card: 'ngon-ngu-co-dinh-2411', tep: 'apps/xuong-video/scripts/ethopex/kiem-ngon-ngu.py', co: '    if locs: loi.append(', vi: 'cổng ngôn ngữ chặn Ad Set có locales' },
+  { card: 'ngon-ngu-co-dinh-2411', tep: 'apps/xuong-video/scripts/ethopex/kiem-ngon-ngu.py', cam: 'Ad Set không nhắm ngôn ngữ nào', vi: 'không được đòi nhắm ngôn ngữ trở lại' },
+  { card: 'ngon-ngu-co-dinh-2411', tep: 'apps/xuong-video/scripts/ethopex/kiem-ngon-ngu.py', co: 'if u and (m.group(1) if m else "en") != lang', vi: 'link: hl=es phim ES, phim EN không hl (khuôn Kiên)' },
+  { card: 'ngon-ngu-co-dinh-2411', tep: 'apps/xuong-video/scripts/ethopex/soat-camp-api.py', cam: 'không nhắm locale', vi: 'soát camp không coi thiếu locale là lỗi' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp/lenh_cho.py', co: 'doi0, kcr = len_cr(st, chan, luc, xem, bao0)', vi: 'creative anh đã duyệt lúc phanh bật: máy tự lên camp ở nhịp đầu phanh nhả (anh 22/11 "thằng ngu !")' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', cam: 'Tắt dừng khẩn rồi bấm', vi: 'Duyệt lúc dừng khẩn không được bắt anh bấm lại Lên camp' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: 'width: 162, height: 288', vi: 'ảnh / video creative chờ duyệt đủ to để xem (anh 22/11 "hình cũng phải to hơn")' },

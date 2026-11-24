@@ -470,10 +470,11 @@ def phim_es(content_id, goc_id=None):
         l = q(f"select locale from etp.phim where content_id = {int(content_id)}") if str(content_id or "").isdigit() else ""
     except Exception: l = ""
     return l.lower().startswith("es") if l else str(goc_id) == str(KHUON_ES)
-def bo_ngon_ngu(sp_g, content_id, goc_id=None):
-    """PHIM ES KHÔNG TARGET NGÔN NGỮ (anh 23/11/2026 "ko đc target ngôn ngữ cho phim Es"): khuôn ES #65734 khoá locales [1002], mọi camp ES chép theo
-    → bỏ trường locales khỏi targeting Ad Set của mọi camp phim ES (nước giữ nguyên). Phim EN giữ khuôn như cũ. Trả True khi đã bỏ."""
-    if not phim_es(content_id, goc_id): return False
+def bo_ngon_ngu(sp_g, content_id=None, goc_id=None):
+    """KHÔNG CAMP NÀO TARGET NGÔN NGỮ — LUẬT CỐ ĐỊNH, CẤM THAY ĐỔI (anh 24/11/2026 "Sửa toàn bộ phần ngôn ngữ người xem và ngôn ngữ link phim giống của Kiên.
+    Và set đây là rule cố định, cấm thay đổi"; trước đó 23/11 chỉ phim ES): 64 camp Kiên đọc API không camp nào có targeting.locales, phim EN lẫn ES. Khuôn EN
+    mang [6], khuôn ES #65734 mang [1002] → bỏ trường locales khỏi targeting Ad Set của MỌI camp (nước giữ nguyên). Cửa API chặn lần nữa (ethopex_api.CamNgonNgu).
+    Trả True khi đã bỏ."""
     tg = dict(sp_g.get("targeting") or {}); co = "locales" in tg; tg.pop("locales", None); sp_g["targeting"] = tg
     return co
 def la_doi(goc_id):   # camp gốc của người trong đội (kho etp.camp_ngoai)
@@ -489,7 +490,7 @@ def giong_doi(d, pl):
     pc = pl["campaign"]["source_payload"]; pg = pl["campaign"]["ad_groups"][0]["source_payload"]; pa = pl["campaign"]["ad_groups"][0]["ads"][0]
     lech = []
     sg = js(g.get("source_payload"))
-    if phim_es(a.get("content_id"), c.get("id")) and isinstance(sg.get("targeting"), dict):   # luật phim ES không nhắm ngôn ngữ (anh 23/11/2026) vẫn áp — chỉ trường locales được khác
+    if isinstance(sg.get("targeting"), dict):   # luật cố định không nhắm ngôn ngữ (anh 24/11/2026, mọi phim) vẫn áp — chỉ trường locales được khác
         sg = {**sg, "targeting": {k: v for k, v in sg["targeting"].items() if k != "locales"}}
     for ten, goc, moi, mien in (("camp", js(c.get("source_payload")), pc, GIONG_DOI_MIEN_C), ("adset", sg, pg, GIONG_DOI_MIEN_G)):
         for k in sorted((set(goc) | set(moi)) - BO - mien):

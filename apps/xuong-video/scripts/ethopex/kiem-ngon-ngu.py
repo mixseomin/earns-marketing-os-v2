@@ -2,7 +2,7 @@
 """CỔNG NGÔN NGỮ camp Ethopex — chặn Publish khi phim / creative / nhắm ngôn ngữ / trang đích không cùng một thứ tiếng
 (anh 19/10/2026: "phim tiếng Đức thì mọi thứ phải đồng bộ từ ads… rule hoá để chặn nếu lên sai, không là đốt tiền oan").
 Vào (stdin JSON): {"lang": "<en|es|de|…> ngôn ngữ lô khai", "content_locale": "<ngôn ngữ nội dung Ethopex>",
-                   "locales": [mã FB locale của Ad Set], "texts": [primary/headline/description của creative],
+                   "locales": [mã FB locale của Ad Set — luật cố định 24/11/2026: phải rỗng], "texts": [primary/headline/description của creative],
                    "final_url": "<trang đích, có sau khi lên — tuỳ chọn>"}
 Ra: in "OK" (mã 0) hoặc "CHAN: <lý do>" từng dòng (mã 2). dung-camp.sh không đánh dấu nút Publish khi cổng chặn.
 Tự kiểm: python3 kiem-ngon-ngu.py --tu-kiem"""
@@ -37,9 +37,8 @@ def kiem(d):
     cl = (d.get("content_locale") or "").lower()[:2]
     if cl != lang: loi.append(f"nội dung Ethopex là '{cl or '?'}' nhưng lô khai '{lang}'")
     locs = [int(x) for x in d.get("locales") or []]
-    if not locs: loi.append("Ad Set không nhắm ngôn ngữ nào (phải nhắm đúng tiếng của phim)")
-    sai = [x for x in locs if x not in LOCALE[lang]]
-    if sai: loi.append(f"Ad Set nhắm mã ngôn ngữ {sai} không thuộc tiếng '{lang}' (được: {sorted(LOCALE[lang])})")
+    # LUẬT CỐ ĐỊNH (anh 24/11/2026, khuôn Kiên): Ad Set KHÔNG nhắm ngôn ngữ nào, mọi phim — locales phải rỗng
+    if locs: loi.append(f"Ad Set nhắm ngôn ngữ {locs} — luật cố định anh 24/11/2026: không camp nào target ngôn ngữ (khuôn Kiên)")
     chu = " ".join(d.get("texts") or [])
     t = doan_tieng(chu)
     if not chu.strip(): loi.append("creative không có chữ QC")
@@ -50,19 +49,22 @@ def kiem(d):
     return loi
 
 def tu_kiem():
-    ok = {"lang": "es", "content_locale": "es", "locales": [1002], "texts": ["Mi esposo ayudó al asesino de mi hermana. Mira la historia completa gratis."]}
+    ok = {"lang": "es", "content_locale": "es", "locales": [], "texts": ["Mi esposo ayudó al asesino de mi hermana. Mira la historia completa gratis."]}
     assert kiem(ok) == [], kiem(ok)
     assert kiem({**ok, "locales": [6]}), "nhắm English cho phim ES phải bị chặn"
+    assert kiem({**ok, "locales": [1002]}), "nhắm ngôn ngữ (kể cả đúng tiếng) phải bị chặn — luật cố định 24/11/2026"
     assert kiem({**ok, "content_locale": "de"}), "nội dung DE gắn lô ES phải bị chặn"
     assert kiem({**ok, "texts": ["They called me a nobody. Watch the full story free."]}), "chữ QC tiếng Anh cho phim ES phải bị chặn"
-    assert kiem({**ok, "locales": []}), "không nhắm ngôn ngữ phải bị chặn"
+    assert kiem({k: v for k, v in ok.items() if k != "locales"}) == [], "không có trường locales phải qua"
     assert kiem({**ok, "final_url": "https://x/movie/a/confirm?arb_aid=1"}), "trang đích không hl=es phải bị chặn"
     assert kiem({**ok, "final_url": "https://x/movie/a/confirm?hl=es&lp_id=2"}) == []
-    de = {"lang": "de", "content_locale": "de", "locales": [5], "texts": ["Ich war die Königin. Jetzt die ganze Geschichte kostenlos ansehen, mit allen Folgen."]}
+    de = {"lang": "de", "content_locale": "de", "locales": [], "texts": ["Ich war die Königin. Jetzt die ganze Geschichte kostenlos ansehen, mit allen Folgen."]}
     assert kiem(de) == [], kiem(de)
-    en = {"lang": "en", "content_locale": "en", "locales": [6], "texts": ["They called me a nobody. Then the NBA picked me number one. Watch the full story free."]}
+    en = {"lang": "en", "content_locale": "en", "locales": [], "texts": ["They called me a nobody. Then the NBA picked me number one. Watch the full story free."]}
     assert kiem(en) == [], kiem(en)
-    print("tự kiểm: 9/9 đạt")
+    assert kiem({**en, "final_url": "https://x/movie/a/confirm?arb_aid=1"}) == [], "phim EN link không hl phải qua (khuôn Kiên)"
+    assert kiem({**en, "final_url": "https://x/movie/a/confirm?hl=es"}), "phim EN link hl=es phải bị chặn"
+    print("tự kiểm: 12/12 đạt")
 
 if __name__ == "__main__":
     if "--tu-kiem" in sys.argv: tu_kiem(); sys.exit(0)

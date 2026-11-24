@@ -16,7 +16,8 @@ class NgoaiNha(RuntimeError): pass
 class CamThayCreative(NgoaiNha): pass
 class CamNganSach(NgoaiNha, ValueError): pass     # camp mới > $1 (anh 08/11/2026) — cong.ns_tao đọc chính payload tạo camp
 class CamDangAT(NgoaiNha, ValueError): pass       # creative ảnh tĩnh không phải dạng Free (anh 19/11/2026, sổ luật at_chi_dang_free) — cong.at_sai_dang
-class CamLechForm(NgoaiNha, ValueError): pass     # camp MỚI lên bằng creative chưa đúng form chữ (anh 24/11/2026, góp ý #1813: "chưa có thì chờ chứ không lên chữ cũ")
+class CamLechForm(NgoaiNha, ValueError): pass
+class CamNgonNgu(NgoaiNha, ValueError): pass      # Ad Set nhắm ngôn ngữ (locales) — LUẬT CỐ ĐỊNH anh 24/11/2026: không camp nào target ngôn ngữ, theo khuôn Kiên     # camp MỚI lên bằng creative chưa đúng form chữ (anh 24/11/2026, góp ý #1813: "chưa có thì chờ chứ không lên chữ cũ")
 
 # FORM CHỮ CỐ ĐỊNH (anh 24/11/2026 "Form đúng phải thế này !!") — MỘT nguồn apps/etp/form-chu.json; ap-form-chu.py + cửa CamLechForm dùng chung dung_form
 FORM = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "form-chu.json")))
@@ -39,6 +40,10 @@ def lech_tao(duong, body):
     if isinstance(body, (str, bytes)): body = json.loads(body)
     ds = body if isinstance(body, list) else (body["items"] if isinstance(body, dict) and isinstance(body.get("items"), list) else [body])
     return [str(x.get("name") or "?")[:60] if isinstance(x, dict) else "?" for x in ds if not (isinstance(x, dict) and dung_form(x))]
+_LOC = re.compile(r'\\*"locales\\*"\s*:\s*\[\s*\\*"?\d')
+def co_ngon_ngu(body):
+    """lệnh mang targeting.locales khác rỗng ở bất kỳ tầng nào (dict lồng hay source_payload là chuỗi JSON) → True. Luật cố định anh 24/11/2026 (khuôn Kiên)."""
+    return bool(_LOC.search(json.dumps(body) if not isinstance(body, (str, bytes)) else str(body)))
 import importlib.util as _iu
 _s = _iu.spec_from_file_location("cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "cong.py")); CG = _iu.module_from_spec(_s); _s.loader.exec_module(CG)
 
@@ -395,6 +400,11 @@ def api(duong, body=None, timeout=90):
     if body is not None and not duong.startswith("/api/v1/report"):
         vuot = [float(v) for v in re.findall(r'"daily_budget":\s*"?([\d.]+)', json.dumps(body)) if float(v) > CG.TRAN_TUYET]
         if vuot: raise CamNganSach(f"ngân sách ${max(vuot):g} vượt trần tuyệt đối ${CG.TRAN_TUYET:g}/camp (anh 14/11/2026: không bao giờ vượt $30) — không gửi {duong}")
+    # NGÔN NGỮ NGƯỜI XEM = KHUÔN KIÊN, LUẬT CỐ ĐỊNH (anh 24/11/2026 "Sửa toàn bộ phần ngôn ngữ người xem và ngôn ngữ link phim giống của Kiên. Và set đây là rule
+    # cố định, cấm thay đổi"): đọc API 64 camp Kiên — Ad Set KHÔNG BAO GIỜ có targeting.locales, mọi phim EN lẫn ES. Mọi lệnh tạo / sửa camp mang locales khác rỗng
+    # (kể cả source_payload dạng chuỗi JSON lồng) → không gửi. Ngôn ngữ link (hl=es phim ES, không hl phim EN) do Ethopex tự gắn theo phim — kiem-ngon-ngu.py soát.
+    if body is not None and (duong.endswith("/campaigns/facebook") or duong.endswith("/campaigns/update")) and co_ngon_ngu(body):
+        raise CamNgonNgu(f"Ad Set nhắm ngôn ngữ (locales) — luật cố định anh 24/11/2026: không camp nào target ngôn ngữ, theo khuôn Kiên — không gửi {duong}")
     tran = None
     if body is not None and duong.endswith("/campaigns/facebook"):   # tạo camp mới: tài khoản đích (ad_account_id trong payload) phải là tài khoản nhà
         tk = set(int(x) for x in re.findall(r'"ad_account_id":\s*"?(\d+)', json.dumps(body)))
@@ -600,6 +610,13 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
     for body in ({"campaign": {"campaign_id": 999999998, "source_payload": {"daily_budget": 31}}}, {"campaign": {"campaign_id": 999999998, "source_payload": {"daily_budget": "45"}}}):   # trần tuyệt đối $30 (anh 14/11/2026)
         try: api("/api/v1/campaigns/update", body); raise SystemExit(f"LỌT: đặt ngân sách vượt $30 · {body}")
         except CamNganSach as e: print("chặn đúng: vượt trần tuyệt đối ·", str(e)[:70])
+    # LUẬT CỐ ĐỊNH NGÔN NGỮ (anh 24/11/2026): tạo / sửa camp mang locales → chặn trước mọi gửi; locales rỗng / không có → qua cửa này
+    for _b in ({"campaign": {"ad_groups": [{"source_payload": {"targeting": {"locales": [6]}}}]}},
+               {"campaign": {"ad_groups": [{"source_payload": json.dumps({"targeting": {"locales": [1002], "geo_locations": {}}})}]}}):
+        for _d in ("/api/v1/campaigns/facebook", "/api/v1/campaigns/update"):
+            try: api(_d, _b); raise SystemExit(f"LỌT: camp nhắm ngôn ngữ {_d}")
+            except CamNgonNgu as e: print("chặn đúng: locales ·", str(e)[:60])
+    assert not co_ngon_ngu({"targeting": {"locales": []}}) and not co_ngon_ngu({"targeting": {"geo_locations": {"countries": ["US"]}}}), "locales rỗng phải qua"
     n = camp_nha(); print("camp nhà", len(n), "· tài khoản", sorted(TK))
     sach = next(((int(i), int(c["ad_id"])) for i, c in n.items() if c.get("ad_id") and c.get("state") == "ACTIVE"), None)
     if sach:   # ad đang chạy, không bị từ chối → lệnh đổi creative phải bị chặn

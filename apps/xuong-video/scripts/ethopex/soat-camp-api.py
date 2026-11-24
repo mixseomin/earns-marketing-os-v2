@@ -37,9 +37,7 @@ for c in sorted(ds, key=lambda x: x["id"]):
     try: tg = (json.loads(sp) if isinstance(sp, str) else sp).get("targeting", {})
     except Exception: tg = {}
     loc = tg.get("locales") or []
-    LOC = {"en": {6, 24, 1001}, "es": {23, 7, 1002}}
-    if nn_ten in LOC and loc and not set(loc) <= LOC[nn_ten]: loi.append(f"locale nhắm {loc} lệch tên {nn_ten}")
-    if nn_ten in LOC and not loc: loi.append("không nhắm locale")
+    if loc: loi.append(f"nhắm ngôn ngữ {loc} — luật cố định anh 24/11/2026: không camp nào target ngôn ngữ (khuôn Kiên)")
     nuoc = len(((tg.get("geo_locations") or {}).get("countries")) or [])
     can = AB_NUOC.get(c["id"], 39)
     if nuoc != can: loi.append(f"{nuoc} nước (phải {can})")

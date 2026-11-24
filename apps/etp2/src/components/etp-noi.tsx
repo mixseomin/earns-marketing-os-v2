@@ -190,6 +190,9 @@ export function HoverChu({ goc }: { goc: React.RefObject<HTMLElement | null> }) 
       let el = t instanceof Element ? t : null;
       for (; el && el !== khung; el = el.parentElement) {
         if (el.hasAttribute('data-khung-noi')) return null;
+        // #1769 lượt 4 (anh 24/11/2026, ảnh "Tên camp ✕" trên tiêu đề cột cây camp): lượt 3 lọc theo con trỏ chuột nên tiêu đề cột KHÔNG sắp xếp được (con trỏ thường) vẫn bật thẻ to.
+        // Dòng tiêu đề bảng (thead / th) không bao giờ mở thẻ nổi, bất kể con trỏ — chữ giải thích cột vẫn còn ở hộp chữ nhỏ của trình duyệt.
+        if (el.tagName === 'TH' || el.tagName === 'THEAD') return null;
         // #1769 lượt 2 (anh 23/11/2026 "Ko phải chỉ trên điện thoại"): NÚT / Ô NHẬP / LINK (Mở hết, Chú giải, ô lọc…) không bao giờ bật thẻ nổi to có ✕ —
         // trên MỌI thiết bị. Chữ của nút để nguyên title= (máy tính hiện hộp chữ nhỏ của trình duyệt, điện thoại không hiện). Thẻ chữ chỉ còn cho chữ chi tiết ở ô dữ liệu.
         if (el.hasAttribute('title') || el.hasAttribute('data-tip')) return el.tagName === 'TR' || el.classList.contains('dong') || bamDuoc(el) ? null : el as HTMLElement;
@@ -203,6 +206,8 @@ export function HoverChu({ goc }: { goc: React.RefObject<HTMLElement | null> }) 
       if (t != null) { el.removeAttribute('title'); if (t.trim()) el.setAttribute('data-tip', t); else el.removeAttribute('data-tip'); }
       // chữ không có lấy một chữ cái (chỉ số / dấu, vd "0") → không mở thẻ: số trơn không nói gì với người đọc (#1693 "0 ✕")
       const chu = el.getAttribute('data-tip'); if (!chu || !/\p{L}/u.test(chu)) return;
+      // chữ rê chỉ NHẮC LẠI đúng chữ đang hiện (vd title = tên cột) → không mở thẻ: không thêm thông tin gì (#1769 lượt 4)
+      if (chu.trim().toLowerCase() === (el.textContent ?? '').trim().toLowerCase()) return;
       if (dangEl.current === el) { giu(); return; }
       giu(); dangEl.current = el;
       hen.current = window.setTimeout(() => {   // trễ hơn thẻ riêng một nhịp → thẻ riêng của cùng ô mở trước, thẻ chữ nhường

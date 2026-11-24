@@ -44,6 +44,8 @@ const LUAT = [
   { card: 1520, tep: 'apps/etp2/src/components/etp-dong.tsx', co: "...(so != null ? { maxWidth: 40 } : { flex: '0 1 auto' })", cam: 'maxWidth: so != null ? 40 : 74', vi: 'chữ ô trạng thái (nút chờ / lên camp của phim) dùng hết bề rộng cột, không trần cứng 74px làm cụt chữ' },
   { card: 1788, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const ngay = useMemo(() => [6, 5, 4, 3, 2, 1].map((k) => ngayCong(du.nay, -k)), [du.nay]);', vi: 'cột ngày cây camp = cố định 6 ngày đã khép + nay, không theo kỳ chọn ở trên (anh 24/11/2026)' },
   { card: 1788, tep: 'apps/etp2/src/components/etp-view.tsx', co: "['ky', (c) => kh === 'tat_ca' || coChi7(c) ||", vi: 'camp có chi 7 ngày gần nhất luôn qua ô kỳ — kỳ chỉ thêm camp, không bớt' },
+  { card: 1769, tep: 'apps/etp2/src/components/etp-noi.tsx', co: "if (el.tagName === 'TH' || el.tagName === 'THEAD') return null;", vi: 'tiêu đề cột bảng không bao giờ bật thẻ nổi to có ✕ (anh 24/11/2026, ảnh "Tên camp ✕")' },
+  { card: 1769, tep: 'apps/etp2/src/components/etp-noi.tsx', co: "if (chu.trim().toLowerCase() === (el.textContent ?? '').trim().toLowerCase()) return;", vi: 'chữ rê chỉ nhắc lại chữ đang hiện thì không mở thẻ' },
   { card: 1788, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'd >= kyTu && ds.length < 6', vi: 'cột ngày không được quay về lấy theo kỳ đang chọn' },
   { card: 1510, tep: 'apps/etp2/src/components/etp-view.tsx', co: '+{the.length - 1}</span>', vi: 'ô Luật dòng phim chỉ MỘT thẻ (nặng nhất) + "+N" (anh 02/11/2026 "Bố cục lại cả chỗ này" — trước 2 thẻ bị cắt chữ)' },
   { card: 1510, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{the.map((x) => <div key={x.ten} style={{ borderLeft: `3px ${x.cho ? 'dashed' : 'solid'} ${x.mau}`", vi: 'rê thẻ ô Luật dòng phim = thẻ nổi khuôn chung, mỗi trạng thái một khối viền màu, lý do chia dòng (anh "Hover format lại")' },
@@ -593,10 +595,6 @@ const LUAT = [
   { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'clip, v = chuyen_dong(nen, tm, cid, ma, b); vnd += v; giay = dung_dong(clip, chu, mp3, out)', vi: 'mẫu ảnh động đi đường AI chuyển động, ₫ cộng vào sổ' },
   { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'fade=in:st={DONG_HIEN}:d=0.4:alpha=1', vi: 'logo + nút hiện ở giây 1,5, không hiện từ đầu' },
   { card: 'anh-dong', tep: 'apps/etp2/src/lib/etp-mau-cr.json', co: '"ma": "dt_anh_dong_logo"', vi: 'sổ mẫu có mục Ảnh động logo gốc + CTA' },
-  { card: 'anh-dong', tep: 'apps/etp2/src/lib/etp-dang.json', co: '"dang": "ảnh động", "ma": "AD"', vi: 'bộ lọc Loại có dạng AD ảnh động (anh 24/11/2026 "Thêm vào đây")' },
-  { card: 'anh-dong', tep: 'apps/web/src/lib/etp-dang.json', co: '"dang": "ảnh động", "ma": "AD"', vi: 'sổ dạng máy Python đọc (so_dang.py) cũng có AD' },
-  { card: 'anh-dong', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'dem: du.camps.filter((c) => c.dang === d).length })).filter((o) => o.dem)', vi: 'bộ lọc Loại không giấu dạng chưa có camp (AD mới phải hiện)' },
-  { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'dang = muc["dung_cho"][0] if ma in DONG', vi: 'creative ảnh động nạp đúng dạng AD, không lẫn vào poster động' },
 ];
 
 const loi = [];

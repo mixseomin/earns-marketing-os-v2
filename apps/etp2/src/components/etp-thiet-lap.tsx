@@ -59,9 +59,11 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
   // so với form chuẩn
   const chuan: Record<string, () => string> = form ? { f_kieu: () => form.creative_type, f_cta: () => form.call_to_action, f_link: () => form.link_url, f_chinh: () => form.primaryTexts.join('\n'), f_tieu: () => form.headlines.join('\n'), f_mo_ta: () => form.descriptions.join('\n') } : {};
   const dungForm = (r: DongTl, k: string) => { const s = chu(r[k]); return !chuan[k] || (s ?? '').trim() === chuan[k]().trim(); };
-  const loiForm = (r: DongTl) => Object.keys(chuan).filter((k) => !dungForm(r, k));
-  const oForm = (k: string) => (r: DongTl) => { const ok = dungForm(r, k); return <div style={{ display: 'flex', gap: 4, alignItems: 'flex-start' }}>
-    <b title={ok ? 'đúng form' : `lệch form — chuẩn: ${chuan[k]?.() ?? ''}`} style={{ color: ok ? '#4ade80' : '#f87171', flex: 'none' }}>{ok ? '✓' : '✗'}</b>{o(r[k], ok ? undefined : '#fca5a5', true)}</div>; };
+  // kho CHƯA đọc chữ creative (creative mới gắn, bai-qc.py đọc ở lượt đồng bộ kế) = chưa biết, không phải lệch — so với ô trống thì lần gắn creative nào cũng báo đỏ giả
+  const chuaDoc = (r: DongTl) => /^chưa đọc/.test(chu(r.f_nguon) ?? '');
+  const loiForm = (r: DongTl) => chuaDoc(r) ? [] : Object.keys(chuan).filter((k) => !dungForm(r, k));
+  const oForm = (k: string) => (r: DongTl) => { const cd = chuaDoc(r), ok = cd || dungForm(r, k); return <div style={{ display: 'flex', gap: 4, alignItems: 'flex-start' }}>
+    <b title={cd ? 'kho chưa đọc chữ creative — lượt đồng bộ kế (10 phút) sẽ đọc' : ok ? 'đúng form' : `lệch form — chuẩn: ${chuan[k]?.() ?? ''}`} style={{ color: cd ? 'var(--fg-3)' : ok ? '#4ade80' : '#f87171', flex: 'none' }}>{cd ? '?' : ok ? '✓' : '✗'}</b>{o(r[k], ok ? undefined : '#fca5a5', true)}</div>; };
   // VẤN ĐỀ của một camp — đỏ = hỏng / Meta chặn, vàng = treo / cần xem. PAUSED thường không phải vấn đề.
   type VanDe = { chu: string; do: boolean };
   const TEN_FORM: Record<string, string> = { f_kieu: 'Ad type', f_cta: 'CTA', f_link: 'Display link', f_chinh: 'Primary text', f_tieu: 'Headline', f_mo_ta: 'Description' };
@@ -72,6 +74,7 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
     const v: VanDe[] = [], thay = new Set<string>();
     const them = (chu: string, laDo: boolean) => { const k = chu.replace(/^[^:]*:\s*/, '').slice(0, 80); if (!thay.has(k)) { thay.add(k); v.push({ chu, do: laDo }); } };
     const lf = loiForm(r);
+    if (chuaDoc(r)) them(`Kho chưa đọc chữ creative #${chu(r.f_cr) ?? '?'} (lượt đồng bộ kế đọc)`, false);
     if (lf.length) them(`Form chữ lệch ${lf.length}/6: ${lf.map((k) => TEN_FORM[k]).join(', ')}${/^chữ cũ/.test(chu(r.f_nguon) ?? '') ? ' — ad đang chạy chữ cũ' : ''}`, true);
     for (const [k, ten] of TT_CAP) { const s = chu(r[k]); if (s && (TT_LOI.test(s) || TT_TREO.test(s))) them(`${ten}: ${s.toLowerCase().replace(/_/g, ' ')}`, TT_LOI.test(s)); }
     // ad set / ad ADSET_PAUSED khi giờ bắt đầu (start_time UTC không Z, hoặc lịch nhà) còn ở tương lai = đang HẸN GIỜ, không phải vấn đề

@@ -2016,18 +2016,22 @@ function chiCanh(loai, so) {
   const g = (c) => GOC[c.id] || {}, hop = { clip: (c) => g(c).video_url || g(c).video_cuoi_url, anh: (c) => g(c).keyframe_url, giong: (c) => coGiong(c) }[loai];
   return (hop && D.canh.find(hop))?.id || D.canh[0]?.id; }
 /** mở tới chỗ k rồi tô sáng; trả câu báo thêm (chuyển bản / phần tử chưa hiện) hoặc '' */
+let hChi = 0;
 function chiCho(k, so) {
   const x = CHO_MAN[k]; if (!x || !D.that) return ''; const them = [];
   if (x.pro && !pro()) { lamD('ban', { g: 'pro' }); them.push('Đã chuyển sang bản Pro (chỗ này chỉ bản Pro có).'); }
   if (x.w && !co(x.w)) { const ds = E.bc[D.loai]; if (!ds.includes(x.w)) ds.splice(ds.includes('tt') && x.w !== 'tt' ? ds.indexOf('tt') : ds.length, 0, x.w); delete E.luoi.ten[D.loai]; }
   if (x.w) { const gr = (E.luoi.nhom?.[D.loai] || []).find((g) => g.ds.includes(x.w)); if (gr) gr.mo = x.w; }
   if (x.qt) E.qtMo = x.qt;
-  if (x.canh) { const id = chiCanh(x.canh, so); if (id) { if (E.chon?.id !== id || E.chon?.loai !== 'canh') chon(id, 'canh'); } }
+  // đổi cảnh làm khung Lệnh AI lọc theo cảnh mới → bật "Tất cả" để cuộc hỏi đáp vẫn hiện
+  if (x.canh) { const id = chiCanh(x.canh, so); if (id && (E.chon?.id !== id || E.chon?.loai !== 'canh')) { chon(id, 'canh'); AI.tab = 'tat'; } }
   if (x.tt) E.ttTab = x.tt; E.menu = null; luu(); veD();
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    const el = [...document.querySelectorAll(x.sel)].find((e) => e.offsetParent || e.getClientRects().length) || (x.w && document.getElementById(`w-${x.w}`));
-    document.querySelectorAll('.s2-chi').forEach((e) => e.classList.remove('s2-chi'));
-    if (!el) return; el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' }); el.classList.add('s2-chi'); setTimeout(() => el.classList.remove('s2-chi'), 4500); }));
+  // khung hay vẽ lại (aiVe, nạp lại tập, đổi cảnh) nên tô sáng được gắn lại mỗi 250 ms tới hết 4,5 giây, cuộn chỉ một lần khi thấy phần tử
+  clearInterval(hChi); document.querySelectorAll('.s2-chi').forEach((e) => e.classList.remove('s2-chi'));
+  const tim = () => [...document.querySelectorAll(x.sel)].find((e) => e.getClientRects().length) || (x.w && document.getElementById(`w-${x.w}`));
+  let cuon = false; const het = Date.now() + 4500;
+  hChi = setInterval(() => { const el = tim(); if (Date.now() > het) { clearInterval(hChi); document.querySelectorAll('.s2-chi').forEach((e) => e.classList.remove('s2-chi')); return; }
+    if (!el) return; if (!cuon) { cuon = true; el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' }); } el.classList.add('s2-chi'); }, 250);
   const coEl = () => [...document.querySelectorAll(x.sel)].some((e) => e.getClientRects().length);
   if (!coEl() && x.vang) them.push(x.vang);
   else if (x.sel.includes('clip1') && coEl() && document.querySelector(x.sel)?.disabled) them.push('Nút đang mờ vì ảnh của cảnh chưa duyệt: duyệt ảnh trước, studio mới cho dựng clip.');

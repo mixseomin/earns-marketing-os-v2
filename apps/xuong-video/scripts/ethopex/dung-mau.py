@@ -6,6 +6,7 @@ Dùng lại máy ảnh tĩnh (anh-tinh.py): tải 3 tập, khung đẹp AI xếp
 TRẠNG THÁI từng bước ghi etp.mau_dung (mau, content_id) → chân thẻ tab Mẫu Creative hiện ngay: cho → tai_tap → chon_khung → ve_mau → giong → video → thu_vien → creative → xong | loi.
 Chạy (iMac, ~/.venvs/poster-mau/bin/python — có rembg):
   dung-mau.py <mã mẫu> <content_id> [--xem]   (--xem: chỉ dựng ảnh + video, không nạp thư viện / không tải creative)
+  dung-mau.py <mã mẫu> <content_id> --thu     (dựng trọn video như bản thật — giọng, AI chuyển động của mẫu ảnh động — không ghi sổ, không nạp, không tải)
   dung-mau.py --hang                           (mọi phim đã chọn cho mẫu có hàm vẽ mà chưa dựng)
   dung-mau.py --bang <content_id>              (vẽ mọi mẫu trên một phim → bảng ghép xem trước, không giọng, không nạp)
   dung-mau.py --xem-soan                       (xem trước các bản soạn etp2 đang chờ — máy dòng phim gọi mỗi 10 giây khi có việc)"""
@@ -298,10 +299,11 @@ def logo_cho(c, cao):
     for k in (1.0, 0.9, LOGO_CO_MIN):
         if tren + cao * k <= H * LOGO_VUNG[1]: return int(tren + (H * LOGO_VUNG[1] - tren - cao * k) * 0.35), k   # lệch nhẹ về phía mặt, không dính đáy
     return None
-def dt_logo_chat_lieu(c):
+def dt_logo_chat_lieu(c): return None, _lop_logo(c)[0]
+def _lop_logo(c, them=0):
     """LOGO GỐC CỦA PHIM (anh 19/11/2026: "Logo phải giữ nguyên phong cách gốc") — lấy logo từ poster gốc của phim (logo-goc.py: cắt rời khi nền poster êm, không thì nguyên
     dải poster chứa logo mép mờ dần), đưa về cỡ chuẩn, đặt dưới mọi mặt trong vùng chuẩn. Khung không đủ chỗ → lỗi (vòng dựng đã chọn khung đủ chỗ trước khi tới đây)."""
-    lg, kieu = logo_goc(c); cho = logo_cho(c, lg.height)
+    lg, kieu = logo_goc(c); cho = logo_cho(c, lg.height + them)   # them = khối đặt ngay dưới logo (nút CTA của mẫu ảnh động) — cùng phải nằm dưới mặt
     if not cho: raise RuntimeError("khung không đủ chỗ dưới mặt cho logo ở cỡ chuẩn (chữ không che mặt) — cần khung khác")
     y, k = cho
     if k < 1: lg = lg.resize((round(lg.width * k), round(lg.height * k)), Image.LANCZOS)
@@ -311,8 +313,16 @@ def dt_logo_chat_lieu(c):
         toi = ImageChops.lighter(al.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(3)).point(lambda v: min(235, int(v * 1.4))),
                                  al.filter(ImageFilter.GaussianBlur(30)).point(lambda v: min(140, int(v * 1.6))))
         nen = Image.new("RGBA", (W, H), (0, 0, 0, 0)); nen.putalpha(toi); lop = Image.alpha_composite(lop, nen)
-    return None, Image.alpha_composite(lop, bg)
-CAN_CHO = {"dt_logo_chat_lieu": lambda c: (logo_goc(c)[0].height, logo_cho)}   # mẫu cần KHUNG ĐỦ CHỖ: (chiều cao khối, hàm thử chỗ) — vòng dựng duyệt khung xếp hạng tới khi vừa
+    return Image.alpha_composite(lop, bg), y + lg.height
+NUT_DONG = 150   # chỗ cho nút CTA dưới logo của mẫu ảnh động (khoảng cách 24 + nút ~120)
+def dt_anh_dong_logo(c):
+    """ẢNH ĐỘNG LOGO GỐC + CTA (anh 24/11/2026, mẫu đối thủ KneDraQ - DE - 03: "dạng AT nhưng mở rộng thành kiểu ảnh động"): lớp phủ = logo gốc của phim
+    (như dt_logo_chat_lieu) + nút CTA đỏ viền vàng ngay dưới. Nền KHÔNG đứng yên: bản dựng thật đưa khung sạch qua AI chuyển động (chuyen_dong) rồi dung_dong
+    cho lớp phủ hiện ở giây 1,5. Xem trước = ảnh tĩnh này."""
+    lop, day = _lop_logo(c, NUT_DONG)
+    nut(lop, cta(c, "WATCH MORE"), day + 24, ph("arial_black", 54), (198, 24, 30), (255, 255, 255), (236, 186, 70), (60, 24))
+    return None, lop
+CAN_CHO = {"dt_logo_chat_lieu": lambda c: (logo_goc(c)[0].height, logo_cho), "dt_anh_dong_logo": lambda c: (logo_goc(c)[0].height + NUT_DONG, logo_cho)}   # mẫu cần KHUNG ĐỦ CHỖ: (chiều cao khối, hàm thử chỗ) — vòng dựng duyệt khung xếp hạng tới khi vừa
 def _ten_hai_tang(c, y_min, them=130):
     """tên hai tầng: phần đầu trắng, TỪ CUỐI đỏ (kiểu UNDERCOVER PRISON KING) → (lớp, đáy)"""
     w = c["ten"].upper().split(); dau, cuoi = " ".join(w[:-1]) or w[0], w[-1] if len(w) > 1 else ""
@@ -569,6 +579,61 @@ def dt_ten_tren_nut_duoi(c):
     nut(lop, cta(c, "WATCH NOW!"), int(H * 0.74), ph("georgia_bi", 64), (40, 24, 10), (255, 236, 190), (214, 160, 50), (70, 18))
     nen = nen_dat_mat(c, hop[3] + 40, int(H * 0.74) - 40); return (None if nen == c["nen"] else nen), lop   # mặt nằm GIỮA đáy tên và nút
 
+# ---------- ẢNH ĐỘNG: khung sạch → AI chuyển động (cổng AI chung spy.on.tc/api/ai, video_gui / video_doc) → lớp phủ hiện ở giây 1,5 ----------
+DONG = {"dt_anh_dong_logo"}   # mẫu có nền chuyển động (dạng ảnh tĩnh mở rộng thành ảnh động)
+DONG_GIAY, DONG_HIEN = 8, 1.5   # giây clip AI · giây lớp phủ (logo + nút) hiện
+DONG_LENH = ("Subtle cinematic motion of this exact still frame from a short drama: slow camera push-in, gentle movement of hair, clothes and light, natural breathing "
+             "and small eye movement. Keep every face, person, outfit and the composition exactly the same, no new people, no text, no logo, no cuts, no scene change.")
+def _cong(b, han=120):
+    k = dict(l.strip().split("=", 1) for l in open(os.path.expanduser("~/.secrets/cong-ai.env")) if "=" in l)["CONG_AI_KEY"].strip().strip('"')
+    r = urllib.request.urlopen(urllib.request.Request("https://spy.on.tc/api/ai", method="POST", headers={"authorization": f"Bearer {k}", "content-type": "application/json", "user-agent": "Mozilla/5.0 dung-mau"},
+                               data=json.dumps({"viec": "etp-dung-mau", **b}).encode()), timeout=han)
+    j = json.loads(r.read())
+    if j.get("loi"): raise RuntimeError(f"cổng AI: {str(j['loi'])[:300]}")
+    return j
+def chuyen_dong(nen, tm, cid, ma, b):
+    """khung sạch (chưa chữ) → clip AI 8 giây 9:16 → (tệp mp4, ₫). Ảnh đưa lên R2 qua box3 (tai-len.mts) làm anh_dau; cổng tự lùi nếu cổng đầu lỗi."""
+    jpg = os.path.join(tm, f"dong-{ma}-{b}.jpg"); Image.open(nen).convert("RGB").save(jpg, quality=92)
+    tmb = f"/var/tmp/anh-dong/{int(cid)}"; AT.sh("ssh", AT.B, f"mkdir -p {tmb}", han=60)
+    r = AT.sh("rsync", "-q", jpg, f"{AT.B}:{tmb}/", han=300)
+    if r.returncode: raise RuntimeError(f"đẩy khung lên box3 lỗi: {(r.stderr or r.stdout)[-200:]}")
+    r = AT.sh("ssh", AT.B, f"{AT.XV} scripts/tai-len.mts {tmb}/{os.path.basename(jpg)} etp-anh-dong", han=180)
+    url = next((x for x in r.stdout.split() if x.startswith("https://")), None)
+    if not url: raise RuntimeError(f"tải khung lên kho ảnh lỗi: {(r.stderr or r.stdout)[-200:]}")
+    # lượt đã trả tiền ghi ra sổ TRƯỚC khi chờ: lỗi ở bước chờ / tải thì lần chạy sau dùng lại task, không gửi (trả tiền) lần nữa
+    so = os.path.expanduser(f"~/.cache/ethopex/anh-dong/{int(cid)}-{ma}-{b}.json"); os.makedirs(os.path.dirname(so), exist_ok=True)
+    g = json.load(open(so)) if os.path.exists(so) and time.time() - os.path.getmtime(so) < 6 * 3600 else None
+    if g: print(f"dùng lại lượt đã trả: task {g.get('task_id')} ({so})", flush=True)
+    else:
+        g = _cong({"loai": "video_gui", "ma": f"{ma}:{cid}", "prompt": DONG_LENH, "anh_dau": url, "giay": DONG_GIAY, "ti_le": "9:16", "bo_chinh_hang": True})
+        json.dump(g, open(so, "w"))
+    vnd = int(g.get("vnd") or round((g.get("chi_usd") or 0) * 26000)); print(f"chuyển động: {g.get('cong')}:{g.get('model')} · {vnd}₫ · task {g.get('task_id')}", flush=True)
+    t0 = time.time()
+    while True:
+        time.sleep(10)
+        d = _cong({"loai": "video_doc", "cong": g["cong"], "task_id": g["task_id"], "tao_luc": g.get("tao_luc")})
+        if d.get("done"): break
+        if time.time() - t0 > 1200: raise RuntimeError(f"AI chuyển động quá 20 phút chưa xong ({g.get('cong')} task {g.get('task_id')})")
+    if not d.get("ok") or not d.get("uri"): raise RuntimeError(f"AI chuyển động hỏng ({g.get('cong')}): {str(d.get('loi'))[:300]}")
+    ra = os.path.join(tm, f"dong-{ma}-{b}.mp4")
+    if d.get("can_khoa"):
+        import base64; open(ra, "wb").write(base64.b64decode(_cong({"loai": "video_tai", "uri": d["uri"]}, 400)["video_b64"]))
+    else:  # kho clip (CDN) chặn user-agent mặc định của Python → 403
+        with urllib.request.urlopen(urllib.request.Request(d["uri"], headers={"user-agent": "Mozilla/5.0 dung-mau"}), timeout=300) as r: open(ra, "wb").write(r.read())
+    try: _cong({"loai": "video_xoa", "cong": g["cong"], "uri": d["uri"]})
+    except Exception as e: print("xoá clip trên cổng lỗi (bỏ qua):", e, file=sys.stderr)
+    os.remove(so)
+    return ra, vnd
+def dung_dong(clip, chu, mp3, ra):
+    """clip AI + lớp phủ hiện mờ ở giây DONG_HIEN + giọng → mp4 1080×1920; clip ngắn hơn giọng thì giữ khung cuối. Bỏ tiếng của clip AI."""
+    L = max(AT.GIAY_MIN + 1, float(AT.sh("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", mp3).stdout) + 1.4)
+    r = AT.sh("ffmpeg", "-v", "error", "-y", "-i", clip, "-loop", "1", "-i", chu, "-i", mp3, "-filter_complex",
+              f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H},fps=30,setsar=1,tpad=stop_mode=clone:stop_duration={L:.2f}[n];"
+              f"[1:v]format=rgba,fade=in:st={DONG_HIEN}:d=0.4:alpha=1[c];[n][c]overlay=0:0[v];[2:a]adelay=400|400,apad[a]",
+              "-map", "[v]", "-map", "[a]", "-t", f"{L:.2f}", *AT.MA_HOA, ra)
+    if r.returncode != 0: raise RuntimeError(f"ffmpeg: {r.stderr[-300:]}")
+    return round(L, 1)
+
 HAM = {k: v for k, v in globals().items() if k.startswith("dt_") and callable(v)}
 CAN_CAU = {x["ma"] for x in SO if x.get("cau_nhu")}   # mẫu có câu nhử (AI viết, hoặc anh gõ ở ngăn Creative của phim) — một nguồn: sổ etp-mau-cr.json "cau_nhu"
 CAN_KHUNG2 = {"dt_key_art_neon", "dt_discover_banner"}   # mẫu cần khung phụ (khung xếp hạng kế)   # mẫu có câu nhử (AI viết)
@@ -587,14 +652,14 @@ tk = m.q("select ad_account_id from etp.tai_khoan where nha and ad_account_id is
 print(json.dumps({"ly": m.trang_chua_san(%d, tk)}, ensure_ascii=False))
 '''
 _NHO = {}
-def mot(ma, cid, xem=False, ban=1, tc_xem=None):
+def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
     """dựng ban bản theo mẫu ma cho phim cid → danh sách creative_id (xem=True: chỉ tệp).
     tc_xem = bản soạn etp2 cần XEM TRƯỚC ({cau, nhan, chu_dau, o}) — dựng đúng như bản thật sẽ ra (cùng ô ghim), chỉ ảnh tĩnh, không giọng / không nạp"""
-    XT = tc_xem is not None; CANH.clear()
+    XT = tc_xem is not None; CANH.clear(); xem = xem or thu   # thu = dựng trọn video (giọng + AI chuyển động) nhưng không ghi sổ / không nạp thư viện / không tải creative
     if ma not in HAM: raise SystemExit(f"mẫu {ma} chưa có hàm vẽ trong dung-mau.py")
     muc = next((x for x in SO if x["ma"] == ma), None)
     if not muc: raise SystemExit(f"mẫu {ma} không có trong sổ")
-    dang = "poster động" if muc["loai"] == "bo_cuc" and "poster động" in muc["dung_cho"] else "ảnh tĩnh"
+    dang = "poster động" if ma in DONG or (muc["loai"] == "bo_cuc" and "poster động" in muc["dung_cho"]) else "ảnh tĩnh"   # ảnh động nạp cụm poster động (sổ dạng chưa có dạng riêng)
     dang_o = ["tai_tap"]   # bước đang làm — lỗi thì ghi ĐÚNG bước hỏng (19/11/2026: ghi buoc='loi' làm Máy SX không biết hỏng ở nhịp nào)
     da_ghi = [0]   # ₫ đã ghi lên nhật ký — mỗi lần đổi bước, phần tiêu thêm (vnd − da_ghi) ghi vào dòng của bước vừa xong (#1716)
     def tt(b, t="dang", g=None, **k):
@@ -709,12 +774,17 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None):
             _, k, nen, lop, c = tot
             chu = os.path.join(tm, f"chu-{ma}-{b}{'-xem' if XT else ''}.png"); lop.save(chu)
             out = os.path.join(tm, f"{ma}-{cid}-{b + 1}{'-xem' if XT else ''}.mp4")
-            if xem:   # xem: ảnh ghép tĩnh, không giọng
+            if xem and not thu:   # xem: ảnh ghép tĩnh, không giọng
                 Image.alpha_composite(Image.open(nen).convert("RGBA"), lop).convert("RGB").save(out.replace(".mp4", ".jpg"), quality=88); cr.append(out.replace(".mp4", ".jpg")); continue
             tt("giong", g="giọng đọc (cổng giọng chung)")
             kg = AT.xoay_giong([p], None)[cid]; mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, g_ghim % len(AT.CAU[lang]) if g_ghim is not None else (len(da_khung) + b) % len(AT.CAU[lang])); vnd += v   # câu đọc xoay theo số bản đã dựng
-            tt("video", g="dựng video 1080×1920")
-            giay = AT.dung(nen, chu, mp3, out)
+            if ma in DONG:
+                tt("video", g=f"AI làm khung chuyển động {DONG_GIAY}s + dựng video 1080×1920 (lớp phủ hiện ở giây {DONG_HIEN})")
+                clip, v = chuyen_dong(nen, tm, cid, ma, b); vnd += v; giay = dung_dong(clip, chu, mp3, out)
+            else:
+                tt("video", g="dựng video 1080×1920")
+                giay = AT.dung(nen, chu, mp3, out)
+            if thu: print(f"[thử] {out} · {giay}s · {vnd}₫", flush=True); cr.append(out); continue
             tt("thu_vien", g=f"nạp thư viện ({giay}s)")
             tv = TB.nap(cid, lang, out, dang, f"mẫu:{ma} · {muc['ten']} · bản {len(da_khung) + 1} · khung {k['tap']}#{k['so']}" + (f" · {k['cam_xuc']} · {k.get('nhan_vat') or ''}" if k.get("cam_xuc") else "") + (f" · bản soạn #{soan}" if soan else ""), v, (tc.get("chu_dau") or "").strip() or None)
             if not tv: raise RuntimeError("nạp thư viện không ra mã")
@@ -827,4 +897,4 @@ if __name__ == "__main__":
     elif a[0] == "--xem-soan": xem_soan()
     elif a[0] == "--bang": bang_xem(int(a[1]))
     elif a[0] == "--poster": print(ghi_poster(int(a[1]), ngu_canh(int(a[1]))[0].get("url")))   # ghi bù poster gốc cho phim đã dựng trước 19/11/2026
-    else: print(json.dumps(mot(a[0], int(a[1]), "--xem" in a, int(a[a.index("--ban") + 1]) if "--ban" in a else 1)))
+    else: print(json.dumps(mot(a[0], int(a[1]), "--xem" in a, int(a[a.index("--ban") + 1]) if "--ban" in a else 1, thu="--thu" in a)))

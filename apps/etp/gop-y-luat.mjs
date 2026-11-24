@@ -215,7 +215,8 @@ export const LUAT = [
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', cam: "k === 'tang30' ? d !== 30", vi: 'tự tăng một quyền một trần (T30 không còn nhánh riêng ngoài trần)' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: 'if (!d || d > tuTang ||', vi: 'mọi lần tự tăng (bậc + T30) đều xét chung trần tuTang' },
   // anh 29/10/2026 "sso thêm 1 người nữa chỉ vào đc riêng page này … chỉ view": khách một trang = users.chi_host, gác ở getCurrentUser
-  { card: 0, tep: 'apps/web/src/lib/auth.ts', mot: 'if (r.chi_host && String(r.chi_host).toLowerCase() !== await hostHienTai()) continue;', vi: 'phiên khách một trang chỉ sống trên đúng host của họ' },
+  { card: 0, tep: 'apps/web/src/lib/auth.ts', mot: "if (ch !== await hostHienTai() && noiNhungGopY(hd.get('host'), hd.get('referer'), hd.get('sec-fetch-dest')) !== ch) continue;", vi: 'phiên khách một trang chỉ sống trên đúng host của họ (+ hòm góp ý nhúng từ host đó, anh 24/11/2026 doanhoe studio2)' },
+  { card: 0, tep: 'apps/web/src/lib/gop-y-loc-nguon.ts', co: "if (rh !== hostCua(host)) return dest === 'iframe' ? rh : null;", vi: 'hòm nhúng: từ host ngoài chỉ tính lượt nạp khung iframe, bấm link (document) không tính' },
   { card: 0, tep: 'apps/web/src/app/api/auth/verify/route.ts', co: "if (u.role === 'viewer' && !u.chiHost) return", vi: 'cổng SSO cho khách một trang qua, viewer thường vẫn 403' },
   { card: 0, tep: 'apps/etp/deploy/etp.on.tc.nginx', co: 'proxy_set_header Cookie $http_cookie; proxy_set_header Host $host; }', vi: 'cổng auth_request etp gửi Host thật (khách etp mới qua được)' },
   { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "chiXem={quyen.vai !== 'chu'}", vi: 'không phải chủ (admin mos2) thì ẩn nút ghi của nhà' },

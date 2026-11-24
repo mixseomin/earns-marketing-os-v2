@@ -7,6 +7,7 @@ import { sql } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { getDb } from '@mos2/db';
+import { noiNhungGopY } from './gop-y-loc-nguon';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 const SESSION_COOKIE = 'mos2-session';
@@ -283,7 +284,11 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     const r = (rows as unknown as Array<Record<string, unknown>>)[0];
     if (!r) continue;
     // Khách một trang: ngoài đúng host của họ thì phiên này không tồn tại (gác ở GỐC — mọi trang, action, API đọc qua đây)
-    if (r.chi_host && String(r.chi_host).toLowerCase() !== await hostHienTai()) continue;
+    // … trừ HÒM GÓP Ý NHÚNG từ đúng host của họ (iframe mos2.on.tc/nhung/gop-y trên studio2.on.tc — doanhoe 24/11/2026: hòm trắng vì phiên "chưa đăng nhập" trong khung)
+    if (r.chi_host) {
+      const ch = String(r.chi_host).toLowerCase(), hd = await headers();
+      if (ch !== await hostHienTai() && noiNhungGopY(hd.get('host'), hd.get('referer'), hd.get('sec-fetch-dest')) !== ch) continue;
+    }
     // Touch last_seen_at (best-effort)
     db.execute(sql`UPDATE auth_sessions SET last_seen_at = NOW() WHERE session_token = ${token}`).catch(() => {});
     return {

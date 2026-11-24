@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { boLocNguon, laTrangTinh, trangRieng } from './gop-y-loc-nguon';
+import { boLocNguon, laTrangTinh, trangRieng, noiNhungGopY } from './gop-y-loc-nguon';
 
 const hien = (host: string, ref: string | null, src: string) => { const l = boLocNguon(host, ref); return new RegExp(l.mau).test(src) === l.khop; };
 const C = 'https://castle.on.tc/neuschwanstein.html', E = 'https://etp.on.tc/x', E2 = 'https://etp2.on.tc/', M = 'https://mos2.on.tc/?tab=taisan';
@@ -57,4 +57,12 @@ assert.equal(laTrangTinh('mos2.on.tc'), false);
 assert.equal(trangRieng('worlds.on.tc')?.kySu, 'giang');
 assert.equal(trangRieng('castle.on.tc')?.kySu, 'thang');
 assert.equal(trangRieng('mos2.on.tc')?.kySu, undefined);
+// hòm nhúng: lượt nạp khung từ studio2 · action trong khung · bấm link (document) không tính · referer giả cùng host ngoài /nhung không tính
+const S2N = 'https://studio2.on.tc/?phim=8180', refS2 = 'https://mos2.on.tc/nhung/gop-y?trang=' + encodeURIComponent(S2N);
+assert.equal(noiNhungGopY('mos2.on.tc', 'https://studio2.on.tc/', 'iframe'), 'studio2.on.tc');
+assert.equal(noiNhungGopY('mos2.on.tc', 'https://studio2.on.tc/', 'document'), null);
+assert.equal(noiNhungGopY('mos2.on.tc:443', refS2, 'empty'), 'studio2.on.tc');
+assert.equal(noiNhungGopY('mos2.on.tc', 'https://mos2.on.tc/p/x/board?trang=' + encodeURIComponent(S2), 'empty'), null);
+assert.equal(noiNhungGopY('mos2.on.tc', null, 'iframe'), null);
+assert.equal(noiNhungGopY('mos2.on.tc', 'https://mos2.on.tc/nhung/gop-y', 'empty'), null);
 console.log('gop-y-loc-nguon: đạt');

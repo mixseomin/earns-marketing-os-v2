@@ -41,6 +41,17 @@ export function noiDangXem(host: string | null | undefined, referer?: string | n
   return h;
 }
 
+/** Host trang ngoài đang mở HÒM GÓP Ý NHÚNG trong yêu cầu này, hoặc null. Hai dạng: chính lượt nạp khung (Sec-Fetch-Dest iframe, referer = trang ngoài)
+ *  và lượt gọi bên trong khung (action / ảnh: referer = <host này>/nhung/gop-y?trang=…). Bấm link từ trang ngoài sang mos2 (dest = document) KHÔNG tính.
+ *  Dùng ở: phiên khách một trang (lib/auth.ts — users.chi_host sống thêm trong hòm nhúng từ host của họ) · quyền hòm studio2 (lib/gop-y-quyen-s2.ts). */
+export function noiNhungGopY(host: string | null | undefined, referer: string | null | undefined, dest: string | null | undefined): string | null {
+  let r: URL; try { r = new URL(String(referer ?? '')); } catch { return null; }
+  const rh = r.hostname.toLowerCase();
+  if (rh !== hostCua(host)) return dest === 'iframe' ? rh : null;
+  if (!r.pathname.startsWith('/nhung/gop-y')) return null;
+  try { return new URL(r.searchParams.get('trang') || '').hostname.toLowerCase() || null; } catch { return null; }
+}
+
 export function boLocNguon(host: string | null | undefined, referer?: string | null): LocNguon {
   const t = trangRieng(noiDangXem(host, referer));
   return t ? { mau: mauNguon(t.host), khop: true } : { mau: NGOAI_MOS2, khop: false };

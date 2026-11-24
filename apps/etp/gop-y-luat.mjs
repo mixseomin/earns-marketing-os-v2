@@ -1440,6 +1440,7 @@ export const LUAT = [
   { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: 'raise ValueError(f"phim cấm — lệnh trực tiếp cũng không miễn: {ly_cam}")', vi: 'phim cấm vẫn chặn lệnh trực tiếp' },
   { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/ethopex_api.py', co: 'tt = bool(ve) and bool(CG.truc_tiep(v, ids, ct))', vi: 'cửa API: vé trực tiếp miễn dừng khẩn / ít nước / bảo trì / phanh chợ, sổ cửa ghi truc_tiep' },
   { card: 'chi-len-theo-lenh-2511', tep: 'apps/etp/cong.py', co: 'if viec in ("tao_camp", "nhan_ban") and ch.get(KHOA_CHI_LENH) and not ve: return LY_CHI_LENH', vi: 'chốt tổng: máy không tự tạo camp / nhân bản khi etp.cau_hinh.chi_len_theo_lenh bật (anh 25/11/2026)' },
+  { card: 'nhiem-vu-ngay-2511', tep: 'apps/etp/cong.py', co: 'if v == "nhan_ban" and not ngay:   # nhiệm vụ ngày', vi: 'vé trực tiếp lên camp mới từ CLI không vượt nhiệm vụ ngày (anh 25/11/2026 "CẤM TỰ LÊN NGOÀI NHIỆM VỤ HÔM NAY")' },
   { card: 'chi-len-theo-lenh-2511', tep: 'apps/etp/lo_trinh_phim.py', co: 'elif ly and ch.get(CG.KHOA_CHI_LENH): sx["chi_lenh"] = True', vi: 'chỉ lên theo lệnh: không sản xuất kho dự trữ hồi chợ' },
   { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/ve_tay.sql', co: "alter table etp.ve_tay add column if not exists loai text not null default 'tay';", vi: 'vé có cột loại (tay / truc_tiep)' },
   { card: 'kiem-soat-cong-1811', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "await xinVeTay(lenh[0] as 'tang' | 'bat', { camp: campId, ai: AI })", vi: 'nút tăng / bật etp2 xin vé cho đúng camp' },

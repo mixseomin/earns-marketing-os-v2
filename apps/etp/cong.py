@@ -288,6 +288,10 @@ def ve_truc_tiep(viec, camp_id=None, content_id=None, lenh="", ns=None, phien=""
     if cid is not None and viec != "nhan_ban" and _q(f"select 1 from etp.camp_ngoai where camp_id = {cid}") == "1": raise ValueError(f"camp #{cid} là camp đội (camp_ngoai) — lệnh trực tiếp chỉ cho tài khoản nhà")
     ly_cam = phim_cam([cid] if cid else (), [ct] if ct else ())
     if ly_cam: raise ValueError(f"phim cấm — lệnh trực tiếp cũng không miễn: {ly_cam}")
+    if v == "nhan_ban" and not ngay:   # nhiệm vụ ngày (anh 25/11/2026): vé lên camp mới từ CLI không vượt số camp anh duyệt cho hôm nay — KHÔNG có cảnh báo một lần, chặn cứng
+        _nv = _q(f"select coalesce((select gia_tri::text from etp.cau_hinh where khoa = '{KHOA_NHIEM_VU}'), 'null')")
+        _ly = ngoai_nhiem_vu(json.loads(_nv or "null"), int(_q(SQL_VE_LEN_NGAY) or 0), _q("select (now() at time zone 'Asia/Ho_Chi_Minh')::date"))
+        if _ly: raise ValueError(_ly)
     os.environ.pop("ETP_VE", None)
     ly = kiem(viec, cid, ns, float(_q(f"select coalesce(ngan_sach, 0) from etp.camp where camp_id = {cid}") or 0) if cid else 0, content_id=ct)
     phanh = [ly] if ly else []
@@ -297,7 +301,7 @@ def ve_truc_tiep(viec, camp_id=None, content_id=None, lenh="", ns=None, phien=""
         _q(f"insert into etp.ve_canh_bao (viec, camp_id, content_id, lenh, phanh) values ('{v}', {cid if cid is not None else 'null'}, {ct if ct is not None else 'null'}, $L${lenh[:500]}$L$, $P${phanh[0].replace('$', '')[:500]}$P$)")
         return None, phanh
     if phanh: _q(f"update etp.ve_canh_bao set da_cap = now() where {dk} and da_cap is null")
-    ma = secrets.token_hex(16); ai = f"anh — TRỰC TIẾP: {lenh[:90]}"; ph = str(phien or os.environ.get("CLAUDE_SESSION_ID") or os.environ.get("USER") or "?").replace("$", "")[:120]
+    ma = secrets.token_hex(16); ai = f"anh — TRỰC TIẾP: {lenh[:90]}"; ph = "nut-etp2" if ngay else str(phien or os.environ.get("CLAUDE_SESSION_ID") or os.environ.get("USER") or "?").replace("$", "")[:120]   # nút anh bấm ghi phiên riêng — không tính vào nhiệm vụ ngày
     _q(f"""insert into etp.ve_tay (ma, viec, camp_id, content_id, ai, het_han, loai, lenh, phien) values ('{ma}', '{v}', {cid if cid is not None else 'null'},
         coalesce({ct if ct is not None else 'null'}, (select content_id from etp.camp where camp_id = {cid if cid is not None else 'null'})), $A${ai}$A$,
         now() + interval '{VE_PHUT} minutes', 'truc_tiep', $L${lenh[:1000]}$L$, $S${ph}$S$)""")
@@ -346,6 +350,21 @@ LY_DUNG_KHAN = "ĐANG DỪNG KHẨN (etp.cau_hinh.dung_khan) — không tăng / 
 # Chỉ qua: vé lệnh trực tiếp (cong.py --ve-truc-tiep / nút ▶ Lên etp2) và vé tay của nút anh bấm. Bật / tăng / giảm / tắt camp đang có không đổi. Gỡ: đặt false.
 KHOA_CHI_LENH = "chi_len_theo_lenh"
 LY_CHI_LENH = "CHỈ LÊN CAMP MỚI THEO LỆNH ANH (etp.cau_hinh.chi_len_theo_lenh, anh 25/11/2026) — máy không tự tạo camp / nhân bản; lệnh trực tiếp hoặc nút anh bấm mới lên"
+# NHIỆM VỤ NGÀY (anh 25/11/2026 01:2x "CẤM TỰ LÊN NGOÀI NHIỆM VỤ HÔM NAY"): một phiên Claude tự cấp 72 vé trực tiếp nhân bản cho cả danh sách camp (/tmp/thay-loat.sh)
+# → Telegram báo nhân bản liên tục. Vé trực tiếp lên camp mới gõ từ CLI (không phải nút anh bấm trên etp2) chỉ cấp trong số camp của etp.cau_hinh.nhiem_vu_ngay
+# {ngay: 'YYYY-MM-DD' giờ VN, so_camp: N, ly_do} của ĐÚNG ngày hôm nay; không có nhiệm vụ ngày nay = 0 vé. Mỗi lần ghi nhiệm vụ phải là câu anh duyệt trong chat.
+KHOA_NHIEM_VU = "nhiem_vu_ngay"
+SQL_VE_LEN_NGAY = ("select count(*) from etp.ve_tay where loai = 'truc_tiep' and viec = 'nhan_ban' and coalesce(phien, '') <> 'nut-etp2'"
+                   " and (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date")
+def ngoai_nhiem_vu(nv, da_cap, hom_nay):
+    """hàm thuần: nhiệm vụ ngày (dict | None) + số vé lên camp đã cấp hôm nay + ngày VN 'YYYY-MM-DD' → câu chặn | None"""
+    nv = nv if isinstance(nv, dict) else {}
+    if str(nv.get("ngay") or "") != hom_nay:
+        return f"NGOÀI NHIỆM VỤ HÔM NAY: chưa có nhiệm vụ lên camp cho ngày {hom_nay[8:10]}/{hom_nay[5:7]} (etp.cau_hinh.{KHOA_NHIEM_VU}) — anh 25/11/2026 cấm tự lên ngoài nhiệm vụ"
+    tran = int(nv.get("so_camp") or 0)
+    if da_cap >= tran:
+        return f"NGOÀI NHIỆM VỤ HÔM NAY: đã cấp {da_cap}/{tran} vé lên camp của nhiệm vụ '{str(nv.get('ly_do') or '')[:80]}' — thêm camp phải anh duyệt nhiệm vụ mới"
+    return None
 # PHIM CẤM (anh 19/11/2026, Ethopex báo 10:07 "Number One, Nobody" 94344 + 143938 và "Me and Six Girls Against the Apocalypse" 173160 dính vi phạm: "tắt hết, KHÔNG lên mới,
 # KHÔNG bật lại, kể cả ★ ROAS"): phim trong sổ studio xv_khoa_ngoai ten='ethopex_phim_cam' ({content_id: {ly_do, luc}} — cùng sổ cấm 18+ của kiem-phim-18.py) → MỌI việc
 # tăng chi (tạo camp, nhân bản, ★ ROAS, bật lại kể cả lịch giờ, tăng) của camp / phim đó bị chặn ở chan_cua — kiem() lẫn cửa API (ethopex_api.cua) — KHÔNG miễn vé tay,
@@ -671,6 +690,8 @@ def _tu_kiem():
     assert chan_cua("nhan_ban", _ch, thay=True) is None and chan_cua("giam", _ch) is None and chan_cua("tat", _ch) is None
     assert chan_cua("nhan_ban", {**_ch, "dung_khan": True}, ve=True) == LY_DUNG_KHAN and chan_cua("bat", {"dung_khan": True}, lich=True) == LY_DUNG_KHAN, "dừng khẩn chặn cả vé, cả lịch"
     assert chan_cua("bat", _ch, lich=True) is None, "bật theo lịch giờ là việc hợp lệ"
+    assert ngoai_nhiem_vu(None, 0, "2026-11-25") and ngoai_nhiem_vu({"ngay": "2026-11-24", "so_camp": 99}, 0, "2026-11-25"), "không có nhiệm vụ đúng ngày = 0 vé"
+    assert ngoai_nhiem_vu({"ngay": "2026-11-25", "so_camp": 24}, 23, "2026-11-25") is None and ngoai_nhiem_vu({"ngay": "2026-11-25", "so_camp": 24}, 24, "2026-11-25"), "trần số camp nhiệm vụ"
     _cl = {KHOA_CHI_LENH: True}   # chỉ lên theo lệnh anh (25/11/2026): máy tạo / nhân bản / thay bài đều chặn; vé tay + lệnh trực tiếp qua; bật / tăng / tắt không đổi
     assert all(chan_cua(_v, _cl, **_k) == LY_CHI_LENH for _v in ("tao_camp", "nhan_ban") for _k in ({}, {"thay": True}, {"lich": True})), "máy tạo / nhân bản phải bị chặn"
     assert chan_cua("tao_camp", _cl, ve=True) is None and chan_cua("nhan_ban", _cl, tt=True) is None, "nút anh / lệnh trực tiếp vẫn lên"

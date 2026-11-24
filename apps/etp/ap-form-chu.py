@@ -51,7 +51,7 @@ def ban_nha(cr):
     if c.get("creative_type") != F["creative_type"] or not v: raise RuntimeError(f"creative {cr} không phải {F['creative_type']} có video — không sao")
     it = {"name": f"{c.get('name') or cr} - form nha", "content_id": int(c["content_id"]), "creative_type": F["creative_type"], "traffic_source": "facebook",
           "status": "active", "image_url": [], "video_url": v, **{k: BODY[k] for k in ("call_to_action", "link_url", "asset_spec")}}
-    j = EA.api("/api/v1/creatives/bulk-jobs", {"items": [it]})
+    j = EA.api("/api/v1/creatives/bulk-jobs", [it])   # thân là MẢNG trần (len-creative.py), bọc {"items": …} thì 400 unmarshal
     import time
     for _ in range(40):
         k = EA.api(f"/api/v1/creatives/bulk-jobs/{j['job_id']}")

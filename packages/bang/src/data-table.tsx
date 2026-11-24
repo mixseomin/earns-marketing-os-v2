@@ -192,6 +192,7 @@ const baseHead: CSSProperties = { ...baseCell, padding: '3px 10px', color: 'var(
 // Cột ghim (sticky đầu) không được rộng quá 1/3 màn — trên mobile nó tràn rồi che sạch cột bên phải.
 // vw = theo bề rộng MÀN, không theo bảng (bảng có thể rộng gấp mấy lần màn) → đúng cái user cần.
 const STICKY_MAX = '33vw';
+const TRAN_GHIM = 0.4;   // tổng bề ngang vùng cột ghim ≤ 40% khung cuộn
 
 // hex + alpha (8-digit) — matches the SEO table's per-group band shades (header ~0.22, body ~0.06).
 const band = (hex: string | undefined) => (hex ? `${hex}38` : undefined);
@@ -605,12 +606,21 @@ export function DataTable<T>({
     let n = 0; while (n < visible.length && goc.has(visible[n]!.key)) n++;
     return Math.max(Math.min(1, soGhimGoc), n);
   }, [colsXep, columns, soGhimGoc, shown, visible, ghimCot, anCot.length]);
+  // TRẦN VÙNG GHIM (anh 24/11/2026, etp2 Thiết lập ghim Camp + Vấn đề + 7 ngày: "sticky hết các khối này thì xem được à?"): tổng bề ngang các cột ghim
+  // không quá TRAN_GHIM khung cuộn — cột ghim nào vượt trần thì trôi như cột thường (bên gọi đặt stickyCols lớn, hay người ghim thêm trong menu, đều qua đây)
+  const rongKhungCuon = thanRef.current?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 0);
+  const soGhimHien = (() => {
+    if (soGhim <= 1 || cotDo.w.length < soGhim || !rongKhungCuon) return soGhim;
+    let n = 1, tong = cotDo.w[0]!;
+    while (n < soGhim && tong + cotDo.w[n]! <= rongKhungCuon * TRAN_GHIM) { tong += cotDo.w[n]!; n++; }
+    return n;
+  })();
   const ghim = (i: number): { left: number; cuoi: boolean } | null => {
-    if (i < 0 || i >= soGhim) return null;
-    if (i === 0) return { left: 0, cuoi: soGhim === 1 || cotDo.w.length < soGhim };
-    if (cotDo.w.length < soGhim) return null;
+    if (i < 0 || i >= soGhimHien) return null;
+    if (i === 0) return { left: 0, cuoi: soGhimHien === 1 || cotDo.w.length < soGhimHien };
+    if (cotDo.w.length < soGhimHien) return null;
     let left = 0; for (let k = 0; k < i; k++) left += cotDo.w[k]!;
-    return { left, cuoi: i === soGhim - 1 };
+    return { left, cuoi: i === soGhimHien - 1 };
   };
   const stick = (i: number, head: boolean): CSSProperties => {
     const g = ghim(i);
@@ -806,10 +816,10 @@ export function DataTable<T>({
     // (trước chỉ ô đầu dính → cuộn ngang, nhãn nhóm của cột ghim trôi đi còn nhãn nhóm sau chui vào trên cột ghim); (2) nhãn dài hơn dải → cắt … trong dải, hover đọc đủ
     // (trước nowrap tràn đè lên nhãn dải bên cạnh: "HÔM NAY (ĐANG CHẠY)" đè "HÔM QUA")
     const dai: { g?: string; n: number; i: number }[] = [];
-    visible.forEach((c, i) => { const d = dai[dai.length - 1]; if (d && d.g === c.group && (i < soGhim) === (d.i < soGhim)) d.n++; else dai.push({ g: c.group, n: 1, i }); });
+    visible.forEach((c, i) => { const d = dai[dai.length - 1]; if (d && d.g === c.group && (i < soGhimHien) === (d.i < soGhimHien)) d.n++; else dai.push({ g: c.group, n: 1, i }); });
     return (
       <tr>
-        {dai.map((d) => { const g = d.g ? groupMeta.get(d.g) : undefined, gh = ghim(d.i), cuoi = gh && d.i + d.n >= soGhim; return (
+        {dai.map((d) => { const g = d.g ? groupMeta.get(d.g) : undefined, gh = ghim(d.i), cuoi = gh && d.i + d.n >= soGhimHien; return (
           <th key={`${d.g ?? '-'}:${d.i}`} colSpan={d.n} style={{ ...baseHead, textAlign: 'center', color: g?.color ?? 'var(--fg-2)', fontWeight: 700, backgroundColor: 'var(--bg-2)',
             backgroundImage: g?.color ? `linear-gradient(${band(g.color)}, ${band(g.color)})` : undefined, borderLeft: d.i ? '1px solid var(--line)' : undefined,
             borderBottom: g ? `2px solid ${g.color ?? 'var(--line)'}` : undefined, overflow: 'hidden', textOverflow: 'ellipsis',

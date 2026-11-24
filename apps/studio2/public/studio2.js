@@ -1897,7 +1897,7 @@ async function aiGui(cau) {
   ls.push(aiMoi({ ai: 'nguoi', chu: hoi, doi: d.nhan, t: d.t })); AI.tab = null; if (o) o.value = ''; aiNhap(''); AI.dang = true; aiLuu(); aiVe();
   try { const k = await ghiSv('lenhAiS2', D.that.phim, D.that.tap, { loai: d.loai, canhId: d.canhId ?? null, mauId: d.mauId ?? null }, hoi, lich);
     const m = aiMoi({ ai: 'may', t: d.t, chu: k.tra_loi || 'Xong.', da_lam: k.da_lam || [], de_xuat: k.de_xuat || [], loai_cau: k.loai_cau || 'lenh', ngoai_hd: !!k.ngoai_hd, hoi, chi_cho: k.chi_cho || null, chi_canh: k.chi_canh || null }); ls.push(m);
-    if (m.chi_cho && CHO_MAN[m.chi_cho]) { const t = chiCho(m.chi_cho, m.chi_canh); if (t) m.chu += ` ${t}`; } if ((k.da_lam || []).length) await taiLai(true);
+    if (m.chi_cho && CHO_MAN[m.chi_cho]) { const r = chiCho(m.chi_cho, m.chi_canh); if (r.thay) m.chu = r.t; else if (r.t) m.chu += ` ${r.t}`; } if ((k.da_lam || []).length) await taiLai(true);
     // câu hỏi kiến thức chỉ GỢI Ý thẻ sinh lại, không tự chạy kể cả dưới ngưỡng: người dùng hỏi chứ chưa ra lệnh
     if (m.de_xuat.length && m.loai_cau === 'lenh') { if (!E.gia) await napQt(true).catch(() => {}); const tong = m.de_xuat.reduce((a, v) => (a == null || aiCent(v) == null ? null : a + aiCent(v)), 0);
       if (tong != null && tong <= AI_NGUONG_CENT) { m.chu += ` Chi phí khoảng ${tienDo(tong)}, dưới ngưỡng nên tự chạy luôn.`; m.chuoi = true; aiChuoi(m); } }
@@ -1912,7 +1912,7 @@ async function aiBam(e) {
     if (t === 'tap') { E.aiMau = null; E.chon = null; veD(); aiVe(); return; } if (t === 'nhac') { E.aiMau = null; chon('nhac', 'nhac'); return; }
     const id = +t.slice(1); if (t[0] === 'c') { if (vt(`s${id}`) < 0) { bao('Cảnh này không còn trong tập.'); aiVe(); return; } chon(`s${id}`, 'canh'); return; }
     if (!(D.that?.mau || []).some((x) => x.id === id)) { bao('Mẫu này không còn trong phim.'); aiVe(); return; } E.aiMau = E.muMo = id; E.muSua = null; veMu(); veNgan(); aiVe(); return; }
-  if (k === 'chi') { const m = ls[+b.dataset.i]; if (m?.chi_cho) { const t = chiCho(m.chi_cho, m.chi_canh); if (t) bao(t); } return; }
+  if (k === 'chi') { const m = ls[+b.dataset.i]; if (m?.chi_cho) { const r = chiCho(m.chi_cho, m.chi_canh); if (r.t) bao(r.t); } return; }
   if (k === 'g') { aiGui(b.textContent); return; }
   if (k === 'gui') { aiGui(); return; }
   if (k === 'chayhet' || k === 'bohet') { const m = ls[+b.dataset.i]; if (!m) return; if (k === 'bohet') m.de_xuat.forEach((v) => { if (!v.xong) v.xong = 'Đã bỏ.'; }); else { m.chuoi = true; aiChuoi(m); } aiLuu(); aiVe(); return; }
@@ -1988,11 +1988,11 @@ const CHO_MAN = {
   sinh_lai_clip: { w: 'tt', pro: true, tt: 'hinh', canh: 'clip', sel: '#dTt [data-g^="clip1:"]', ten: 'nút ↻ sinh lại clip (Thuộc tính › Hình)' },
   sinh_lai_anh: { w: 'tt', pro: true, tt: 'hinh', canh: 'anh', sel: '#dTt [data-g^="kf1:"]', ten: 'nút ↻ sinh lại keyframe (Thuộc tính › Hình)' },
   sinh_lai_giong: { w: 'tt', pro: true, tt: 'hinh', canh: 'giong', sel: '#dTt [data-g^="giong1:"]', ten: 'nút ↻ sinh lại lời đọc (Thuộc tính › Hình)' },
-  luu_ve: { sel: '#dLuu [data-d=luuVe]', ten: 'nút Lưu về studio', vang: 'Nút "Lưu N chỗ sửa về studio" chỉ hiện trên thanh trên khi có chỗ sửa chưa lưu; hiện chưa có chỗ nào.' },
+  luu_ve: { sel: '#dLuu [data-d=luuVe]', ten: 'nút Lưu về studio', du: '#dTren', vang: 'Nút "Lưu N chỗ sửa về studio" chỉ hiện trên thanh trên khi có chỗ sửa chưa lưu; hiện chưa có chỗ nào.' },
   gop_y: { sel: '#dTren [data-gop-y-mo]', ten: 'nút 💬 Góp ý' },
   menu_tong: { sel: '#dTren [data-d=menu][data-g=tong]', ten: 'menu tổng ☰' },
   menu_phim: { sel: '#dTren [data-d=menu][data-g=da]', ten: 'menu tên phim' },
-  tao_video: { sel: '#dTren [data-d=taoThat]', ten: 'nút ＋ tạo video', vang: 'Bản này không có nút ＋ trên thanh trên: mở menu tổng ☰ › Video › tạo video.' },
+  tao_video: { sel: '#dTren [data-d=taoThat]', ten: 'nút ＋ tạo video', du: '#dTren [data-d=menu][data-g=tong]', vang: 'Bản này không có nút ＋ trên thanh trên: mở menu tổng ☰ › Video › tạo video.' },
   ban_gon_pro: { sel: '#dTren [data-d=ban]', ten: 'nút Gọn / Pro' },
   bo_cuc: { pro: true, sel: '#dTren [data-d=menu][data-g=bc]', ten: 'menu Bố cục' },
   them_canh: { sel: '[data-d=themCanh]', ten: 'nút ＋ cảnh trên timeline' },
@@ -2015,10 +2015,10 @@ function chiCanh(loai, so) {
   if (so && D.canh[so - 1]) return D.canh[so - 1].id; if (canhChon()) return canhChon().id;
   const g = (c) => GOC[c.id] || {}, hop = { clip: (c) => g(c).video_url || g(c).video_cuoi_url, anh: (c) => g(c).keyframe_url, giong: (c) => coGiong(c) }[loai];
   return (hop && D.canh.find(hop))?.id || D.canh[0]?.id; }
-/** mở tới chỗ k rồi tô sáng; trả câu báo thêm (chuyển bản / phần tử chưa hiện) hoặc '' */
+/** mở tới chỗ k rồi tô sáng; trả { t: câu báo thêm, thay: true khi phần tử chưa hiện — câu "Đã mở tới…" của máy chủ sai, thay hẳn bằng t } */
 let hChi = 0;
 function chiCho(k, so) {
-  const x = CHO_MAN[k]; if (!x || !D.that) return ''; const them = [];
+  const x = CHO_MAN[k]; if (!x || !D.that) return { t: '', thay: false }; const them = []; let thay = false;
   if (x.pro && !pro()) { lamD('ban', { g: 'pro' }); them.push('Đã chuyển sang bản Pro (chỗ này chỉ bản Pro có).'); }
   if (x.w && !co(x.w)) { const ds = E.bc[D.loai]; if (!ds.includes(x.w)) ds.splice(ds.includes('tt') && x.w !== 'tt' ? ds.indexOf('tt') : ds.length, 0, x.w); delete E.luoi.ten[D.loai]; }
   if (x.w) { const gr = (E.luoi.nhom?.[D.loai] || []).find((g) => g.ds.includes(x.w)); if (gr) gr.mo = x.w; }
@@ -2028,14 +2028,14 @@ function chiCho(k, so) {
   if (x.tt) E.ttTab = x.tt; E.menu = null; luu(); veD();
   // khung hay vẽ lại (aiVe, nạp lại tập, đổi cảnh) nên tô sáng được gắn lại mỗi 250 ms tới hết 4,5 giây, cuộn chỉ một lần khi thấy phần tử
   clearInterval(hChi); document.querySelectorAll('.s2-chi').forEach((e) => e.classList.remove('s2-chi'));
-  const tim = () => [...document.querySelectorAll(x.sel)].find((e) => e.getClientRects().length) || (x.w && document.getElementById(`w-${x.w}`));
+  const tim = () => [...document.querySelectorAll(x.sel)].find((e) => e.getClientRects().length) || (x.du && document.querySelector(x.du)) || (x.w && document.getElementById(`w-${x.w}`));
   let cuon = false; const het = Date.now() + 4500;
   hChi = setInterval(() => { const el = tim(); if (Date.now() > het) { clearInterval(hChi); document.querySelectorAll('.s2-chi').forEach((e) => e.classList.remove('s2-chi')); return; }
     if (!el) return; if (!cuon) { cuon = true; el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' }); } el.classList.add('s2-chi'); }, 250);
   const coEl = () => [...document.querySelectorAll(x.sel)].some((e) => e.getClientRects().length);
-  if (!coEl() && x.vang) them.push(x.vang);
+  if (!coEl() && x.vang) { them.length = 0; them.push(x.vang); thay = true; }
   else if (x.sel.includes('clip1') && coEl() && document.querySelector(x.sel)?.disabled) them.push('Nút đang mờ vì ảnh của cảnh chưa duyệt: duyệt ảnh trước, studio mới cho dựng clip.');
-  return them.join(' '); }
+  return { t: them.join(' '), thay }; }
 
 // ngăn kéo chi tiết mẫu (người, bối cảnh, đồ vật): nhiều thông tin nên mở ngăn bên phải thay vì bung trong widget
 let MU_CT = null;

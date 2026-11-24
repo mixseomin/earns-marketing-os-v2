@@ -517,6 +517,9 @@ body.ai-mo{padding-right:360px}
 .ai-p summary{cursor:pointer;opacity:.8}.ai-p pre{white-space:pre-wrap;max-height:180px;overflow:auto;font-size:11px;padding:6px;border-radius:6px;background:var(--mat);border:1px solid var(--line);margin:4px 0}
 .bs-ds{display:flex;flex-direction:column;gap:8px}.bs-o{display:flex;flex-direction:column;gap:4px;padding:6px;border:1px solid var(--line);border-radius:8px}.bs-o video{width:100%;max-height:180px;border-radius:6px;background:#000}.bs-o audio{width:100%}
 /* sáng đối tượng (rê tin Lệnh AI, kết quả tìm) · ô tìm chung · ngăn kéo chi tiết mẫu */
+.s2-chi { outline: 3px solid var(--brass) !important; outline-offset: 2px; animation: s2Chi 0.9s ease-in-out 5; position: relative; z-index: 4 }
+@keyframes s2Chi { 50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--brass) 35%, transparent) } }
+@media (prefers-reduced-motion: reduce) { .s2-chi { animation: none; box-shadow: 0 0 0 6px color-mix(in srgb, var(--brass) 28%, transparent) !important } }
 .s2-sang { outline: 3px solid var(--brass) !important; outline-offset: 1px; box-shadow: 0 0 0 6px color-mix(in srgb, var(--brass) 28%, transparent) !important; position: relative; z-index: 3 }
 #aiDock [data-hl] { cursor: default } #aiDock li[data-hl]:hover, #aiDock .ai-the[data-hl]:hover { background: var(--brass-nhat); border-radius: 6px }
 .s2-tim { position: relative; flex: 0 1 260px; min-width: 120px } .s2-tim input { width: 100%; font: 13px var(--f-than); padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--mat); color: var(--ink) }

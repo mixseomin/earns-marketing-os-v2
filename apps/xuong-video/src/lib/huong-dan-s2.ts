@@ -45,3 +45,33 @@ CREDIT, ĐỘI, HỖ TRỢ
 - Người không phải quản trị dùng Studio 2 khi quản trị cấp quyền ("Đội và quyền": Dùng · Bấm bước tốn tiền), chỉ thấy video mình tạo.
 - Nút 💬 Góp ý trên thanh trên: báo lỗi / hỏi đội, dán ảnh, chụp trang; tab card đã gửi xem trả lời; tab Hỏi đáp.
 `.trim();
+
+/** CHỖ TRÊN MÀN mà Lệnh AI chỉ tới được (anh 24/11/2026: hỏi "nút X ở đâu" thì máy mở đúng widget / tab, cuộn tới và tô sáng).
+ *  Khoá phải khớp sổ CHO_MAN trong apps/studio2/public/studio2.js (cách mở từng chỗ nằm ở đó). */
+export const CHO_MAN_S2 = [
+  ['sinh_lai_clip', 'nút ↻ Sinh lại clip của cảnh (Thuộc tính › Hình)'],
+  ['sinh_lai_anh', 'nút ↻ Sinh lại keyframe / ảnh cảnh (Thuộc tính › Hình)'],
+  ['sinh_lai_giong', 'nút ↻ Sinh lại lời đọc của cảnh (Thuộc tính › Hình)'],
+  ['luu_ve', 'nút "Lưu N chỗ sửa về studio" (thanh trên)'],
+  ['gop_y', 'nút 💬 Góp ý (thanh trên)'],
+  ['menu_tong', 'menu tổng ☰ (đầu thanh trên)'],
+  ['menu_phim', 'menu tên phim: tìm / mở video (thanh trên)'],
+  ['tao_video', 'nút ＋ tạo video'],
+  ['ban_gon_pro', 'nút chuyển bản Gọn / Pro'],
+  ['bo_cuc', 'menu Bố cục (bản Pro)'],
+  ['them_canh', 'nút ＋ cảnh trên timeline'],
+  ['timeline', 'timeline cảnh / âm thanh'],
+  ['thuoc_tinh', 'widget Thuộc tính của cảnh'],
+  ['quy_trinh', 'widget Quy trình'],
+  ['hang_doi', 'widget Hàng đợi'],
+  ['cam_nang', 'widget Cẩm nang'],
+  ['nhat_ky', 'widget Nhật ký'],
+  ['lenh_ai', 'khung Lệnh AI'],
+  ['ve_anh', 'bước vẽ ảnh keyframe (Quy trình › Keyframe)'],
+  ['doc_loi', 'bước đọc lời (Quy trình › Giọng)'],
+  ['chot_nhip', 'bước Chốt nhịp trước khi dựng clip (Quy trình › Clip)'],
+  ['dung_clip', 'bước dựng clip (Quy trình › Clip)'],
+  ['nguoi_xem', 'mục Người xem hiểu phim (Quy trình)'],
+  ['xuat', 'bước xuất video (Quy trình)'],
+] as const;
+export type ChoManS2 = (typeof CHO_MAN_S2)[number][0];

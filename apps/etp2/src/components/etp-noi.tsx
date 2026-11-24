@@ -22,12 +22,17 @@ export function DongMoc({ ds, rong = 'Chưa có mốc nào.', gon = false }: { d
   </div> : <div style={{ color: 'var(--fg-2)' }}>{rong}</div>;
 }
 // THẺ NỔI CHUNG CHO MỌI HOVER MỚI (anh 04/11/2026 "tất cả hover đều phải dùng loại này"): cùng khung thẻ bậc — đầu thẻ (mã · tên), dòng lớn có màu, các mốc DongMoc
-export type TheNoi = { ma?: string; ten?: string | null; tieu: string; mau: string; moc: Moc[] };
+/** bang = BẢNG SỐ nhỏ trong thẻ (anh 24/11/2026 AB09 "bảng so sánh thời gian thực của cả 2 camp"): dau = tiêu đề cột, dong = ô từng dòng, chan = dòng chú thích dưới bảng; rong = bề ngang thẻ (mặc định 380) */
+export type TheNoi = { ma?: string; ten?: string | null; tieu: string; mau: string; moc: Moc[]; bang?: { dau: string[]; dong: React.ReactNode[][]; chan?: string } | null; rong?: number };
 export function TheChung({ t }: { t: TheNoi }) {
-  return <div style={{ width: 380, maxWidth: '92vw', maxHeight: 440, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
+  return <div style={{ width: t.rong ?? 380, maxWidth: '92vw', maxHeight: 440, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
     {t.ma || t.ten ? <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid var(--line)' }}>
       {t.ma ? <b style={{ fontSize: 13, flex: 'none' }}>{t.ma}</b> : null}<span style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.ten ?? ''}</span></div> : null}
     <div style={{ marginBottom: 8 }}><b style={{ fontSize: 13, color: t.mau }}>{t.tieu}</b></div>
+    {t.bang ? <div style={{ marginBottom: 10 }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>
+      <thead><tr>{t.bang.dau.map((d, i) => <th key={i} style={{ textAlign: i ? 'right' : 'left', fontWeight: 500, color: 'var(--fg-3)', padding: '2px 4px', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' }}>{d}</th>)}</tr></thead>
+      <tbody>{t.bang.dong.map((r, j) => <tr key={j}>{r.map((o, i) => <td key={i} style={{ textAlign: i ? 'right' : 'left', padding: '3px 4px', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap', verticalAlign: 'top' }}>{o}</td>)}</tr>)}</tbody></table>
+      {t.bang.chan ? <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--fg-3)' }}>{t.bang.chan}</div> : null}</div> : null}
     <DongMoc ds={t.moc} /></div>;
 }
 export function ReThe({ the, children, rong = 380, cao = 320 }: { the: () => TheNoi; children: React.ReactNode; rong?: number; cao?: number }) {

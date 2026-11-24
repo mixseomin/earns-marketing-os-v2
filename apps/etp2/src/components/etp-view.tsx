@@ -2184,9 +2184,21 @@ const coNuoc = (g: string) => String.fromCodePoint(...[...g.toUpperCase()].map((
 /** nhãn LẦN A/B trên ô camp (sổ etp.ab): chỉ mã "AB01" — viền tím = nhánh thử · viền xám = đối chứng; nhánh, biến thử, giả thuyết ở thẻ nổi chung
  *  (anh 06/11/2026 #1546 "Cho gọn lại. Thông tin chi tiết vào hover" — trước "AB01 · 39 nước" chiếm nửa ô) */
 const ngayVn = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
-function NhanAb({ ab }: { ab?: CampEtpKho['ab'] }) {
-  if (!ab) return null; const thu = ab.nhanh === 'thu', mau = thu ? '#a78bfa' : '#94a3b8';
-  return <ReThe the={() => ({ ma: ab.ma, ten: ab.ten, tieu: thu ? 'Nhánh THỬ' : 'Nhánh ĐỐI CHỨNG', mau, moc: [
+// BẢN SAO ↔ GỐC (anh 24/11/2026 AB09 "nếu là bản sao thì hiện thêm bảng so sánh thời gian thực của cả 2 camp"): số cả hai camp cùng khung — hôm nay (ngày Ethopex, khép 07:00 VN)
+// + từ ngày bản sao lên; số làm mới mỗi lượt đồng bộ (etp-doc CapSoSanh)
+function oSoAb(s: { chi: number; thu: number }) {
+  const roi = s.chi > 0 ? (s.thu - s.chi) / s.chi * 100 : null;
+  return <span>${s.chi.toFixed(2)} → ${s.thu.toFixed(2)} <b style={{ color: roi == null ? 'var(--fg-3)' : roi >= 0 ? '#4ade80' : '#f87171' }}>{roi == null ? '—' : `${roi >= 0 ? '+' : '−'}${Math.abs(roi).toFixed(0)}%`}</b></span>;
+}
+function bangAb(cap: NonNullable<NonNullable<CampEtpKho['ab']>['cap']>, ban: number) {
+  const ns = (v: number | null, tt: string | null) => <span>{v == null ? '—' : `$${v}`}{tt && tt !== 'ACTIVE' ? <span style={{ color: 'var(--fg-3)' }}> · {tt === 'PAUSED' ? 'dừng' : tt.toLowerCase()}</span> : null}</span>;
+  return { dau: ['Camp', 'Ngân sách', 'Hôm nay chi → thu · ROI', `Từ ${ngayVn(cap.tu)}`], chan: `cập nhật ${cap.capNhat ? gioVn(cap.capNhat) : '—'} (GMT+7) · số làm mới mỗi lượt đồng bộ ~10–15 phút`,
+    dong: [[<span key="b">Bản sao <b>#{ban}</b> · Nhà</span>, ns(cap.ban.ns, cap.ban.trang), oSoAb(cap.ban.nay), oSoAb(cap.ban.tu)],
+      [<span key="g">Gốc <b>#{cap.goc}</b> · {cap.gocNguoi ?? 'đội'}</span>, ns(cap.doi.ns, cap.doi.trang), oSoAb(cap.doi.nay), oSoAb(cap.doi.tu)]] };
+}
+function NhanAb({ ab, ban }: { ab?: CampEtpKho['ab']; ban?: number }) {
+  if (!ab) return null; const thu = ab.nhanh === 'thu', mau = thu ? '#a78bfa' : '#94a3b8', cap = ab.cap && ban ? ab.cap : null;
+  return <ReThe rong={cap ? 560 : 380} cao={cap ? 400 : 320} the={() => ({ ma: ab.ma, ten: ab.ten, tieu: thu ? 'Nhánh THỬ' : 'Nhánh ĐỐI CHỨNG', mau, rong: cap ? 560 : 380, bang: cap ? bangAb(cap, ban as number) : null, moc: [
       { ten: 'Nhánh', mau, so: ab.nhanhTen, luc: `từ ${ngayVn(ab.batDau)}` },
       ...(ab.giaThuyet ? [{ ten: 'Giả thuyết', mau: '#94a3b8', chu: ab.giaThuyet }] : [])] })}>
     <span style={{ fontSize: 10, padding: '0 4px', borderRadius: 4, cursor: 'help', whiteSpace: 'nowrap', color: thu ? '#c4b5fd' : 'var(--fg-2)', border: `1px solid ${thu ? '#8b5cf6' : 'var(--line)'}` }}>{ab.ma}</span></ReThe>;
@@ -2555,7 +2567,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
           <span style={{ width: 8, textAlign: 'center', fontSize: 10 }}>⏳</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /><b style={{ color: laRoas(c) ? MAU_ROAS : '#60a5fa', opacity: 0.75 }}>cr #{c.creative_id}</b>
           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} /><span style={{ minWidth: 22 }} /></span></span>;
         const n = dem(c); return <span data-o="camp-cay" style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} />
-        <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><CoNuoc nuoc={c.nuoc ?? []} /><NhanAb ab={c.ab} />
+        <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><CoNuoc nuoc={c.nuoc ?? []} /><NhanAb ab={c.ab} ban={c.camp_id} />
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} />
         {/* bỏ dấu ⚠ nhân bản lỗi (#1524 anh 04/11/2026 "bỏ các thông báo lỗi này · chỉnh thể loại thẳng cột"): ô số bản nhân luôn rộng 22px → badge loại thẳng một cột */}
         {n ? <ReThe the={() => ({ ma: `#${c.camp_id}`, ten: c.ten, tieu: `${n} bản nhân`, mau: '#94a3b8', moc: [{ ten: 'Nhân bản', mau: '#94a3b8', so: `x${n}`, chu: 'camp nhân y nguyên từ camp này (cùng creative) — mở ▶ xem từng bản' }] })}><span style={{ color: 'var(--fg-2)', fontSize: 11, minWidth: 22, textAlign: 'right', cursor: 'help' }}>x{n}</span></ReThe>

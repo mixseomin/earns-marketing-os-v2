@@ -34,7 +34,7 @@ export type CampEtpKho = { camp_id: number; /** miền trang đích của ad (Et
   nuoc: { g: string; c: number; t: number }[];
   /** LẦN A/B camp thuộc về (sổ etp.ab + etp.camp_ab, migration 0426 — anh 05/11/2026 "nhiều kiểu thử khác nhau … đặt tên để dễ nắm bắt"):
    *  ma AB01… · ten = biến thử ("Nhắm nước") · nhanh thu (nhánh thử) / doi (đối chứng) · nhanhTen = tên nhánh ("4 nước"); chỉ Nhà */
-  ab?: { ma: string; ten: string; kieu: string; nhanh: 'thu' | 'doi'; nhanhTen: string; giaThuyet: string | null; batDau: string } | null;
+  ab?: { ma: string; ten: string; kieu: string; nhanh: 'thu' | 'doi'; nhanhTen: string; giaThuyet: string | null; batDau: string; cap?: CapSoSanh | null } | null;
   /** LÝ DO DỪNG (anh 02/11/2026 "hover vào status dừng thì show lý do dừng, ai dừng"): từ lịch sử camp Ethopex + nhật ký luật (máy luật ghi mỗi nhịp, etp.bao nhóm 'dong') — chỉ Nhà */
   /** lý do dừng có CẤU TRÚC (03/11/2026 anh 'trình bày cho chuẩn'): ma = mã luật theo sổ luật chung (luatDaLam), dieu = điều kiện luật, duyet = ai duyệt luật */
   dong?: { luc: string; ly_do: string; ma?: string | null; dieu?: string | null; duyet?: string | null } | null;
@@ -181,6 +181,11 @@ if (ROAS_LAI !== BANG_LUAT.roas_lai) throw new Error('etp-doc ROAS_LAI lệch s�
 /** lên ROAS sớm (Dol 09/11/2026, anh duyệt): chi 30 ngày ≥ $20 & ROI ≥ 50% — HOẶC với lãi ≥ $75; máy luật ROAS_CHI / ROAS_ROI đọc cùng sổ */
 const ROAS_LEN = BANG_LUAT.roas_len as { chi: number; roi: number };
 const n = (v: unknown) => Number(v ?? 0) || 0;
+/** BẢN SAO ↔ CAMP GỐC (anh 24/11/2026 AB09 "nếu là bản sao thì hiện thêm bảng so sánh thời gian thực của cả 2 camp"): camp trong một lần A/B có etp.camp.goc
+ *  → số cả hai camp cùng khung: hôm nay (ngày Ethopex = ngày UTC, khép 07:00 VN) + từ ngày bản sao lên; camp gốc là Nhà (etp.camp) hoặc đội (etp.camp_ngoai) — đọc view etp.so_ngay_ca
+ *  (apps/etp/ab_mau.py). capNhat = lần đồng bộ số mới nhất của hai camp (dong-bo.py ~10–15 phút / lần). */
+export type CapSoSanh = { goc: number; gocTen: string | null; gocNguoi: string | null; tu: string; capNhat: string | null;
+  ban: { ns: number | null; trang: string | null; nay: SoTien; tu: SoTien }; doi: { ns: number | null; trang: string | null; nay: SoTien; tu: SoTien } };
 // GỌN lop (anh 27/10/2026 "load chậm quá": lop = 1,9 MB / 3 MB dữ liệu trang, mọi tab đều phải chở):
 //  - chữ trên hình / lời nói / tóm tắt chỉ hiện trong thẻ hover tab Quét nội dung → KHÔNG gửi kèm trang; tab đó tự tải ngầm (actions/etp-cham chuCham)
 //  - danh sách khung là …/khung/<cr>/1..N.jpg?v=… → gửi một mẫu '{n}' + số khung (etp-view khungUrl dựng lại); lệch khuôn thì giữ nguyên danh sách
@@ -468,6 +473,25 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     thang: st(r.tc, r.tt), qua: st(r.qc, r.qt), nay: st(r.nc, r.nt), lich_tat: !!r.lich_tat, roas: r.roas == null ? null : n(r.roas), chien_luoc: (r.chien_luoc as string) ?? null, mien: (r.mien as string) || null,
     nuoc: ((r.nuoc as { g: string; c: unknown; t: unknown }[] | null) ?? []).map((x) => ({ g: x.g, c: n(x.c), t: n(x.t) })),
     ab: r.ab_ma ? { ma: String(r.ab_ma), ten: String(r.ab_ten), kieu: String(r.ab_kieu), nhanh: r.ab_nhanh === 'thu' ? 'thu' : 'doi', nhanhTen: String(r.ab_nhanh_ten ?? r.ab_nhanh), giaThuyet: (r.ab_gt as string) ?? null, batDau: String(r.ab_bd) } : null }));
+  // BẢNG SO SÁNH BẢN SAO ↔ GỐC (CapSoSanh): chỉ camp đang trong một lần A/B và có goc — một câu cho mọi cặp
+  const capDs = cs.filter((c) => c.ab && c.goc && c.tao);
+  if (capDs.length) {
+    const ids = capDs.map((c) => c.camp_id), capR = await run<Record<string, unknown>>(sql`with cp as (select c.camp_id ban, c.goc, (c.tao at time zone 'utc')::date tu from etp.camp c where c.camp_id in (${sql.join(ids.map((i) => sql`${i}`), sql`, `)}) and c.goc is not null),
+        so as (select cp.ban, x.camp_id, sum(x.chi) filter (where x.ngay = (now() at time zone 'utc')::date) nc, sum(x.thu) filter (where x.ngay = (now() at time zone 'utc')::date) nt, sum(x.chi) tc, sum(x.thu) tt
+          from cp join etp.so_ngay_ca x on x.camp_id in (cp.ban, cp.goc) and x.ngay >= cp.tu group by 1, 2),
+        cn as (select camp_id, max(cap_nhat) cn from (select camp_id, cap_nhat from etp.so_ngay union all select camp_id, cap_nhat from etp.so_ngay_ngoai) z where camp_id in (select ban from cp union select goc from cp) group by 1),
+        g as (select camp_id, ten, ngan_sach, trang_thai, ad_account_id from etp.camp where camp_id in (select goc from cp) union all
+          select camp_id, ten, ngan_sach, trang_thai, ad_account_id from etp.camp_ngoai where camp_id in (select goc from cp) and camp_id not in (select camp_id from etp.camp))
+      select cp.ban, cp.goc, cp.tu::text tu, g.ten goc_ten, g.ngan_sach goc_ns, g.trang_thai goc_trang, (select max(t.nguoi) from etp.tai_khoan t where t.ad_account_id = g.ad_account_id) goc_nguoi,
+        b.nc bnc, b.nt bnt, b.tc btc, b.tt btt, o.nc onc, o.nt ont, o.tc otc, o.tt ott, to_char(greatest(cb.cn, co.cn) at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') cap_nhat
+      from cp left join g on g.camp_id = cp.goc left join so b on b.ban = cp.ban and b.camp_id = cp.ban left join so o on o.ban = cp.ban and o.camp_id = cp.goc
+        left join cn cb on cb.camp_id = cp.ban left join cn co on co.camp_id = cp.goc`).catch((e) => { console.error('etp capSoSanh', e); return []; });
+    const theo = new Map(capR.map((r) => [n(r.ban), r]));
+    for (const c of capDs) { const r = theo.get(c.camp_id); if (!r || !c.ab) continue;
+      c.ab.cap = { goc: n(r.goc), gocTen: (r.goc_ten as string) ?? null, gocNguoi: (r.goc_nguoi as string) ?? null, tu: String(r.tu), capNhat: (r.cap_nhat as string) ?? null,
+        ban: { ns: c.ngan_sach, trang: c.trang_thai, nay: st(r.bnc, r.bnt), tu: st(r.btc, r.btt) },
+        doi: { ns: r.goc_ns == null ? null : n(r.goc_ns), trang: (r.goc_trang as string) ?? null, nay: st(r.onc, r.ont), tu: st(r.otc, r.ott) } }; }
+  }
   // CREATIVE ĐÃ DUYỆT CHỜ LÊN CAMP (anh 22/11/2026 "duyệt rồi thì phải cho vào table bên dưới"): ô vàng chỉ giữ creative CHƯA duyệt; creative đã duyệt chưa camp
   // thành dòng "xếp hàng" trong nhóm phim của nó ở bảng cây — camp_id = −creative_id; kiểu lên theo sổ len_cr_roas (★ ROAS) hay camp $1 (apps/etp/lenh_cho.py) — chỉ Nhà
   const hangRs = await runNha<Record<string, unknown>>(sql`select h.creative_id, r.content_id, f.ten phim, f.the_loai, r.dang, h.tao::text tao, coalesce(r.lang, 'en') lang, r.cta_dat cta,

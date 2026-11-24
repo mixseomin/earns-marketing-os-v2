@@ -1,11 +1,13 @@
 import { LoginPage } from '@/components/login-page';
 import { getCurrentUser, needsBootstrap, coCookieCong, ssoGateUrl } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { ghepNext } from '@/lib/login-next';
 
 export const dynamic = 'force-dynamic';
 
-export default async function LoginRoute({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
-  const sp = await searchParams;
+export default async function LoginRoute({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const raw = await searchParams;
+  const sp = { next: ghepNext(raw), error: typeof raw.error === 'string' ? raw.error : undefined };
   const me = await getCurrentUser();
   if (me) redirect(sp.next ?? '/');
   // Đã qua cổng Google .on.tc rồi thì vào thẳng, không bắt gõ lại mật khẩu. Việc đổi cookie cổng

@@ -173,7 +173,7 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
       sortValue: (r) => { const s = chu(r[key]); return PHAI.includes(kieu) && s != null && Number.isFinite(Number(s)) ? Number(s) : s ?? ''; } });
   const G = (key: string, group: string, header: string, title?: string): DataColumn<DongTl> => C(key, group, header, 72, title, 'gio');
   const ff = (k: string, header: string, rong: number, title?: string): DataColumn<DongTl> => ({ ...C(k, 'b5', header, rong, title), cell: oForm(k) });
-  const cotNay = (them?.cot ?? []).filter((k) => /^nay_/.test(k.key));
+  const cotNay = (them?.cot ?? []).filter((k) => k.group === 'ngay');   // nhóm 7 ngày gần nhất (useCotNgay của Cây, #1819)
   const soMuc = { do: 0, vang: 0, khong: 0 };
   for (const r of du?.dong ?? []) { const v = vanDe(r); if (v.some((x) => x.do)) soMuc.do++; if (v.some((x) => !x.do)) soMuc.vang++; if (!v.length) soMuc.khong++; }
   const cot: DataColumn<DongTl>[] = [
@@ -182,7 +182,7 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
         title="lọc theo mức vấn đề" style={{ fontSize: 10.5, padding: '0 2px', background: 'var(--bg-2, #1f1f2e)', color: muc === 'do' ? '#f87171' : muc === 'vang' ? '#fbbf24' : muc === 'khong' ? '#4ade80' : 'var(--fg-2)', border: '1px solid var(--line, #333)', borderRadius: 4 }}>
         <option value="">tất cả</option><option value="do">● đỏ ({soMuc.do})</option><option value="vang">● vàng ({soMuc.vang})</option><option value="khong">✓ không ({soMuc.khong})</option></select></span>, width: 230, align: 'left', sortValue: diemVd, cell: oVanDe,
       title: 'mọi vấn đề phát sinh của camp: form chữ lệch, Meta từ chối / có vấn đề, đồng bộ lỗi / treo, lỗi Ethopex, camp bật mà ad set / ad tắt, kho chưa đọc — rê chuột: 🛠 Sửa (AI)' },
-    // hiệu suất HÔM NAY ghim ngay sau Vấn đề (anh 24/11/2026), phần còn lại (phim, hôm qua, kỳ) theo sau
+    // hiệu suất 7 NGÀY GẦN NHẤT (6 ngày đã khép + nay, chính dải ngày của Cây) ghim ngay sau Vấn đề — thay nhóm Hôm nay / Hôm qua (anh 24/11/2026 #1819); phần còn lại (phim, kỳ) theo sau
     ...cotNay.map((k) => noiCot(k, (r) => theoId.get(r.camp_id))),
     ...(them?.cot ?? []).filter((k) => !cotNay.includes(k)).map((k) => noiCot(k, (r) => theoId.get(r.camp_id))),
     C('c_ten', 'b1', 'Tên camp', 230), C('c_bo', 'b1', 'Bộ', 16, 'bộ tài khoản', 'so'), C('c_tk', 'b1', 'TK QC', 110, 'mã tài khoản quảng cáo Meta', 'ma'), C('c_ext', 'b1', 'ID Meta', 110, 'mã campaign trên Meta', 'ma'),

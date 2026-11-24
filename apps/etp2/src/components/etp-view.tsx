@@ -2387,6 +2387,48 @@ const ghiTo = (m: ToChon) => O_TO.filter((k) => m[k]?.length).map((k) => `${k}:$
 const toSangDong = (hl: Set<number> | null | undefined, id: number, goc?: React.CSSProperties): React.CSSProperties | undefined =>
   hl?.has(id) ? { ...goc, ...TO_SANG, boxShadow: goc?.boxShadow ? `${goc.boxShadow}, inset 0 0 0 1px #facc15` : TO_SANG.boxShadow } : goc;
 
+// DẢI CỘT 7 NGÀY GẦN NHẤT DÙNG CHUNG (anh 24/11/2026 etp2 #1819 "Thay nhóm cột ngày hqua và hnay bằng cái này"): 6 ngày đã khép + 'nay', ô ROI có vạch lãi / lỗ,
+// dòng phim / dòng tổng ghi số camp có chi. MỘT nguồn cho Cây camp lẫn Thiết lập — bảng nào cần dải ngày thì gọi hàm này, không chép tay cột. Nhóm cột 'ngay'.
+const roiPt = (x?: SoTien) => (x && x.chi >= 0.3 ? Math.round(((x.thu - x.chi) / x.chi) * 100) : null);
+function useCotNgay(du: DuLieuEtp) {
+  // ĐỔI BẬC THEO NGÀY ETHOPEX (UTC) của từng camp — ô ngày của dòng camp chấm màu + liệt kê trong hover (#1504); dùng chung tên / màu VIEC_BAC của thẻ lịch sử bậc
+  const bacNgay = useMemo(() => { const m = new Map<string, DuLieuEtp['lsBac'][number]>();
+    for (const [id, ls] of Object.entries(du.lsBac)) for (const x of ls) { const t = Date.parse(x.luc); if (!t) continue;
+      const k = `${id}|${new Date(t).toISOString().slice(0, 10)}`; (m.get(k) ?? m.set(k, []).get(k)!).push(x); }
+    return m; }, [du.lsBac]);
+  const bacO = (id: number, d: string) => bacNgay.get(`${id}|${d}`);
+  // CỘT NGÀY CỐ ĐỊNH 7 NGÀY GẦN NHẤT (#1788 anh 24/11/2026 "danh sách cột 7 ngày gần nhất vẫn phải hiện cố định ko phụ thuộc vào khung ngày ở trên"):
+  // luôn 6 ngày đã khép trước hôm nay + cột 'nay', bất kể kỳ chọn ở thanh trên. du.soNgay nạp mọi ngày có chi / thu (etp-doc.ts qSoNgay, không lọc theo kỳ) nên đổi kỳ không làm trống ô.
+  const ngay = useMemo(() => sauNgayKhep(du.nay), [du.nay]);
+  const so = useMemo(() => { const m = new Map<number, Map<string, SoTien>>(); for (const r of du.soNgay) { let x = m.get(r.c); if (!x) m.set(r.c, (x = new Map())); x.set(r.d, { chi: r.chi, thu: r.thu }); } return m; }, [du.soNgay]);
+  const sd7 = (c: CampEtpKho) => ngay.map((d) => so.get(c.camp_id)?.get(d));
+  // 7 NGÀY GẦN NHẤT CỦA DÒNG PHIM / DÒNG TỔNG LUÔN HIỆN (#1788 anh 23/11/2026 "danh sách 7 ngày gần nhất luôn luôn phải hiện"): ô ngày nhóm cộng MỌI camp
+  // của các phim đang hiện trong kho, không chỉ camp lọt bộ lọc. Dòng camp vẫn là số của chính camp đó. tongNgay + demCamp + gio cùng đi qua caPhim → một chỗ, không vá từng ô.
+  const khoPhim = useMemo(() => { const m = new Map<number, CampEtpKho[]>(); for (const c of du.camps) { if (c.camp_id <= 0) continue; const k = c.content_id ?? 0; m.set(k, [...(m.get(k) ?? []), c]); } return m; }, [du.camps]);
+  const caPhim = (rs: CampEtpKho[]): CampEtpKho[] => { const m = new Map<number, CampEtpKho>(); for (const k of new Set(rs.map((c) => c.content_id ?? 0))) for (const c of khoPhim.get(k) ?? []) m.set(c.camp_id, c); for (const c of rs) if (c.camp_id > 0) m.set(c.camp_id, c); return [...m.values()]; };
+  // #1788 lần 3: DÒNG TỔNG = CẢ TÀI KHOẢN (tk = true) — cộng thẳng sổ ngày (so = du.soNgay: mọi camp có chi / thu, kể cả camp đã tắt), không theo bộ lọc;
+  // khớp số Ethopex 17–20/11 = 62–92 camp · 215–311 USD/ngày. Dòng nhóm phim (tk = false) vẫn cộng cả phim qua caPhim.
+  const tkCamp = useMemo(() => [...new Set([...so.keys(), ...du.camps.filter((c) => c.camp_id > 0).map((c) => c.camp_id)])], [so, du.camps]);
+  const tongTk = (d: string): SoTien => { let a = { chi: 0, thu: 0 }; for (const x of so.values()) { const v = x.get(d); if (v) a = { chi: a.chi + v.chi, thu: a.thu + v.thu }; } return a; };
+  const tongNgay = (rs0: CampEtpKho[], tk = false): SoTien[] => { if (tk) return [...ngay.map(tongTk), du.camps.reduce((a, c) => (c.camp_id > 0 ? { chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu } : a), { chi: 0, thu: 0 })];
+    const rs = caPhim(rs0); return [...ngay.map((d) => rs.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 })),
+    rs.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 })]; };
+  // số camp có chi mỗi ngày, cùng thứ tự với tongNgay (ô cuối = hôm nay) — cũng đếm trên cả phim (caPhim), khớp số tiền ô
+  const idPhim = (rs: CampEtpKho[], tk = false): number[] => (tk ? tkCamp : caPhim(rs).map((c) => c.camp_id));
+  const demCamp = (rs0: CampEtpKho[], tk = false): number[] => { if (tk) return [...ngay.map((d) => [...so.values()].filter((x) => (x.get(d)?.chi ?? 0) > 0).length), du.camps.filter((c) => c.camp_id > 0 && c.nay.chi > 0).length];
+    const rs = caPhim(rs0); return [...ngay.map((d) => rs.filter((c) => (so.get(c.camp_id)?.get(d)?.chi ?? 0) > 0).length), rs.filter((c) => c.nay.chi > 0).length]; };
+  const roi = roiPt;
+  const cotNgay: DataColumn<CampEtpKho>[] = [
+    ...ngay.map((d, i): DataColumn<CampEtpKho> => ({ key: `roi${i}`, group: 'ngay', header: <NgayNhan d={d} />, align: 'center', width: 56, title: `ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)} — lọc 🔍 theo %`,
+      cell: (c) => { const sd = sd7(c); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={maxLai([...sd, c.nay])} bac={bacO(c.camp_id, d)} gio={{ camps: [c.camp_id], ngay: d }} />; }, sortValue: (c) => roi(sd7(c)[i]),
+      total: (rs, o) => { const tk = !!o?.tong, sd = tongNgay(rs, tk); return <O cot={`roi-${i}`} v={roi(sd[i])} t={tk ? `ROI cả tài khoản ${d.slice(8, 10)}/${d.slice(5, 7)} — mọi camp có chi, kể cả camp đã tắt` : `ROI cả phim ${d.slice(8, 10)}/${d.slice(5, 7)} — mọi camp của phim, kể cả camp ngoài bộ lọc`} s={sd[i]} max={maxLai(sd)} nhom n={demCamp(rs, tk)[i]} gio={{ camps: idPhim(rs, tk), ngay: d }} />; } })),
+    { key: 'nay', group: 'ngay', header: 'nay', align: 'center', width: 56, title: 'ROI hôm nay — lọc 🔍 theo %', cell: (c) => <O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} ns={c.ngan_sach} max={maxLai([...sd7(c), c.nay])} mo bac={bacO(c.camp_id, du.nay)} gio={{ camps: [c.camp_id], ngay: du.nay }} />, sortValue: (c) => roi(c.nay),
+      total: (rs, o) => { const tk = !!o?.tong, sd = tongNgay(rs, tk), sn = sd[ngay.length]; return <O cot="roi-nay" v={roi(sn)} t={tk ? 'ROI cả tài khoản hôm nay — mọi camp có chi' : 'ROI cả phim hôm nay — mọi camp của phim'} s={sn} max={maxLai(sd)} mo nhom n={demCamp(rs, tk)[ngay.length]} gio={{ camps: idPhim(rs, tk), ngay: du.nay }} />; } },   // hôm nay = ô SAU ngày cuối (sd[ngay.length]); số cứng [7] lệch khi bảng còn 6 ngày → dòng phim trống NAY (#1489)
+  ];
+  return { bacO, ngay, so, sd7, tongNgay, idPhim, demCamp, cotNgay };
+}
+const NHOM_NGAY = { key: 'ngay', label: '7 ngày gần nhất', color: '#fbbf24', title: 'ROI từng ngày Ethopex (07:00–07:00 VN): 6 ngày đã khép + hôm nay — vạch lãi / lỗ; dòng phim / dòng tổng ghi số camp có chi; rê ô xem chi · thu' };
+
 function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp, moPhim, onTimDoi, khiTimTrong, hl }: { hl?: Set<number> | null; onTimDoi?: (q: string) => void; khiTimTrong?: React.ReactNode; moCamp?: (id: number) => void; moPhim?: (k: string) => void; camps: CampEtpKho[]; hang?: CampEtpKho[]; du: DuLieuEtp; hep?: boolean; laiKy: (c: CampEtpKho) => SoTien; tenKy: string; moCr?: (cr: number, e: React.MouseEvent, camp?: number) => void; dongCr?: () => void }) {
   const coLich = du.cauHinh.find((k) => k.khoa === 'lich_gio')?.gia_tri === true, LT = luoiTrong(coLich);
   const dkCay = useContext(DieuKhienCtx), choCay = dkCay?.cho;   // vết ⏳ ở ô ngân sách dòng điện thoại · dkCay != null = chủ được điều khiển (nút ⏸ cột TT, #1789)
@@ -2401,12 +2443,8 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
   const [giai, setGiai] = useState(false);   // chú giải GẬP mặc định, cả máy tính (anh 27/10/2026 "bỏ ẩn hết mấy cái này") — bấm nút Chú giải mới hiện
   // LƯU TRẠNG THÁI MỞ / GẬP của cây (anh 27/10/2026 "lưu lại trạng thái collapse này"): phim 'p<id>' · camp gốc 'c<id>' — localStorage của người xem
   // (tiện ích riêng mỗi người, đọc sau khi gắn trang để không lệch hydrate; hỏng / bị chặn thì coi như gập hết)
-  // ĐỔI BẬC THEO NGÀY ETHOPEX (UTC) của từng camp — ô ngày của dòng camp chấm màu + liệt kê trong hover (#1504); dùng chung tên / màu VIEC_BAC của thẻ lịch sử bậc
-  const bacNgay = useMemo(() => { const m = new Map<string, DuLieuEtp['lsBac'][number]>();
-    for (const [id, ls] of Object.entries(du.lsBac)) for (const x of ls) { const t = Date.parse(x.luc); if (!t) continue;
-      const k = `${id}|${new Date(t).toISOString().slice(0, 10)}`; (m.get(k) ?? m.set(k, []).get(k)!).push(x); }
-    return m; }, [du.lsBac]);
-  const bacO = (id: number, d: string) => bacNgay.get(`${id}|${d}`);
+  // dải cột 7 ngày + số theo ngày (bậc, ROI, tổng phim / tài khoản) — hàm chung useCotNgay, Thiết lập dùng cùng (#1819)
+  const { bacO, ngay, so, sd7, tongNgay, idPhim, demCamp, cotNgay } = useCotNgay(du);
   const khoaMo = useKhoaLuu('etp-cay-mo')!;   // mở / gập riêng theo người đang xem (phamViNg)
   const [moCay, setMoCay] = useState<Set<string>>(new Set());
   useEffect(() => { try { setMoCay(new Set(JSON.parse(localStorage.getItem(khoaMo) ?? '[]') as string[])); } catch { /* không có localStorage */ } }, [khoaMo]);
@@ -2417,13 +2455,11 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
   // CỘT NGÀY CỐ ĐỊNH 7 NGÀY GẦN NHẤT (#1788 anh 24/11/2026 "danh sách cột 7 ngày gần nhất vẫn phải hiện cố định ko phụ thuộc vào khung ngày ở trên"):
   // luôn 6 ngày đã khép trước hôm nay + cột 'nay', bất kể kỳ chọn ở thanh trên. Kỳ chọn chỉ còn đổi cột Lãi kỳ (laiKy).
   // du.soNgay nạp mọi ngày có chi / thu (etp-doc.ts qSoNgay, không lọc theo kỳ) nên đổi kỳ không làm trống ô.
-  // cùng một dãy cho vạch cam ROI giảm 2 ngày liền (ngay.slice(-3))
-  const ngay = useMemo(() => sauNgayKhep(du.nay), [du.nay]);
+  // cùng một dãy cho vạch cam ROI giảm 2 ngày liền (ngay.slice(-3)) — ngay lấy từ useCotNgay
   const soN = hep ? Math.max(1, Math.min(6, Math.floor(((rong || 360) - 330) / 42))) : 6;
   const coQua = hep && soN === 1;   // đứng dọc: qua → nay (anh 28/10/2026: cùng chiều thời gian với biểu đồ ngăn chi tiết); đủ chỗ: các ngày theo thứ tự thời gian + nay
   const ngayHien = coQua ? [] : ngay.slice(-soN);
   const LUOI_CAY_HEP = `1fr repeat(${ngayHien.length + (coQua ? 2 : 1)}, 38px) 86px`;
-  const so = useMemo(() => { const m = new Map<number, Map<string, SoTien>>(); for (const r of du.soNgay) { let x = m.get(r.c); if (!x) m.set(r.c, (x = new Map())); x.set(r.d, { chi: r.chi, thu: r.thu }); } return m; }, [du.soNgay]);
   const loiNb = useMemo(() => new Map(du.nbLoi.map((x) => [x.camp_id, x])), [du.nbLoi]);
   const anhCr = useMemo(() => new Map(du.creatives.map((x) => [x.creative_id, x])), [du.creatives]);
   const baoCamp = useMemo(() => { const m = new Map<number, { nhom: string; chu: string }[]>(); for (const b of du.bao) m.set(b.camp_id, [...(m.get(b.camp_id) ?? []), b]); return m; }, [du.bao]);
@@ -2523,24 +2559,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
   // tìm, sắp xếp, kéo giãn cột như trang Bảng; phim = nhóm cố định, bản nhân bản lồng dưới camp gốc. Mở / gập vẫn là moCay ('p<phim>' · 'c<camp>') — nút Mở hết + lưu máy giữ nguyên
   const moBang = useMemo(() => new Set([...moCay].map((k) => (k[0] === 'p' ? `g:${k.slice(1)}` : k.slice(1)))), [moCay]);
   const phimMap = useMemo(() => new Map(phim.map((p) => [p.k, p])), [phim]);
-  const sd7 = (c: CampEtpKho) => ngay.map((d) => so.get(c.camp_id)?.get(d));
-  // tổng các ngày trọn + hôm nay (ô cuối, chỉ số ngay.length) của một nhóm camp — dòng phim / dòng tổng của bảng
-  // 7 NGÀY GẦN NHẤT CỦA DÒNG PHIM / DÒNG TỔNG LUÔN HIỆN (#1788 anh 23/11/2026 "danh sách 7 ngày gần nhất luôn luôn phải hiện"): ô ngày nhóm cộng MỌI camp
-  // của các phim đang hiện trong kho, không chỉ camp lọt bộ lọc — lọc Đang chạy chỉ còn camp mới tạo thì 17–21 vẫn ra số thật của phim, không trống "0 camp".
-  // Dòng camp vẫn là số của chính camp đó; cột Lãi kỳ vẫn theo bộ lọc. tongNgay + demCamp + gio cùng đi qua caPhim → một chỗ, không vá từng ô.
-  const khoPhim = useMemo(() => { const m = new Map<number, CampEtpKho[]>(); for (const c of du.camps) { if (c.camp_id <= 0) continue; const k = c.content_id ?? 0; m.set(k, [...(m.get(k) ?? []), c]); } return m; }, [du.camps]);
-  const caPhim = (rs: CampEtpKho[]): CampEtpKho[] => { const m = new Map<number, CampEtpKho>(); for (const k of new Set(rs.map((c) => c.content_id ?? 0))) for (const c of khoPhim.get(k) ?? []) m.set(c.camp_id, c); for (const c of rs) if (c.camp_id > 0) m.set(c.camp_id, c); return [...m.values()]; };
-  // #1788 lần 3: DÒNG TỔNG = CẢ TÀI KHOẢN (tk = true) — cộng thẳng sổ ngày (so = du.soNgay: mọi camp có chi / thu, kể cả camp đã tắt), không theo bộ lọc;
-  // khớp số Ethopex 17–20/11 = 62–92 camp · 215–311 USD/ngày. Dòng nhóm phim (tk = false) vẫn cộng cả phim qua caPhim.
-  const tkCamp = useMemo(() => [...new Set([...so.keys(), ...du.camps.filter((c) => c.camp_id > 0).map((c) => c.camp_id)])], [so, du.camps]);
-  const tongTk = (d: string): SoTien => { let a = { chi: 0, thu: 0 }; for (const x of so.values()) { const v = x.get(d); if (v) a = { chi: a.chi + v.chi, thu: a.thu + v.thu }; } return a; };
-  const tongNgay = (rs0: CampEtpKho[], tk = false): SoTien[] => { if (tk) return [...ngay.map(tongTk), du.camps.reduce((a, c) => (c.camp_id > 0 ? { chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu } : a), { chi: 0, thu: 0 })];
-    const rs = caPhim(rs0); return [...ngay.map((d) => rs.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 })),
-    rs.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 })]; };
-  // số camp có chi mỗi ngày, cùng thứ tự với tongNgay (ô cuối = hôm nay) — cũng đếm trên cả phim (caPhim), khớp số tiền ô
-  const idPhim = (rs: CampEtpKho[], tk = false): number[] => (tk ? tkCamp : caPhim(rs).map((c) => c.camp_id));
-  const demCamp = (rs0: CampEtpKho[], tk = false): number[] => { if (tk) return [...ngay.map((d) => [...so.values()].filter((x) => (x.get(d)?.chi ?? 0) > 0).length), du.camps.filter((c) => c.camp_id > 0 && c.nay.chi > 0).length];
-    const rs = caPhim(rs0); return [...ngay.map((d) => rs.filter((c) => (so.get(c.camp_id)?.get(d)?.chi ?? 0) > 0).length), rs.filter((c) => c.nay.chi > 0).length]; };
+  // sd7 / tongNgay / idPhim / demCamp (dòng camp, dòng phim cả phim, dòng tổng cả tài khoản) nằm ở useCotNgay — một nguồn cho Cây + Thiết lập (#1819)
   // DÒNG CHỜ ANH DUYỆT (anh 22/11/2026 "Chờ duyệt thì tao phải xem được mày đang làm gì mới duyệt được"): ▶ Lên sẽ tạo đúng camp nào + cổng nào sẽ bỏ qua — máy KHÔNG tự lên dòng ★ ROAS
   const chuChoDuyet = (c: CampEtpKho) => { const x = c.xep, gio = c.lich ? new Date(c.lich) : null, vn = gio ? new Date(gio.getTime() + 7 * 3600_000) : null;
     const chuGio = !vn || gio!.getTime() <= Date.now() + 60_000 ? 'chạy ngay khi Ethopex / Meta đồng bộ xong' : `hẹn chạy ${String(vn.getUTCHours()).padStart(2, '0')}:${String(vn.getUTCMinutes()).padStart(2, '0')} ${String(vn.getUTCDate()).padStart(2, '0')}/${String(vn.getUTCMonth() + 1).padStart(2, '0')} giờ VN${c.roas != null ? ' (★ ROAS lên ban tối) — muốn giờ khác bấm 🕒 đặt giờ' : ''}`;
@@ -2607,11 +2626,8 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
     { key: 'bai', header: 'Bài post', align: 'left', width: 80, title: 'link bài post Facebook của camp (bản Used post chưa có mã → bài của camp mẹ) — bấm mở tab mới', sortValue: (c) => baiCuaCamp(c, du.camps)?.bai ?? '', cell: (c) => <OBai c={c} kho={du.camps} /> },
     /* bỏ cột Loại riêng (#1538 anh 05/11/2026 "Bỏ cột này !!"): badge loại đã nằm ở ô camp (BadgeDangNgan, dạt phải thẳng cột) */
     ...(coLich ? [{ key: 'lich', header: 'Lịch giờ', align: 'left' as const, cell: (c: CampEtpKho) => <LichCamp c={c} du={du} tl={tlC} gon />, sortValue: (c: CampEtpKho) => tlC(c.the_loai) }] : []),
-    ...ngay.map((d, i): DataColumn<CampEtpKho> => ({ key: `roi${i}`, header: <NgayNhan d={d} />, align: 'center', width: 56, title: `ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)} — lọc 🔍 theo %`,
-      cell: (c) => { const sd = sd7(c); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={maxLai([...sd, c.nay])} bac={bacO(c.camp_id, d)} gio={{ camps: [c.camp_id], ngay: d }} />; }, sortValue: (c) => roi(sd7(c)[i]),
-      total: (rs, o) => { const tk = !!o?.tong, sd = tongNgay(rs, tk); return <O cot={`roi-${i}`} v={roi(sd[i])} t={tk ? `ROI cả tài khoản ${d.slice(8, 10)}/${d.slice(5, 7)} — mọi camp có chi, kể cả camp đã tắt` : `ROI cả phim ${d.slice(8, 10)}/${d.slice(5, 7)} — mọi camp của phim, kể cả camp ngoài bộ lọc`} s={sd[i]} max={maxLai(sd)} nhom n={demCamp(rs, tk)[i]} gio={{ camps: idPhim(rs, tk), ngay: d }} />; } })),
-    { key: 'nay', header: 'nay', align: 'center' as const, width: 56, title: 'ROI hôm nay — lọc 🔍 theo %', cell: (c) => <O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} ns={c.ngan_sach} max={maxLai([...sd7(c), c.nay])} mo bac={bacO(c.camp_id, du.nay)} gio={{ camps: [c.camp_id], ngay: du.nay }} />, sortValue: (c) => roi(c.nay),
-      total: (rs, o) => { const tk = !!o?.tong, sd = tongNgay(rs, tk), sn = sd[ngay.length]; return <O cot="roi-nay" v={roi(sn)} t={tk ? 'ROI cả tài khoản hôm nay — mọi camp có chi' : 'ROI cả phim hôm nay — mọi camp của phim'} s={sn} max={maxLai(sd)} mo nhom n={demCamp(rs, tk)[ngay.length]} gio={{ camps: idPhim(rs, tk), ngay: du.nay }} />; } } as DataColumn<CampEtpKho>,   // hôm nay = ô SAU ngày cuối (sd[ngay.length]); số cứng [7] lệch khi bảng còn 6 ngày → dòng phim trống NAY (#1489)
+    // dải 6 ngày đã khép + nay = hàm chung useCotNgay (Thiết lập dùng cùng, #1819); Cây không có hàng nhóm cột nên bỏ nhãn nhóm
+    ...cotNgay.map(({ group: _g, ...k }) => k),
     // LÃI HÔM NAY — CỘT CỐ ĐỊNH (anh 02/11/2026 #1508): không đổi theo kỳ đang chọn, luôn là ngày Ethopex hôm nay; dòng phim / dòng tổng cộng lại
     { key: 'lai_nay', header: 'Lãi nay', width: 104, title: 'lãi HÔM NAY (ngày Ethopex 07:00–07:00 VN) — cố định, không theo kỳ đang chọn', cell: (c) => <LaiCot s={c.nay} />, sortValue: (c) => Math.round((c.nay.thu - c.nay.chi) * 100) / 100,
       total: (rs) => <LaiCot s={rs.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 })} /> },
@@ -3128,6 +3144,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     for (const [id, rs] of theoPhim) { const g = gopQc(rs, du.qcCho ?? {}); if (g) phim.set(id, g); }
     return { camp, phim };
   }, [du.soNgay, du.camps, du.qcCho, ngayKh]);
+  const { cotNgay } = useCotNgay(du);   // dải 7 ngày gần nhất của Cây — Thiết lập dùng thay nhóm Hôm nay / Hôm qua (anh 24/11/2026 #1819)
   const NHOM = [{ key: 'nay', label: 'Hôm nay (đang chạy)', color: '#22d3ee' }, { key: 'qua', label: 'Hôm qua', color: '#a78bfa' }, ...(khNay ? [] : [{ key: 'kh', label: khNhan, color: '#fbbf24' }])];   // chọn khoảng Hôm nay → không lặp nhóm hôm nay lần hai
   const crAnh = useMemo(() => new Map(du.creatives.map((r) => [r.creative_id, r])), [du.creatives]);
   const anh = (cr: number | null) => { const r = cr ? crAnh.get(cr) : null; return r?.anh
@@ -3586,9 +3603,9 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'thietlap' ? (
-        <ThietLapCamp camps={camps} hep={hep} them={{   /* nhóm cột phụ: creative + hiệu suất hiện tại — chính cột của bảng Camp (anh 24/11/2026) */
-          cot: cotCamp.filter((k) => k.key === 'phim' || /^(nay|qua|kh)_/.test(k.key)).map((k) => (k.key === 'phim' ? { ...k, group: 'cr', width: 200 } : k)),
-          nhom: [{ key: 'cr', label: 'Creative', color: '#34d399', title: 'phim · creative đang gắn vào camp (bấm ảnh xem video)' }, ...NHOM] }} />
+        <ThietLapCamp camps={camps} hep={hep} them={{   /* nhóm cột phụ: creative + 7 ngày gần nhất (chính dải ngày của Cây, thay nhóm Hôm nay / Hôm qua — anh 24/11/2026 #1819) + kỳ chọn */
+          cot: [...cotCamp.filter((k) => k.key === 'phim' || /^kh_/.test(k.key)).map((k) => (k.key === 'phim' ? { ...k, group: 'cr', width: 200 } : k)), ...cotNgay],
+          nhom: [{ key: 'cr', label: 'Creative', color: '#34d399', title: 'phim · creative đang gắn vào camp (bấm ảnh xem video)' }, NHOM_NGAY, ...NHOM.filter((g) => g.key === 'kh')] }} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
         <CayCamp camps={camps} hang={hangLoc} hl={hlCamp} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e, camp) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr, camp }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} />
       ) : tab === 'camp' ? (

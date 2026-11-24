@@ -487,6 +487,7 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
     _so = []
     globals().update(_goi=_gia, _ghi_cua=lambda l, ok, ly=None, ve=None, camp_id=None: _so.append((l["viec"], ok, bool(ve))))
     CG.doc_cau_hinh = lambda: {"phanh_cho": {"phanh": {"den_tang": _bay, "den_len": _bay, "ly_do": "tự kiểm"}}}
+    _goc_pc, CG.PC_CHAN = CG.PC_CHAN, True   # phá thử cơ chế chặn của phanh — sổ luật thật đang để phanh chỉ cảnh báo (anh 22/11/2026), không đổi sổ
     _pl = lambda ten, **sp: {"name": ten, "ad_account_id": tk0, "campaign": {"source_payload": {"name": ten, "daily_budget": 1, **sp}, "ad_groups": [{"source_payload": {}, "ads": [{"content_id": 1, "creative_id": 2}]}]}}
     try:
         os.environ["ETP_VE"] = "0" * 32   # mã đúng dạng nhưng không có trong etp.ve_tay → không miễn
@@ -558,7 +559,7 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
             print(f"chặn đúng: phim cấm #{_P} — lên creative / gắn creative vào ad / tạo camp / nhân bản ({len(_ca)} ca) đều chặn dù có vé, không lệnh nào tới Ethopex")
         else: print(f"⚠ phim #{_P} không còn trong sổ cấm — bỏ ca phá thử lên creative")
     finally:
-        globals().update(_goi=_goc_goi, _ghi_cua=_goc_ghi); CG.doc_cau_hinh, CG.ve_hop_le = _goc_ch, _goc_ve; _TAO.discard(999999997); os.environ.pop("ETP_VE", None)
+        globals().update(_goi=_goc_goi, _ghi_cua=_goc_ghi); CG.doc_cau_hinh, CG.ve_hop_le, CG.PC_CHAN = _goc_ch, _goc_ve, _goc_pc; _TAO.discard(999999997); os.environ.pop("ETP_VE", None)
     # CAMP MỚI $1 Ở CỔNG (phá thử, KHÔNG gửi gì lên Ethopex — mọi ca đều phải bị chặn trước khi gửi)
     for ns, g in ((3, {}), (1, {"daily_budget": 3})):
         pl = {"name": "TU KIEM", "ad_account_id": tk0, "campaign": {"source_payload": {"name": "TU KIEM", "daily_budget": ns}, "ad_groups": [{"source_payload": g}]}}

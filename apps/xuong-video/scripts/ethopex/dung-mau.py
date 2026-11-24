@@ -586,11 +586,17 @@ DONG_LENH = ("Subtle cinematic motion of this exact still frame from a short dra
              "and small eye movement. Keep every face, person, outfit and the composition exactly the same, no new people, no text, no logo, no cuts, no scene change.")
 def _cong(b, han=120):
     k = dict(l.strip().split("=", 1) for l in open(os.path.expanduser("~/.secrets/cong-ai.env")) if "=" in l)["CONG_AI_KEY"].strip().strip('"')
-    r = urllib.request.urlopen(urllib.request.Request("https://spy.on.tc/api/ai", method="POST", headers={"authorization": f"Bearer {k}", "content-type": "application/json", "user-agent": "Mozilla/5.0 dung-mau"},
-                               data=json.dumps({"viec": "etp-dung-mau", **b}).encode()), timeout=han)
-    j = json.loads(r.read())
+    try:
+        r = urllib.request.urlopen(urllib.request.Request("https://spy.on.tc/api/ai", method="POST", headers={"authorization": f"Bearer {k}", "content-type": "application/json", "user-agent": "Mozilla/5.0 dung-mau"},
+                                   data=json.dumps({"viec": "etp-dung-mau", **b}).encode()), timeout=han)
+        j = json.loads(r.read())
+    except urllib.error.HTTPError as e:   # cổng trả 4xx KÈM thân JSON (vd video_doc {done, ok:false, treo:true}) — đọc thân, không ném HTTPError trơn (25/11/2026: PlenX treo → 'HTTP Error 400' sau 15 phút, không gửi lại)
+        try: j = json.loads(e.read())
+        except Exception: raise RuntimeError(f"cổng AI HTTP {e.code}") from None
+        if b.get("loai") == "video_doc" and j.get("done"): return j
     if j.get("loi"): raise RuntimeError(f"cổng AI: {str(j['loi'])[:300]}")
     return j
+DONG_LUI = [("kie", "kie:veo3_lite"), ("shopaikey", "shopaikey:grok-video-3-10s")]   # cổng TREO (nhận việc nhưng không chạy) → gửi lại ép cổng kế, theo đúng thứ tự chuỗi rẻ → đắt của cổng (spy cong-media chuoiVideo)
 def chuyen_dong(nen, tm, cid, ma, b):
     """khung sạch (chưa chữ) → clip AI 8 giây 9:16 → (tệp mp4, ₫). Ảnh đưa lên R2 qua box3 (tai-len.mts) làm anh_dau; cổng tự lùi nếu cổng đầu lỗi."""
     jpg = os.path.join(tm, f"dong-{ma}-{b}.jpg"); Image.open(nen).convert("RGB").save(jpg, quality=92)
@@ -604,16 +610,23 @@ def chuyen_dong(nen, tm, cid, ma, b):
     so = os.path.expanduser(f"~/.cache/ethopex/anh-dong/{int(cid)}-{ma}-{b}.json"); os.makedirs(os.path.dirname(so), exist_ok=True)
     g = json.load(open(so)) if os.path.exists(so) and time.time() - os.path.getmtime(so) < 6 * 3600 else None
     if g: print(f"dùng lại lượt đã trả: task {g.get('task_id')} ({so})", flush=True)
-    else:
-        g = _cong({"loai": "video_gui", "ma": f"{ma}:{cid}", "prompt": DONG_LENH, "anh_dau": url, "giay": DONG_GIAY, "ti_le": "9:16", "bo_chinh_hang": True})
-        json.dump(g, open(so, "w"))
-    vnd = int(g.get("vnd") or round((g.get("chi_usd") or 0) * 26000)); print(f"chuyển động: {g.get('cong')}:{g.get('model')} · {vnd}₫ · task {g.get('task_id')}", flush=True)
-    t0 = time.time()
-    while True:
-        time.sleep(10)
-        d = _cong({"loai": "video_doc", "cong": g["cong"], "task_id": g["task_id"], "tao_luc": g.get("tao_luc")})
-        if d.get("done"): break
-        if time.time() - t0 > 1200: raise RuntimeError(f"AI chuyển động quá 20 phút chưa xong ({g.get('cong')} task {g.get('task_id')})")
+    ep, vnd = None, 0
+    for _ in range(len(DONG_LUI) + 1):
+        if not g:
+            g = _cong({"loai": "video_gui", "ma": f"{ma}:{cid}", "prompt": DONG_LENH, "anh_dau": url, "giay": DONG_GIAY, "ti_le": "9:16", "bo_chinh_hang": True, **({"cong": ep[0], "model": ep[1]} if ep else {})})
+            json.dump(g, open(so, "w"))
+        v1 = int(g.get("vnd") or round((g.get("chi_usd") or 0) * 26000)); vnd += v1; print(f"chuyển động: {g.get('cong')}:{g.get('model')} · {v1}₫ · task {g.get('task_id')}", flush=True)
+        t0 = time.time()
+        while True:
+            time.sleep(10)
+            d = _cong({"loai": "video_doc", "cong": g["cong"], "task_id": g["task_id"], "tao_luc": g.get("tao_luc")})
+            if d.get("done"): break
+            if time.time() - t0 > 1200: raise RuntimeError(f"AI chuyển động quá 20 phút chưa xong ({g.get('cong')} task {g.get('task_id')})")
+        if d.get("ok") or not d.get("treo"): break
+        sau = [x for i, x in enumerate(DONG_LUI) if i > next((j for j, y in enumerate(DONG_LUI) if y[0] == g.get("cong")), -1)]
+        if not sau: break
+        print(f"{g.get('cong')} treo ({d.get('loi')}) → gửi lại qua {sau[0][1]}", flush=True)
+        os.remove(so); ep, g = sau[0], None
     if not d.get("ok") or not d.get("uri"): raise RuntimeError(f"AI chuyển động hỏng ({g.get('cong')}): {str(d.get('loi'))[:300]}")
     ra = os.path.join(tm, f"dong-{ma}-{b}.mp4")
     if d.get("can_khoa"):

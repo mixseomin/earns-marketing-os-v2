@@ -676,6 +676,11 @@ const LUAT = [
   { card: 'audit-bang', tep: 'apps/etp2/src/components/etp-insight.tsx', mot: 'persistKey="etp2-ins-ngay"', vi: 'Insight: bảng Theo ngày từng người dùng DataTable chung' },
   { card: 'audit-bang', tep: 'apps/etp2/src/components/etp-insight.tsx', mot: 'persistKey="etp2-ins-khung"', vi: 'Insight: bảng Theo khung giờ nhà / đội dùng DataTable chung' },
   { card: 'audit-bang', tep: 'apps/etp2/src/components/etp-insight.tsx', co: '<SimpleTable', vi: 'Insight: hai bảng nhỏ trong dòng mở dùng SimpleTable' },
+  { card: '1832', tep: 'apps/etp2/src/components/etp-view.tsx', mot: "m('sxcr', 'Đang sản xuất'", vi: 'lọc Trạng thái có mục Đang sản xuất' },
+  { card: '1832', tep: 'apps/etp2/src/components/etp-view.tsx', co: "k === 'sxcr' ? dangSxCr(c)", vi: 'lọc Đang sản xuất chọn đúng dòng 🏭' },
+  { card: '1832', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'data-o="cr-dang-sx"', vi: 'dòng đang sản xuất: ô creative giữ chỗ, dạng creative vẫn hiện' },
+  { card: '1832', tep: 'apps/etp2/src/lib/etp-doc.ts', mot: "dong_bo: 'dang_sx'", vi: 'dữ liệu dựng dòng 🏭 từ dòng phim đang làm creative' },
+  { card: '1832', tep: 'apps/etp2/src/lib/etp-chay.ts', co: '!chuaCoCamp(c)', vi: 'dòng đang sản xuất không bị đếm vào chạy / chờ giờ / tắt' },
 ];
 
 const loi = [];

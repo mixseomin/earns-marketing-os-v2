@@ -644,7 +644,7 @@ const LUAT = [
   { card: 'drawer-camp-etho', tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<CamCauHinh campId={c.camp_id}', vi: 'ngăn camp (nganCamp) dựng bằng CamCauHinh, số liệu nhà là một trang trong cây — không quay về ngăn 440px một cột' },
   { card: 'id-camp-mo-ngan', tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<b data-nut="mo-camp" onClick={moCamp ?', vi: 'Cây (máy tính): bấm số #camp mở ngăn chi tiết camp (anh 24/11/2026 "Phải cho click vào ID camp thì mở drawer")' },
   { card: 'id-camp-mo-ngan', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', mot: 'data-nut="mo-camp"', vi: 'Thiết lập: bấm số #camp mở ngăn chi tiết camp' },
-  { card: 'id-camp-mo-ngan', tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<ThietLapCamp camps={camps} hep={hep} moCamp=', vi: 'Thiết lập nhận moCamp từ EtpView (cùng đường ?ngan=camp:<id>)' },
+  { card: 'id-camp-mo-ngan', tep: 'apps/etp2/src/components/etp-view.tsx', mot: "g.key === 'kh')] }} moCamp={(id) => doi({ ngan: `camp:${id}` }", vi: 'Thiết lập nhận moCamp từ EtpView (cùng đường ?ngan=camp:<id>)' },
   { card: 'menu-cot-an-ghim-rong', tep: 'packages/bang/src/data-table.tsx', mot: 'data-nut="an-cot"', vi: 'menu ⚙ Columns: ẩn/hiện từng cột (anh 24/11/2026 "Cho phép ẩn hiện, sticky, resize cột ở đây")' },
   { card: 'menu-cot-an-ghim-rong', tep: 'packages/bang/src/data-table.tsx', mot: 'data-nut="ghim-cot"', vi: 'menu ⚙ Columns: ghim (sticky) từng cột' },
   { card: 'menu-cot-an-ghim-rong', tep: 'packages/bang/src/data-table.tsx', mot: 'data-nut="rong-cot"', vi: 'menu ⚙ Columns: ô bề ngang từng cột' },

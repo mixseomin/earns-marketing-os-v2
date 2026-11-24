@@ -340,6 +340,12 @@ def doc_cau_hinh():
     return {k: json.loads(v) for k, v in (l.split("|", 1) for l in _q("select khoa, gia_tri::text from etp.cau_hinh").splitlines() if l)}
 
 LY_DUNG_KHAN = "ĐANG DỪNG KHẨN (etp.cau_hinh.dung_khan) — không tăng / bật / nhân bản / tạo camp"
+# CHỈ LÊN CAMP MỚI THEO LỆNH ANH (anh 25/11/2026 "rà xem còn cái gì tự sinh camp mới ngoài kế hoạch ko để tắt cho triệt để … Chỉ lên camp mới nếu cần !!"):
+# etp.cau_hinh.chi_len_theo_lenh = true → MỌI đường máy tạo camp mới / nhân bản (nhân đôi ★ ROAS qua đêm roas_doi, hàng lệnh chờ phanh nhả lenh_cho, bước camp dòng phim,
+# hoi_cho, nuoi_bo, ab_mau, luật nhân bản theo nấc, thay bài bị từ chối, len-sau-cham, thu-vien-len, dot-phim-moi…) bị chặn ở chan_cua — một hàm cho kiem() và cửa API.
+# Chỉ qua: vé lệnh trực tiếp (cong.py --ve-truc-tiep / nút ▶ Lên etp2) và vé tay của nút anh bấm. Bật / tăng / giảm / tắt camp đang có không đổi. Gỡ: đặt false.
+KHOA_CHI_LENH = "chi_len_theo_lenh"
+LY_CHI_LENH = "CHỈ LÊN CAMP MỚI THEO LỆNH ANH (etp.cau_hinh.chi_len_theo_lenh, anh 25/11/2026) — máy không tự tạo camp / nhân bản; lệnh trực tiếp hoặc nút anh bấm mới lên"
 # PHIM CẤM (anh 19/11/2026, Ethopex báo 10:07 "Number One, Nobody" 94344 + 143938 và "Me and Six Girls Against the Apocalypse" 173160 dính vi phạm: "tắt hết, KHÔNG lên mới,
 # KHÔNG bật lại, kể cả ★ ROAS"): phim trong sổ studio xv_khoa_ngoai ten='ethopex_phim_cam' ({content_id: {ly_do, luc}} — cùng sổ cấm 18+ của kiem-phim-18.py) → MỌI việc
 # tăng chi (tạo camp, nhân bản, ★ ROAS, bật lại kể cả lịch giờ, tăng) của camp / phim đó bị chặn ở chan_cua — kiem() lẫn cửa API (ethopex_api.cua) — KHÔNG miễn vé tay,
@@ -454,6 +460,7 @@ def chan_cua(viec, ch, camp_id=None, thay=False, ve=False, lich=False, cts=(), g
     if ly_cam: return ly_cam
     # tt = vé LỆNH TRỰC TIẾP của anh (anh 20/11/2026 09:35): miễn dừng khẩn / ít nước / bảo trì / phanh chợ — đã cảnh báo một lần lúc cấp vé (cong.py --ve-truc-tiep)
     if tt: return None
+    if viec in ("tao_camp", "nhan_ban") and ch.get(KHOA_CHI_LENH) and not ve: return LY_CHI_LENH   # đứng trước miễn thay bài / lịch: máy không tự sinh camp mới
     if ch.get("dung_khan"): return LY_DUNG_KHAN
     if lich: return None
     if viec == "tao_camp" and not ve and (ly_sx := phim_chi_sx(cts, q=q)): return ly_sx   # phim chỉ sản xuất: máy không tạo camp mới từ creative (vé tay / lệnh trực tiếp qua)
@@ -664,6 +671,11 @@ def _tu_kiem():
     assert chan_cua("nhan_ban", _ch, thay=True) is None and chan_cua("giam", _ch) is None and chan_cua("tat", _ch) is None
     assert chan_cua("nhan_ban", {**_ch, "dung_khan": True}, ve=True) == LY_DUNG_KHAN and chan_cua("bat", {"dung_khan": True}, lich=True) == LY_DUNG_KHAN, "dừng khẩn chặn cả vé, cả lịch"
     assert chan_cua("bat", _ch, lich=True) is None, "bật theo lịch giờ là việc hợp lệ"
+    _cl = {KHOA_CHI_LENH: True}   # chỉ lên theo lệnh anh (25/11/2026): máy tạo / nhân bản / thay bài đều chặn; vé tay + lệnh trực tiếp qua; bật / tăng / tắt không đổi
+    assert all(chan_cua(_v, _cl, **_k) == LY_CHI_LENH for _v in ("tao_camp", "nhan_ban") for _k in ({}, {"thay": True}, {"lich": True})), "máy tạo / nhân bản phải bị chặn"
+    assert chan_cua("tao_camp", _cl, ve=True) is None and chan_cua("nhan_ban", _cl, tt=True) is None, "nút anh / lệnh trực tiếp vẫn lên"
+    assert all(chan_cua(_v, _cl) is None for _v in ("tang", "bat", "giam", "tat")) and chan_cua("nhan_ban", {KHOA_CHI_LENH: False}) is None, "chỉ chặn tạo mới"
+    assert phanh_sx(_cl) == "chờ phanh nhả: " + LY_CHI_LENH, "dòng phim / hàng chấm đọc cùng cổng"
     _bt = {"bao_tri_len": {"bat": True, "tu": "x"}}
     assert chan_cua("tao_camp", _bt).startswith("ETHOPEX BẢO TRÌ") and chan_cua("tao_camp", _bt, ve=True) is None
     _env = os.environ.pop("ETP_VE", None)

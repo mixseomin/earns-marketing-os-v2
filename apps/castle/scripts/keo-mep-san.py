@@ -8,9 +8,10 @@ import json, math, pathlib, subprocess, sys, numpy as np, tifffile
 from matplotlib.path import Path as P
 G = pathlib.Path(__file__).resolve().parent.parent; BY = G / 'du-lieu-goc/bayern'
 dom = tifffile.imread(BY / 'dom20-32631_5268.tif')
-E0, N0, g = 631637.44, 5268614.78, math.radians(1.7498 * math.sin(math.radians(47.5576))); c, s = math.cos(g), math.sin(g); MOC, GOC = -4.16, 946.2
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); from toa_do_bayern import EN, canh, E0, N0, C as c, S as s   # độ dời OSM → DOM20 đọc từ so-dom20.json
+MOC, GOC = -4.16, 946.2
 def H(x, z):
-    n = -z; E = E0 + (c * (x + 7) - s * (n - 1)) * 0.99981; N = N0 + (s * (x + 7) + c * (n - 1)) * 0.99981
+    E, N = EN(x, z)
     return float(dom[int((5269000 - N) / 0.2), int((E - 631000) / 0.2)] - MOC - GOC)
 D = json.load(open(G / 'public/du-lieu/neuschwanstein.json')); KH = {k['id']: k for k in D['khoi']}
 DAI, LANG = 'way/223069513', ['way/1573692064', 'way/1573692063', 'way/1573692065']

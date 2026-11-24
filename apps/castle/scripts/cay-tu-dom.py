@@ -4,14 +4,14 @@ Ngọn cây = đỉnh cục bộ của tán (cao ≥ 5 m, cách nhau ≥ 4,5 m, 
 (toạ độ cảnh, đã trừ độ dời +7 / +1 m). ns.js đặt cây đúng chỗ + đúng cao trong vùng này; ngoài vùng giữ rải ngẫu nhiên.
   ~/.venvs/castle-khop/bin/python apps/castle/scripts/cay-tu-dom.py
 tra-repo-ok: lọc cực đại cục bộ trên raster bằng OpenCV dilate."""
-import json, math, pathlib, numpy as np, tifffile, cv2
+import json, math, sys, pathlib, numpy as np, tifffile, cv2
 G = pathlib.Path(__file__).resolve().parent.parent; BY = G / 'du-lieu-goc/bayern'
 dom = tifffile.imread(BY / 'dom20-32631_5268.tif'); dgm = tifffile.imread(BY / 'dgm1-631_5268.tif')
 tan = dom - cv2.resize(dgm, (5000, 5000), interpolation=cv2.INTER_LINEAR); tan[(dom < -1000)] = 0
 t = cv2.GaussianBlur(tan, (0, 0), 3); dinh = (t == cv2.dilate(t, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (23, 23)))) & (t >= 5)   # cửa sổ 4,6 m
 I, J = np.nonzero(dinh); E = 631000 + (J + 0.5) * 0.2; N = 5269000 - (I + 0.5) * 0.2
-E0, N0, g = 631637.44, 5268614.78, math.radians(1.7498 * math.sin(math.radians(47.5576))); c, s = math.cos(g), math.sin(g)
-dE, dN = (E - E0) / 0.99981, (N - N0) / 0.99981; x = dE * c + dN * s - 7; z = -(-dE * s + dN * c) - 1; h = t[I, J]
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); from toa_do_bayern import EN, canh, E0, N0, C as c, S as s   # độ dời OSM → DOM20 đọc từ so-dom20.json
+x, z = canh(E, N); h = t[I, J]
 K = json.load(open(G / 'public/du-lieu/neuschwanstein.json'))['khoi']
 def trong(px, pz, v):
     r = np.zeros(px.shape, bool); n = len(v)

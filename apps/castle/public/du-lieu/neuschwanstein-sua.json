@@ -373,33 +373,8 @@
   "building:material": "sandstone",
   "roof:colour": "black",
   "roof:shape": "flat",
-  "ngoai": [
-   [
-    -41.39,
-    -2.46
-   ],
-   [
-    -42,
-    0.28
-   ],
-   [
-    -40.85,
-    2.48
-   ],
-   [
-    -38.11,
-    2.46
-   ],
-   [
-    -37.5,
-    -0.28
-   ],
-   [
-    -38.65,
-    -2.48
-   ]
-  ],
-  "y_tren": 37.95,
-  "ly_do": "máy đo 2026-11-22 (scripts/khoi-thieu-dom20.py, không AI): mặt bằng LoD2 chính thức Bavaria (GroundSurface, dời (6.25, 1.0)) có 19 m² ngoài mọi khối mô hình (bỏ dải hẹp < 2,5 m); mặt bằng = đường viền vùng đó; đỉnh = p95 DOM20, mái = p95 − p5 = 0.0 m, mốc cảnh -4.31 m; vật liệu theo khối gần nhất way/223311650 (2.0 m)"
+  "ngoai": [[-38.61,-2.46],[-40.83,-2.49],[-41.45,-1.4],[-40.89,0.96],[-41.4,1.45],[-39.71,2],[-39.63,0.47],[-38.01,-0.81]],
+  "y_tren": 25.4,
+  "ly_do": "máy đo 2026-11-24 (scripts/khoi-thieu-dom20.py, không AI): mặt bằng LoD2 chính thức Bavaria (GroundSurface, dời (6.25, 1.0)) có 10 m² ngoài mọi khối mô hình (bỏ dải hẹp < 2,5 m); mặt bằng = đường viền vùng đó; đỉnh = p95 DOM20, mái = p95 − p5 = 0.0 m, mốc cảnh -4.39 m; vật liệu theo khối gần nhất way/223311650 (2.0 m)"
  }
 }

@@ -7,8 +7,9 @@ tra-repo-ok: tách vùng trên raster bằng OpenCV (findContours / approxPolyDP
 import sys, json, math, pathlib, numpy as np, tifffile, cv2
 G = pathlib.Path(__file__).resolve().parent.parent; BY = G / 'du-lieu-goc/bayern'
 dop = tifffile.imread(BY / 'dop20-32631_5268.tif'); dom = tifffile.imread(BY / 'dom20-32631_5268.tif')
-E0, N0, g = 631637.44, 5268614.78, math.radians(1.7498 * math.sin(math.radians(47.5576))); c, s = math.cos(g), math.sin(g); MOC, GOC = -4.16, 946.2
-def ij(x, z): n = -z; E = E0 + (c * (x + 7) - s * (n - 1)) * 0.99981; N = N0 + (s * (x + 7) + c * (n - 1)) * 0.99981; return (5269000 - N) / 0.2, (E - 631000) / 0.2
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); from toa_do_bayern import EN, canh, E0, N0, C as c, S as s   # độ dời OSM → DOM20 đọc từ so-dom20.json
+MOC, GOC = -4.16, 946.2
+def ij(x, z): E, N = EN(x, z); return (5269000 - N) / 0.2, (E - 631000) / 0.2
 x0, x1, z0, z1, S_ = 25, 95, -50, 20, 5; W, H = (x1 - x0) * S_, (z1 - z0) * S_
 xs, zs = np.meshgrid(x0 + (np.arange(W) + 0.5) / S_, z0 + (np.arange(H) + 0.5) / S_); I, J = ij(xs, zs); I, J = I.astype(int), J.astype(int)
 h = dom[I, J] - MOC - GOC; rgb = dop[I, J, :3].astype(float); seed = (int((-22 - z0) * S_), int((47 - x0) * S_))   # giữa sân trước cổng (ảnh trực giao: sân hình chữ D phía đông cổng, bồn cỏ sát chân nhà)

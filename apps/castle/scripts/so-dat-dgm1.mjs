@@ -16,11 +16,10 @@ const py = `
 import json, math, sys, numpy as np, tifffile
 from PIL import Image
 BY, moc = sys.argv[1], float(sys.argv[2]); dom = tifffile.imread(BY + '/dom20-32631_5268.tif'); dgm = tifffile.imread(BY + '/dgm1-631_5268.tif'); K = json.load(open(BY + '/diem-dat.json'))
-E0, N0, g = 631637.44, 5268614.78, math.radians(1.7498 * math.sin(math.radians(47.5576))); c, s = math.cos(g), math.sin(g)
-def uv(x, z): n = -z; return E0 + (c * x - s * n) * 0.99981, N0 + (s * x + c * n) * 0.99981
+sys.path.insert(0, BY + '/../../scripts'); from toa_do_bayern import EN, canh   # độ dời OSM → DOM20 đọc từ so-dom20.json
 ra = []; im = Image.new('RGB', (121, 81), (40, 40, 40)); px = im.load()
 for x, z, y in K['d']:
-    E, N = uv(x + 7, z + 1); t = float(dgm[int(5269000 - N), int(E - 631000)]); o = float(np.median(dom[int((5269000 - N) / 0.2) - 2:int((5269000 - N) / 0.2) + 3, int((E - 631000) / 0.2) - 2:int((E - 631000) / 0.2) + 3]))
+    E, N = EN(x, z); t = float(dgm[int(5269000 - N), int(E - 631000)]); o = float(np.median(dom[int((5269000 - N) / 0.2) - 2:int((5269000 - N) / 0.2) + 3, int((E - 631000) / 0.2) - 2:int((E - 631000) / 0.2) + 3]))
     if o - t > 0.7: continue                                   # cây / nhà
     l = (t - moc) - (y + K['goc']); ra.append([x, z, round(l, 2)]); v = max(-1, min(1, l / 8)); px[int((x + 130) / 2), int((z + 90) / 2)] = (int(255 * max(0, v)) + 60, 60, int(255 * max(0, -v)) + 60)
 a = np.array(ra); print(f'{len(a)} điểm đất trống · DGM1 − mô hình: trung vị {np.median(a[:, 2]):+.1f} m · |lệch| ≤ 1 m: {(abs(a[:, 2]) <= 1).mean():.0%} · > 3 m: {(abs(a[:, 2]) > 3).mean():.0%}')

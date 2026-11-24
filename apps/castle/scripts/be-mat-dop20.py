@@ -12,8 +12,7 @@ import sys, json, math, pathlib, numpy as np, tifffile
 G = pathlib.Path(__file__).resolve().parent.parent; BY = G / 'du-lieu-goc/bayern'
 dop = tifffile.imread(BY / 'dop20-32631_5268.tif'); dom = tifffile.imread(BY / 'dom20-32631_5268.tif'); dgm = tifffile.imread(BY / 'dgm1-631_5268.tif')
 NEN = json.load(open(G / 'public/du-lieu/neuschwanstein-nen.json'))
-E0, N0, g = 631637.44, 5268614.78, math.radians(1.7498 * math.sin(math.radians(47.5576))); c, s = math.cos(g), math.sin(g)
-def EN(x, z): n = -z; return E0 + (c * (x + 7) - s * (n - 1)) * 0.99981, N0 + (s * (x + 7) + c * (n - 1)) * 0.99981
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); from toa_do_bayern import EN, canh, E0, N0, C as c, S as s   # độ dời OSM → DOM20 đọc từ so-dom20.json
 x0, x1, z0, z1 = NEN['hop']; B = NEN['buoc']; W = round((x1 - x0) / B); H = round((z1 - z0) / B)
 ma = np.full((H, W), '?', dtype='<U1'); cao = np.zeros((H, W))
 for j in range(H):

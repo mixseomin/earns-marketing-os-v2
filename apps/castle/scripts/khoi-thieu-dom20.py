@@ -17,8 +17,7 @@ def so(ten, md): return float(arg[arg.index(ten) + 1]) if ten in arg else md
 HOP = [float(v) for v in arg[arg.index('--hop') + 1:arg.index('--hop') + 5]] if '--hop' in arg else [-140, -120, 100, 100]
 CAO, DT, B = so('--cao', 4), so('--dt', 8), 0.5
 dop = tifffile.imread(BY / 'dop20-32631_5268.tif'); dom = tifffile.imread(BY / 'dom20-32631_5268.tif'); dgm = tifffile.imread(BY / 'dgm1-631_5268.tif')
-E0, N0, g = 631637.44, 5268614.78, math.radians(1.7498 * math.sin(math.radians(47.5576))); c, s = math.cos(g), math.sin(g)
-def EN(x, z): n = -z; return E0 + (c * (x + 7) - s * (n - 1)) * 0.99981, N0 + (s * (x + 7) + c * (n - 1)) * 0.99981
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); from toa_do_bayern import EN, canh, E0, N0, C as c, S as s   # độ dời OSM → DOM20 đọc từ so-dom20.json
 
 # mặt bằng khối + mặt đất ĐÚNG như trang đang dựng
 xs = np.arange(HOP[0] + B / 2, HOP[2], B); zs = np.arange(HOP[1] + B / 2, HOP[3], B)
@@ -31,7 +30,10 @@ const r = await pg.evaluate((H) => {{ const n = window.__ns, d = [];
   return {{ goc: n.GOC_Y, dat: d, khoi: n.dsKhoi.map((k) => ({{ id: k.id, v: k.ngoai?.[0] || k.v, t: k.tags }})).filter((k) => k.v?.length > 2) }}; }}, {json.dumps(HOP)});
 writeFileSync('{ra}', JSON.stringify(r)); await dong();'''], check=True)
     T = json.load(open(ra))
-GOC_Y = T['goc']; KH = [(k, P(np.array(k['v'], float))) for k in T['khoi']]
+# khối máy này đã dựng ở lượt trước (them/lod2-*, them/thieu-*) là KẾT QUẢ, không phải nhà có sẵn: tính vào KH thì đo lại không bao giờ thấy vùng đó nữa
+# → khối dựng sai (vd độ dời cũ) không sửa được. Bỏ ra để mỗi lượt đo lại từ đầu; lượt ghi thay số của chúng, vùng nào nay không còn thì in ra.
+CU = [k['id'] for k in T['khoi'] if k['id'].startswith(('them/lod2-', 'them/thieu-'))]
+GOC_Y = T['goc']; KH = [(k, P(np.array(k['v'], float))) for k in T['khoi'] if k['id'] not in CU]
 def dgmAt(x, z): E, N = EN(x, z); return float(dgm[int(5269000 - N), int(E - 631000)])
 def gan(x, z):  # khoảng tới khối gần nhất (âm = trong) + khối đó
     best = (1e9, None)
@@ -81,6 +83,8 @@ else:
     for j, i in np.argwhere(M):
         x, z = xs[i], zs[j]
         if any(p.contains_point((x, z), radius=1.0) or p.contains_point((x, z), radius=-1.0) or p.contains_point((x, z)) for _, p in KH): M[j, i] = False
+BAC = 2.0  # m: hai ô kề nhau chênh DOM hơn số này = hai khối khác nhau (mảnh LoD2 ở mép tây Ritterhaus: cánh thấp 964–968 m + mép mái 980 m của khối kề;
+           # gom chung rồi lấy p75 ra một khối 20 m chỗ thật chỉ có tường 5–10 m) → tách vùng theo bậc độ cao, mỗi bậc một khối
 def gom(m):
     nh = np.zeros(m.shape, int); sl = 0
     for i0, j0 in np.argwhere(m):
@@ -89,7 +93,7 @@ def gom(m):
         while ds:
             i, j = ds.pop()
             for a, b in ((i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)):
-                if 0 <= a < m.shape[0] and 0 <= b < m.shape[1] and m[a, b] and not nh[a, b]: nh[a, b] = sl; ds.append((a, b))
+                if 0 <= a < m.shape[0] and 0 <= b < m.shape[1] and m[a, b] and not nh[a, b] and abs(DOMc[a, b] - DOMc[i, j]) < BAC: nh[a, b] = sl; ds.append((a, b))
     return nh, sl
 nh, sl = gom(M); RA, bo = {}, []
 for q in range(1, sl + 1):
@@ -101,6 +105,8 @@ for q in range(1, sl + 1):
     lap = len(o) * B * B / ((lu[1] - lu[0]) * (lw[1] - lw[0]))
     h = np.array([DOMc[j, i] for j, i in o]); p95, p5 = np.percentile(h, 95), np.percentile(h, 5)
     ten = f'them/{"lod2" if NGUON == "lod2" else "thieu"}-{round(tam[0])}_{round(tam[1])}'
+    cu = [k['id'] for k in T['khoi'] if k['id'] in CU and P(np.array(k['v'], float)).contains_point(tuple(tam))]
+    if cu: ten = cu[0]  # vùng nằm trong khối lượt trước → giữ khoá cũ, ghi đè số (không đẻ khối đôi)
     if NGUON == 'lod2':  # đường viền thật của vùng (cạnh ô lưới), rút gọn 0,4 m — hình chữ L giữ nguyên
         import cv2
         mk = (nh == q).astype(np.uint8); cs_, _ = cv2.findContours(mk, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE); cc = max(cs_, key=cv2.contourArea)
@@ -120,13 +126,15 @@ for q in range(1, sl + 1):
     if mai > 1.5:
         e['roof:height'] = mai; du_ = abs(np.corrcoef(abs(tu - np.median(tu)), h)[0, 1]); dw = abs(np.corrcoef(abs(tw - np.median(tw)), h)[0, 1])
         e['roof:orientation'] = 'along' if dw > du_ else 'across'
-    e['ly_do'] = (f'máy đo 2026-11-22 (scripts/khoi-thieu-dom20.py, không AI): ' + (f'mặt bằng LoD2 chính thức Bavaria (GroundSurface, dời {DOI_LOD2}) có {(nh == q).sum() * B * B:.0f} m² ngoài mọi khối mô hình '
+    e['ly_do'] = (f'máy đo {__import__("datetime").date.today()} (scripts/khoi-thieu-dom20.py, không AI): ' + (f'mặt bằng LoD2 chính thức Bavaria (GroundSurface, dời {DOI_LOD2}) có {(nh == q).sum() * B * B:.0f} m² ngoài mọi khối mô hình '
                   f'(bỏ dải hẹp < 2,5 m); mặt bằng = đường viền vùng đó; ' if NGUON == 'lod2' else f'DOM20 − DGM1 chính thức Bavaria > {CAO:g} m trên {len(o) * B * B:.0f} m² không xanh (DOP20) '
                   f'ngoài mọi khối mô hình → nhà có thật mà OSM không vẽ; mặt bằng = chữ nhật trục chính (lấp {lap:.0%}); ') + f'đỉnh = p95 DOM20, mái = p95 − p5 = {mai} m, '
                   f'mốc cảnh {MOC:+.2f} m; vật liệu theo khối gần nhất {kg["id"] if kg else "-"} ({dk:.1f} m)')
     RA[ten] = e
     print(f'{ten}: {len(o) * B * B:.0f} m² · {lu[1] - lu[0]:.1f} × {lw[1] - lw[0]:.1f} m · lấp {lap:.0%} · đỉnh y {y} (cao trên đất {p95 - np.median([dgmAt(*p_) for p_ in pts]):.1f} m) · mái {mai} · gần {kg["id"] if kg else "-"} {dk:.1f} m')
 for b_ in bo: print('  bỏ ' + b_)
+for k in CU:
+    if k not in RA: print(f'  ⚠ {k}: lượt trước đã dựng, lượt này không còn vùng thiếu — khối cũ sai, cần gỡ khỏi neuschwanstein-sua.json')
 if '--anh' in arg:
     from PIL import Image, ImageDraw
     p = 4; im = np.full((H, W, 3), 245, 'uint8'); im[M] = (220, 40, 40)

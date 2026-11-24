@@ -6,7 +6,10 @@ export function chenTruong(txt, khoa, truong) {
   if (i >= 0) {
     if (ds[i] !== mo) { const het = ds[i].endsWith(','); ds.splice(i, 1, mo, ...dong.slice(0, -1), dong.at(-1).slice(0, -1), het ? ' },' : ' }'); return ds.join('\n'); } // khối rỗng "{}"
     let j = i + 1, sau = 1; for (; j < ds.length && sau; j++) for (const c of ds[j].replace(/"(\\.|[^"\\])*"/g, '')) sau += c === '{' ? 1 : c === '}' ? -1 : 0; // dòng đóng khối = j − 1
-    const trong = ds.slice(i + 1, j - 1).filter((d) => !Object.keys(truong).some((k) => d.startsWith(`  ${JSON.stringify(k)}:`)));
+    // gom dòng trong khối thành từng TRƯỜNG (trường nhiều dòng như "ngoai": [[…]] thụt 1 dấu cách trải chục dòng) rồi bỏ nguyên trường bị thay —
+    // trước đây chỉ bỏ dòng mở trường, đuôi mảng cũ nằm lại → JSON hỏng (khoi-thieu-dom20 ghi lại them/lod2--40_0, 24/11/2026)
+    const truongCu = []; for (const d of ds.slice(i + 1, j - 1)) { if (/^  "/.test(d) || !truongCu.length) truongCu.push([d]); else truongCu.at(-1).push(d); }
+    const trong = truongCu.filter((g) => !Object.keys(truong).some((k) => g[0].startsWith(`  ${JSON.stringify(k)}:`))).flat();
     if (trong.length) trong[trong.length - 1] = trong.at(-1).replace(/,$/, ''); else dong[dong.length - 1] = dong.at(-1).slice(0, -1); // dòng CUỐI khối không có phẩy (trường bị thay có thể từng là dòng cuối)
     ds.splice(i + 1, j - 2 - i, ...dong, ...trong); return ds.join('\n');
   }

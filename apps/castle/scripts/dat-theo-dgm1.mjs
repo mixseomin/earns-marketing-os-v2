@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // MẶT ĐẤT THEO ĐỊA HÌNH CHÍNH THỨC (20/11/2026) — thay số đo mặt đất trên ảnh 3D Google (<lâu>-nen.json "diem") bằng DGM1 (địa hình 1 m) / DOM20 (mặt trên 20 cm)
 // của Bayerische Vermessungsverwaltung (CC BY 4.0, scripts/tai-bayern.sh). Lý do: so-dat-dgm1.mjs đo sân trước cổng đông trong mô hình thấp hơn thật 8,7 m, sân dưới
-// 3,7 m (lưới Google bẹp quanh cổng) trong khi sân trên đúng (+0,7 m). Mỗi điểm [x, z] giữ nguyên, y mới = mặt chính thức tại (x + 7, z + 1) − mốc cảnh ↔ DHHN2016
+// 3,7 m (lưới Google bẹp quanh cổng) trong khi sân trên đúng (+0,7 m). Mỗi điểm [x, z] giữ nguyên, y mới = mặt chính thức tại điểm đã dời theo so-dom20.json (toa_do_bayern.py) − mốc cảnh ↔ DHHN2016
 // (mốc của scripts/sua-theo-dom20.mjs, du-lieu-goc/bayern/so-chieu-cao.json): chỗ đất trống (DOM20 − DGM1 < 0,7 m) lấy DOM20 (sân lát, bậc), còn lại lấy DGM1 (dưới cây / nhà).
 // Đã thử 22/11/2026 lấy cả DOM20 "phẳng" cao hơn DGM1 dưới 6 m: sân ảnh 13 thành mặt gồ ghề (gỗ xếp, pallet trên DOM20) — bỏ, đừng thử lại.
 // Neo sân (sua.json "<id sân>".neo_mat_dat) cũng lấy lại theo cùng nguồn.
@@ -17,9 +17,9 @@ const neo = Object.entries(SUA).flatMap(([id, v]) => (v.neo_mat_dat || []).map((
 const py = `
 import json, math, sys, numpy as np, tifffile
 BY, moc, goc = sys.argv[1], float(sys.argv[2]), float(sys.argv[3]); dom = tifffile.imread(BY + '/dom20-32631_5268.tif'); dgm = tifffile.imread(BY + '/dgm1-631_5268.tif'); P = json.load(sys.stdin)
-E0, N0, g = 631637.44, 5268614.78, math.radians(1.7498 * math.sin(math.radians(47.5576))); c, s = math.cos(g), math.sin(g); ra = []
+sys.path.insert(0, BY + '/../../scripts'); from toa_do_bayern import EN, canh   # độ dời OSM → DOM20 đọc từ so-dom20.json; ra = []
 for x, z in P:
-    n = -z; E = E0 + (c * (x + 7) - s * (n - 1)) * 0.99981; N = N0 + (s * (x + 7) + c * (n - 1)) * 0.99981; i, j = int((5269000 - N) / 0.2), int((E - 631000) / 0.2)
+    E, N = EN(x, z); i, j = int((5269000 - N) / 0.2), int((E - 631000) / 0.2)
     if not (3 <= i < 4997 and 3 <= j < 4997): ra.append(None); continue
     t = float(dgm[int(5269000 - N), int(E - 631000)]); o = float(np.median(dom[i - 2:i + 3, j - 2:j + 3])); ra.append(round((o if o - t < 0.7 else t) - moc - goc, 2))
 print(json.dumps(ra))

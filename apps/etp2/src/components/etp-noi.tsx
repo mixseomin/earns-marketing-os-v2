@@ -143,7 +143,23 @@ export function KhungNoi({ x, y, rong, cao, noi, children, style, chu = false, g
 // #1715 (anh 20/11/2026 "Tởm, ko đọc đc"): only a SHORT title is shown in bold. A long description with no separator
 // (vd mô tả mẫu creative) used to be one bold 13px block → hard to read. Above TIEU_DAM characters it becomes a plain paragraph, regular weight, wider line height.
 const TIEU_DAM = 60;
-export function tachChuRe(t: string): { tieu: string; dong: string[] } {
+// #1837 (anh 25/11/2026 "ko trình bày bố láo thế này"): chữ rê ĐÃ chia dòng sẵn (có \n — thẻ Đang sản xuất, Chờ duyệt, Khối…) trước bị chặt thêm ở MỌI " · "
+// → "$5/ngày", "bộ 1", "8 phim" thành từng chấm rời, dòng trống (ranh nhóm) mất, dấu "· " / "– " đầu dòng còn dính, dòng con hết thụt. Nay: có \n thì CHỈ tách theo \n
+// (người viết đã chia ý), bỏ dấu đầu dòng, "– " = dòng con thụt vào, dòng ngay sau dòng trống mà không có dấu = tiêu đề nhóm (đậm, không chấm, có khoảng cách).
+// Chữ một dòng không có \n vẫn tách " · " như cũ.
+export type DongRe = { chu: string; cap: 0 | 1; dau: boolean; cach: boolean };
+export function tachDongRe(sau: string, coXuong: boolean): DongRe[] {
+  if (!coXuong) return sau.split(/\s+·\s+/).map((x) => x.trim()).filter(Boolean).map((chu) => ({ chu, cap: 0 as const, dau: false, cach: false }));
+  const ra: DongRe[] = []; let trong = false;
+  for (const l of sau.split('\n')) {
+    if (!l.trim()) { trong = ra.length > 0; continue; }
+    const con = /^\s*[–-]\s+/.test(l), dauCham = /^\s*·\s*/.test(l);
+    const chu = l.replace(/^\s*(?:[–-]\s+|·\s*)/, '').trim(); if (!chu) continue;
+    ra.push({ chu, cap: con ? 1 : 0, dau: trong && !con && !dauCham, cach: trong }); trong = false;
+  }
+  return ra;
+}
+export function tachChuRe(t: string): { tieu: string; dong: DongRe[] } {
   const s = t.trim(); const m = /\s+—\s+|\n/.exec(s);
   let tieu = s, sau = '';
   // #1715 lượt 2: " — " chỉ là dấu tách tiêu đề khi phần trước NGẮN (≤ TIEU_DAM). Câu dài có " — " giữa câu (mô tả mẫu) trước bị chặt đôi:
@@ -151,7 +167,7 @@ export function tachChuRe(t: string): { tieu: string; dong: string[] } {
   if (m && (m[0] === '\n' || m.index <= TIEU_DAM)) { tieu = s.slice(0, m.index); sau = s.slice(m.index + m[0].length); }
   else if (m) { const i = s.indexOf('\n'); if (i > 0) { tieu = s.slice(0, i); sau = s.slice(i + 1); } }
   else if (s.length > 70) { const i = s.indexOf(' · '); if (i > 0 && i <= TIEU_DAM) { tieu = s.slice(0, i); sau = s.slice(i + 3); } }
-  const dong = sau.split(/\n|\s+·\s+/).map((x) => x.trim()).filter(Boolean);
+  const dong = tachDongRe(sau, s.includes('\n'));
   return { tieu, dong };
 }
 // #1828: chữ rê MỘT dòng (không xuống dòng, không tách được dòng phụ, ngắn ≤ TIEU_DAM) → nhãn nhỏ (TheChuGon trong KhungNoi gon), không dùng thẻ to có ✕
@@ -167,8 +183,10 @@ export function TheChu({ chu }: { chu: string }) {
       ? <b style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)' }}>{tieu}</b>
       : <div style={{ fontSize: 12.5, fontWeight: 400, lineHeight: 1.55, color: 'var(--fg-0)' }}>{tieu}</div>}
     {dong.length ? <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--line)', display: 'grid', gap: 4 }}>
-      {dong.map((x, i) => <div key={i} style={{ position: 'relative', paddingLeft: 12, color: 'var(--fg-2)' }}>
-        <span style={{ position: 'absolute', left: 0, top: 6, width: 5, height: 5, borderRadius: 3, background: 'var(--fg-3, #777)' }} />{x}</div>)}
+      {dong.map((x, i) => x.dau
+        ? <div key={i} data-re-dau="" style={{ marginTop: i ? 6 : 0, color: 'var(--fg-0)', fontWeight: 600 }}>{x.chu}</div>
+        : <div key={i} data-re-cap={x.cap} style={{ position: 'relative', paddingLeft: x.cap ? 24 : 12, marginTop: x.cach && i ? 6 : 0, color: 'var(--fg-2)', fontSize: x.cap ? 11.5 : undefined }}>
+          <span style={{ position: 'absolute', left: x.cap ? 13 : 0, top: 6, width: x.cap ? 4 : 5, height: x.cap ? 4 : 5, borderRadius: 3, background: x.cap ? 'transparent' : 'var(--fg-3, #777)', border: x.cap ? '1px solid var(--fg-3, #777)' : undefined }} />{x.chu}</div>)}
     </div> : null}
   </div>;
 }

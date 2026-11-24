@@ -1,40 +1,70 @@
 {
- "luc": "2026-11-21T05:53:10.528Z",
+ "luc": "2026-11-24T01:13:31.441Z",
  "mat": {
   "way/223110823#3": {
    "ten": "Torbau — khối cổng kem (mặt đông)",
    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
    "khop": 8,
-   "loi": [],
-   "loai_sai": []
+   "loi": [
+    "thap_canh (tâm 39.2, -19) đè khung ô cửa way/223110823#3 y 27.7–28.3",
+    "thap_canh (tâm 41.9, -12.6) đè khung ô cửa way/223110823#4 y 27.7–28.3"
+   ],
+   "loai_sai": [
+    "thap_canh",
+    "thap_canh"
+   ]
   },
   "way/223110823#4": {
    "ten": "Torbau — khối cổng kem (mặt đông)",
    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
    "khop": 8,
-   "loi": [],
-   "loai_sai": []
+   "loi": [
+    "thap_canh (tâm 39.2, -19) đè khung ô cửa way/223110823#3 y 27.7–28.3",
+    "thap_canh (tâm 41.9, -12.6) đè khung ô cửa way/223110823#4 y 27.7–28.3"
+   ],
+   "loai_sai": [
+    "thap_canh",
+    "thap_canh"
+   ]
   },
   "way/223110820#14": {
    "ten": "Torbau — khối cổng kem (mặt đông)",
    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
    "khop": 8,
-   "loi": [],
-   "loai_sai": []
+   "loi": [
+    "thap_canh (tâm 39.2, -19) đè khung ô cửa way/223110823#3 y 27.7–28.3",
+    "thap_canh (tâm 41.9, -12.6) đè khung ô cửa way/223110823#4 y 27.7–28.3"
+   ],
+   "loai_sai": [
+    "thap_canh",
+    "thap_canh"
+   ]
   },
   "way/223110820#0": {
    "ten": "Torbau — khối cổng kem (mặt đông)",
    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
    "khop": 8,
-   "loi": [],
-   "loai_sai": []
+   "loi": [
+    "thap_canh (tâm 39.2, -19) đè khung ô cửa way/223110823#3 y 27.7–28.3",
+    "thap_canh (tâm 41.9, -12.6) đè khung ô cửa way/223110823#4 y 27.7–28.3"
+   ],
+   "loai_sai": [
+    "thap_canh",
+    "thap_canh"
+   ]
   },
   "way/223110820#13": {
    "ten": "Torbau — khối cổng kem (mặt đông)",
    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
    "khop": 8,
-   "loi": [],
-   "loai_sai": []
+   "loi": [
+    "thap_canh (tâm 39.2, -19) đè khung ô cửa way/223110823#3 y 27.7–28.3",
+    "thap_canh (tâm 41.9, -12.6) đè khung ô cửa way/223110823#4 y 27.7–28.3"
+   ],
+   "loai_sai": [
+    "thap_canh",
+    "thap_canh"
+   ]
   },
   "way/223110825#0": {
    "ten": "Torbau — cánh nam gạch đỏ (mặt đông)",
@@ -112,6 +142,18 @@
    "khop": 6,
    "loi": [],
    "loai_sai": []
+  },
+  "way/223069513#7": {
+   "ten": "way/223069513#7",
+   "khop": 0,
+   "loi": [
+    "ô cửa lơ lửng y 43.8 ngoài tường -2.2–41.3",
+    "ô cửa lơ lửng y 49.2 ngoài tường -2.2–41.3"
+   ],
+   "loai_sai": [
+    "cua_so",
+    "cua_so"
+   ]
   }
  }
 }

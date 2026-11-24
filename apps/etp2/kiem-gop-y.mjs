@@ -42,7 +42,7 @@ const LUAT = [
   { card: 1530, tep: 'apps/etp2/src/lib/actions/etp-phim.ts', co: "chay(['chon-phim-moi.py', '--co-the-test'], E)", vi: 'nút quét chạy đúng bộ chấm Có thể test' },
   { card: 1520, tep: 'apps/etp2/src/components/etp-dong.tsx', co: 'await lenCampCr(d.id, menuCr.id)', vi: 'bấm ô Lên camp của từng creative có nút lên camp riêng creative đó' },
   { card: 1520, tep: 'apps/etp2/src/components/etp-dong.tsx', co: "...(so != null ? { maxWidth: 40 } : { flex: '0 1 auto' })", cam: 'maxWidth: so != null ? 40 : 74', vi: 'chữ ô trạng thái (nút chờ / lên camp của phim) dùng hết bề rộng cột, không trần cứng 74px làm cụt chữ' },
-  { card: 1788, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const ngay = useMemo(() => [6, 5, 4, 3, 2, 1].map((k) => ngayCong(du.nay, -k)), [du.nay]);', vi: 'cột ngày cây camp = cố định 6 ngày đã khép + nay, không theo kỳ chọn ở trên (anh 24/11/2026)' },
+  { card: 1788, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const ngay = useMemo(() => sauNgayKhep(du.nay), [du.nay]);', vi: 'cột ngày cây camp = cố định 6 ngày đã khép + nay, không theo kỳ chọn ở trên (anh 24/11/2026)' },
   { card: 1788, tep: 'apps/etp2/src/components/etp-view.tsx', co: "['ky', (c) => kh === 'tat_ca' || coChi7(c) ||", vi: 'camp có chi 7 ngày gần nhất luôn qua ô kỳ — kỳ chỉ thêm camp, không bớt' },
   { card: 1769, tep: 'apps/etp2/src/components/etp-noi.tsx', co: "if (el.tagName === 'TH' || el.tagName === 'THEAD') return null;", vi: 'tiêu đề cột bảng không bao giờ bật thẻ nổi to có ✕ (anh 24/11/2026, ảnh "Tên camp ✕")' },
   { card: 1769, tep: 'apps/etp2/src/components/etp-noi.tsx', co: "if (chu.trim().toLowerCase() === (el.textContent ?? '').trim().toLowerCase()) return;", vi: 'chữ rê chỉ nhắc lại chữ đang hiện thì không mở thẻ' },

@@ -7,6 +7,9 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1818, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "phu={`#${c.creative_id}`} them={crThem(c)}", vi: 'ô Phim · creative (bảng Camp + nhóm Creative ở Thiết lập) hiện nhãn loại creative · ngôn ngữ · độ dài dưới tên phim (anh 24/11/2026 "Show thêm thông tin creative như Loại creative")' },
+  { card: 1818, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "phu={`#${c.creative_id} ${c.dang ?? ''}`}", vi: 'không quay về chữ loại thô sau mã creative (trống khi creative chưa phân loại)' },
+  { card: 1818, tep: 'apps/etp2/src/components/etp-view.tsx', co: '{them ? <> · {them}</> : null}', vi: 'PhimO in phần thông tin creative ở dòng phụ' },
   { card: 1816, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', mot: "gridTemplateColumns: 'max-content 1fr', columnGap: 14", vi: 'dải Cấu hình chung dễ nhìn: một hàng mỗi bước, tên bước thẳng cột bên trái, cặp nhãn · giá trị bên phải (anh 24/11/2026 góp ý #1816)' },
   { card: 1816, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', cam: "borderLeft: `3px solid ${g.color}`", vi: 'không quay về chip hộp viền màu từng ô dồn chung một khối' },
   { card: 1816, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', cam: '· “{form?.primaryTexts.join', vi: 'dòng Form chuẩn không bày cả ba câu chữ QC (để ở chữ rê)' },

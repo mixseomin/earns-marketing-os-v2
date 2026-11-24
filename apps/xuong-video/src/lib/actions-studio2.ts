@@ -15,7 +15,8 @@ import { promptVideoCanh } from './xuong-video/sinh-video';
 import { laDungLop, cauDoMang } from './xuong-video/dung-lop';
 import { dichChuoi, sinhJson } from './xuong-video/claude';
 import type { KinhThanh } from './xuong-video/kieu';
-import { duocS2, quyenCua, type QuyenS2 } from './quyen-s2';
+import { duocS2, quyenCua, phimChiaSeCho, type QuyenS2 } from './quyen-s2';
+import { chepPhim } from './xuong-video/template-db';
 import { GOI_THE_LOAI, goiTheoKey } from './xuong-video/goi-the-loai';
 import { CAU_TRUC, khoaKhung } from './xuong-video/dien-anh';
 import { hieuUngKG } from './xuong-video/khan-gia';
@@ -94,10 +95,11 @@ export async function dsMauPhim(): Promise<{ key: string; nhan: string; loai: st
 // ── Studio 2 · nhịp 5 + 6 (anh 20/11/2026 "làm đến nhịp 6"): ai đang dùng, phim của ai, tạo phim theo gói thể loại / template, cấp quyền cho đội ──────────
 
 /** Người đang đăng nhập + quyền Studio 2 của họ (quản trị: đủ quyền). */
-export async function toiS2(): Promise<{ id: number; ten: string; role: string; quyen: QuyenS2 } | null> {
+export async function toiS2(): Promise<{ id: number; ten: string; role: string; quyen: QuyenS2; chi_xem: number[] } | null> {
   const me = await getCurrentUser();
   if (!me) return null;
-  return { id: me.id, ten: me.displayName || me.email, role: me.role, quyen: me.role === 'admin' ? { dung: true, sinh: true } : await quyenCua(me.id) };
+  const qt = me.role === 'admin';   // chi_xem: phim người khác chia sẻ để XEM cho người này (xv_s2_chia_se) — trang khoá sửa, chỉ cho "Nhân bản để sửa"
+  return { id: me.id, ten: me.displayName || me.email, role: me.role, quyen: qt ? { dung: true, sinh: true } : await quyenCua(me.id), chi_xem: qt ? [] : await phimChiaSeCho(me.id) };
 }
 
 /** CREDITS (anh 20/11/2026): 1 credit = 0,1 cent tiền thật. Mọi người hiện KHÔNG GIỚI HẠN; credit đã dùng = tổng chi_phi_cents × 10 của việc xv_job mà các lượt
@@ -297,7 +299,7 @@ export async function luuAiS2(tapId: number, ls: TinAi[]): Promise<{ ok: true; d
     ON CONFLICT (tap_id) DO UPDATE SET ls = excluded.ls, user_id = excluded.user_id, updated_at = now()`);
   return { ok: true, data: gop };
 }
-export type PhimS2 = { id: number; ten: string; loai: string; updated_at: string; anh: string | null; cua_toi: boolean; chu: string; tap_tom: { id: number; so: number; ten: string; so_canh: number }[] };
+export type PhimS2 = { id: number; ten: string; loai: string; updated_at: string; anh: string | null; cua_toi: boolean; chi_xem: boolean; chu: string; tap_tom: { id: number; so: number; ten: string; so_canh: number }[] };
 /** Danh sách phim cho menu của Studio 2 — một câu SQL nhẹ (thay cho dsNhomTuDo tải cả ~7.800 phim rồi lọc). Quản trị: chưa gõ → phim không phải creative
  *  quảng cáo hàng loạt + phim do người trong đội tạo; gõ tên → tìm mọi loại. Người dùng thường (và quản trị khi chiCuaToi): chỉ phim chính họ tạo.
  *  Bỏ template, bản lưu trữ, máy dựng. */
@@ -305,7 +307,9 @@ export async function dsPhimS2(tim: string, chiCuaToi = false): Promise<{ ds: Ph
   const db = getDb(), me = await getCurrentUser();
   if (!db || !me || !(await laAdmin())) return { ds: [], tong: 0 };
   const t = String(tim ?? '').trim(), mau = `%${t.replace(/[%_\\]/g, (c) => `\\${c}`)}%`, quanTri = me.role === 'admin' && !chiCuaToi;   // chiCuaToi: quản trị bật "xem như người mới" trên Studio 2 → chỉ phim chính họ tạo, như một người trong đội
-  const loc = quanTri ? (t ? sql`p.ten ILIKE ${mau}` : sql`(p.loai <> 'quang_cao' OR p.owner_user_id IS NOT NULL)`) : (t ? sql`p.owner_user_id = ${me.id} AND p.ten ILIKE ${mau}` : sql`p.owner_user_id = ${me.id}`);
+  const loc = quanTri ? (t ? sql`p.ten ILIKE ${mau}` : sql`(p.loai <> 'quang_cao' OR p.owner_user_id IS NOT NULL)`) : (() => { const cua = me.role === 'admin' ? sql`p.owner_user_id = ${me.id}`
+      : sql`(p.owner_user_id = ${me.id} OR EXISTS (SELECT 1 FROM xv_s2_chia_se s WHERE s.phim_id = p.id AND s.user_id = ${me.id}))`;   // + phim được chia sẻ để xem
+    return t ? sql`${cua} AND p.ten ILIKE ${mau}` : cua; })();
   try {
     const r = (await db.execute(sql`SELECT p.id, p.ten, p.loai, p.updated_at, p.owner_user_id, count(*) OVER () AS tong,
         coalesce(p.poster_url, (SELECT c.keyframe_url FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = p.id AND c.keyframe_url IS NOT NULL ORDER BY c.updated_at DESC, c.id DESC LIMIT 1)) AS anh,
@@ -314,8 +318,27 @@ export async function dsPhimS2(tim: string, chiCuaToi = false): Promise<{ ds: Ph
       FROM xv_phim p WHERE p.loai <> 'may_dung' AND NOT (p.kinh_thanh ? 'template') AND coalesce((p.kinh_thanh->>'luu_tru')::boolean, false) = false AND ${loc}
       ORDER BY p.updated_at DESC LIMIT 30`)) as unknown as Row[];
     return { tong: Number(r[0]?.tong ?? 0), ds: r.map((x) => ({ id: Number(x.id), ten: String(x.ten ?? ''), loai: String(x.loai ?? ''), updated_at: gio(x.updated_at), anh: x.anh ? String(x.anh) : null,
-      cua_toi: Number(x.owner_user_id) === me.id, chu: String(x.chu ?? ''), tap_tom: (Array.isArray(x.tap_tom) ? x.tap_tom : []).map((y: Row) => ({ id: Number(y.id), so: Number(y.so), ten: String(y.ten ?? ''), so_canh: Number(y.so_canh) })) })) };
+      cua_toi: Number(x.owner_user_id) === me.id, chi_xem: me.role !== 'admin' && Number(x.owner_user_id) !== me.id, chu: String(x.chu ?? ''), tap_tom: (Array.isArray(x.tap_tom) ? x.tap_tom : []).map((y: Row) => ({ id: Number(y.id), so: Number(y.so), ten: String(y.ten ?? ''), so_canh: Number(y.so_canh) })) })) };
   } catch (e) { console.error('[studio2 ds phim]', e); return { ds: [], tong: 0 }; }
+}
+
+/** NHÂN BẢN ĐỂ SỬA (anh 24/11/2026): phim được chia sẻ chỉ xem → người xem chép NGUYÊN thành phim của mình (kịch bản, cảnh, ảnh, clip, lời, bản xuất,
+ *  kết quả soi) rồi sửa thoải mái; phim gốc không đổi. Quyền: chayS2 cho gọi khi phim là của người bấm hoặc được chia sẻ cho họ. 0đ.
+ *  Trả phim + tập mới (tập cùng số với tapId đang mở, không có thì tập đầu). */
+export async function nhanBanPhimS2(phimId: number, tapId?: number): Promise<{ ok: true; data: { phim: number; tap: number | null } } | { ok: false; loi: string }> {
+  const db = getDb(), me = await getCurrentUser();
+  if (!db || !me || !(await laAdmin())) return { ok: false, loi: 'không có quyền' };
+  const pid = Number(phimId);
+  const g = ((await db.execute(sql`SELECT ten FROM xv_phim WHERE id = ${pid}`)) as unknown as Row[])[0];
+  if (!g) return { ok: false, loi: `không thấy phim #${pid}` };
+  try {
+    const kq = await chepPhim(db, pid, { ten: `${String(g.ten ?? '')} · bản của ${me.displayName || me.email}`.slice(0, 200), gt: {}, laTemplate: false, nhanBan: { boi: me.id } });
+    if (!kq) return { ok: false, loi: `không đọc được phim #${pid}` };
+    const moi = kq.phimId;
+    const so = tapId ? ((await db.execute(sql`SELECT so FROM xv_tap WHERE id = ${Number(tapId)} AND phim_id = ${pid}`)) as unknown as Row[])[0]?.so : null;
+    const t = ((await db.execute(sql`SELECT id FROM xv_tap WHERE phim_id = ${moi} ORDER BY (so = ${so == null ? -1 : Number(so)}) DESC, so, id LIMIT 1`)) as unknown as Row[])[0];
+    return { ok: true, data: { phim: moi, tap: t ? Number(t.id) : null } };
+  } catch (e) { console.error('[studio2 nhân bản]', e); return { ok: false, loi: `nhân bản không được: ${e instanceof Error ? e.message : String(e)}` }; }
 }
 
 /** 37 gói thể loại của studio (goi-the-loai.ts) cho hộp tạo video: tên, nhóm, mô tả, khung hình, độ dài. */

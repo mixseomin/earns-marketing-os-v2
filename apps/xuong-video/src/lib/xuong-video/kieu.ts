@@ -207,6 +207,8 @@ export type KinhThanh = {
    *  sửa như phim thường. `o` = nhãn + gợi ý + giá trị mẫu của từng ô (ô nào gõ trong chữ mà chưa khai vẫn hiện, nhãn = tên ô). */
   template?: CauHinhTemplate | null;
   /** phim sinh ra từ template nào, với giá trị ô nào (mã gen cho đo đơn về sau) */
+  /** phim này là bản nhân bản (Studio 2: người được chia sẻ chỉ xem bấm "Nhân bản để sửa") */
+  nhan_ban_tu?: { id: number; ten: string; boi: number; luc: string } | null;
   tu_template?: { id: number; ten: string; gia_tri: Record<string, string>; /** nguồn tham khảo theo ô (tham-khao.ts) */ tham_khao?: Record<string, import('./tham-khao').NguonThamKhao[]>; luc: string } | null;
 };
 /** nhom: nhóm trong form điền (template.ts › NHOM_O) — thiếu thì máy đoán theo tên ô */

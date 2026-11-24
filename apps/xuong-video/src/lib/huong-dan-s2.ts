@@ -43,6 +43,7 @@ WIDGET VÀ BỐ CỤC
 CREDIT, ĐỘI, HỖ TRỢ
 - Credit: 1 credit = 0,1 cent; hiện tài khoản không giới hạn credit.
 - Người không phải quản trị dùng Studio 2 khi quản trị cấp quyền ("Đội và quyền": Dùng · Bấm bước tốn tiền), chỉ thấy video mình tạo.
+- Video được chia sẻ để xem (menu tên phim ghi "chia sẻ để xem", thanh trên ghi "Được chia sẻ · chỉ xem"): xem được hết nhưng không sửa / sinh được. Bấm "Nhân bản để sửa" trên thanh trên: máy chép nguyên video thành video của bạn (0 credit) rồi mở bản đó, sửa thoải mái; video gốc không đổi.
 - Nút 💬 Góp ý trên thanh trên: báo lỗi / hỏi đội, dán ảnh, chụp trang; tab card đã gửi xem trả lời; tab Hỏi đáp.
 `.trim();
 

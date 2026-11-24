@@ -28,8 +28,19 @@ const LUAT: Record<string, { doi: Doi; tien?: boolean }> = {
   // ghi tốn tiền
   taoPhimMau: { doi: 'khong', tien: true }, phanTichAstrolasS2: { doi: 'tap', tien: true }, vietKichBanTap: { doi: 'tap', tien: true }, tachCanhTap: { doi: 'tap', tien: true }, batDauNguoiXem: { doi: 'tap', tien: true }, kiemKhungTapAction: { doi: 'tap', tien: true }, suaTheoNguoiXem: { doi: 'tap', tien: true },
   goiYAIKinhThanh: { doi: 'phim', tien: true }, goiYAIBoAnchor: { doi: 'phim', tien: true }, sinhAnhThieuAction: { doi: 'phim', tien: true }, veLaiAnhMauS2: { doi: 'phim', tien: true }, taoNhanVatS2: { doi: 'canh', tien: true }, sinhKeyframe: { doi: 'canh', tien: true }, sinhLaiCanhS2: { doi: 'canh', tien: true },
+  nhanBanPhimS2: { doi: 'phim' },
   sinhGiong: { doi: 'tap', tien: true }, sinhVideoCanh: { doi: 'canh', tien: true }, sinhNhac: { doi: 'tap', tien: true }, sinhAmS2: { doi: 'tap', tien: true }, lenhAiS2: { doi: 'phim', tien: true },
 };
+/** CHIA SẺ CHỈ XEM (anh 24/11/2026: "chia sẻ video cho tk doanhoe, không cho quyền edit, nhưng có thể clone để edit thoải mái"): phim có dòng
+ *  xv_s2_chia_se cho người này thì người đó chạy được các hàm ĐỌC dưới đây + nhanBanPhimS2 (chép thành phim của mình); mọi hàm ghi khác bị từ chối. */
+const XEM = new Set(['docPhim', 'quyTrinhTap', 'dsCanh', 'uocTien', 'uocAm', 'nhatKyTap', 'nhatKyCanh', 'docCoSoS2', 'hangDoiS2', 'xemLenhS2', 'docAiS2', 'docViecNen', 'trangThaiXuat', 'giongNvS2', 'banDaSinhS2', 'banNhacS2', 'nhanBanPhimS2']);
+/** id các phim người khác chia sẻ để xem cho userId (không gồm phim của chính người đó) */
+export async function phimChiaSeCho(userId: number): Promise<number[]> {
+  const db = getDb();
+  if (!db) return [];
+  const r = (await db.execute(sql`SELECT s.phim_id AS p FROM xv_s2_chia_se s JOIN xv_phim p ON p.id = s.phim_id WHERE s.user_id = ${userId} AND p.owner_user_id IS DISTINCT FROM ${userId}`).catch(() => [])) as unknown as Row[];
+  return r.map((x) => Number(x.p)).filter((v) => v > 0);
+}
 /** hàm vừa tạo ra một phim → phim đó thuộc về người bấm */
 const TAO_PHIM = new Set(['taoPhim', 'taoPhimMau', 'taoPhimTuTemplate']);
 type Row = Record<string, unknown>;
@@ -83,6 +94,9 @@ export async function chayS2<T>(loai: 'doc' | 'ghi', ham: string, args: unknown[
   const phimId = await phimCua(db, luat.doi, args[0]);
   if (!phimId) return tuChoi('không dò được phim của lượt này');
   const chu = (await db.execute(sql`SELECT 1 AS co FROM xv_phim WHERE id = ${phimId} AND owner_user_id = ${me.id}`)) as unknown as Row[];
-  if (!chu[0]) return tuChoi(`phim #${phimId} không phải phim của bạn`, phimId);
+  if (!chu[0]) {
+    if (!(await phimChiaSeCho(me.id)).includes(phimId)) return tuChoi(`phim #${phimId} không phải phim của bạn`, phimId);
+    if (!XEM.has(ham)) return tuChoi(`phim #${phimId} được chia sẻ để xem — muốn sửa thì bấm "Nhân bản để sửa" trên thanh trên để có bản của bạn`, phimId);
+  }
   return chay(phimId, true);
 }

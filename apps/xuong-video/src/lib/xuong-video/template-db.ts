@@ -58,7 +58,9 @@ export type KetQuaChep = { phimId: number; soShot: number; giuMedia: number; nha
 
 /** Chép cả phim. laTemplate=true: bản sao là template (giữ nhãn ô). Ngược lại: điền `gt` vào mọi ô, gắn tu_template = nguồn. */
 /** tk = nguồn tham khảo theo ô (tham-khao.ts): câu chữ của shot dùng ô nào thì mang nguồn của ô đó; câu cố định của template giữ nguồn của nó. */
-export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Record<string, string>; laTemplate: boolean; tk?: Record<string, NguonThamKhao[]> }): Promise<KetQuaChep | null> {
+export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Record<string, string>; laTemplate: boolean; tk?: Record<string, NguonThamKhao[]>; nhanBan?: { boi: number } }): Promise<KetQuaChep | null> {
+  // nhanBan (Studio 2 · anh 24/11/2026: phim được chia sẻ chỉ xem → người nhận nhân bản để sửa): chép NGUYÊN — giữ bản xuất, kết quả soi, thử người xem,
+  // không gắn tu_template, không đổi CTA; phim mới thuộc người bấm.
   const d = await docCaPhim(db, nguonId);
   if (!d) return null;
   // Tạo phim TỪ template: anchor sản phẩm ghi cứng = phim mới mang sản phẩm của nguồn → dừng, không chép (lỗi nói rõ để sửa template).
@@ -73,8 +75,9 @@ export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Re
     const ktCu = (d.phim.kinh_thanh ?? {}) as KinhThanh;
     const ktMoi: KinhThanh = { ...dienSau(ktNoiDung(ktCu), gt), luu_tru: false,
       template: o.laTemplate ? { mo_ta: ktCu.template?.mo_ta ?? '', o: ktCu.template?.o ?? {}, thu_tu: ktCu.template?.thu_tu ?? [] } : null,
-      tu_template: o.laTemplate ? null : { id: nguonId, ten: s(d.phim.ten), gia_tri: gt, ...(o.tk ? { tham_khao: o.tk } : {}), luc: new Date().toISOString() } };
-    const phimId = await chen(t, 'xv_phim', { ...d.phim, ten: o.ten, mo_ta: dienSau(s(d.phim.mo_ta), gt), kinh_thanh: ktMoi, poster_url: null, poster_uv: [] });
+      ...(o.nhanBan ? { nhan_ban_tu: { id: nguonId, ten: s(d.phim.ten), boi: o.nhanBan.boi, luc: new Date().toISOString() } } : {}),
+      tu_template: o.nhanBan ? (ktCu.tu_template ?? null) : o.laTemplate ? null : { id: nguonId, ten: s(d.phim.ten), gia_tri: gt, ...(o.tk ? { tham_khao: o.tk } : {}), luc: new Date().toISOString() } };
+    const phimId = await chen(t, 'xv_phim', { ...d.phim, ten: o.ten, mo_ta: dienSau(s(d.phim.mo_ta), gt), kinh_thanh: ktMoi, poster_url: null, poster_uv: [], ...(o.nhanBan ? { owner_user_id: o.nhanBan.boi, poster_url: d.phim.poster_url ?? null, poster_uv: d.phim.poster_uv ?? [] } : {}) });
     // anchor + biến thể: anchor đổi chữ → ảnh biến thể cũ không còn đúng
     const doiNv = new Map<number, number>(); const nvDoi = new Set<number>(); const doiBt = new Map<number, number>(); const btDoi = new Set<number>();
     for (const v of d.nv) {
@@ -93,7 +96,7 @@ export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Re
     const doiTap = new Map<number, number>();
     for (const tp of d.tap) {
       const moi = dienSau(tp, gt); const doi = !giong(tp, moi);
-      doiTap.set(n(tp.id), await chen(t, 'xv_tap', { ...moi, phim_id: phimId, xuat: [], video_url: null, ...(doi || !o.laTemplate ? { thu_nguoi_xem: null } : {}) }));
+      doiTap.set(n(tp.id), await chen(t, 'xv_tap', o.nhanBan ? { ...moi, phim_id: phimId } : { ...moi, phim_id: phimId, xuat: [], video_url: null, ...(doi || !o.laTemplate ? { thu_nguoi_xem: null } : {}) }));
     }
     for (const c of d.canh) {
       const noiDung = Object.fromEntries(Object.entries(c).filter(([k]) => !(k in MEDIA_CANH)));
@@ -109,8 +112,8 @@ export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Re
       const thoaiCu = (c.thoai as { loi?: string; url?: string | null }[]) ?? [];
       const thoai = ((noiDungMoi.thoai as { loi?: string; url?: string | null }[]) ?? []).map((x, i) => (x.loi === thoaiCu[i]?.loi ? x : { ...x, url: null }));
       if (doi) nhapLai++; else giuMedia++;
-      const tham_khao = o.laTemplate ? (c.tham_khao ?? []) : thamKhaoSauDien({ chu_man: s(c.chu_man), thoai: (c.thoai as { loi?: string }[]) ?? [], tham_khao: (c.tham_khao as ThamKhaoCau[]) ?? [] }, gt, o.tk);
-      await chen(t, 'xv_canh', { ...noiDungMoi, ...media, thoai, tham_khao, tap_id: doiTap.get(n(c.tap_id)), chi_phi_cents: 0, loi: '', soat: null,
+      const tham_khao = o.laTemplate || o.nhanBan ? (c.tham_khao ?? []) : thamKhaoSauDien({ chu_man: s(c.chu_man), thoai: (c.thoai as { loi?: string }[]) ?? [], tham_khao: (c.tham_khao as ThamKhaoCau[]) ?? [] }, gt, o.tk);
+      await chen(t, 'xv_canh', { ...noiDungMoi, ...media, thoai, tham_khao, tap_id: doiTap.get(n(c.tap_id)), chi_phi_cents: 0, loi: '', soat: o.nhanBan ? (c.soat ?? null) : null,
         nhan_vat: ((c.nhan_vat as number[]) ?? []).map((x) => doiNv.get(Number(x))).filter((x) => x != null),
         bien_the: ((c.bien_the as number[]) ?? []).map((x) => doiBt.get(Number(x))).filter((x) => x != null),
         trang_thai: doi ? (media.keyframe_url ? 'co_keyframe' : 'nhap') : c.trang_thai });
@@ -118,7 +121,7 @@ export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Re
     return { phimId, soShot: d.canh.length, giuMedia, nhapLai };
   });
   // QC mới: kiểu CTA ít dùng nhất cho cùng sản phẩm (thư viện CTA, cta-db.ts) → các video không trùng CTA
-  if (!o.laTemplate) await ganCtaTuDong(db, kq.phimId);
+  if (!o.laTemplate && !o.nhanBan) await ganCtaTuDong(db, kq.phimId);
   return kq;
 }
 

@@ -37,7 +37,7 @@ const gioVn = (iso: string | null) => {
   return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 };
 
-export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; hep?: boolean; them?: CotThem<T> }) {
+export function ThietLapCamp<T extends CampCo>({ camps, them, moCamp }: { camps: T[]; hep?: boolean; them?: CotThem<T>; moCamp?: (id: number) => void }) {
   const theoId = useMemo(() => new Map(camps.map((c) => [c.camp_id, c])), [camps]);
   const ids = useMemo(() => camps.map((c) => c.camp_id).filter((x) => x > 0), [camps]);
   const khoa = ids.join(',');
@@ -177,7 +177,8 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
   const soMuc = { do: 0, vang: 0, khong: 0 };
   for (const r of du?.dong ?? []) { const v = vanDe(r); if (v.some((x) => x.do)) soMuc.do++; if (v.some((x) => !x.do)) soMuc.vang++; if (!v.length) soMuc.khong++; }
   const cot: DataColumn<DongTl>[] = [
-    { key: 'camp_id', header: 'Camp', align: 'left', width: 70, cell: (r) => <b>#{r.camp_id}</b>, sortValue: (r) => r.camp_id },
+    { key: 'camp_id', header: 'Camp', align: 'left', width: 70, cell: (r) => <b data-nut="mo-camp" onClick={moCamp ? (e) => { e.stopPropagation(); moCamp(r.camp_id); } : undefined} title={moCamp ? `Mở chi tiết camp #${r.camp_id}` : undefined}
+      style={moCamp ? { cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 } : undefined}>#{r.camp_id}</b>, sortValue: (r) => r.camp_id },
     { key: 'van_de', header: <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>Vấn đề<select value={muc} onClick={(e) => e.stopPropagation()} onChange={(e) => setMuc(e.target.value as typeof muc)}
         title="lọc theo mức vấn đề" style={{ fontSize: 10.5, padding: '0 2px', background: 'var(--bg-2, #1f1f2e)', color: muc === 'do' ? '#f87171' : muc === 'vang' ? '#fbbf24' : muc === 'khong' ? '#4ade80' : 'var(--fg-2)', border: '1px solid var(--line, #333)', borderRadius: 4 }}>
         <option value="">tất cả</option><option value="do">● đỏ ({soMuc.do})</option><option value="vang">● vàng ({soMuc.vang})</option><option value="khong">✓ không ({soMuc.khong})</option></select></span>, width: 230, align: 'left', sortValue: diemVd, cell: oVanDe,

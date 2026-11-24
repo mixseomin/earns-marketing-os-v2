@@ -20,6 +20,8 @@ export interface TablePref {
   g?: string;                                       // gom nhóm theo cột (thanh lọc tự động, loc-tu-dong.ts)
   o?: string[];                                     // thứ tự NHÓM người dùng đặt trong menu ⚙ cột (thu-tu-cot.ts)
   oc?: string[];                                    // thứ tự CỘT trong từng nhóm
+  ac?: string[];                                    // CỘT ẩn riêng lẻ (menu ⚙ Columns — anh 24/11/2026 "cho phép ẩn hiện, sticky, resize cột ở đây")
+  gc?: string[];                                    // CỘT ghim trái do người chọn (thiếu = ghim mặc định của bảng: stickyFirst / stickyCols)
   dd?: boolean;                                     // false = tắt ghim khối tiêu đề (nhãn nhóm + tên cột) khi cuộn — etp2 #1824; thiếu = ghim
 }
 

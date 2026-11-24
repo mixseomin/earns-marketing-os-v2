@@ -243,6 +243,12 @@ export function DataTable<T>({
       // thả: ghi bề ngang ĐANG HIỆN của mọi cột (tổng = khung) → sau khi thả không co thêm lần nữa, tay nắm không giật
       xong: (v) => { setDangKeo(null); setRong((r) => { const g = { ...chot, ...r, [key]: v }; const n = { ...g, ...hienRef.current(g, key) }; if (khoaRong) ghiRongCot(khoaRong, n); return n; }); } });
   };
+  // đặt bề ngang MỘT cột từ ô số trong menu ⚙ Columns — như kéo mép: lần đầu chốt bề ngang đang hiện của mọi cột (đo cotDo) để bảng chuyển fixed không nhảy
+  const datRong = (key: string, v: number) => {
+    const chot: Record<string, number> = {}; if (!Object.keys(rong).length) visibleKeys.forEach((k, i) => { const x = cotDo.w[i]; if (x) chot[k] = Math.round(x * 100) / 100; });
+    tuChotRef.current = null;
+    setRong((r) => { const g = { ...chot, ...r, [key]: v }; const n = { ...g, ...hienRef.current(g, key) }; if (khoaRong) ghiRongCot(khoaRong, n); return n; });
+  };
   // về bề ngang mặc định: một cột (nhấp đúp mép cột) hoặc MỌI cột (không truyền key — nút ↺ trên tiêu đề)
   const veMacDinh = (key?: string) => { if (key == null) tuChotRef.current = null;
     setRong((r) => { const n: Record<string, number> = key == null ? {} : { ...r }; if (key != null) delete n[key]; if (khoaRong) ghiRongCot(khoaRong, n); return n; }); };
@@ -411,7 +417,17 @@ export function DataTable<T>({
   const setThuTu = (n: { n?: string[]; c?: string[] }) => { setThuTuTho(n); writeTablePref(persistKey, { o: n.n, oc: n.c }); };
   const colsXep = useMemo(() => xepCot(columns, thuTu.n, thuTu.c), [columns, thuTu]);
   const nhomXep = thuTuNhom(columns, (groups ?? []).map((g) => g.key), thuTu.n);
-  const visibleDu = colsXep.filter((c) => !c.group || shown[c.group] !== false);
+  // ẨN / GHIM TỪNG CỘT trong menu ⚙ Columns (anh 24/11/2026 "Cho phép ẩn hiện, sticky, resize cột ở đây"): nhớ theo persistKey như thứ tự cột.
+  // ghimCot undefined = ghim mặc định của bảng (logic soGhim cũ); đã chọn = các cột đó dồn về trái theo thứ tự bảng và dính khi cuộn ngang.
+  const [anCot, setAnCotTho] = useState<string[]>(() => pref.ac ?? []);
+  const [ghimCot, setGhimCotTho] = useState<string[] | undefined>(() => pref.gc);
+  const setAnCot = (v: string[]) => { setAnCotTho(v); writeTablePref(persistKey, { ac: v.length ? v : undefined }); };
+  const setGhimCot = (v: string[] | undefined) => { setGhimCotTho(v); writeTablePref(persistKey, { gc: v }); };
+  const anSet = new Set(anCot);
+  const ghimSet = ghimCot ? new Set(ghimCot) : null;
+  // sort ổn định: cột ghim lên trước, giữ nguyên thứ tự bảng trong từng phần
+  const visibleDu = colsXep.filter((c) => (!c.group || shown[c.group] !== false) && !anSet.has(c.key))
+    .sort((a, b) => (ghimSet ? Number(ghimSet.has(b.key)) - Number(ghimSet.has(a.key)) : 0));
   // TRONG Ô WIDGET /home (khung-o.tsx KhungO — anh 20/11/2026 "màn hình đã bé lại mà show hết ra thì xem được à"): cột không vừa ô thì tự ẩn từ phải
   // sang (giữ tối thiểu 2 cột đầu), chip "+n cột" trên thanh công cụ bật lại cả bảng (khi đó cuộn ngang trong khung). Ngoài ô (trang thường) không đổi gì.
   const rongO = useKhungO(), trongO = rongO > 0;
@@ -476,7 +492,7 @@ export function DataTable<T>({
                     }}>
                     {on ? '✓ ' : '  '}{g.label}
                   </button>
-                  {cots.length > 1 && <button type="button" onClick={() => setMoNhomCot(mo ? '' : g.key)} aria-expanded={mo} title={`${cots.length} cột — bấm để đổi thứ tự cột trong nhóm`} style={{ ...nutNho, fontSize: 10, whiteSpace: 'nowrap' }}>{mo ? '▾' : '▸'} {cots.length}</button>}
+                  {cots.length > 0 && <button type="button" onClick={() => setMoNhomCot(mo ? '' : g.key)} aria-expanded={mo} title={`${cots.length} cột — bấm để ẩn/hiện, ghim, đổi bề ngang, đổi thứ tự từng cột`} style={{ ...nutNho, fontSize: 10, whiteSpace: 'nowrap' }}>{mo ? '▾' : '▸'} {cots.length}</button>}
                   <button type="button" disabled={i === 0} onClick={() => doiViTri('n', g.key, -1)} title="Đưa nhóm lên trước" style={{ ...nutNho, opacity: i === 0 ? 0.3 : 1 }}>↑</button>
                   <button type="button" disabled={i === nhomXep.length - 1} onClick={() => doiViTri('n', g.key, 1)} title="Đưa nhóm ra sau" style={{ ...nutNho, opacity: i === nhomXep.length - 1 ? 0.3 : 1 }}>↓</button>
                 </div>
@@ -487,7 +503,20 @@ export function DataTable<T>({
                       return (
                         <div key={ck} data-cot-menu={ck} {...keoProps('c', ck, g.key)} style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 11, color: on ? 'var(--fg-2)' : 'var(--fg-3)', opacity: keoMuc?.loai === 'c' && keoMuc.k === ck ? 0.4 : 1 }}>
                           <span title="Kéo để đổi thứ tự cột" style={{ cursor: 'grab', color: 'var(--fg-3)', fontSize: 12, padding: '0 2px', userSelect: 'none' }}>⠿</span>
-                          <span title={c.title} style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>{c.header}</span>
+                          <button type="button" data-nut="an-cot" aria-pressed={!anSet.has(ck)} onClick={() => setAnCot(anSet.has(ck) ? anCot.filter((x) => x !== ck) : [...anCot, ck])}
+                            title={anSet.has(ck) ? 'Cột đang ẩn — bấm để hiện' : 'Cột đang hiện — bấm để ẩn'} style={{ ...nutNho, fontSize: 12, color: anSet.has(ck) ? 'var(--fg-3)' : 'var(--fg-1)' }}>{anSet.has(ck) ? '☐' : '☑'}</button>
+                          <span title={c.title} style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220, textDecoration: anSet.has(ck) ? 'line-through' : undefined, opacity: anSet.has(ck) ? 0.6 : 1 }}>{c.header}</span>
+                          {(() => { const dangGhim = visible.slice(0, soGhim).some((x) => x.key === ck);
+                            return <button type="button" data-nut="ghim-cot" aria-pressed={dangGhim} disabled={anSet.has(ck)}
+                              onClick={() => { const nen = ghimCot ?? visible.slice(0, soGhim).map((x) => x.key); setGhimCot(dangGhim ? nen.filter((x) => x !== ck) : [...nen, ck]); }}
+                              title={dangGhim ? 'Cột đang ghim trái (dính khi cuộn ngang) — bấm để thôi ghim' : 'Bấm để ghim cột này sang trái, dính khi cuộn ngang'}
+                              style={{ ...nutNho, fontSize: 10, opacity: dangGhim ? 1 : 0.3, filter: dangGhim ? undefined : 'grayscale(1)' }}>📌</button>; })()}
+                          {(() => { const vi = visibleKeys.indexOf(ck); const w = rongCot(ck) ?? (vi >= 0 ? cotDo.w[vi] : undefined) ?? (typeof c.width === 'number' ? c.width : undefined);
+                            const ghi = (el: HTMLInputElement) => { const v = Math.round(Number(el.value)); if (!v || Math.abs(v - Math.round(w ?? 0)) < 1) return; datRong(ck, Math.max(36, Math.min(1600, v))); };
+                            return <input key={`${ck}:${Math.round(w ?? 0)}`} data-nut="rong-cot" type="number" min={36} max={1600} step={10} disabled={vi < 0} defaultValue={w ? Math.round(w) : ''} placeholder="auto"
+                              onBlur={(e) => ghi(e.currentTarget)} onKeyDown={(e) => { if (e.key === 'Enter') ghi(e.currentTarget); }} onDoubleClick={() => veMacDinh(ck)}
+                              title="Bề ngang cột (px) — gõ số rồi Enter · nhấp đúp để về mặc định"
+                              style={{ width: 52, fontSize: 10, fontFamily: 'var(--font-mono)', padding: '1px 3px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 3, color: 'var(--fg-2)' }} />; })()}
                           <button type="button" disabled={j === 0} onClick={() => doiViTri('c', ck, -1, g.key)} title="Đưa cột sang trái" style={{ ...nutNho, opacity: j === 0 ? 0.3 : 1 }}>↑</button>
                           <button type="button" disabled={j === cots.length - 1} onClick={() => doiViTri('c', ck, 1, g.key)} title="Đưa cột sang phải" style={{ ...nutNho, opacity: j === cots.length - 1 ? 0.3 : 1 }}>↓</button>
                         </div>
@@ -498,6 +527,8 @@ export function DataTable<T>({
               </div>
             );
           })}
+          {(anCot.length > 0 || ghimCot) && <button type="button" data-nut="bo-an-ghim" onClick={() => { setAnCot([]); setGhimCot(undefined); }} title="Hiện lại mọi cột đã ẩn, ghim về mặc định của bảng"
+            style={{ marginTop: 2, padding: '3px 9px', borderRadius: 4, border: '1px dashed var(--line)', background: 'transparent', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)', textAlign: 'left' }}>↺ Hiện hết cột · ghim mặc định</button>}
           {coThuTuRieng && <button type="button" onClick={() => setThuTu({})} title="Bỏ thứ tự đã đổi, về thứ tự gốc của bảng"
             style={{ marginTop: 2, padding: '3px 9px', borderRadius: 4, border: '1px dashed var(--line)', background: 'transparent', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)', textAlign: 'left' }}>↺ Thứ tự mặc định</button>}
           {theoTrang && <button type="button" data-nut="ghim-tieu-de" aria-pressed={dinhDau} onClick={() => setDinhDau(!dinhDau)}
@@ -568,11 +599,12 @@ export function DataTable<T>({
   // Ghim theo CỘT chứ không theo số: người đổi thứ tự nhóm thì chỉ ghim phần đầu còn là cột ghim gốc (không ghim nhầm cột vừa kéo lên).
   const soGhimGoc = stickyCols ?? (stickyFirst ? 1 : 0);
   const soGhim = useMemo(() => {
-    if (colsXep === columns) return soGhimGoc;
+    if (ghimCot) { let n = 0; while (n < visible.length && ghimCot.includes(visible[n]!.key)) n++; return n; }
+    if (colsXep === columns && !anCot.length) return soGhimGoc;
     const goc = new Set(columns.filter((c) => !c.group || shown[c.group] !== false).slice(0, soGhimGoc).map((c) => c.key));
     let n = 0; while (n < visible.length && goc.has(visible[n]!.key)) n++;
     return Math.max(Math.min(1, soGhimGoc), n);
-  }, [colsXep, columns, soGhimGoc, shown, visible]);
+  }, [colsXep, columns, soGhimGoc, shown, visible, ghimCot, anCot.length]);
   const ghim = (i: number): { left: number; cuoi: boolean } | null => {
     if (i < 0 || i >= soGhim) return null;
     if (i === 0) return { left: 0, cuoi: soGhim === 1 || cotDo.w.length < soGhim };

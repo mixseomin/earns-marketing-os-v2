@@ -2537,7 +2537,8 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
       <div className="dong" data-camp-dong={c.camp_id} style={{ display: 'grid', gridTemplateColumns: LUOI_CAY, columnGap: 4, alignItems: 'center', padding: '3px 0 3px 12px', fontSize: 12, borderTop: '1px solid var(--line)',
         boxShadow: mau ? `inset 3px 0 ${mau}` : undefined, background: mau ? `${mau}14` : undefined, position: 'relative', ...toSangDong(hl, c.camp_id, mau ? { boxShadow: `inset 3px 0 ${mau}` } : undefined) }}>{vach}
         <span style={{ display: 'grid', gridTemplateColumns: LT, columnGap: 8, alignItems: 'center', minWidth: 0 }}>
-          <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span><span title={c.ten} style={{ paddingLeft: (cap - 1) * 14, whiteSpace: 'nowrap', overflow: 'hidden' }}><span className="mui">{ds.length ? '▸' : ''}</span> <Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} /></span>
+          <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span><span title={c.ten} style={{ paddingLeft: (cap - 1) * 14, whiteSpace: 'nowrap', overflow: 'hidden' }}><span className="mui">{ds.length ? '▸' : ''}</span> <Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b data-nut="mo-camp" onClick={moCamp ? (e) => { e.preventDefault(); e.stopPropagation(); moCamp(c.camp_id); } : undefined} title={moCamp ? `Mở chi tiết camp #${c.camp_id}` : undefined}
+            style={{ ...(laRoas(c) ? { color: MAU_ROAS } : {}), ...(moCamp ? { cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 } : {}) }}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} /></span>
           <span data-cot="tuoi" data-cot-can="phai" title={tuoiTitle(c)} style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tuoi(c) == null ? '' : <>{tuoiChu(tuoi(c))} <span style={{ fontSize: 10 }}>ngày</span></>}</span>
           <span data-cot="ngan-sach"><BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} /></span>
           <span data-cot="luat" style={{ minWidth: 0 }}><ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} /></span>
@@ -3617,7 +3618,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'thietlap' ? (
-        <ThietLapCamp camps={camps} hep={hep} them={{   /* nhóm cột phụ: creative + 7 ngày gần nhất (chính dải ngày của Cây, thay nhóm Hôm nay / Hôm qua — anh 24/11/2026 #1819) + kỳ chọn */
+        <ThietLapCamp camps={camps} hep={hep} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} them={{   /* nhóm cột phụ: creative + 7 ngày gần nhất (chính dải ngày của Cây, thay nhóm Hôm nay / Hôm qua — anh 24/11/2026 #1819) + kỳ chọn */
           cot: [...cotCamp.filter((k) => k.key === 'phim' || /^kh_/.test(k.key)).map((k) => (k.key === 'phim' ? { ...k, group: 'cr', width: 250 } : k)), ...cotNgay],
           nhom: [{ key: 'cr', label: 'Creative', color: '#34d399', title: 'phim · creative đang gắn vào camp (bấm ảnh xem video)' }, NHOM_NGAY, ...NHOM.filter((g) => g.key === 'kh')] }} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (

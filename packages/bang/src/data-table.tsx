@@ -197,10 +197,19 @@ const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 const NEN_DAC = 'var(--bg-2, var(--surface, #16181d))';
 const TONG_BG = `color-mix(in srgb, var(--accent, #60a5fa) 14%, ${NEN_DAC})`;   // nền dòng tổng (pha trên nền đặc → vẫn đặc)
 const KHUNG_DINH_MIN = 420;   // px — khung cuộn thấp hơn mức này thì tiêu đề / chân bảng không dính (góp ý #1721)
-const RONG_MAC_DINH = 96;
+const RONG_MAC_DINH = 96;   // px — bề ngang cột chưa khai width khi bảng ở chế độ fixed
 // SÀN co theo khung (anh 24/11/2026, mos2 Tài sản + etp2 Thiết lập: "các cột ko được để dồn"): co tỉ lệ cho vừa khung KHÔNG ép cột hẹp hơn
 // 64px (cột người kéo hẹp hơn thế thì giữ đúng bề người kéo) — hết chỗ thì bảng rộng hơn khung và cuộn ngang, không co dồn tới mất chữ
-const SAN_CO = 64;   // px — bề ngang cột chưa khai width khi bảng ở chế độ fixed
+const SAN_CO = 64;   // px — sàn co theo khung
+/** Neo khối nút hover (.dt-th-actions, position:fixed) NGAY DƯỚI mép phải ô tiêu đề — không đè tên cột (anh 24/11/2026).
+ *  Tự chỉnh theo vị trí ĐO THẬT: tổ tiên có transform / filter (ngăn kéo trượt) làm khung chứa của fixed lệch khỏi màn hình,
+ *  nên đặt toạ độ màn rồi đo lại, bù phần lệch — đúng ở mọi khung chứa. */
+export function neoNutDuoi(th: HTMLElement) {
+  const n = th.querySelector<HTMLElement>('.dt-th-actions'); if (!n) return;
+  const r = th.getBoundingClientRect(), muonX = r.right - 2, muonY = r.bottom - 1;
+  const cs = getComputedStyle(n), x0 = parseFloat(cs.left) || 0, y0 = parseFloat(cs.top) || 0, a = n.getBoundingClientRect();
+  th.style.setProperty('--dt-act-x', `${Math.round(x0 + muonX - a.right)}px`); th.style.setProperty('--dt-act-y', `${Math.round(y0 + muonY - a.top)}px`);
+}
 export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey: persistKeyGoc, onRowClick, minWidth = 640, rowTitle, rowStyle, fullRow, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced, timNgoai, giuCot,
@@ -230,7 +239,9 @@ export function DataTable<T>({
       // thả: ghi bề ngang ĐANG HIỆN của mọi cột (tổng = khung) → sau khi thả không co thêm lần nữa, tay nắm không giật
       xong: (v) => { setDangKeo(null); setRong((r) => { const g = { ...chot, ...r, [key]: v }; const n = { ...g, ...hienRef.current(g, key) }; if (khoaRong) ghiRongCot(khoaRong, n); return n; }); } });
   };
-  const veMacDinh = (key: string) => setRong((r) => { const n = { ...r }; delete n[key]; if (khoaRong) ghiRongCot(khoaRong, n); return n; });
+  // về bề ngang mặc định: một cột (nhấp đúp mép cột) hoặc MỌI cột (không truyền key — nút ↺ trên tiêu đề)
+  const veMacDinh = (key?: string) => { if (key == null) tuChotRef.current = null;
+    setRong((r) => { const n: Record<string, number> = key == null ? {} : { ...r }; if (key != null) delete n[key]; if (khoaRong) ghiRongCot(khoaRong, n); return n; }); };
   // Ô tìm/lọc chung — persist như sort/lọc-cột (cookie server đọc sẵn + URL để share/F5). Trước đây
   // useState('') nên F5 xoá sạch ô tìm dù sort/lọc-cột vẫn sống → nhìn ra như "lọc bị reset".
   const searchUrlKey = persistKey ? `${persistKey}.q` : undefined;
@@ -291,6 +302,13 @@ export function DataTable<T>({
   };
   const [searchCol, setSearchCol] = useState<string | null>(null);   // cột đang mở popup lọc
   const searchAnchor = useRef<HTMLButtonElement | null>(null);
+  // ô 🔍 đang mở → nút hover (position:fixed) phải bám ô tiêu đề khi trang / khung cuộn, không thì đứng giữa màn cùng ô lọc
+  useEffect(() => {
+    if (searchCol == null) return;
+    const h = () => { const th = searchAnchor.current?.closest('th'); if (th) neoNutDuoi(th as HTMLElement); };
+    h(); window.addEventListener('scroll', h, true); window.addEventListener('resize', h);
+    return () => { window.removeEventListener('scroll', h, true); window.removeEventListener('resize', h); };
+  }, [searchCol]);
 
   // Thẻ: `card` có thể là true (auto từ cột) hoặc object (render tuỳ biến / minWidth). Chuẩn hoá 1 lần.
   const cardOn = !!card;
@@ -475,6 +493,8 @@ export function DataTable<T>({
     return out;
   };
   const hien = hienRef.current(rong, dangKeo);
+  // người ĐÃ kéo cột (bản tự chốt lúc vẽ đầu không tính) → mới có gì để ↺ đưa về
+  const daKeoTay = Object.keys(rong).length > 0 && tuChotRef.current == null;
   const rongCot = (k: string): number | undefined => hien[k];
   const cellStyle = (c: DataColumn<T>, extra?: CSSProperties, i = -1): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
@@ -659,7 +679,7 @@ export function DataTable<T>({
                 const filtering = !!cf && (isNullaryOp(cf.op) || cf.val.trim() !== '');
                 const searchOpen = searchCol === c.key;
                 // nút hover neo DƯỚI ô tiêu đề (bang.css .dt-th-actions fixed) — không đè tên cột
-                const datNutDuoi = (e: ReactMouseEvent<HTMLTableCellElement>) => { const r = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.setProperty('--dt-act-x', `${Math.round(r.right - 2)}px`); e.currentTarget.style.setProperty('--dt-act-y', `${Math.round(r.bottom - 1)}px`); };
+                const datNutDuoi = (e: ReactMouseEvent<HTMLTableCellElement>) => neoNutDuoi(e.currentTarget);
                 // Header kiểu Adminer: hover tên cột → hiện 2 nút (sắp xếp + lọc). Mũi tên sort chỉ hiện khi
                 // đang bật; cột đang lọc có cờ ⚑. Nút nằm trong .dt-th-actions (CSS ẩn, hover mới hiện).
                 return (
@@ -685,8 +705,8 @@ export function DataTable<T>({
                                   onClick={() => setSearchCol(searchOpen ? null : c.key)}
                                   style={filtering ? { color: 'var(--accent)', borderColor: 'var(--accent)' } : undefined}>🔍</button>
                           {/* đã kéo cột → ↺ đưa MỌI cột về bề ngang gọn mặc định (anh 24/11/2026 "kéo nó về lại kích thước gọn"; "↺ thôi, hover vào tên mới hiện") */}
-                          {Object.keys(rong).length > 0 && <button type="button" title="Mọi cột về bề ngang gọn mặc định (nhấp đúp mép cột = một cột)"
-                                  onClick={(e) => { e.stopPropagation(); tuChotRef.current = null; setRong({}); if (khoaRong) ghiRongCot(khoaRong, {}); }}>↺</button>}
+                          {daKeoTay && <button type="button" title="Mọi cột về bề ngang gọn mặc định (nhấp đúp mép cột = một cột)"
+                                  onClick={(e) => { e.stopPropagation(); veMacDinh(); }}>↺</button>}
                         </span>
                       )}
                     </span>

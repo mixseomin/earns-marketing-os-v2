@@ -35,20 +35,20 @@ export function ThietLapCamp({ camps, hep }: { camps: CampCo[]; hep?: boolean })
   const chu = (v: OTl | undefined): string | null => (v == null ? null : typeof v === 'number' ? (du?.chung[v] ?? null) : v);
   const form = du?.form;
   // ô chữ ĐỦ, xuống dòng (không cắt) — td của bảng để nowrap, div con giữ pre-wrap
-  const o = (v: OTl | undefined, rong = 120, mau?: string): ReactNode => { const s = chu(v); return s == null ? <span style={{ color: 'var(--fg-3)' }}>—</span>
+  const o = (v: OTl | undefined, mau?: string): ReactNode => { const s = chu(v); return s == null ? <span style={{ color: 'var(--fg-3)' }}>—</span>
     : <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left', color: mau, fontFamily: 'var(--font-sans, inherit)' }}>{s}</div>; };
   // so với form chuẩn
   const chuan: Record<string, () => string> = form ? { f_kieu: () => form.creative_type, f_cta: () => form.call_to_action, f_link: () => form.link_url, f_chinh: () => form.primaryTexts.join('\n'), f_tieu: () => form.headlines.join('\n'), f_mo_ta: () => form.descriptions.join('\n') } : {};
   const dungForm = (r: DongTl, k: string) => { const s = chu(r[k]); return !chuan[k] || (s ?? '').trim() === chuan[k]().trim(); };
   const loiForm = (r: DongTl) => Object.keys(chuan).filter((k) => !dungForm(r, k));
   const oForm = (k: string, rong: number) => (r: DongTl) => { const ok = dungForm(r, k); return <div style={{ display: 'flex', gap: 4, alignItems: 'flex-start' }}>
-    <b title={ok ? 'đúng form' : `lệch form — chuẩn: ${chuan[k]?.() ?? ''}`} style={{ color: ok ? '#4ade80' : '#f87171', flex: 'none' }}>{ok ? '✓' : '✗'}</b>{o(r[k], rong, ok ? undefined : '#fca5a5')}</div>; };
+    <b title={ok ? 'đúng form' : `lệch form — chuẩn: ${chuan[k]?.() ?? ''}`} style={{ color: ok ? '#4ade80' : '#f87171', flex: 'none' }}>{ok ? '✓' : '✗'}</b>{o(r[k], ok ? undefined : '#fca5a5')}</div>; };
   // bề rộng cột CỐ ĐỊNH, không co (anh 24/11/2026 "các cột ko được để dồn"): đủ chữ nội dung (rong) và đủ tiêu đề; bảng rộng = tổng cột, cuộn ngang
   const rongCot = (header: string, rong: number) => Math.max(rong + 34, header.length * 8.5 + 44);
   const C = (key: string, group: string, header: string, rong = 110, title?: string): DataColumn<DongTl> =>
-    ({ key, group, header, title: title ?? header, align: 'left', width: rongCot(header, rong), cell: (r) => o(r[key], rong), sortValue: (r) => chu(r[key]) ?? '' });
+    ({ key, group, header, title: title ?? header, align: 'left', width: rongCot(header, rong), cell: (r) => o(r[key]), sortValue: (r) => chu(r[key]) ?? '' });
   const G = (key: string, group: string, header: string, rong = 110, title?: string): DataColumn<DongTl> =>
-    ({ ...C(key, group, header, rong, title), cell: (r) => o(gioVn(chu(r[key])), rong) });
+    ({ ...C(key, group, header, rong, title), cell: (r) => o(gioVn(chu(r[key]))) });
   const cot: DataColumn<DongTl>[] = [
     { key: 'camp_id', header: 'Camp', align: 'left', width: 90, cell: (r) => <b>#{r.camp_id}</b>, sortValue: (r) => r.camp_id },
     { key: 'form', header: 'Form chữ', width: 110, title: 'so 6 ô chữ với form chuẩn (apps/etp/form-chu.json)', align: 'left', sortValue: (r) => loiForm(r).length,

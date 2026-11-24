@@ -11,7 +11,8 @@ Form = apps/etp/form-chu.json (một nguồn: chu-qc.py tạo creative mới cũ
     cửa CamThayCreative đốt vé lúc gửi. Meta duyệt lại ad + camp đang chạy mất pha học. Xong ghi etp.bai_camp.chu_form_luc.
 Dùng (box3): python3 ap-form-chu.py            — chỉ đếm, in mẫu
              python3 ap-form-chu.py --chay     — PATCH thật
-             python3 ap-form-chu.py --ad <camp>:<vé> [<camp>:<vé> …]"""
+             python3 ap-form-chu.py --ad <camp>:<vé>[:<creative>] [<camp>:<vé> …]
+             python3 ap-form-chu.py --ban-nha <creative> …   — creative của đội / bài đăng có sẵn: tạo bản nhà cùng video, chữ form (in {cũ: mới})"""
 import concurrent.futures as cf, json, os, sys, urllib.request
 D = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, D); import ethopex_api as EA
 F = json.load(open(os.path.join(D, "form-chu.json")))
@@ -42,11 +43,32 @@ def patch(cid):
         return cid, "ok"
     except Exception as e: return cid, str(e)[:160]
 
-def gan_lai(camp, ve):
-    """gắn lại creative (đã về form) vào ad của camp — vé trực tiếp doi_cr qua ETP_VE"""
-    r = EA._q(f"select ad_id, creative_id from etp.camp where camp_id = {int(camp)} and ad_id is not null and creative_id is not null")
-    if "|" not in r: return camp, "kho không có ad_id / creative_id"
+def ban_nha(cr):
+    """creative của người khác (đội) / ad chạy bài đăng có sẵn: tạo BẢN NHÀ cùng phim + cùng video, chữ = form — creative gốc không đụng.
+    Trả id creative mới (bulk-jobs, đợi xong)."""
+    c = EA.api(f"/api/v1/creatives/{int(cr)}"); c = c.get("data", c)
+    v = c.get("video_url"); v = json.loads(v) if isinstance(v, str) and v.strip().startswith("[") else (v or [])
+    if c.get("creative_type") != F["creative_type"] or not v: raise RuntimeError(f"creative {cr} không phải {F['creative_type']} có video — không sao")
+    it = {"name": f"{c.get('name') or cr} - form nha", "content_id": int(c["content_id"]), "creative_type": F["creative_type"], "traffic_source": "facebook",
+          "status": "active", "image_url": [], "video_url": v, **{k: BODY[k] for k in ("call_to_action", "link_url", "asset_spec")}}
+    j = EA.api("/api/v1/creatives/bulk-jobs", {"items": [it]})
+    import time
+    for _ in range(40):
+        k = EA.api(f"/api/v1/creatives/bulk-jobs/{j['job_id']}")
+        if k.get("status") not in ("pending", "processing", "running", "queued"): break
+        time.sleep(10)
+    moi = ((k.get("data") or [{}])[0].get("creative") or {}).get("id")
+    if not moi: raise RuntimeError(f"bulk-jobs {j.get('job_id')} không trả creative: {str(k)[:200]}")
+    return int(moi)
+
+def gan_lai(camp, ve, cr_ep=None):
+    """gắn lại creative (đã về form) vào ad của camp — vé trực tiếp doi_cr qua ETP_VE.
+    cr_ep: creative chỉ định (bản nhà từ ban_nha / creative nhà đúng form) khi kho không có creative_id hoặc creative của ad không phải của nhà"""
+    r = EA._q(f"select ad_id, coalesce(nullif(creative_id, 0), -1) from etp.camp where camp_id = {int(camp)} and ad_id is not null")
+    if "|" not in r: return camp, "kho không có ad_id"
     ad, cr = (int(x) for x in r.split("|"))
+    if cr_ep: cr = int(cr_ep)
+    if cr <= 0: return camp, "kho không có creative_id — truyền creative: <camp>:<vé>:<creative>"
     c = EA.api(f"/api/v1/creatives/{cr}"); c = c.get("data", c)
     if not dung_form(c): return camp, f"creative {cr} chưa về form — không gắn"
     os.environ["ETP_VE"] = ve
@@ -56,8 +78,11 @@ def gan_lai(camp, ve):
     EA._q(f"update etp.bai_camp set chu_form_luc = now() where camp_id = {int(camp)}")
     return camp, "ok"
 
+if __name__ == "__main__" and "--ban-nha" in sys.argv:
+    print(json.dumps({x: ban_nha(x) for x in sys.argv[sys.argv.index("--ban-nha") + 1:] if x.isdigit()})); sys.exit(0)
+
 if __name__ == "__main__" and "--ad" in sys.argv:
-    kq = [gan_lai(*x.split(":", 1)) for x in sys.argv[sys.argv.index("--ad") + 1:] if ":" in x]   # tuần tự: mỗi lệnh một vé trong ETP_VE
+    kq = [gan_lai(*x.split(":", 2)) for x in sys.argv[sys.argv.index("--ad") + 1:] if ":" in x]   # tuần tự: mỗi lệnh một vé trong ETP_VE
     print(json.dumps({"gan_lai": len(kq), "ok": sum(k[1] == "ok" for k in kq), "hong": [k for k in kq if k[1] != "ok"]}, ensure_ascii=False)); sys.exit(0)
 
 if __name__ == "__main__":

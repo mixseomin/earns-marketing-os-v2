@@ -14,6 +14,7 @@ import { chuLich } from '@/lib/etp-khung';
 import { dangChay } from '@/lib/etp-chay';
 import { DS_DANG } from '@/lib/etp-dang';
 import { envVe, xinVeTay } from '@/lib/etp-ve';
+import BANG_LUAT from '@/lib/etp-bang-luat.json';
 
 export type LoaiNoiDung = { ma: string; ten: string; dang: string; mo_ta: string; cach: string; gia: string; thoi_gian: string; chay: boolean; khoa?: string;
   vi_du: { creative_id: number; video: string; phim: string | null; lai: number; chi: number }[] };
@@ -264,7 +265,7 @@ export async function docChiTiet(dongId: number): Promise<{ camps: CampDong[]; c
 }
 
 /** ANH DUYỆT LÊN CAMP ngay trên ô "chờ anh" (anh 03/11/2026 "nút chờ anh phải cho tao bấm duyệt luôn trên đó"): đặt etp.cau_hinh lo_trinh[phim].bat_dau →
- *  máy chạy dòng lên mỗi creative sạch một camp $1 ở vòng kế (cổng luật nhan-ban vẫn chặn như thường). Chỉ admin. */
+ *  máy chạy dòng lên mỗi creative sạch một ★ ROAS ở vòng kế (cổng luật nhan-ban vẫn chặn như thường). Chỉ admin. */
 export async function batDauCamp(dongId: number): Promise<{ ok: true } | { loi: string }> {
   const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được duyệt lên camp' };
   const [d] = await run<{ content_id: number }>(sql`select content_id from etp.dong_phim where id = ${Math.trunc(Number(dongId))} and trang_thai = 'chay'`);
@@ -276,7 +277,7 @@ export async function batDauCamp(dongId: number): Promise<{ ok: true } | { loi: 
 }
 
 /** LÊN CAMP TỪNG CREATIVE (góp ý #1520, anh 03/11/2026 "cho phép bật từng creative nếu muốn"): anh bấm ở ô Lên camp của MỘT creative → ghi creative vào
- *  etp.cau_hinh lo_trinh[phim].cr (nhan-ban miễn luật một camp / ngày cho đúng creative này) rồi chạy nhan-ban.py một camp $1 — mọi cổng luật khác vẫn chặn.
+ *  etp.cau_hinh lo_trinh[phim].cr (nhan-ban miễn luật một camp / ngày cho đúng creative này) rồi chạy nhan-ban.py một ★ ROAS hoi_cho (mặc định từ 24/11/2026) — mọi cổng luật khác vẫn chặn.
  *  Chỉ creative cổng chấm đang cho lên (cham_cong.duoc_len), chưa có camp. Nhật ký: /tmp/etp-len-cr-<creative>.log trên box3. Chỉ admin. */
 const KHUON: Record<string, number> = { en: 65110, es: 65734 };   // camp mẫu cùng tiếng — cùng sổ apps/etp/dong_phim.py KHUON
 export async function lenCampCr(dongId: number, creativeId: number): Promise<{ ok: true } | { loi: string }> {
@@ -299,11 +300,12 @@ export async function lenCampCr(dongId: number, creativeId: number): Promise<{ o
     on conflict (khoa) do update set gia_tri = coalesce(etp.cau_hinh.gia_tri, '{}'::jsonb) || jsonb_build_object(${String(x.content_id)}::text,
       coalesce(etp.cau_hinh.gia_tri->${String(x.content_id)}, '{}'::jsonb) || jsonb_build_object('cr', coalesce(etp.cau_hinh.gia_tri->${String(x.content_id)}->'cr', '[]'::jsonb) || jsonb_build_array(${cr})))`);
   const lang = x.lang === 'es' ? 'es' : 'en';
-  const ten = `${id > 0 ? `dp${id}` : 'tay'} ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - creative #${cr}`;   // spawn không qua shell — chỉ giữ chữ ASCII cho tên camp
+  const ten = `${id > 0 ? `dp${id}` : 'tay'} ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - cr moi #${cr}`;   // spawn không qua shell — chỉ giữ chữ ASCII cho tên camp
   const dir = `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/xuong-video/scripts/ethopex`;
   const log = moNhatKyLen(cr, `anh (etp2 ${me.email})`);   // #1770: dòng gửi → bảng hiện "đang lên" ngay
   const ve = await xinVeTay('tao_camp', { content: x.content_id, ai: `anh (etp.on.tc ${me.email})` });   // vé thao tác tay (anh 18/11/2026) — phanh chợ chỉ miễn lệnh mang vé
-  spawn('python3', ['nhan-ban.py', String(KHUON[lang]), '--tay', '--bo', x.bo ?? '', '--creative', String(cr), '--content', String(x.content_id), '--ten', ten, '--that',   // giờ chạy do nhan-ban.lich_len quyết (anh 05/11/2026: ngoài 07–12h VN hẹn 07:00 hôm sau)
+  spawn('python3', ['nhan-ban.py', String(KHUON[lang]), '--roas', String(BANG_LUAT.hoi_cho.roas), '--ns', String(BANG_LUAT.hoi_cho.ns), '--tay',   // ★ ROAS mặc định hoi_cho (anh 24/11/2026 "Từ giờ mặc định là roas")
+    '--bo', x.bo ?? '', '--creative', String(cr), '--content', String(x.content_id), '--ten', ten, '--that',   // giờ chạy do nhan-ban.lich_len quyết (anh 05/11/2026: ngoài 07–12h VN hẹn 07:00 hôm sau)
     '--luat', `anh bấm lên camp creative #${cr} (etp.on.tc › Sản xuất)`, '--ai', `anh (etp.on.tc ${me.email})`], { cwd: dir, detached: true, stdio: ['ignore', log, log], env: envVe(ve) }).unref();
   return { ok: true };
 }

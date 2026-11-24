@@ -48,7 +48,8 @@ def tu_bat_dau(cid, ly):
             on conflict (khoa) do update set gia_tri = coalesce(etp.cau_hinh.gia_tri, '{{}}'::jsonb) || jsonb_build_object('{int(cid)}',
               coalesce(etp.cau_hinh.gia_tri->'{int(cid)}', '{{}}'::jsonb) || jsonb_build_object('bat_dau', true, 'ai', {s(ly)}, 'luc', now()::text))""")
 def lo_trinh(cid): return json.loads(sql(f"select coalesce((select gia_tri->'{int(cid)}' from etp.cau_hinh where khoa = 'lo_trinh'), '{{}}'::jsonb)::text") or "{}")       # máy sinh KT làm tuần tự ~40–70 phút/phim, có hàng đợi
-BUOC = [("nhan", 300), ("ws", 3600), ("poster", 900), ("cat", 4200), ("soat", 1800), ("creative", 3600), ("camp", 1200), ("chay", 7200)]   # (bước, hạn giây) — Mạnh huỷ khi quá
+# camp 3600 (24/11/2026): creative mới lên ★ ROAS mặc định — nhan-ban chờ Meta đồng bộ tới 20 phút mỗi camp; box() mỗi lệnh 1500 giây
+BUOC = [("nhan", 300), ("ws", 3600), ("poster", 900), ("cat", 4200), ("soat", 1800), ("creative", 3600), ("camp", 3600), ("chay", 7200)]   # (bước, hạn giây) — Mạnh huỷ khi quá
 THU_MANG = {}         # (dòng, bước, lan) → số lượt đã tự thử lại vì lỗi mạng
 CHO_LAI = 60          # bước trả "cho" → quay lại sau ngần này giây
 TRAN_CAT = 2          # tối đa 2 dòng cắt cùng lúc (iMac)
@@ -424,7 +425,7 @@ def ket_camp(d, xong, loi, cu, gan=None, may=False):
         return "dung", "không lên được camp nào: " + " · ".join(map(str, loi))[:400], None
     sql(f"update etp.dong_phim set camp_id = {int(tat[0])} where id = {d['id']}")
     loi = [x for x in loi if TRUNG_CR not in str(x)]
-    return "xong", (f"lên {len(xong)} camp $1: " + ", ".join(f"#{c}" for c in xong) if xong else "không cần tạo camp mới") \
+    return "xong", (f"lên {len(xong)} camp ★ ROAS: " + ", ".join(f"#{c}" for c in xong) if xong else "không cần tạo camp mới") \
         + (f" · creative đã có camp: " + ", ".join(f"#{c}→camp #{k}" for c, k in cu.items()) if cu else "") \
         + (f" · chặn {len(loi)}: " + " · ".join(map(str, loi))[:300] if loi else ""), {"camp_id": int(tat[0]), "camps": tat, **({"gan": gan + [{"creative_id": c, "camp": k} for c, k in cu.items()]} if gan is not None else {})}
 
@@ -438,7 +439,7 @@ def b_camp_lt(d, truoc):
     for i_, x in enumerate(sach):
         sql(f"update etp.dong_buoc set ghi = {s(f'đang lên camp {i_ + 1}/{len(sach)} (creative #{x["creative_id"]})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")   # trang Sản xuất thấy tiến độ ngay sau khi anh bấm
         lang = x.get("lang") or "en"; ten = re.sub(r"['\"$`\\]", "", x.get("ten") or f"dp{d['id']} phim {d['content_id']}")
-        rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --tay --bo 2 --creative {int(x["creative_id"])} --content {d["content_id"]} --ten "{ten}" --that --luat "lộ trình test rộng (anh 03/11/2026: 8-10 USD/phim + T2)" --ai "{ai_dong(d, "dòng phim LT, anh bắt đầu")}"'""", 900, ve=ve_dong(d))
+        rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --tay --bo 2 --creative {int(x["creative_id"])} --content {d["content_id"]} --ten "{ten}" --that --luat "lộ trình test rộng (anh 03/11/2026: 8-10 USD/phim + T2)" --ai "{ai_dong(d, "dòng phim LT, anh bắt đầu")}"'""", 1500, ve=ve_dong(d))
         j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None) or {}
         (xong if j.get("ok") and j.get("moi") else loi).append(j.get("moi") or f"#{x['creative_id']}: {(j.get('loi') or out[-120:])[:120]}")
         if j.get("ok") and j.get("moi"): gan.append({"creative_id": int(x["creative_id"]), "camp": int(j["moi"])})
@@ -466,7 +467,7 @@ def ai_dong(d, chu):
     return f"máy: dòng phim #{d['id']} — {chu}" if str(d.get("ai") or "").strip().lower().startswith("máy") else f"anh ({chu})"
 
 def b_camp_mr(d, truoc):
-    """MỞ RỘNG (anh bấm ＋ ở dòng phim, chọn số camp): creative sạch vừa làm + creative sạch có sẵn chưa có camp của phim → lên đúng so_camp camp $1 (bộ của phim)"""
+    """MỞ RỘNG (anh bấm ＋ ở dòng phim, chọn số camp): creative sạch vừa làm + creative sạch có sẵn chưa có camp của phim → lên đúng so_camp camp ★ ROAS (bộ của phim; mặc định nhan-ban từ 24/11/2026)"""
     cr = truoc.get("creative") or {}; moi = [int(x["creative_id"]) for x in (cr.get("sach") or ([cr] if cr.get("creative_id") else []))]
     san = san_dung_lai(d["content_id"], d.get("loai"))   # kiểu tĩnh: chỉ creative đúng dạng đó (lọc trong san_dung_lai)
     cu = camp_co_san(moi)   # creative của chính dòng đã có camp (lượt trước bị huỷ giữa chừng / máy luật lấy thay) = đã lên, tính vào số camp
@@ -480,7 +481,7 @@ def b_camp_mr(d, truoc):
         sql(f"update etp.dong_buoc set ghi = {s(f'đang lên camp {i_ + 1}/{len(ds)} (creative #{c})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")
         lang = sql(f"select coalesce(lang, 'en') from etp.creative where creative_id = {c}") or "en"
         ten = re.sub(r"[^ -~]|['\"$`\\]", "", f"dp{d['id']} {d.get('ten') or ''} {lang.upper()} - mo rong #{c}")
-        rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --tay --bo {bo} --creative {c} --content {d["content_id"]} --ten "{ten}" --that --luat "mở rộng phim — anh chọn {d['so_camp']} camp (etp.on.tc)" --ai "{ai_dong(d, "etp.on.tc: nút mở rộng ở dòng phim, 04/11/2026")}"'""", 900, ve=ve_dong(d))
+        rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --tay --bo {bo} --creative {c} --content {d["content_id"]} --ten "{ten}" --that --luat "mở rộng phim — anh chọn {d['so_camp']} camp (etp.on.tc)" --ai "{ai_dong(d, "etp.on.tc: nút mở rộng ở dòng phim, 04/11/2026")}"'""", 1500, ve=ve_dong(d))
         j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None) or {}
         if j.get("ok") and j.get("moi"): xong.append(int(j["moi"]))
         else: loi.append(f"#{c}: {(j.get('loi') or out[-120:])[:120]}"); may_ = may_ or not j or bool(j.get("may"))
@@ -500,12 +501,12 @@ def b_camp(d, truoc):
     if not x.get("creative_id"): return "loi", "chưa có creative", None
     if (cu := camp_co_san([x["creative_id"]])): return ket_camp(d, [], [], cu)
     lang = x.get("lang") or "en"; ten = re.sub(r"['\"$`\\]", "", x.get("ten") or f"dp{d['id']} phim {d['content_id']}")
-    rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --tay --bo 2 --creative {int(x["creative_id"])} --content {d["content_id"]} --ten "{ten}" --that --luat "dòng phim tự động #{d["id"]} (etp.on.tc)" --ai "{ai_dong(d, "etp.on.tc: Chạy tự động dòng phim, 03/11/2026")}"'""", 900, ve=ve_dong(d))
+    rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --tay --bo 2 --creative {int(x["creative_id"])} --content {d["content_id"]} --ten "{ten}" --that --luat "dòng phim tự động #{d["id"]} (etp.on.tc)" --ai "{ai_dong(d, "etp.on.tc: Chạy tự động dòng phim, 03/11/2026")}"'""", 1500, ve=ve_dong(d))
     j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None)
     if not j: return "loi", f"nhan-ban không trả kết quả: {out[-300:]}", None
     if j.get("ok") and j.get("moi"):
         sql(f"update etp.dong_phim set camp_id = {int(j['moi'])} where id = {d['id']}")
-        return "xong", f"lên camp #{j['moi']} ($1, bộ 2, {'chạy ngay' if j.get('chay') == 'today' else 'chạy từ 07:00 VN hôm sau'})", {"camp_id": int(j["moi"])}   # giờ thật từ nhan-ban.lich_len
+        return "xong", f"lên camp ★ ROAS #{j['moi']} (bộ 2, {('chạy ' + str(j['chay_luc'])) if j.get('chay_luc') else 'giờ theo lịch lên'}{', chờ Meta đồng bộ' if j.get('cho_dong_bo') else ''})", {"camp_id": int(j["moi"])}   # giờ thật từ nhan-ban.lich_len
     g = j.get("loi") or out[-200:]
     if TRUNG_CR in g: return ket_camp(d, [], [g], {})
     if j.get("ok") is None: return ("cho" if "lượt sau" in g else "dung"), f"cổng luật chặn: {g[:400]}", None   # ChanLuat; trang vừa sửa → thử lại

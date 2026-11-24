@@ -3,7 +3,7 @@
 // đầy đủ các bước edit… thao tác thoải mái, đóng mở thoải mái. Khi xong thì bấm save thì sẽ lưu vào thư viện creatives. Khi muốn lên camp từ creative thì thêm 1 nút lên camp").
 // Loại 'etp-cr-phim' của EtpDrawerHost, id = <mã phim> (danh sách) hoặc <mã phim>:moi (mở thẳng bản soạn mới) — nằm trên URL ?ed= nên F5 giữ nguyên.
 // Trên: SOẠN — 4 bước Mẫu → Chữ → Thành phần → Gửi máy dựng quanh MỘT khung xem trước 9:16 (ảnh thật máy dựng mẫu iMac dựng lại sau mỗi lần sửa), gõ tới đâu tự lưu nháp tới đó (etp.cr_soan)
-// theo mẫu (iMac), khung hình máy tự chọn. Dưới: creative đã có — tích chọn + "Lên camp N" hoặc Lên camp từng cái (đúng đường ✓ Duyệt: camp $1 theo lịch lên). Lỗi hiện ngay dưới nút.
+// theo mẫu (iMac), khung hình máy tự chọn. Dưới: creative đã có — tích chọn + "Lên camp N" hoặc Lên camp từng cái (đúng đường ✓ Duyệt: ★ ROAS mặc định hoi_cho theo lịch lên). Lỗi hiện ngay dưới nút.
 // ngan-moi-ok: creative theo phim (soạn + thư viện + lên camp) — đã tra: etp-mau-dung là MỘT việc dựng mẫu × phim (chỉ đọc), etp-phim là thông tin phim, chưa ngăn nào soạn creative
 // tra-repo-ok: màn nội bộ dựng từ khối dùng chung của etp2 (Drawer, GuardedButton, BadgeDangNgan), action etp-cr-phim.ts dùng lại hàng chờ mau_dung + duyetChoAnh
 import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent } from 'react';
@@ -14,6 +14,7 @@ import { boSoan, docCrPhim, docThuVienO, docXem, dungSoan, lenCampCrPhim, luuSoa
 /** biểu tượng món chữ theo thư viện: câu đọc · chữ nút CTA · câu nhử */
 const ICON_CHU: Record<string, string> = { cau_giong: '🔊', nut: '🔘', hook: '💬' };
 import { DO, XANH } from './etp-doi-thu';
+import BANG_LUAT from '@/lib/etp-bang-luat.json';
 
 const VANG = '#fbbf24', LAM = '#60a5fa';
 const gio = (s: string) => new Date(s).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
@@ -146,7 +147,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
   const moCamp = (id: number) => { const u = new URL(location.href); u.searchParams.delete('ed'); u.searchParams.set('t', 'camp'); u.searchParams.set('ngan', `camp:${id}`); location.assign(u.toString()); };
   const trangThai = (c: DuCrPhim['cr'][number]) => c.tu_choi ? <span title={c.tu_choi}>{nhan('Ethopex từ chối', DO)}</span>
     : c.camp_id ? <a style={{ cursor: 'pointer', alignSelf: 'flex-start' }} title={`mở camp #${c.camp_id}${c.camp_tt ? ` · ${c.camp_tt}` : ''}`} onClick={() => moCamp(c.camp_id!)}>{nhan(`camp #${c.camp_id}${c.camp_tt ? ` · ${c.camp_tt}` : ''}`, LAM)}</a>
-    : <GuardedButton onClick={() => void lenCamp([c.creative_id])} reason={len ? 'đang lên…' : false} title="lên camp $1 theo lịch lên (đúng đường ✓ Duyệt)"
+    : <GuardedButton onClick={() => void lenCamp([c.creative_id])} reason={len ? 'đang lên…' : false} title={`lên ★ ROAS ${BANG_LUAT.hoi_cho.roas} · $${BANG_LUAT.hoi_cho.ns}/ngày theo lịch lên (đúng đường ✓ Duyệt)`}
         style={{ ...nut(VANG), padding: '2px 8px', alignSelf: 'flex-start' }}>{len && lenMot === c.creative_id ? 'đang lên…' : '🚀 Lên camp'}</GuardedButton>;
 
   return <Drawer onClose={onClose} width={2400} padding={0}>{dau}

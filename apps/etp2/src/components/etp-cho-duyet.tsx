@@ -1,16 +1,17 @@
 'use client';
 // Ô "CHỜ ANH DUYỆT" ở etp2 › Camp (anh 22/11/2026 "Tao cần duyệt trên page này cơ mà !"): creative máy giữ (etp.cho_anh_duyet, 0460) — chưa duyệt thì không đường nào lên camp.
-// ✓ Duyệt = lên camp $1 (hẹn 07:00 nếu ngoài 07–12h VN) · ✕ Loại. Lỗi hiện thành ô đỏ ngay dưới nút. Không có gì chờ → không vẽ gì.
+// ✓ Duyệt = lên ★ ROAS mặc định hoi_cho (giờ theo lịch lên) · ✕ Loại. Lỗi hiện thành ô đỏ ngay dưới nút. Không có gì chờ → không vẽ gì.
 import { useCallback, useEffect, useState } from 'react';
 import { VideoXem } from '@/components/ui/video-xem';
 import { dsChoDuyet, duyetChoAnh, lenCamp, type ChoDuyet } from '@/lib/actions/etp-cho-duyet';
+import BANG_LUAT from '@/lib/etp-bang-luat.json';
 
 const nut: React.CSSProperties = { fontSize: 12, padding: '3px 10px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' };
 const GIAI = 'chưa duyệt thì máy không lên camp. ✓ Duyệt = creative rời ô này, thành dòng ⏳ xếp hàng ở bảng camp bên dưới; giờ chạy theo lịch. ✕ Loại = không bao giờ lên.';
 const GIAI_DK = 'đang DỪNG KHẨN (etp.cau_hinh.dung_khan): bấm Duyệt vẫn ghi duyệt, nhưng máy chặn tạo camp tới khi tắt dừng khẩn — máy tự lên camp ở nhịp đầu nhả (apps/etp/lenh_cho.py), anh không phải bấm lại.';
 
-/** kiểu camp máy sẽ lên: ★ ROAS (sổ len_cr_roas, lệnh anh 22/11/2026 "roas kiểu Sơn") hoặc camp $1 */
-const kieu = (r: string | null) => { const [ro, ns] = (r ?? '').split('|'); return ro && ns ? `★ ROAS ${ro} · ${'$'}${ns}` : 'camp $1'; };
+/** kiểu camp máy sẽ lên: ★ ROAS (sổ len_cr_roas, lệnh anh 22/11/2026 "roas kiểu Sơn") hoặc ★ ROAS mặc định hoi_cho (anh 24/11/2026 "Từ giờ mặc định là roas") */
+const kieu = (r: string | null) => { const [ro, ns] = (r ?? '').split('|'); return ro && ns ? `★ ROAS ${ro} · ${'$'}${ns}` : `★ ROAS ${BANG_LUAT.hoi_cho.roas} · ${'$'}${BANG_LUAT.hoi_cho.ns}`; };   // mặc định ★ ROAS hoi_cho (anh 24/11/2026)
 
 export function ChoDuyetCr() {
   const [du, setDu] = useState<{ ds: ChoDuyet[]; dungKhan: boolean } | null>(null);

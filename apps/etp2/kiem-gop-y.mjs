@@ -626,6 +626,14 @@ const LUAT = [
   { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'dang = muc["dung_cho"][0] if ma in DONG', vi: 'creative ảnh động nạp đúng dạng AD, không lẫn vào poster động' },
   { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if x.get("tinh") or x.get("khong_doan"))', vi: 'dạng dựng từ một khung (AD) không bị chặn trùng đoạn với ảnh tĩnh cùng phim' },
   { card: 'anh-dong', tep: 'apps/web/src/lib/etp-dang.json', co: '"ma": "AD", "nhom": "poster động", "mau": "#14b8a6", "khong_dau": "anh dong", "dong": null, "tinh": false, "khong_doan": true', vi: 'sổ dạng máy đọc: AD mang khong_doan' },
+  { card: 'roas-mac-dinh', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if moi and roas is None and not thang and "--hoi-cho" not in a: roas = float(HOI_CHO["roas"])', vi: 'lên creative mới không nói --roas = ★ ROAS hoi_cho (anh 24/11/2026 "Từ giờ mặc định là roas")' },
+  { card: 'roas-mac-dinh', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'GHI SỔ CHỜ ĐỌC NGAY khi có camp', vi: 'camp ★ ROAS vào sổ chờ đọc lại ngay lúc tạo — bên gọi cắt giờ không làm camp mồ côi' },
+  { card: 'roas-mac-dinh', tep: 'apps/etp/lenh_cho.py', co: 'if not ro: ro = {"roas": HOI_CHO["roas"], "ns": HOI_CHO["ns"]', vi: 'creative anh duyệt ngoài sổ len_cr_roas lên ★ ROAS hoi_cho, không còn $1' },
+  { card: 'roas-mac-dinh', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: "'--roas', String(BANG_LUAT.hoi_cho.roas), '--ns', String(BANG_LUAT.hoi_cho.ns), '--tay'", vi: 'nút Lên camp creative gửi ★ ROAS hoi_cho' },
+  { card: 'roas-mac-dinh', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: ': { roas: Number(BANG_LUAT.hoi_cho.roas), ns: Math.trunc(Number(BANG_LUAT.hoi_cho.ns)) };', vi: '▶ Lên / ⏱ theo lịch creative ngoài sổ = ★ ROAS hoi_cho' },
+  { card: 'roas-mac-dinh', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', cam: "...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), '--tay', ...(o ?", vi: 'lệnh lên creative không còn nhánh camp $1' },
+  { card: 'roas-mac-dinh', tep: 'apps/etp2/src/components/etp-dong.tsx', cam: '$1/ngày, ${chuLich()}', vi: 'nút lên creative không hứa $1/ngày' },
+  { card: 'roas-mac-dinh', tep: 'apps/etp2/src/components/etp-lich-phim.tsx', cam: 'mỗi camp $1/ngày', vi: 'xác nhận dòng phim ghi đúng tiền ★ ROAS' },
 ];
 
 const loi = [];

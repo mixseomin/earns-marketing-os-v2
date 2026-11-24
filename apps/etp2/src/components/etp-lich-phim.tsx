@@ -286,7 +286,7 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
                       return <button key={x.ma} onClick={() => setLoaiTT0(x.ma)} title={!x.chay ? `${x.ten} — ${x.khoa ?? 'máy chưa làm được'}` : gac ? chuGac(x.ma) : x.ten}
                         style={{ ...oChon(loaiTT0 === x.ma), ...(tat ? GAC_ST : {}) }}>{x.ma}</button>; })}</div>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title="số camp $1 sẽ lên (1–30)">
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title={`số camp ★ ROAS ${BANG_LUAT.hoi_cho.roas} · $${BANG_LUAT.hoi_cho.ns} sẽ lên (1–30)`}>
                         <button style={{ ...nut, padding: '1px 7px' }} disabled={soTT <= 1} onClick={() => setSoTT((n) => Math.max(1, n - 1))}>−</button>
                         <input value={soTT} onChange={(e) => { const n = Math.trunc(Number(e.target.value)); if (Number.isFinite(n)) setSoTT(Math.max(1, Math.min(30, n))); }}
                           style={{ width: 34, textAlign: 'center', fontSize: 11.5, padding: '2px 0', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'var(--fg-1)' }} />
@@ -295,8 +295,8 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
                         <button style={oChon(boTT === '')} title="máy chọn bộ: bộ đổi của phim, không có thì bộ cho phim mới (etp.cau_hinh.bo_phim_moi)" onClick={() => setBoTT('')}>máy</button>
                         {['1', '2', '3', '4', '5'].map((b) => <button key={b} style={{ ...oChon(boTT === b), borderColor: mauBo(b), color: boTT === b ? '#fff' : mauBo(b), background: boTT === b ? mauBo(b) : 'transparent' }} onClick={() => setBoTT(b)}>{b}</button>)}</span>
                       <button disabled={dang || !!khoaX} onMouseEnter={() => baoToa({ p: cid, sang: true, bo: boTT || null })} style={{ ...nut, color: khoaX ? undefined : '#4ade80', borderColor: khoaX ? 'var(--line)' : '#4ade80', ...(khoaX ? GAC_ST : {}) }}
-                        title={khoaX ?? `dòng phim ${loaiTT0} lên ${soTT} camp $1 — ${boTT ? `bộ ${boTT}` : 'bộ máy chọn'} — ${chuLich()}`}
-                        onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên ${soTT} camp ${loaiTT0}, mỗi camp $1/ngày${soTT > 1 ? `, tổng $${soTT}/ngày` : ''}, ${boTT ? `bộ ${boTT}` : 'bộ máy chọn'}. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`,
+                        title={khoaX ?? `dòng phim ${loaiTT0} lên ${soTT} camp ★ ROAS ${BANG_LUAT.hoi_cho.roas} · $${BANG_LUAT.hoi_cho.ns} — ${boTT ? `bộ ${boTT}` : 'bộ máy chọn'} — ${chuLich()}`}
+                        onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên ${soTT} camp ${loaiTT0}, mỗi camp ★ ROAS ${BANG_LUAT.hoi_cho.roas} · $${BANG_LUAT.hoi_cho.ns}/ngày${soTT > 1 ? `, tổng $${soTT * BANG_LUAT.hoi_cho.ns}/ngày` : ''}, ${boTT ? `bộ ${boTT}` : 'bộ máy chọn'}. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`,
                           lam: () => sxBao(loaiTT0, soTT, boTT), xong: `đã xếp dòng ${loaiTT0} × ${soTT} camp${boTT ? ` · bộ ${boTT}` : ''}` }); }}>＋ Lên {soTT} {loaiTT0}</button>
                 <button disabled={dang} style={{ ...nut, color: '#f87171' }} title="tắt camp Nhà ROI thấp nhất của phim (giữ camp cuối nếu lãi)"
                   onClick={async () => { setKq(null); const x = await xemBotCamp(cid); if ('loi' in x) { setKq(`✕ ${x.loi}`); return; } setHoi({ chu: `Tắt camp #${x.camp_id}: chi $${x.chi.toFixed(2)}, thu $${x.thu.toFixed(2)} cả đời. Không bật lại tự động.`, lam: async () => { const r = await botCampPhim(cid, x.camp_id); return 'loi' in r ? r : { ok: true as const }; }, xong: `đã tắt #${x.camp_id}` }); }}>− bớt camp lỗ</button></div></div>; })()}</div>)}

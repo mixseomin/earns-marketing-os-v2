@@ -614,6 +614,8 @@ def main(a):
     if thang and (moi or thang not in THANG_MUC): raise SystemExit(f"--thang phải là một trong {sorted(THANG_MUC)} và không đi kèm --creative")
     if moi and not (moi["content"] and moi["ten"]): raise SystemExit("--creative cần kèm --content và --ten")
     roas = float(lay("--roas")) if lay("--roas") else None
+    # MẶC ĐỊNH ★ ROAS (anh 24/11/2026 "Từ giờ mặc định là roas"): lên creative MỚI (--creative) mà không nói --roas → ★ ROAS hoi_cho.roas · $hoi_cho.ns (sổ etp-bang-luat.json), không còn camp $1
+    if moi and roas is None and not thang and "--hoi-cho" not in a: roas = float(HOI_CHO["roas"])
     # NGÂN SÁCH ANH CHỈNH cho bản không bid / sang bộ khác (anh 22/11/2026 "Ngân sách cho điều chỉnh"): chỉ khi anh bấm tay (vé), $1–20 nguyên; thiếu = mặc định ($10 bài cũ NB từ 22/11/2026 · $1 bài mới)
     ns_tay = int(float(lay("--ns"))) if lay("--ns") and roas is None and not thang else None
     if ns_tay is not None and not (anh and 1 <= ns_tay <= 20): raise SystemExit("--ns cho bản không bid / sang bộ khác chỉ đi cùng vé thao tác tay, $1–20")
@@ -864,16 +866,18 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
             time.sleep(3); moi = next((x["id"] for x in api("/api/v1/campaigns?page_size=20")["data"] if x.get("name") == ten), None)
         if not moi: raise ValueError(f"Ethopex không trả camp mới: {str(r)[:160]}")
         kq["moi"] = moi
+        # GHI SỔ CHỜ ĐỌC NGAY khi có camp (24/11/2026): bên gọi có trần giờ (dong_phim box 900s…) giết tiến trình giữa 20 phút chờ đồng bộ → camp mồ côi; doc_lai_roas.py vẫn đọc lại
+        q(f"insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_roas_cho_doc', '{{}}'::jsonb) on conflict (ten) do nothing")
+        q(f"update xv_khoa_ngoai set gia_tri = gia_tri || jsonb_build_object('{int(moi)}', jsonb_build_object('goc', {int(goc)}, 'roas', {float(roas)}, 'ns', {float(ns)}, 'luc_s', {int(time.time())})) where ten = 'ethopex_roas_cho_doc'")
         if mien_cham: q(f"update etp.cau_hinh set gia_tri = gia_tri || to_jsonb({int(moi)}), luc = now() where khoa = 'cham_mien' and not gia_tri @> to_jsonb({int(moi)})")
         # ĐỢI ĐỒNG BỘ XONG HẲN (#70162, 26/10/2026: lệnh tạm dừng gửi lúc còn 'creating_adset' bị Ethopex đè — đồng bộ xong camp tự về ACTIVE)
         for _ in range(150):   # Meta kiểm ad (checking_ads) có lúc > 15 phút (#70162, #70174 26/10/2026) — chờ tới 20 phút
             time.sleep(8); d2 = api(f"/api/v1/campaigns/{moi}"); c = d2["campaign"]
             if c.get("sync_status") in ("done", "error") or c.get("error"): break
         if c.get("error"): raise ValueError("Ethopex báo lỗi: " + str(c.get("error"))[:200])
-        if c.get("sync_status") != "done":   # MÁY PHỤ TRÁCH ĐỌC LẠI (anh 10/11/2026 "lỗi này ai phụ trách"): ghi sổ chờ, apps/etp/doc_lai_roas.py đọc lại mỗi nhịp worker — không báo "kiểm tay"
-            q(f"insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_roas_cho_doc', '{{}}'::jsonb) on conflict (ten) do nothing")
-            q(f"update xv_khoa_ngoai set gia_tri = gia_tri || jsonb_build_object('{int(moi)}', jsonb_build_object('goc', {int(goc)}, 'roas', {float(roas)}, 'ns', {float(ns)}, 'luc_s', {int(time.time())})) where ten = 'ethopex_roas_cho_doc'")
+        if c.get("sync_status") != "done":   # MÁY PHỤ TRÁCH ĐỌC LẠI (anh 10/11/2026 "lỗi này ai phụ trách"): sổ chờ đã ghi ngay lúc tạo, apps/etp/doc_lai_roas.py đọc lại mỗi nhịp worker — không báo "kiểm tay"
             kq.update(ok=True, cho_dong_bo=True, dong_bo=c.get("sync_status")); raise ChanLuat(f"đã tạo #{moi}, Ethopex / Meta chưa đồng bộ xong sau 20 phút ({c.get('sync_status')}) — máy tự đọc lại mỗi nhịp")
+        q(f"update xv_khoa_ngoai set gia_tri = gia_tri - '{int(moi)}' where ten = 'ethopex_roas_cho_doc'")   # đồng bộ xong trong lượt → lượt này tự đọc lại, gỡ sổ chờ
         if float(c.get("budget_daily") or 0) != ns:   # Ethopex có lúc không nhận ngân sách lúc tạo → đặt lại
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": ns}}}); time.sleep(8)
             d2 = api(f"/api/v1/campaigns/{moi}"); c = d2["campaign"]

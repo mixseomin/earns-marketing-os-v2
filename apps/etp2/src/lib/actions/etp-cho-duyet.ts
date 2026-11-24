@@ -1,6 +1,6 @@
 'use server';
 // CHỜ ANH DUYỆT (anh 22/11/2026 "Tao cần duyệt trên page này cơ mà !"): creative máy giữ lại (etp.cho_anh_duyet, view etp.cham_cong cột cho_duyet — 0460)
-// hiện ở etp2 › Camp. Duyệt = ghi cham_duyet ok (duyetCham — cùng nút Đạt cũ) rồi lên camp $1 bằng đúng đường nút "Lên camp" (lenCampCr → nhan-ban, giờ chạy theo lich_len:
+// hiện ở etp2 › Camp. Duyệt = ghi cham_duyet ok (duyetCham — cùng nút Đạt cũ) rồi lên ★ ROAS (mặc định hoi_cho từ 24/11/2026) bằng đúng đường nút "Lên camp" (lenCampCr → nhan-ban, giờ chạy theo lich_len:
 // ngoài 07–12h VN hẹn 07:00). Loại = cham_duyet ok=false. Không tự lên khi chưa bấm — view chặn mọi đường lên camp khác.
 
 import { openSync, readFileSync } from 'node:fs';
@@ -46,7 +46,7 @@ export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean 
   return { ds: ds.map((x) => ({ ...x, creative_id: Number(x.creative_id), camp_id: x.camp_id == null ? null : Number(x.camp_id), nhat_ky: x.duyet && !x.camp_id ? nhatKy(Number(x.creative_id)) : null })), dungKhan: !!dk?.v };
 }
 
-/** ✓ Duyệt → ghi duyệt + lên camp $1; ✕ Loại → ghi loại. Phanh đang bật (dừng khẩn…): duyệt = XẾP HÀNG, máy tự lên camp ở nhịp đầu phanh nhả
+/** ✓ Duyệt → ghi duyệt + lên ★ ROAS mặc định (hoi_cho, anh 24/11/2026); ✕ Loại → ghi loại. Phanh đang bật (dừng khẩn…): duyệt = XẾP HÀNG, máy tự lên camp ở nhịp đầu phanh nhả
  *  (apps/etp/lenh_cho.py len_cr — anh 22/11/2026 "thằng ngu !": không bắt anh bấm lại) */
 export async function duyetChoAnh(cr: number, ok: boolean): Promise<{ ok: true; chu: string } | { loi: string }> {
   const id = Math.trunc(Number(cr));
@@ -74,12 +74,12 @@ export async function lenCamp(cr: number): Promise<{ ok: true; chu: string } | {
   const id = Math.trunc(Number(cr));
   const [dk] = await run<{ v: boolean }>(sql`select coalesce((select gia_tri = 'true'::jsonb from etp.cau_hinh where khoa = 'dung_khan'), false) v`);
   if (dk?.v) return { ok: true, chu: `đã duyệt #${id} — xếp hàng: máy tự lên camp ở nhịp đầu nhả dừng khẩn, giờ chạy theo lịch` };
-  // creative trong sổ ★ ROAS (len_cr_roas): KHÔNG đi đường $1 — lenh_cho.py lên ★ ROAS ở nhịp worker kế (một creative một camp)
+  // creative trong sổ ★ ROAS (len_cr_roas): ROAS riêng của sổ — lenh_cho.py lên ★ ROAS ở nhịp worker kế (một creative một camp)
   const [ro] = await run<{ x: number }>(sql`select 1 x from etp.cau_hinh where khoa = 'len_cr_roas' and gia_tri ? ${String(id)}`);
   if (ro) return { ok: true, chu: `đã ghi duyệt #${id} — dòng ★ ROAS hiện ở bảng Camp, lọc ⏳ Chờ duyệt: rê xem camp sẽ tạo, anh bấm ▶ Lên mới lên (máy không tự lên — anh 22/11/2026)` };
   const r = await lenCampCr(-1, id);
   if ('loi' in r) return { loi: `Đã ghi DUYỆT #${id}, nhưng chưa lên camp: ${r.loi}` };
-  return { ok: true, chu: `đã gửi lệnh lên camp $1 cho creative #${id} — giờ chạy theo lịch (ngoài 07–12h VN hẹn 07:00); dòng này tự hiện số camp khi xong` };
+  return { ok: true, chu: `đã gửi lệnh lên ★ ROAS ${BANG_LUAT.hoi_cho.roas} · $${BANG_LUAT.hoi_cho.ns} cho creative #${id} — giờ chạy theo lịch lên; dòng này tự hiện số camp khi xong` };
 }
 
 // ▶ LÊN NGAY / 🕒 ĐỔI GIỜ (anh 22/11/2026 "nút bấm Lên ngay = Tao ra lệnh sao phải xin mày ?" · "tao có thể điều chỉnh ngày, giờ lên camp") — anh bấm = LỆNH TRỰC TIẾP:
@@ -101,7 +101,7 @@ export async function dsCrMoiCamp(campId: number): Promise<{ cr: number; lang: s
 }
 
 /** o.khuon = camp ★ đang chạy làm KHUÔN (cùng bộ, cùng phim): ★ ROAS creative mới mức o.roas · $o.ns — từ nút nhân bản ★ ROAS "creative mới" */
-type LenhNb = { args: string[]; lenh: string; ro: { roas: number; ns: number } | null; content: number; g: string | null; lich: boolean };
+type LenhNb = { args: string[]; lenh: string; ro: { roas: number; ns: number }; content: number; g: string | null; lich: boolean };
 /** MỘT chỗ dựng lệnh nhan-ban cho ▶ Lên — nút lên thật (lenNgayCr, thêm --that) và 👁 xem trước (xemTruocLen, thêm --xem-truoc) đi CÙNG lệnh này,
  *  nên cái anh xem trước đúng là cái sẽ gửi Ethopex (anh 22/11/2026 "tao cần xem mọi thứ mày sẽ submit thì mới gọi là review") */
 async function lenhNb(cr: number, gio?: string | null, o?: { roas: number; ns: number; khuon: number } | null): Promise<LenhNb | { loi: string }> {
@@ -124,11 +124,12 @@ async function lenhNb(cr: number, gio?: string | null, o?: { roas: number; ns: n
     if (!k) return { loi: `không thấy camp khuôn #${o.khuon}` };
     if (Number(k.content_id) !== Number(x.content_id)) return { loi: `creative #${id} không cùng phim với camp #${o.khuon}` };
   }
-  const lang = x.lang === 'es' ? 'es' : 'en', ro = o ? { roas: o.roas, ns: o.ns } : x.roas && x.ns ? { roas: Number(x.roas), ns: Math.trunc(Number(x.ns)) } : null;
+  const lang = x.lang === 'es' ? 'es' : 'en', ro = o ? { roas: o.roas, ns: o.ns } : x.roas && x.ns ? { roas: Number(x.roas), ns: Math.trunc(Number(x.ns)) }
+    : { roas: Number(BANG_LUAT.hoi_cho.roas), ns: Math.trunc(Number(BANG_LUAT.hoi_cho.ns)) };   // MẶC ĐỊNH ★ ROAS hoi_cho (anh 24/11/2026 "Từ giờ mặc định là roas") — hết camp $1
   const chu = lich ? `theo lịch: ${chayLuc(Date.now(), !!ro)}` : chuGio(g);
   const lenh = o ? `anh bấm nhân bản ★ ROAS ${o.roas} creative mới #${id} từ camp #${o.khuon} trên etp2 (${chu})` : `anh bấm ${lich ? '⏱ Lên theo lịch' : '▶ Lên ngay'} creative #${id} trên etp2 (${chu})`;
-  const ten = `duyet ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - ${ro ? 'cr moi' : 'creative'} #${id}`;   // spawn không qua shell — chỉ chữ ASCII
-  return { lenh, ro, content: Number(x.content_id), g, lich, args: ['nhan-ban.py', String(o ? Math.trunc(Number(o.khuon)) : KHUON_CR[lang]), ...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), '--tay', ...(o ? [] : ['--bo', String(x.bo)]), '--creative', String(id),   // khuôn ★: không --bo → giữ bộ camp khuôn
+  const ten = `duyet ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - cr moi #${id}`;   // spawn không qua shell — chỉ chữ ASCII
+  return { lenh, ro, content: Number(x.content_id), g, lich, args: ['nhan-ban.py', String(o ? Math.trunc(Number(o.khuon)) : KHUON_CR[lang]), '--roas', String(ro.roas), '--ns', String(ro.ns), '--tay', ...(o ? [] : ['--bo', String(x.bo)]), '--creative', String(id),   // khuôn ★: không --bo → giữ bộ camp khuôn
     '--content', String(x.content_id), '--ten', ten, ...(g ? ['--gio', g] : [])] };
 }
 
@@ -138,11 +139,11 @@ export async function lenNgayCr(cr: number, gio?: string | null, o?: { roas: num
   const id = Math.trunc(Number(cr)), { ro, g, lenh } = L;
   const dg = docNhatKyLen(id).gui; if (dg) return { canh: `đã gửi lệnh lên lúc ${gioVnIso(dg)} giờ VN, máy đang tạo camp — chờ xong, không gửi lần hai` };   // #1770: dòng "đang lên" bấm lại không nhân đôi camp
   const v = L.lich ? await xinVeTay('tao_camp', { content: L.content, ai: `anh (etp2 ${me.email})` }).then((ma) => ma ? { ma } : { loi: 'Máy gác chưa cho lên camp theo lịch lúc này (không cấp quyền thao tác). Thử lại sau ít phút, hoặc dùng ▶ Lên ngay nếu cần chạy luôn.' })
-    : await xinVeTrucTiep('tao_camp', { content: L.content, lenh, ns: ro?.ns ?? 1 });   // theo lịch = vé thao tác thường (nhan-ban không ép chạy ngay); ▶ Lên ngay / hẹn giờ = vé trực tiếp
+    : await xinVeTrucTiep('tao_camp', { content: L.content, lenh, ns: ro.ns });   // theo lịch = vé thao tác thường (nhan-ban không ép chạy ngay); ▶ Lên ngay / hẹn giờ = vé trực tiếp
   if (!('ma' in v)) return v;
   const log = moNhatKyLen(id, `anh (etp2 ${me.email})`);   // #1770: dòng gửi → bảng hiện "đang lên" ngay
   spawn('python3', [...L.args, '--that', '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
-  return { ok: true, chu: `đã gửi lệnh lên ${ro ? `★ ROAS ${ro.roas} · $${ro.ns}` : 'camp $1'} — ${L.lich ? `theo lịch: ${chayLuc(Date.now(), !!ro)}` : chuGio(g)}`, gui: docNhatKyLen(id).gui };
+  return { ok: true, chu: `đã gửi lệnh lên ★ ROAS ${ro.roas} · $${ro.ns} — ${L.lich ? `theo lịch: ${chayLuc(Date.now(), true)}` : chuGio(g)}`, gui: docNhatKyLen(id).gui };
 }
 
 export type XemTruoc = { ten: string | null; chay: string | null; canh: string[]; payload: Record<string, unknown> } | { loi: string };

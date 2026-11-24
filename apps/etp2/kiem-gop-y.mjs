@@ -699,6 +699,7 @@ const LUAT = [
   // anh 25/11/2026 "plan phải có cụ thể loại camp, creative… tao cần nhìn thấy ở ⚙ Thiết lập · thêm trạng thái Đang lên kế hoạch"
   { card: 'khoi-ke', tep: 'apps/etp2/src/components/etp-view.tsx', co: "c.sx?.ke ? { chu: '📝 Đang lên kế hoạch'", vi: 'trạng thái 📝 Đang lên kế hoạch cho dòng khối chưa sinh creative' },
   { card: 'khoi-ke', tep: 'apps/etp2/src/components/etp-view.tsx', co: "k === 'kehoach' ? !!c.sx?.ke", vi: 'ô lọc Đang lên kế hoạch' },
+  { card: 'khoi-ke', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'camps={[...camps, ...hangLoc.filter((c) => c.sx?.ke)]}', vi: 'dòng khối kế hoạch nằm ở hangCr — Thiết lập phải nhận cả chúng, không chỉ camp thật' },
   { card: 'khoi-ke', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'keHoach={keHoachTl}', vi: 'Thiết lập nhận camp dự kiến của khối' },
   { card: 'khoi-ke', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: 'const d: DongTl = { ...(g ?? {}), camp_id: k.id - i }', vi: 'camp dự kiến chép cấu hình THẬT của camp khuôn, không gõ tay' },
   { card: 'khoi-ke', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'data-o="tl-ke-hoach"', vi: 'ô Camp của camp dự kiến ghi Đang lên kế hoạch + khuôn' },

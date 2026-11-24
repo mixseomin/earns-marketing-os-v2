@@ -3677,7 +3677,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'thietlap' ? (
-        <ThietLapCamp camps={camps} hep={hep} them={{   /* nhóm cột phụ: creative + 7 ngày gần nhất (chính dải ngày của Cây, thay nhóm Hôm nay / Hôm qua — anh 24/11/2026 #1819) + kỳ chọn */
+        <ThietLapCamp camps={[...camps, ...hangLoc.filter((c) => c.sx?.ke)]} hep={hep} them={{   /* nhóm cột phụ: creative + 7 ngày gần nhất (chính dải ngày của Cây, thay nhóm Hôm nay / Hôm qua — anh 24/11/2026 #1819) + kỳ chọn */
           cot: [...cotCamp.filter((k) => k.key === 'phim' || /^kh_/.test(k.key)).map((k) => (k.key === 'phim' ? { ...k, group: 'cr', width: 250 } : k)), ...cotNgay],
           nhom: [{ key: 'cr', label: 'Creative', color: '#34d399', title: 'phim · creative đang gắn vào camp (bấm ảnh xem video)' }, NHOM_NGAY, ...NHOM.filter((g) => g.key === 'kh')] }} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} trangThai={ttCamp} keHoach={keHoachTl} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (

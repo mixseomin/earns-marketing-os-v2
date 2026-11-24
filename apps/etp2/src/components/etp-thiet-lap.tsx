@@ -6,7 +6,7 @@
 // Meta từ chối / có vấn đề, đồng bộ lỗi / treo, lỗi Ethopex, camp bật mà ad set / ad tắt, kho chưa đọc. Nút 🛠 gửi card góp ý etp2 → kỹ sư AI Huy (hàng góp ý chung, gop-y-mos2.ts).
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { DataTable, type DataColumn, type DataGroup } from '@mos2/bang/data-table';
-import { docThietLap, type ThietLap, type DongTl, type OTl } from '@/lib/actions/etp-thiet-lap';
+import { docThietLap, type ThietLap, type DongTl, type OTl, type KeTl } from '@/lib/actions/etp-thiet-lap';
 import { guiGopY } from '@/lib/actions/gop-y-mos2';
 
 type CampCo = { camp_id: number };
@@ -37,10 +37,14 @@ const gioVn = (iso: string | null) => {
   return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 };
 
-export function ThietLapCamp<T extends CampCo>({ camps, them, moCamp, trangThai }: { camps: T[]; hep?: boolean; them?: CotThem<T>; moCamp?: (id: number) => void; trangThai?: (c: T) => { chu: string; mau: string; t: string } }) {
+export function ThietLapCamp<T extends CampCo>({ camps, them, moCamp, trangThai, keHoach }: { camps: T[]; hep?: boolean; them?: CotThem<T>; moCamp?: (id: number) => void; trangThai?: (c: T) => { chu: string; mau: string; t: string };
+  /** dòng chưa có camp (khối 📝 Đang lên kế hoạch) → camp DỰ KIẾN: chép cấu hình camp khuôn + ô khối đè (anh 25/11/2026) */ keHoach?: (c: T) => Omit<KeTl, 'id'> | null }) {
   const theoId = useMemo(() => new Map(camps.map((c) => [c.camp_id, c])), [camps]);
   const ids = useMemo(() => camps.map((c) => c.camp_id).filter((x) => x > 0), [camps]);
-  const khoa = ids.join(',');
+  const keTl = useMemo(() => (keHoach ? camps.filter((c) => c.camp_id < 0).flatMap((c) => { const k = keHoach(c); return k ? [{ ...k, id: c.camp_id }] : []; }) : []), [camps, keHoach]);
+  const khoa = `${ids.join(',')}|${JSON.stringify(keTl)}`;
+  // dòng Thiết lập → dòng camp của bảng chính (camp dự kiến nối về dòng khối cha)
+  const cha = (r: DongTl) => theoId.get(typeof r.ke_cha === 'number' ? r.ke_cha : r.camp_id);
   const [du, setDu] = useState<ThietLap | null>(null), [loi, setLoi] = useState<string | null>(null);
   const [gui, setGui] = useState<Record<number, { dang?: boolean; id?: number; loi?: string }>>({});
   // LỌC THEO MỨC VẤN ĐỀ (anh 24/11/2026 "Nếu đỏ thì show cái đỏ, ko show vàng"): '' = tất cả · do / vang = chỉ camp có mức đó, ô chỉ hiện vấn đề mức đó · khong = camp không vấn đề
@@ -52,7 +56,7 @@ export function ThietLapCamp<T extends CampCo>({ camps, them, moCamp, trangThai 
   const doiGon = (v: boolean) => { setGon(v); try { localStorage.setItem('etp-tl-gon', v ? '1' : '0'); } catch { /* như trên */ } };
   useEffect(() => {
     let bo = false; setLoi(null);
-    docThietLap(ids).then((r) => { if (bo) return; if ('loi' in r) setLoi(r.loi); else setDu(r); }, (e) => { if (!bo) setLoi(String(e?.message ?? e)); });
+    docThietLap(ids, keTl).then((r) => { if (bo) return; if ('loi' in r) setLoi(r.loi); else setDu(r); }, (e) => { if (!bo) setLoi(String(e?.message ?? e)); });
     return () => { bo = true; };
   }, [khoa]);   // eslint-disable-line react-hooks/exhaustive-deps
   const chu = (v: OTl | undefined): string | null => (v == null ? null : typeof v === 'number' ? (du?.chung[v] ?? null) : v);
@@ -86,7 +90,8 @@ export function ThietLapCamp<T extends CampCo>({ camps, them, moCamp, trangThai 
   const soDong: Record<string, string> = {};
   for (const [k] of GIONG) {
     const dem = new Map<string, number>(); let n = 0;
-    for (const r of du?.dong ?? []) { const s0 = chu(r[k]), s = s0 == null ? null : tap(s0); if (s != null) { n++; dem.set(s, (dem.get(s) ?? 0) + 1); } }
+    for (const r of du?.dong ?? []) { if (r.ke_cha != null) continue;   // camp dự kiến chép khuôn → không được bầu số đông
+      const s0 = chu(r[k]), s = s0 == null ? null : tap(s0); if (s != null) { n++; dem.set(s, (dem.get(s) ?? 0) + 1); } }
     const top = [...dem].sort((a, b) => b[1] - a[1])[0];
     if (top && dem.size > 1 && top[1] * 2 > n) soDong[k] = top[0];   // có số đông rõ (> nửa) mới so; chia đôi thì không biết bên nào đúng → không báo
   }
@@ -97,6 +102,7 @@ export function ThietLapCamp<T extends CampCo>({ camps, them, moCamp, trangThai 
     return them.length || thieu.length ? [them.length ? `thêm ${ke(them)}` : '', thieu.length ? `thiếu ${ke(thieu)}` : ''].filter(Boolean).join(' · ') : ''; };
   const vanDe = (r: DongTl): VanDe[] => {
     const v: VanDe[] = [], thay = new Set<string>();
+    if (r.ke_cha != null) { if (r.ke_thieu) v.push({ chu: String(r.ke_thieu), do: true, ai: false }); return v; }   // camp dự kiến: chưa tạo → chưa có gì để chấm
     const them = (chu: string, laDo: boolean, ai = true) => { const k = chu.replace(/^[^:]*:\s*/, '').slice(0, 80); if (!thay.has(k)) { thay.add(k); v.push({ chu, do: laDo, ai }); } };
     const lf = loiForm(r);
     if (chuaDoc(r)) them(`Kho chưa đọc chữ creative #${chu(r.f_cr) ?? '?'} (lượt đồng bộ kế đọc)`, false);
@@ -178,7 +184,10 @@ export function ThietLapCamp<T extends CampCo>({ camps, them, moCamp, trangThai 
   for (const r of du?.dong ?? []) { const v = vanDe(r); if (v.some((x) => x.do)) soMuc.do++; if (v.some((x) => !x.do)) soMuc.vang++; if (!v.length) soMuc.khong++; }
   const cot: DataColumn<DongTl>[] = [
     // #1831 anh "Show trạng thái của camp": chữ trạng thái ngay dưới số camp — đọc CHUNG hàm ttCamp của cây / bảng camp (truyền vào qua trangThai), chi tiết gập vào chữ rê
-    { key: 'camp_id', header: 'Camp', align: 'left', width: 80, cell: (r) => { const c = theoId.get(r.camp_id), x = c && trangThai ? trangThai(c) : null;
+    { key: 'camp_id', header: 'Camp', align: 'left', width: 80, cell: (r) => { const c = cha(r), x = c && trangThai ? trangThai(c) : null;
+      if (r.ke_cha != null) return <span data-o="tl-ke-hoach" style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }} title={`camp dự kiến ${r.ke_thu} của phim — chưa tạo. Máy nhân bản camp khuôn #${r.ke_khuon} (giữ cấu hình bên dưới), đè ROAS · ngân sách · giờ · bộ · creative mới theo mẫu của khối`}>
+        <b style={{ color: '#38bdf8', whiteSpace: 'nowrap' }}>📝 {r.ke_thu}</b><span style={{ fontSize: 11, color: '#38bdf8', whiteSpace: 'nowrap' }}>Đang lên kế hoạch</span>
+        <span onClick={moCamp ? (e) => { e.stopPropagation(); moCamp(Number(r.ke_khuon)); } : undefined} style={{ fontSize: 10.5, color: 'var(--fg-3)', whiteSpace: 'nowrap', cursor: moCamp ? 'pointer' : undefined, textDecoration: moCamp ? 'underline dotted' : undefined }}>chép #{r.ke_khuon}</span></span>;
       return <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}><b data-nut="mo-camp" onClick={moCamp ? (e) => { e.stopPropagation(); moCamp(r.camp_id); } : undefined} title={moCamp ? `Mở chi tiết camp #${r.camp_id}` : undefined}
       style={moCamp ? { cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 } : undefined}>#{r.camp_id}</b>
       {x ? <span data-tt-camp title={x.t} style={{ fontSize: 11, color: x.mau, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'help' }}>{x.chu}</span> : null}</span>; },
@@ -188,8 +197,8 @@ export function ThietLapCamp<T extends CampCo>({ camps, them, moCamp, trangThai 
         <option value="">tất cả</option><option value="do">● đỏ ({soMuc.do})</option><option value="vang">● vàng ({soMuc.vang})</option><option value="khong">✓ không ({soMuc.khong})</option></select></span>, width: 230, align: 'left', sortValue: diemVd, cell: oVanDe,
       title: 'mọi vấn đề phát sinh của camp: form chữ lệch, Meta từ chối / có vấn đề, đồng bộ lỗi / treo, lỗi Ethopex, camp bật mà ad set / ad tắt, kho chưa đọc — rê chuột: 🛠 Sửa (AI)' },
     // hiệu suất 7 NGÀY GẦN NHẤT (6 ngày đã khép + nay, chính dải ngày của Cây) đứng ngay sau Vấn đề, KHÔNG ghim (anh 24/11/2026: ghim cả 7 ngày che hết bảng) — thay nhóm Hôm nay / Hôm qua (anh 24/11/2026 #1819); phần còn lại (phim, kỳ) theo sau
-    ...cotNay.map((k) => noiCot(k, (r) => theoId.get(r.camp_id))),
-    ...(them?.cot ?? []).filter((k) => !cotNay.includes(k)).map((k) => noiCot(k, (r) => theoId.get(r.camp_id))),
+    ...cotNay.map((k) => noiCot(k, cha)),
+    ...(them?.cot ?? []).filter((k) => !cotNay.includes(k)).map((k) => noiCot(k, cha)),
     C('c_ten', 'b1', 'Tên camp', 230), C('c_bo', 'b1', 'Bộ', 16, 'bộ tài khoản', 'so'), C('c_tk', 'b1', 'TK QC', 110, 'mã tài khoản quảng cáo Meta', 'ma'), C('c_ext', 'b1', 'ID Meta', 110, 'mã campaign trên Meta', 'ma'),
     C('c_muc_tieu', 'b1', 'Mục tiêu', 100, 'objective', 'ds'), C('c_mua', 'b1', 'Mua', 60, 'buying type', 'ds'), C('c_gia', 'b1', 'Đặt giá', 130, 'bid strategy', 'ds'),
     C('c_ns', 'b1', 'NS/ngày', 30, 'ngân sách ngày $', 'tien'), C('c_ns_tron', 'b1', 'NS trọn', 30, 'ngân sách trọn đời $', 'tien'), C('c_ns_chia', 'b1', 'Chia NS', 20, 'chia ngân sách cho ad set', 'bat'),

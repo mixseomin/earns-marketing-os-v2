@@ -182,9 +182,10 @@ const kieuDung = (c: { dong?: CampEtpKho['dong']; loi?: string | null; dong_bo?:
   return ra('✋', 'tắt ngoài máy', 'Tắt ngoài máy luật', '#94a3b8', [{ ten: 'Không có ghi chép máy luật', mau: '#94a3b8', chu: `tắt bằng tay trên Ethopex, hoặc camp tạo sẵn ở trạng thái dừng${c.giao ? ` · Ethopex: ${c.giao}` : ''}` }]);
 };
 // MỘT chuỗi trạng thái cho chữ (cột TT) và đèn (TT): loai = khoá màu đèn MAU_DEN
-const ttCamp = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat?: boolean; dong?: CampEtpKho['dong']; loi?: string | null; dong_bo?: string | null }): { chu: string; mau: string; t: string; loai: 'loi' | 'phong' | 'cho' | 'chay' | 'tat' } =>
+const ttCamp = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat?: boolean; dong?: CampEtpKho['dong']; loi?: string | null; dong_bo?: string | null; sx?: CampEtpKho['sx'] }): { chu: string; mau: string; t: string; loai: 'loi' | 'phong' | 'cho' | 'chay' | 'tat' } =>
   c.giao === 'DISAPPROVED' ? { chu: '⛔ Meta từ chối', mau: '#f87171', t: 'Meta từ chối', loai: 'loi' }
   : c.lich_tat ? { chu: 'dừng theo giờ', mau: '#f59e0b', t: 'tạm dừng theo lịch giờ — máy tự bật lại khi tới khung BẬT', loai: 'phong' }
+  : c.sx?.ke ? { chu: '📝 Đang lên kế hoạch', mau: '#38bdf8', t: 'khối camp đã lập kế hoạch (phim · creative mẫu · cấu hình camp) — chưa sinh creative, chưa tạo camp, chưa tốn tiền; bấm ▶ Bắt đầu sản xuất trên đầu khối mới làm', loai: 'cho' }   // anh 25/11/2026
   : dangSxCr(c) ? { chu: '🏭 đang sản xuất', mau: '#a78bfa', t: 'dòng phim đang làm creative — xong creative máy mới tạo camp (lúc đó mới có ID camp, điểm chấm)', loai: 'cho' }   // #1832
   : choDuyet(c) ? { chu: '⏳ chờ duyệt', mau: '#f59e0b', t: 'creative đã chấm Đạt, chưa có camp — bấm ▶ Lên hoặc máy lên ở nhịp kế', loai: 'cho' }   // #1767: dòng xếp hàng không phải "chờ giờ chạy"
   : choGio(c) ? { chu: `chờ ${conLai(c.lich!)} nữa`, mau: '#f59e0b', t: `hẹn chạy từ ${vn(c.lich)}`, loai: 'cho' }
@@ -2582,7 +2583,9 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
       `· phim: ${c.phim ?? `#${c.content_id ?? '?'}`} · dạng creative: ${c.dang ?? '?'}`,
       `· sẽ lên ${c.sx?.so_camp ?? 1} camp ★ ROAS ${c.roas} (Lowest cost + min ROAS) · $${c.ngan_sach}/ngày · bộ ${c.bo ?? '?'}`,
       `· giờ chạy: ${vn ? `${p(vn.getUTCHours())}:${p(vn.getUTCMinutes())} ${p(vn.getUTCDate())}/${p(vn.getUTCMonth() + 1)} giờ VN` : 'chưa hẹn'}${c.sx?.ai ? ` · lệnh của ${c.sx.ai}` : ''}`,
-      ...(c.sx?.khoi ? ['', ...chuKhoi(c.sx.khoi), `· phim này: tiếng ${(c.sx.tieng ?? '?').toUpperCase()} · chép khung camp khuôn #${c.sx.khuon ?? '?'} · ${c.sx.so_camp ?? c.sx.khoi.cr_camp} camp`] : []), '',
+      ...(c.sx?.khoi ? ['', ...chuKhoi(c.sx.khoi), `· phim này: tiếng ${(c.sx.tieng ?? '?').toUpperCase()} · chép khung camp khuôn #${c.sx.khuon ?? '?'} · ${c.sx.so_camp ?? c.sx.khoi.cr_camp} camp`,
+        ...Array.from({ length: c.sx.so_camp ?? c.sx.khoi.cr_camp }, (_, i) => `   camp ${i + 1}: creative mới mẫu ${c.sx!.khoi!.mau_ten ?? c.sx!.khoi!.mau ?? '?'} (${(c.sx!.tieng ?? '?').toUpperCase()}) · ★ ROAS ${c.sx!.khoi!.roas} · $${c.sx!.khoi!.ns}/ngày · ${c.sx!.khoi!.gio} VN · ${c.sx!.khoi!.mien ?? '?'} · cấu hình còn lại = camp #${c.sx!.khuon ?? '?'}`),
+        '· xem đủ từng ô cấu hình: Camp › ⚙ Thiết lập'] : []), '',
       'Chưa có: creative, ID camp, điểm chấm — xong creative máy tự tạo camp, dòng này thành camp thật'].join('\n'); };
   // KHỐI CAMP (etp.khoi, anh 25/11/2026 "phải nhìn thấy đủ các thành phần, các camp đang sx"): tham số chung + thành phần mẫu dựng — đọc từ sổ, không gõ tay
   const chuKhoi = (k: KhoiEtp) => [`🧱 KHỐI #${k.id} · ${k.ten} · ${chuTrangThaiKhoi(k)}`,
@@ -2961,7 +2964,7 @@ const LOC_TAB: Partial<Record<Tab, 'all' | readonly string[]>> = { camp: 'all', 
 const TAB_LOC_CAMP = Object.keys(LOC_TAB) as Tab[];
 const locCoTab = (t: Tab, k: string) => { const d = LOC_TAB[t]; return d === 'all' || !!d?.includes(k); };
 const TABS: Tab[] = ['tong', 'camp', 'roas', 'creative', 'phim', 'dt', 'mau', 'dong', 'tv', 'tn', 'luat', 'insight'];
-const LOC_CAMP = ['all', 'chay', 'cho', 'duyet', 'sxcr', 'tat', 'luat', 'ganluat', 'gtang', 'ggiam', 'gtat', 'mlai', 'mlo', 'chua_tieu', 'tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran', 'sx', 'cung', 'roas', 'bai_cu', 'bai_moi'] as const;
+const LOC_CAMP = ['all', 'chay', 'cho', 'duyet', 'kehoach', 'sxcr', 'tat', 'luat', 'ganluat', 'gtang', 'ggiam', 'gtat', 'mlai', 'mlo', 'chua_tieu', 'tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran', 'sx', 'cung', 'roas', 'bai_cu', 'bai_moi'] as const;
 // USED POST (#1672 anh 18/11/2026 "cần thêm bộ lọc cho các Creative dạng Used post"): bản nhân dùng lại bài đăng camp gốc — nhan-ban.py đặt tên ' bai-cu ', cùng dấu so-luat.py đọc
 const laBaiCu = (c: { ten: string }) => / bai-cu /.test(c.ten);
 // BÀI POST CỦA CAMP (#1761 anh 22/11/2026 "thêm 1 cột để show link bài viết của camp tương ứng"): etp.camp.bai_viet = "<page>_<post>" (dong-bo.py đọc effective_object_story_id);
@@ -2988,7 +2991,7 @@ const mucTieu = (c: CampEtpKho): 'tieu0' | 'tieu25' | 'tieu50' | 'tieu90' | 'tra
   return c.nay.chi <= 0 ? 'tieu0' : r < TANG_CHI ? 'tieu25' : r < TRAN_CHI ? 'tieu50' : 'tran'; };   // số luật 12/11 tang_ngay (nap_chi bỏ 19/11/2026)
 // ô Lọc camp CHỌN NHIỀU (anh 05/11/2026): giá trị = các mục nối ',' — bỏ mục lạ; rỗng = 'all'
 // NHÓM MỤC Ô LỌC (anh 06/11/2026 "Tiêu + đang chạy phải là VÀ chứ, HOẶC thì có ý nghĩa gì"): cùng nhóm = HOẶC, khác nhóm = VÀ — một sổ cho danh sách chọn và phép lọc
-const LOC_NHOM: Record<Exclude<(typeof LOC_CAMP)[number], 'all'>, string> = { chay: 'Trạng thái', cho: 'Trạng thái', duyet: 'Trạng thái', sxcr: 'Trạng thái', tat: 'Trạng thái', luat: 'Luật máy', ganluat: 'Luật máy',
+const LOC_NHOM: Record<Exclude<(typeof LOC_CAMP)[number], 'all'>, string> = { chay: 'Trạng thái', cho: 'Trạng thái', duyet: 'Trạng thái', kehoach: 'Trạng thái', sxcr: 'Trạng thái', tat: 'Trạng thái', luat: 'Luật máy', ganluat: 'Luật máy',
   gtang: 'Gần ngưỡng', ggiam: 'Gần ngưỡng', gtat: 'Gần ngưỡng', mlai: 'Camp mới (< 7 ngày)', mlo: 'Camp mới (< 7 ngày)',
   chua_tieu: 'Mức tiêu (camp đang chạy)', tieu0: 'Mức tiêu (camp đang chạy)', tieu25: 'Mức tiêu (camp đang chạy)', tieu50: 'Mức tiêu (camp đang chạy)', tieu90: 'Mức tiêu (camp đang chạy)', tran: 'Mức tiêu (camp đang chạy)',
   sx: 'Sản xuất', cung: 'Đoạn nhiều camp', roas: 'ROAS', bai_cu: 'Creative', bai_moi: 'Creative' };
@@ -3070,6 +3073,13 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const duGoc = useMemo(() => moXet(duGui), [duGui]);   // bảng xét luật gửi gọn (lib/etp-xet-gon) → mở lại một lần
   const du = useMemo(() => (duGoc.nhe && nang ? ghepNang(duGoc, nang) : duGoc), [duGoc, nang]);
   const choMap = useMemo(() => conCho(choAp, du.camps), [choAp, du.camps]);   // lệnh tay chờ áp còn hiệu lực (vết ⏳)
+  // ⚙ Thiết lập: dòng khối 📝 Đang lên kế hoạch → camp DỰ KIẾN (chép cấu hình camp khuôn, đè đúng các ô khối đặt — giống nhan-ban.py của dong_phim.py b_camp_khoi)
+  const keHoachTl = useCallback((c: CampEtpKho) => { const k = c.sx?.khoi; if (!k || !c.sx?.khuon || c.content_id == null) return null;
+    const lang = (c.sx.tieng ?? '?').toUpperCase();
+    return { khuon: c.sx.khuon, so: c.sx.so_camp ?? k.cr_camp, cid: c.content_id, bo: c.bo ?? null, de: {
+      c_ten: `dp${c.sx.dong} ${c.phim ?? `#${c.content_id}`} ${lang} - khoi ${k.id} cr moi #(chưa sinh)`, c_ns: String(k.ns), g_ns: String(k.ns), g_roas: String(k.roas),
+      g_lich: `${k.gio} VN (giờ khối)`, a_mien: k.mien, f_cr: `mới · mẫu ${k.mau_ten ?? k.mau ?? '?'} · ${lang} — sinh khi bấm ▶ Bắt đầu sản xuất`,
+    } }; }, []);
   const lsCamp = useCallback((id: number): LsDk => ({ tay: choAp.filter((x) => x.camp_id === id),
     batTat: du.nhatKy.filter((x) => x.camp_id === id && (x.viec === 'tat' || x.viec === 'bat')), bac: du.lsBac[id] ?? [] }), [choAp, du.nhatKy, du.lsBac]);
   // tab + kiểu xem lấy từ URL ngay lần vẽ đầu (máy chủ truyền vào) — F5 giữ nguyên chỗ đang xem
@@ -3260,7 +3270,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const phimSx = useMemo(() => phimDangSx(du), [du.dongChay, du.thuVien]);   // eslint-disable-line react-hooks/exhaustive-deps
   // CHƯA TỪNG TIÊU: camp đang chạy tạo trong tháng này, chi cả tháng $0 (kho chỉ có số từ đầu tháng — camp tạo tháng trước mà chưa tiêu nằm ở mức 'chưa tiêu hôm nay')
   const chuaTieu = useCallback((c: CampEtpKho) => dangChay(c) && !!c.tao && c.tao.slice(0, 10) >= `${du.nay.slice(0, 8)}01` && c.thang.chi <= 0, [du.nay]);
-  const hopLocV = useCallback((v: string, c: CampEtpKho) => { const ds = locDs(v); return !ds.length || nhomLoc(ds).every((ks) => ks.some((k) => (k === 'chay' ? dangChay(c) : k === 'cho' ? choChay(c) : k === 'duyet' ? choDuyet(c) : k === 'sxcr' ? dangSxCr(c) : k === 'tat' ? daTat(c) : k === 'roas' ? roasDat.has(c.camp_id)
+  const hopLocV = useCallback((v: string, c: CampEtpKho) => { const ds = locDs(v); return !ds.length || nhomLoc(ds).every((ks) => ks.some((k) => (k === 'chay' ? dangChay(c) : k === 'cho' ? choChay(c) : k === 'duyet' ? choDuyet(c) : k === 'kehoach' ? !!c.sx?.ke : k === 'sxcr' ? dangSxCr(c) : k === 'tat' ? daTat(c) : k === 'roas' ? roasDat.has(c.camp_id)
     : k === 'luat' ? (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')
     : k === 'ganluat' ? (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')
     : k === 'gtang' ? !!ganMap.get(c.camp_id)?.tang : k === 'ggiam' ? !!ganMap.get(c.camp_id)?.giam : k === 'gtat' ? !!ganMap.get(c.camp_id)?.tat : k === 'mlai' || k === 'mlo' ? moiMap.get(c.camp_id) === k : k === 'tieu0' || k === 'tieu25' || k === 'tieu50' || k === 'tieu90' || k === 'tran' ? mucTieu(c) === k : k === 'chua_tieu' ? chuaTieu(c) : k === 'sx' ? phimSx.has(c.content_id ?? -1) : k === 'bai_cu' ? laBaiCu(c) : k === 'bai_moi' ? !laBaiCu(c) : c.cung_doan > tranT))); }, [roasDat, ganMap, baoCampBang, tranT, moiMap, phimSx, chuaTieu]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -3528,11 +3538,11 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   // các ô lọc phụ theo thứ tự cố định, chỉ ô trang này áp (LOC_TAB)
   // Ô "Lọc" (trạng thái / luật / ngưỡng) — hàm dựng để dùng ở hàng lọc trang VÀ ngăn Logs (anh 08/11/2026 "Dùng bộ lọc này cho đầy đủ")
   const locSel = () => (() => { const cs = demO('loc'), ids = new Set(cs.map((c) => c.camp_id)), coId = <V,>(m: Map<number, V>) => [...m].filter(([id]) => ids.has(id)).map(([, v]) => v);
-    const dem: Record<string, number> = { all: cs.length, chay: cs.filter(dangChay).length, cho: cs.filter(choChay).length, duyet: (du.hangCr ?? []).filter((c) => choDuyet(c) && BO_LOC.every(([k, f]) => k === 'ky' || k === 'loc' || f(c))).length, sxcr: (du.hangCr ?? []).filter((c) => dangSxCr(c) && BO_LOC.every(([k, f]) => k === 'ky' || k === 'loc' || f(c))).length,   /* #1832 hangCr giờ mang cả dòng 🏭 đang sản xuất — mỗi ô đếm đúng loại của nó */   /* #1825: đếm trên camp qua MỌI ô lọc KHÁC (demO, trừ chính ô Lọc) — vẫn giữ luật 05/11/2026: đang lọc Đang chạy thì 'Chờ giờ chạy' không về 0, vì ô Lọc không tự lọc chính nó */ tat: cs.filter(daTat).length, gtang: coId(ganMap).filter((g) => g.tang).length, ggiam: coId(ganMap).filter((g) => g.giam).length, gtat: coId(ganMap).filter((g) => g.tat).length, mlai: coId(moiMap).filter((v) => v === 'mlai').length, mlo: coId(moiMap).filter((v) => v === 'mlo').length, sx: cs.filter((c) => phimSx.has(c.content_id ?? -1)).length, ...Object.fromEntries((['tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran'] as const).map((k) => [k, cs.filter((c) => mucTieu(c) === k).length])), chua_tieu: cs.filter(chuaTieu).length, cung: cs.filter((c) => c.cung_doan > tranT).length, bai_cu: cs.filter(laBaiCu).length, bai_moi: cs.filter((c) => !laBaiCu(c)).length, roas: [...roasDat].filter((id) => ids.has(id)).length, luat: cs.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')).length, ganluat: cs.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')).length };
+    const dem: Record<string, number> = { all: cs.length, chay: cs.filter(dangChay).length, cho: cs.filter(choChay).length, duyet: (du.hangCr ?? []).filter((c) => choDuyet(c) && BO_LOC.every(([k, f]) => k === 'ky' || k === 'loc' || f(c))).length, sxcr: (du.hangCr ?? []).filter((c) => dangSxCr(c) && BO_LOC.every(([k, f]) => k === 'ky' || k === 'loc' || f(c))).length, kehoach: (du.hangCr ?? []).filter((c) => !!c.sx?.ke && BO_LOC.every(([k, f]) => k === 'ky' || k === 'loc' || f(c))).length,   /* #1832 hangCr giờ mang cả dòng 🏭 đang sản xuất — mỗi ô đếm đúng loại của nó */   /* #1825: đếm trên camp qua MỌI ô lọc KHÁC (demO, trừ chính ô Lọc) — vẫn giữ luật 05/11/2026: đang lọc Đang chạy thì 'Chờ giờ chạy' không về 0, vì ô Lọc không tự lọc chính nó */ tat: cs.filter(daTat).length, gtang: coId(ganMap).filter((g) => g.tang).length, ggiam: coId(ganMap).filter((g) => g.giam).length, gtat: coId(ganMap).filter((g) => g.tat).length, mlai: coId(moiMap).filter((v) => v === 'mlai').length, mlo: coId(moiMap).filter((v) => v === 'mlo').length, sx: cs.filter((c) => phimSx.has(c.content_id ?? -1)).length, ...Object.fromEntries((['tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran'] as const).map((k) => [k, cs.filter((c) => mucTieu(c) === k).length])), chua_tieu: cs.filter(chuaTieu).length, cung: cs.filter((c) => c.cung_doan > tranT).length, bai_cu: cs.filter(laBaiCu).length, bai_moi: cs.filter((c) => !laBaiCu(c)).length, roas: [...roasDat].filter((id) => ids.has(id)).length, luat: cs.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')).length, ganluat: cs.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')).length };
         const m = (value: keyof typeof LOC_NHOM, label: string, title?: string): Chon2Muc => ({ value, label, nhom: LOC_NHOM[value], dem: dem[value], title });
         return <Chon2 chan={chanLoc.loc} to={toCua('loc')} value={loc} onChange={doiLoc} nhieu tatCa="all" nhan="Lọc" anRong title="lọc camp theo trạng thái / luật / ngưỡng — chọn được nhiều mục: cùng nhóm = khớp một trong các mục, khác nhóm = phải thoả mọi nhóm" options={[
           { value: 'all', label: 'Tất cả', dem: dem.all },   // "Tất cả" luôn đứng ĐẦU, cùng chữ với mọi ô lọc (anh 27/10/2026)
-          m('chay', 'Đang chạy'), m('cho', 'Chờ giờ chạy'), m('duyet', 'Chờ duyệt', 'creative đã chấm Đạt, chưa có camp — chờ ▶ Lên'), m('sxcr', 'Đang sản xuất', 'camp sắp lên mà creative còn đang làm — đủ phim, dạng, ROAS, ngân sách, giờ; chưa có creative, ID camp, điểm chấm'), m('tat', 'Đã tắt'),
+          m('chay', 'Đang chạy'), m('cho', 'Chờ giờ chạy'), m('duyet', 'Chờ duyệt', 'creative đã chấm Đạt, chưa có camp — chờ ▶ Lên'), m('kehoach', '📝 Đang lên kế hoạch', 'khối camp đã lập kế hoạch, chưa bắt đầu sinh creative — xem từng camp dự kiến ở ⚙ Thiết lập'), m('sxcr', 'Đang sản xuất', 'camp sắp lên mà creative còn đang làm (gồm cả dòng 📝 Đang lên kế hoạch) — đủ phim, dạng, ROAS, ngân sách, giờ; chưa có creative, ID camp, điểm chấm'), m('tat', 'Đã tắt'),
           m('luat', '⚑ Chạm luật', 'luật đang xếp làm ở nhịp này'), m('ganluat', '◌ Sắp chạm luật'),
           m('gtang', '⇡ Gần tăng'), m('gtat', '✕ Gần tắt'),
           m('mlai', '▲ Mới lãi', 'camp đang chạy < 7 ngày, ≥ 2 trong 3 ngày đã khép gần nhất có chi và ngày nào có chi cũng lãi — ứng viên dồn tiền'), m('mlo', '▼ Mới lỗ', 'camp đang chạy < 7 ngày, ≥ 2 trong 3 ngày đã khép gần nhất có chi và ngày nào có chi cũng lỗ'),
@@ -3669,7 +3679,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       ) : tab === 'camp' && xemCamp === 'thietlap' ? (
         <ThietLapCamp camps={camps} hep={hep} them={{   /* nhóm cột phụ: creative + 7 ngày gần nhất (chính dải ngày của Cây, thay nhóm Hôm nay / Hôm qua — anh 24/11/2026 #1819) + kỳ chọn */
           cot: [...cotCamp.filter((k) => k.key === 'phim' || /^kh_/.test(k.key)).map((k) => (k.key === 'phim' ? { ...k, group: 'cr', width: 250 } : k)), ...cotNgay],
-          nhom: [{ key: 'cr', label: 'Creative', color: '#34d399', title: 'phim · creative đang gắn vào camp (bấm ảnh xem video)' }, NHOM_NGAY, ...NHOM.filter((g) => g.key === 'kh')] }} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} trangThai={ttCamp} />
+          nhom: [{ key: 'cr', label: 'Creative', color: '#34d399', title: 'phim · creative đang gắn vào camp (bấm ảnh xem video)' }, NHOM_NGAY, ...NHOM.filter((g) => g.key === 'kh')] }} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} trangThai={ttCamp} keHoach={keHoachTl} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
         <CayCamp camps={camps} hang={hangLoc} hl={hlCamp} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e, camp) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr, camp }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} />
       ) : tab === 'camp' ? (

@@ -8,7 +8,7 @@ import { join } from 'node:path';
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
   { card: 1826, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<span data-o="loai-truoc-cr"', vi: 'cây camp: huy hiệu loại creative (CT / CC / PO…) đứng ngay trước ô creative (anh 24/11/2026 "chuyển badge thể loại creative ra trước creative")' },
-  { card: 1831, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'setNganCamp(id); })} trangThai={ttCamp} />', vi: 'Thiết lập hiện trạng thái camp dưới số camp, đọc CHUNG ttCamp của cây / bảng camp (anh 24/11/2026 "Show trạng thái của camp")' },
+  { card: 1831, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'setNganCamp(id); })} trangThai={ttCamp}', vi: 'Thiết lập hiện trạng thái camp dưới số camp, đọc CHUNG ttCamp của cây / bảng camp (anh 24/11/2026 "Show trạng thái của camp")' },
   { card: 1831, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: '<span data-tt-camp title={x.t}', vi: 'ô Camp của Thiết lập vẽ chữ trạng thái (rê xem chi tiết), không chỉ số camp trơn' },
   { card: 1829, tep: 'apps/etp2/src/components/etp-camp-cau-hinh.tsx', mot: "gridTemplateColumns: rong ? 'fit-content(180px) minmax(0, 1fr)'", vi: 'ngăn cấu hình camp: cột nhãn co theo chữ dài nhất của khối (tối đa 180px), giá trị sát nhãn, không còn khoảng trống giữa (anh 24/11/2026 "tối ưu chỗ này")' },
   { card: 1829, tep: 'apps/etp2/src/components/etp-camp-cau-hinh.tsx', cam: "'minmax(130px, 200px) minmax(0, 1fr)'", vi: 'không quay lại cột nhãn cố định 200px để trống giữa nhãn và giá trị' },
@@ -696,6 +696,13 @@ const LUAT = [
   { card: 'khoi', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'thanh_phan: (mau?.o ?? [])', vi: 'thành phần khối đọc từ sổ mẫu etp-mau-cr.json, không gõ tay' },
   { card: 'khoi-nut', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'rs.filter((c) => !c.sx?.khoi).map((c) => c.content_id ?? 0)', vi: 'nhóm khối không cộng ROI/ngày của camp cũ cùng phim' },
   { card: 'khoi-nut', tep: 'apps/etp2/src/lib/etp-doc.ts', cam: 'for (let i = 1; i <= soK; i++)', vi: 'MỘT dòng mỗi phim khối (anh 25/11 bỏ nở so_camp dòng giống hệt)' },
+  // anh 25/11/2026 "plan phải có cụ thể loại camp, creative… tao cần nhìn thấy ở ⚙ Thiết lập · thêm trạng thái Đang lên kế hoạch"
+  { card: 'khoi-ke', tep: 'apps/etp2/src/components/etp-view.tsx', co: "c.sx?.ke ? { chu: '📝 Đang lên kế hoạch'", vi: 'trạng thái 📝 Đang lên kế hoạch cho dòng khối chưa sinh creative' },
+  { card: 'khoi-ke', tep: 'apps/etp2/src/components/etp-view.tsx', co: "k === 'kehoach' ? !!c.sx?.ke", vi: 'ô lọc Đang lên kế hoạch' },
+  { card: 'khoi-ke', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'keHoach={keHoachTl}', vi: 'Thiết lập nhận camp dự kiến của khối' },
+  { card: 'khoi-ke', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: 'const d: DongTl = { ...(g ?? {}), camp_id: k.id - i }', vi: 'camp dự kiến chép cấu hình THẬT của camp khuôn, không gõ tay' },
+  { card: 'khoi-ke', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'data-o="tl-ke-hoach"', vi: 'ô Camp của camp dự kiến ghi Đang lên kế hoạch + khuôn' },
+  { card: 'khoi-ke', tep: 'apps/etp/dong_phim.py', co: 'dung-mau.py', vi: 'máy sinh creative khối theo mẫu của khối (khớp kế hoạch)' },
   { card: 'khoi', tep: 'apps/etp/dong_phim.py', co: 'if d.get("khoi"): return b_camp_khoi(d, truoc)', vi: 'bước camp của dòng khối đọc tham số từ khối, không hoi_cho' },
   { card: '1836', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'groupBy={{ value: nhomCay', vi: 'bảng Cây nhóm theo một hàm khoá nhóm chung' },
   { card: '1836', tep: 'apps/etp2/src/components/etp-view.tsx', co: '...nhomBang.map((k) => `p${k}`)', vi: 'Mở hết mở cả nhóm khối / nhóm chỉ có dòng sắp lên (lọc Đang sản xuất)' },

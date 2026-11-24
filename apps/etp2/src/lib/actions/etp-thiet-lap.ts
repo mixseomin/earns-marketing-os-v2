@@ -18,6 +18,9 @@ export type FormChu = { creative_type: string; call_to_action: string; link_url:
 export type OTl = string | number | null;
 export type DongTl = Record<string, OTl> & { camp_id: number };
 export type ThietLap = { form: FormChu; dong: DongTl[]; chung: string[]; thieu: number };
+/** camp DỰ KIẾN của một phim trong khối (anh 25/11/2026 "plan phải có cụ thể loại camp, creative… tao cần nhìn thấy ở Thiết lập"):
+ *  id = camp_id âm của dòng khối · khuon = camp khuôn máy sẽ nhân bản (nhan-ban.py) · so = số camp · cid = phim · de = ô bị khối đè (ROAS, ngân sách, giờ, miền, tên…) */
+export type KeTl = { id: number; khuon: number; so: number; cid: number; bo: string | null; de: Record<string, string | null> };
 
 const J = (v: unknown): Record<string, unknown> => {
   if (typeof v === 'string' && /^[{[]/.test(v.trim())) { try { return J(JSON.parse(v)); } catch { return {}; } }
@@ -32,26 +35,29 @@ function docForm(): FormChu {
   return JSON.parse(fs.readFileSync(path.join(process.cwd(), '..', 'etp', 'form-chu.json'), 'utf8')) as FormChu;
 }
 
-export async function docThietLap(ids: number[]): Promise<ThietLap | { loi: string }> {
+export async function docThietLap(ids: number[], ke: KeTl[] = []): Promise<ThietLap | { loi: string }> {
   if (!(await quyenEtp(await getCurrentUser()))) return { loi: 'không có quyền' };
   const ma = [...new Set((Array.isArray(ids) ? ids : []).map(Number).filter((x) => Number.isInteger(x) && x > 0))];
   const db = getDb(); if (!db) return { loi: 'không nối được kho' };
   let form: FormChu;
   try { form = docForm(); } catch (e) { return { loi: `không đọc được form chữ apps/etp/form-chu.json: ${String((e as Error)?.message ?? e).slice(0, 160)}` }; }
-  if (!ma.length) return { form, dong: [], chung: [], thieu: 0 };
+  const ke_ = (Array.isArray(ke) ? ke : []).filter((k) => Number.isInteger(k?.khuon) && k.khuon > 0 && Number.isInteger(k?.id) && k.id < 0 && Number.isInteger(k?.cid)).slice(0, 200);
+  const lay = [...new Set([...ma, ...ke_.map((k) => k.khuon)])];
+  if (!lay.length) return { form, dong: [], chung: [], thieu: 0 };
   const rows = (await db.execute(sql`select c.camp_id, c.ten, c.bo, c.ad_account_id, c.trang_thai, c.giao, c.dong_bo, c.ngan_sach, c.creative_id, c.content_id, c.roas, c.chien_luoc, c.lich, c.loi camp_loi,
       to_char(c.tao at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') tao, b.page_id, b.ten_mien, b.final_url, b.du,
       to_char(b.du_luc at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') du_luc, p.ten pten,
       r.kieu, r.cta, r.link, r.chinh, r.tieu_de, r.mo_ta, to_char(r.form_luc at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') form_luc, (r.form_luc is not null and c.tao < r.form_luc and b.chu_form_luc is null) chu_cu
     from etp.camp c left join etp.bai_camp b using (camp_id) left join etp.bai_cr r on r.creative_id = c.creative_id
       left join etp.tai_nguyen p on p.loai = 'page' and (p.id = b.page_id or p.external_id = b.page_id::text)
-    where c.camp_id = any(${sql.raw(`array[${ma.join(',')}]::int[]`)})`)) as unknown as Record<string, unknown>[];
+    where c.camp_id = any(${sql.raw(`array[${lay.join(',')}]::int[]`)})`)) as unknown as Record<string, unknown>[];
   const chung: string[] = [], soChung = new Map<string, number>();
   const gon = (v: string | null): OTl => { if (v == null || v.length < 40) return v; let i = soChung.get(v); if (i == null) { i = chung.length; chung.push(v); soChung.set(v, i); } return i; };
   let thieu = 0;
-  const dong = rows.map((r): DongTl => {
+  const coMa = new Set(ma);
+  const tatCa = rows.map((r): DongTl => {
     const du = J(r.du), c = J(du.camp), g = J(du.nhom), a = J(du.ad), cp = J(c.source_payload), gp = J(g.source_payload), t = J(gp.targeting), po = J(gp.promoted_object), bc = J(gp.bid_constraints);
-    if (r.du == null) thieu++;
+    if (r.du == null && coMa.has(Number(r.camp_id))) thieu++;
     // ad đang mang chữ nào: creative đưa về form SAU khi camp lên → chữ cũ (bai_cr giữ bản đọc lúc lên); còn lại = chữ creative hiện tại
     const cu = r.chu_cu === true;
     const chinh = cu || !r.form_luc ? L(r.chinh) : form.primaryTexts, tieu = cu || !r.form_luc ? L(r.tieu_de) : form.headlines, moTa = cu || !r.form_luc ? L(r.mo_ta) : form.descriptions;
@@ -97,5 +103,34 @@ export async function docThietLap(ids: number[]): Promise<ThietLap | { loi: stri
       s_loi: gon(loi), s_dong_bo_luc: S(c.last_synced_at),
     };
   });
+  const dong = tatCa.filter((d) => coMa.has(d.camp_id));
+  if (ke_.length) {
+    // bộ của phim: cùng luật máy dùng khi lên (apps/etp/cong.py SQL_BO_PHIM) — phim đang vòng đổi bộ → bộ đó, còn lại bo_phim_moi
+    const cids = [...new Set(ke_.map((k) => k.cid))];
+    const boR = (await db.execute(sql`select p.cid, coalesce((select thu_bo from etp.phim where content_id = p.cid and thu_vong = 'doi_bo' and coalesce(thu_bo, '') <> ''),
+        (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi')) bo from unnest(${sql.raw(`array[${cids.join(',')}]::int[]`)}) p(cid)`)) as unknown as Record<string, unknown>[];
+    const boPhim = new Map(boR.map((r) => [Number(r.cid), S(r.bo)]));
+    const khuon = new Map(tatCa.map((d) => [d.camp_id, d]));
+    // ô CHƯA CÓ khi camp chưa tạo: mã Meta, trạng thái, đồng bộ, lỗi, giờ tạo — để trống, không mượn của camp khuôn
+    const CHUA = ['du_luc', 'tao', 'c_ext', 'c_tt', 'c_meta', 'c_giao', 'c_loi', 'c_build', 'g_ten', 'g_ext', 'g_meta', 'g_giao', 'g_tt', 'g_kich', 'g_loi', 'g_bat_dau', 'g_ket_thuc',
+      'a_ext', 'a_ext_cr', 'a_bai', 'a_video', 'a_meta', 'a_giao', 'a_ten', 'a_kich', 'a_loi', 'a_url', 'f_tt', 's_camp', 's_nhom', 's_ad', 's_media', 's_cho', 's_loi', 's_dong_bo_luc'];
+    for (const k of ke_) {
+      const g = khuon.get(k.khuon);
+      for (let i = 1; i <= Math.max(1, Math.min(k.so, 20)); i++) {
+        const d: DongTl = { ...(g ?? {}), camp_id: k.id - i };
+        for (const x of CHUA) d[x] = null;
+        Object.assign(d, {
+          ke_cha: k.id, ke_thu: `${i}/${k.so}`, ke_khuon: k.khuon, ke_thieu: g ? null : `kho không đọc được camp khuôn #${k.khuon}`,
+          c_tt: 'kế hoạch', c_bo: k.bo || boPhim.get(k.cid) || null, a_phim: String(k.cid), a_url: `Ethopex sinh theo phim #${k.cid} lúc tạo camp`,
+          f_kieu: form.creative_type, f_cta: form.call_to_action, f_link: form.link_url, f_chinh: gon(form.primaryTexts.join('\n')), f_tieu: gon(form.headlines.join('\n')), f_mo_ta: gon(form.descriptions.join('\n')),
+          f_nguon: 'chữ form chuẩn — creative mới, máy chỉ lên khi creative đúng form (CamLechForm)',
+        });
+        // ngân sách ad set chỉ đè khi khuôn dùng ngân sách ad set
+        const de = { ...k.de }; if (g?.g_ns == null) delete de.g_ns;
+        for (const [x, v] of Object.entries(de)) d[x] = gon(v ?? null);
+        dong.push(d);
+      }
+    }
+  }
   return { form, dong, chung, thieu };
 }

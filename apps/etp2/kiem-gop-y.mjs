@@ -595,6 +595,7 @@ const LUAT = [
   { card: 'anh-dong', tep: 'apps/etp2/src/lib/etp-mau-cr.json', co: '"ma": "dt_anh_dong_logo"', vi: 'sổ mẫu có mục Ảnh động logo gốc + CTA' },
   { card: 'anh-dong', tep: 'apps/etp2/src/lib/etp-dang.json', co: '"dang": "ảnh động", "ma": "AD"', vi: 'bộ lọc Loại có dạng AD ảnh động (anh 24/11/2026 "Thêm vào đây")' },
   { card: 'anh-dong', tep: 'apps/web/src/lib/etp-dang.json', co: '"dang": "ảnh động", "ma": "AD"', vi: 'sổ dạng máy Python đọc (so_dang.py) cũng có AD' },
+  { card: 'anh-dong', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'dem: du.camps.filter((c) => c.dang === d).length })).filter((o) => o.dem)', vi: 'bộ lọc Loại không giấu dạng chưa có camp (AD mới phải hiện)' },
   { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'dang = muc["dung_cho"][0] if ma in DONG', vi: 'creative ảnh động nạp đúng dạng AD, không lẫn vào poster động' },
 ];
 

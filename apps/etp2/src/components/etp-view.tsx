@@ -3393,7 +3393,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const dangSel = () => <Chon2 chan={chanLoc.dang} to={toCua('dang')} value={dangLoc} onChange={(v) => doi({ dang: v }, () => setDangLoc(v))} nhan="Loại" title="lọc camp theo loại creative"
     // #1486: mỗi dòng = ĐÚNG badge cột LOẠI (BadgeDang ngắn, cùng màu MAU_DANG) + tên loại; chữ tìm + nhãn gọn trên nút giữ dạng chữ
     options={Object.entries(MA_DANG).map(([d, m]) => ({ value: d, label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><BadgeDang d={d} ngan /><span>{d}</span></span>,
-      tim: `${m} ${d}`, ngan: `${m} · ${d}`, dem: du.camps.filter((c) => c.dang === d).length })).filter((o) => o.dem)} />;
+      tim: `${m} ${d}`, ngan: `${m} · ${d}`, dem: du.camps.filter((c) => c.dang === d).length }))} />;   // mọi dạng trong sổ đều hiện, kể cả dạng mới chưa có camp (dem 0) — anh 24/11/2026 "Thêm vào đây" (ảnh động AD)
   // #1515 (anh 03/11/2026 'thêm nhóm option nhanh khác như <7 ngày, ≤3 ngày'): mốc CỘNG DỒN trước, khoảng sau — cùng mã 'a-b' (locTuoi đọc chung)
   const TUOI_MUC = [['0-3', '< 3 ngày'], ['0-7', '< 7 ngày'], ['0-14', '< 14 ngày'], ['7-', '≥ 7 ngày'], ['0-1', 'Dưới 1 ngày'], ['1-2', '1–2 ngày'], ['2-3', '2–3 ngày'], ['3-7', '3–7 ngày'], ['7-14', '7–14 ngày'], ['14-30', '14–30 ngày'], ['30-', 'Trên 30 ngày']] as const;
   const tuoiSel = () => <Chon2 chan={chanLoc.tuoi} to={toCua('tuoi')} value={tuoiChon} onChange={(v) => doi({ tu: v }, () => setTuoiChon(v))} nhan="Tuổi" title="lọc camp theo tuổi (tính từ lúc lên camp)"

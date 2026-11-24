@@ -6,6 +6,7 @@ import { Dem, KeToan, tienKT, mauLai } from '@/components/etp-so';
 import { docInsight, docMoc, type DuInsight } from '@/lib/actions/etp-insight';
 import { useSoNho } from '@/lib/so-nho';
 import { DataTable, type DataColumn } from '@/components/ui/data-table';
+import { SimpleTable } from '@/components/ui/simple-table';
 import { dongBang, giaiDong, kieuDong, moTuHang, nhanDinh, roiKhoi, NHAN_KIEU, TEN_LOAI, TOP_DON, DON_PHAN, MAU_IT, type DongMoc, type Khoi, type MocSo } from '@/lib/etp-moc';
 
 const NHOM: Record<string, [string, string]> = { gio: ['🕒 Giờ', '#60a5fa'], ngay: ['📅 Ngày', '#a78bfa'], camp: ['🎯 Camp', '#f59e0b'], doi: ['👥 Đội', '#4ade80'] };
@@ -19,7 +20,6 @@ function Roi({ chi, thu }: { chi: number; thu: number }) {
 // nền ô theo ROI: xanh dương lãi, đỏ lỗ — đậm dần tới ±50%
 const nen = (chi: number, thu: number) => { const r = roi(chi, thu); if (r == null) return undefined; const a = Math.min(Math.abs(r), 50) / 50 * 0.35; return r >= 0 ? `rgba(74,222,128,${a})` : `rgba(248,113,113,${a})`; };
 const o: React.CSSProperties = { padding: '4px 8px', borderTop: '1px solid var(--line)', textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' };
-const dau: React.CSSProperties = { ...o, borderTop: 'none', color: 'var(--fg-2)', fontWeight: 600, fontSize: 11 };
 const the: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 10, padding: 12 };
 
 // Ô ROI MỘT KHỐI của bảng mốc: màu theo ROI, hover = số mốc đủ khối + chi / thu — ít mốc (< 5) thì mờ
@@ -51,7 +51,6 @@ const COT_MOC: DataColumn<DongMoc>[] = [
 
 // mở camp ở tab Camp (ngăn camp), giữ người / kỳ đang xem
 const linkCamp = (id: number) => { if (typeof location === 'undefined') return '#'; const u = new URL(location.href); u.searchParams.set('t', 'camp'); u.searchParams.set('ngan', `camp:${id}`); return `${u.pathname}${u.search}`; };
-const o2: React.CSSProperties = { padding: '3px 8px', textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', borderTop: '1px solid var(--line)' };
 /** BẤM MỘT DÒNG → vì sao dòng đó như vậy: kết luận + camp mang lãi + chia theo người (lib/etp-moc giaiDong) */
 function GiaiDongO({ d }: { d: DongMoc }) {
   const g = giaiDong(d), [t, mau] = NHAN_KIEU[g.kieu];
@@ -59,12 +58,18 @@ function GiaiDongO({ d }: { d: DongMoc }) {
     <div style={{ padding: '8px 4px 10px', display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5 }}>
       <div><b style={{ color: mau }}>{t}.</b> {g.cau.replace(/^[^:]+: /, '')}</div>
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        {g.top.length ? <table style={{ borderCollapse: 'collapse' }}><thead><tr>{['Camp lãi nhất (72h)', 'Người', 'Chi', 'Lãi', 'Phần lãi'].map((h, i) => <th key={h} style={{ ...o2, borderTop: 'none', color: 'var(--fg-2)', fontWeight: 600, fontSize: 11, textAlign: i < 2 ? 'left' : 'right' }}>{h}</th>)}</tr></thead>
-          <tbody>{g.top.map((x) => <tr key={x.camp}><td style={{ ...o2, textAlign: 'left' }}><a href={linkCamp(x.camp)} style={{ color: '#60a5fa' }}>#{x.camp}</a></td><td style={{ ...o2, textAlign: 'left' }}>{x.ai}</td>
-            <td style={{ ...o2, width: 90 }}><KeToan v={x.chi} /></td><td style={{ ...o2, width: 90 }}><KeToan v={x.lai} mau={mauLai(x.lai)} /></td><td style={o2}>{Math.round(x.phan * 100)}%</td></tr>)}</tbody></table> : null}
-        {g.nguoi.length ? <table style={{ borderCollapse: 'collapse' }}><thead><tr>{['Người', 'Mốc đủ 72h', 'Lãi 72h', 'ROI 72h'].map((h, i) => <th key={h} style={{ ...o2, borderTop: 'none', color: 'var(--fg-2)', fontWeight: 600, fontSize: 11, textAlign: i < 1 ? 'left' : 'right' }}>{h}</th>)}</tr></thead>
-          <tbody>{g.nguoi.map((x) => <tr key={x.ai}><td style={{ ...o2, textAlign: 'left' }}>{x.ai}</td><td style={o2}><Dem v={x.n} /></td><td style={{ ...o2, width: 90 }}><KeToan v={x.lai} mau={mauLai(x.lai)} /></td>
-            <td style={o2}>{x.roi == null ? '—' : <b style={{ color: mauLai(x.roi) }}>{x.roi < 0 ? `(${-x.roi}%)` : `${x.roi}%`}</b>}</td></tr>)}</tbody></table> : null}
+        {/* bảng nhỏ đặt cạnh nhau trong dòng mở = SimpleTable (khuôn bảng nhỏ của nhà) — trước là hai <table> chép tay */}
+        {g.top.length ? <div><SimpleTable rows={g.top} getRowKey={(x) => String(x.camp)} columns={[
+          { key: 'camp', header: 'Camp lãi nhất (72h)', cell: (x) => <a href={linkCamp(x.camp)} style={{ color: '#60a5fa' }}>#{x.camp}</a> },
+          { key: 'ai', header: 'Người', cell: (x) => x.ai },
+          { key: 'chi', header: 'Chi', align: 'right', width: 90, cell: (x) => <KeToan v={x.chi} /> },
+          { key: 'lai', header: 'Lãi', align: 'right', width: 90, cell: (x) => <KeToan v={x.lai} mau={mauLai(x.lai)} /> },
+          { key: 'phan', header: 'Phần lãi', align: 'right', cell: (x) => `${Math.round(x.phan * 100)}%` }]} /></div> : null}
+        {g.nguoi.length ? <div><SimpleTable rows={g.nguoi} getRowKey={(x) => x.ai} columns={[
+          { key: 'ai', header: 'Người', cell: (x) => x.ai },
+          { key: 'n', header: 'Mốc đủ 72h', align: 'right', cell: (x) => <Dem v={x.n} /> },
+          { key: 'lai', header: 'Lãi 72h', align: 'right', width: 90, cell: (x) => <KeToan v={x.lai} mau={mauLai(x.lai)} /> },
+          { key: 'roi', header: 'ROI 72h', align: 'right', cell: (x) => x.roi == null ? '—' : <b style={{ color: mauLai(x.roi) }}>{x.roi < 0 ? `(${-x.roi}%)` : `${x.roi}%`}</b> }]} /></div> : null}
       </div>
     </div>
   );
@@ -114,6 +119,25 @@ export function TabInsight({ ids, tu, den, nhan }: { ids: number[]; tu: string; 
   if (loi) return <div style={{ padding: 16, color: 'var(--fg-2)' }}>{loi}</div>;
   if (!du) return <div style={{ padding: 16, color: 'var(--fg-3)' }}>đang tải số…</div>;
   const so = (ds: { chi: number; thu: number }[]) => ds.reduce((a, x) => ({ chi: a.chi + x.chi, thu: a.thu + x.thu }), { chi: 0, thu: 0 });
+  // DataTable chung (audit 24/11/2026 "uiDataTable phải chuẩn hoá cho mọi nơi") cho hai bảng xoay — trước là <table> chép tay (colSpan tay), không ẩn / ghim / kéo rộng được
+  const oNen = (chi: number, thu: number, c: React.ReactNode, t?: string) => <span title={t} style={{ display: 'block', margin: '-4px -8px', padding: '4px 8px', background: nen(chi, thu) }}>{c}</span>;
+  const cotNgay: DataColumn<string>[] = [
+    { key: 'ngay', header: 'Ngày', align: 'left', cell: (d) => ngan(d), sortValue: (d) => d },
+    ...nguoi.flatMap(([n]): DataColumn<string>[] => { const x = (d: string) => du?.ngay.find((y) => y.ngay === d && y.nguoi === n);
+      return [{ key: `c:${n}`, group: `n:${n}`, header: 'Chi', cellTitle: (d) => { const v = x(d); return v ? `${v.camp} camp có chi` : undefined; }, sortValue: (d) => x(d)?.chi ?? null, cell: (d) => { const v = x(d); return <span style={{ color: 'var(--fg-2)' }}>{v ? tien(v.chi) : '—'}</span>; } },
+        { key: `r:${n}`, group: `n:${n}`, header: 'ROI', sortValue: (d) => { const v = x(d); return v ? roi(v.chi, v.thu) : null; }, cell: (d) => { const v = x(d); return v ? oNen(v.chi, v.thu, <Roi chi={v.chi} thu={v.thu} />) : '—'; } }]; }),
+    { key: 'c:tong', group: 'tong', header: 'Chi', sortValue: (d) => so((du?.ngay ?? []).filter((x) => x.ngay === d)).chi, cell: (d) => <span style={{ color: 'var(--fg-2)' }}>{tien(so((du?.ngay ?? []).filter((x) => x.ngay === d)).chi)}</span> },
+    { key: 'r:tong', group: 'tong', header: 'ROI', sortValue: (d) => { const t = so((du?.ngay ?? []).filter((x) => x.ngay === d)); return roi(t.chi, t.thu); }, cell: (d) => { const t = so((du?.ngay ?? []).filter((x) => x.ngay === d)); return oNen(t.chi, t.thu, <Roi {...t} />); } },
+  ];
+  const KHUNG = ['07–15', '15–21', '21–07'];
+  // hai dòng tổng 7 ngày gần / 7 ngày trước (đậm) rồi từng ngày
+  const dongKhung = [{ ten: '7 ngày gần', ds: khNgay.slice(0, 7) }, { ten: '7 ngày trước', ds: khNgay.slice(7, 14) }, ...khNgay.map((d) => ({ ten: ngan(d), ds: [d] }))];
+  const cotKhung: DataColumn<{ ten: string; ds: string[] }>[] = [
+    { key: 'ten', header: 'Ngày', align: 'left', cell: (r) => r.ten },
+    ...KHUNG.flatMap((k) => (['nha', 'doi'] as const).map((ai): DataColumn<{ ten: string; ds: string[] }> => { const s1 = (r: { ds: string[] }) => so((du?.khung ?? []).filter((x) => r.ds.includes(x.ngay) && x.khung === k && x.ai === ai));
+      return { key: `${k}:${ai}`, group: k, header: ai === 'nha' ? 'nhà' : 'đội', sortValue: (r) => { const t = s1(r); return roi(t.chi, t.thu); },
+        cell: (r) => { const t = s1(r); return t.chi || t.thu ? oNen(t.chi, t.thu, <Roi {...t} />, `chi ${tien(t.chi)} · thu ${tien(t.thu)}`) : '—'; } }; })),
+  ];
   const dot = [...new Set(du.insight.map((x) => x.ngay))];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -139,29 +163,13 @@ export function TabInsight({ ids, tu, den, nhan }: { ids: number[]; tu: string; 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: 12, alignItems: 'start' }}>
         <section style={the}>
           <h3 style={{ fontSize: 14, margin: '0 0 8px' }}>Theo ngày — từng người</h3>
-          <div style={{ overflowX: 'auto' }}><table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
-            <thead><tr><th style={{ ...dau, textAlign: 'left' }}>Ngày</th>{nguoi.map(([n, nha]) => <th key={n} colSpan={2} style={dau}>{n}{nha ? ' (nhà)' : ''}</th>)}<th colSpan={2} style={dau}>Cả hệ</th></tr></thead>
-            <tbody>{ngays.map((d) => { const r = du.ngay.filter((x) => x.ngay === d), t = so(r);
-              return <tr key={d}><td style={{ ...o, textAlign: 'left' }}>{ngan(d)}</td>
-                {nguoi.map(([n]) => { const x = r.find((y) => y.nguoi === n); return [<td key={n + 'c'} style={{ ...o, color: 'var(--fg-2)' }} title={x ? `${x.camp} camp có chi` : ''}>{x ? tien(x.chi) : '—'}</td>, <td key={n + 'r'} style={{ ...o, background: x ? nen(x.chi, x.thu) : undefined }}>{x ? <Roi chi={x.chi} thu={x.thu} /> : null}</td>]; })}
-                <td style={{ ...o, color: 'var(--fg-2)' }}>{tien(t.chi)}</td><td style={{ ...o, background: nen(t.chi, t.thu) }}><Roi {...t} /></td></tr>; })}</tbody>
-          </table></div>
+          <DataTable rows={ngays} getRowKey={(d) => d} persistKey="etp2-ins-ngay" minWidth={460} defaultSort={[{ key: 'ngay', dir: 'desc' }]}
+            groups={[...nguoi.map(([n, nha]) => ({ key: `n:${n}`, label: `${n}${nha ? ' (nhà)' : ''}` })), { key: 'tong', label: 'Cả hệ' }]} groupHeader columns={cotNgay} />
         </section>
         <section style={the}>
           <h3 style={{ fontSize: 14, margin: '0 0 8px' }} title="khung của máy luật: 07–15 nạp sáng · 15–21 chỉ giảm / tắt · 21–07 khung tăng">Theo khung giờ — nhà / đội</h3>
-          <div style={{ overflowX: 'auto' }}><table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
-            <thead><tr><th style={{ ...dau, textAlign: 'left' }}>Ngày</th>{['07–15', '15–21', '21–07'].map((k) => <th key={k} colSpan={2} style={dau}>{k}</th>)}</tr>
-              <tr><th style={dau} />{['07–15', '15–21', '21–07'].flatMap((k) => [<th key={k + 'n'} style={dau}>nhà</th>, <th key={k + 'd'} style={dau}>đội</th>])}</tr></thead>
-            <tbody>
-              {[['7 ngày gần', 0, 7], ['7 ngày trước', 7, 14]].map(([t, a, b]) => { const ds = khNgay.slice(a as number, b as number);
-                return <tr key={t as string} style={{ fontWeight: 600 }}><td style={{ ...o, textAlign: 'left' }}>{t}</td>
-                  {['07–15', '15–21', '21–07'].flatMap((k) => (['nha', 'doi'] as const).map((ai) => { const s = so(du.khung.filter((x) => ds.includes(x.ngay) && x.khung === k && x.ai === ai));
-                    return <td key={k + ai} style={{ ...o, background: nen(s.chi, s.thu) }} title={`chi ${tien(s.chi)}`}><Roi {...s} /></td>; }))}</tr>; })}
-              {khNgay.map((d) => <tr key={d}><td style={{ ...o, textAlign: 'left' }}>{ngan(d)}</td>
-                {['07–15', '15–21', '21–07'].flatMap((k) => (['nha', 'doi'] as const).map((ai) => { const x = du.khung.find((y) => y.ngay === d && y.khung === k && y.ai === ai);
-                  return <td key={k + ai} style={{ ...o, background: x ? nen(x.chi, x.thu) : undefined }} title={x ? `chi ${tien(x.chi)} · thu ${tien(x.thu)}` : ''}>{x ? <Roi chi={x.chi} thu={x.thu} /> : '—'}</td>; }))}</tr>)}
-            </tbody>
-          </table></div>
+          <DataTable rows={dongKhung} getRowKey={(r) => r.ten} persistKey="etp2-ins-khung" minWidth={460} groups={KHUNG.map((k) => ({ key: k, label: k }))} groupHeader columns={cotKhung}
+            rowStyle={(r) => r.ds.length > 1 ? { fontWeight: 600 } : undefined} />
         </section>
       </div>
       <section style={the}>

@@ -10,6 +10,7 @@ import BANG_LUAT from '@/lib/etp-bang-luat.json';   // SỔ LUẬT CHUNG — m�
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
 import { AnchoredPopover, DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Pill, Segmented, StatsStrip, usePaged, type DataColumn, type SegmentedOption } from '@/components/ui';
 import { PhamViLuu, useKhoaLuu } from '@/components/ui/table-prefs';
+import { SimpleTable } from '@/components/ui/simple-table';
 import { catTokenEthopex, datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegram } from '@/lib/actions/etp-sua';
 import { campTay, nhanBanTay, xemNhanBan, type ChoAp, type KieuNb } from '@/lib/actions/etp-tay';
 import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
@@ -631,12 +632,10 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={460} cao={300} noi={noi}><div style={{ width: 460, maxWidth: '100%', boxSizing: 'border-box', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}><b style={{ fontSize: 13 }}>Khung máy tự đổi camp</b><span style={{ color: 'var(--fg-2)' }}>giờ VN · cả 3 bộ</span></div>
         <div style={{ marginBottom: 8 }}>Bây giờ <b>{gioChu}</b> · <b style={{ color: mau }}>{bt} {ten}</b> · {k === 'bang' ? 'mở khung kế' : 'hết khung'} <b>{String(het).padStart(2, '0')}:00</b> (còn {con})</div>
-        <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>
-          <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}><th style={o}>Khung</th><th style={o}>Giờ</th><th style={o}>Máy làm gì</th></tr></thead>
-          <tbody>{dong.map(({ kg, gio }) => <tr key={kg} style={{ background: kg === k ? `${KHUNG_TEN[kg][2]}22` : undefined }}>
-            <td style={{ ...o, whiteSpace: 'nowrap', color: KHUNG_TEN[kg][2], fontWeight: kg === k ? 700 : 500 }}>{KHUNG_TEN[kg][0]} {KHUNG_TEN[kg][1]}{kg === k ? ' ←' : ''}</td>
-            <td style={{ ...o, whiteSpace: 'nowrap' }}>{gio}</td><td style={o}>{CHU_KHUNG[kg]}</td></tr>)}</tbody>
-        </table>
+        <SimpleTable rows={dong} getRowKey={(x) => x.kg} rowStyle={(x) => x.kg === k ? { background: `${KHUNG_TEN[x.kg][2]}22` } : undefined} columns={[
+          { key: 'kg', header: 'Khung', cell: ({ kg }) => <span style={{ whiteSpace: 'nowrap', color: KHUNG_TEN[kg][2], fontWeight: kg === k ? 700 : 500 }}>{KHUNG_TEN[kg][0]} {KHUNG_TEN[kg][1]}{kg === k ? ' ←' : ''}</span> },
+          { key: 'gio', header: 'Giờ', cell: ({ gio }) => <span style={{ whiteSpace: 'nowrap' }}>{gio}</span> },
+          { key: 'lam', header: 'Máy làm gì', cell: ({ kg }) => CHU_KHUNG[kg] }]} />
         <div style={{ marginTop: 8, color: 'var(--fg-3, #777)' }}>{so.cu ? `Sổ hoãn của máy ${so.luc ? `cũ (lúc ${new Date(Date.parse(so.luc) + 7 * 3600_000).toISOString().slice(11, 16)})` : 'chưa có'} — máy luật không chạy nhịp gần đây, không hiện số chờ.` : `Số chờ lấy từ sổ hoãn máy ghi lúc ${new Date(Date.parse(so.luc!) + 7 * 3600_000).toISOString().slice(11, 16)} (mỗi nhịp ~30 phút) — đã tính công tắc tự tăng / tự giảm.`}</div>
         {cho.tang + cho.giam + cho.tat ? <div style={{ marginTop: 8 }}>⏳ Camp đã đạt luật, chờ khung: {soO(cho.tang, `↑ tăng (${KD.tang[0]}h) `, '#4ade80')} · {soO(cho.giam, `↓ giảm (${KD.giam[0]}h) `, '#fb923c')} · {soO(cho.tat, `✕ tắt (${KD.giam[0]}h) `, '#f87171')} <span style={{ color: 'var(--fg-3, #777)' }}>— xem chip ⏳ ở cột Luật</span></div> : null}
       </div></KhungNoi> : null}
@@ -1377,10 +1376,8 @@ function CotCampNoi({ c, nhan, du, bid, anh }: { c: CampEtpKho | undefined; nhan
   if (!c) return <div style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--fg-2)' }}><b>{nhan}</b><div>Không có trong kho etp (camp đã lưu trữ).</div></div>;
   const ngay = du.soNgay.filter((r) => r.c === c.camp_id && (r.chi > 0 || r.thu > 0)).sort((a, b) => (a.d < b.d ? 1 : -1));
   const tong = ngay.reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: 0, thu: 0 });
-  const dong = (ten: string, x: SoTien) => { const v = roiOf(x); return (
-    <tr key={ten}><td style={{ color: 'var(--fg-2)', paddingRight: 8 }}>{ten}</td><td style={{ textAlign: 'right' }}>{usd(x.chi)}</td><td style={{ textAlign: 'right' }}>{usd(x.thu)}</td>
-      <td style={{ textAlign: 'right', color: x.thu - x.chi >= 0 ? '#4ade80' : '#f87171' }}>{usd(x.thu - x.chi)}</td>
-      <td style={{ textAlign: 'right', fontWeight: 600, color: v == null ? 'var(--fg-2)' : v >= 30 ? '#4ade80' : v >= 0 ? '#f59e0b' : '#f87171' }}>{v == null ? '—' : `${v > 0 ? '+' : ''}${v}%`}</td></tr>); };
+  const mauRoi = (v: number | null) => v == null ? 'var(--fg-2)' : v >= 30 ? '#4ade80' : v >= 0 ? '#f59e0b' : '#f87171';
+  const dongSo: [string, SoTien][] = [['Hôm nay', c.nay], ['Hôm qua', c.qua], ['Tháng này', c.thang], ['Từ 19/10', tong], ...ngay.slice(0, 7).map((r): [string, SoTien] => [`${r.d.slice(8, 10)}/${r.d.slice(5, 7)}`, r])];
   return (
     <div style={{ flex: 1, minWidth: 0, fontSize: 12 }}>
       <div style={{ fontSize: 11, color: 'var(--fg-2)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{nhan}</div>
@@ -1388,11 +1385,12 @@ function CotCampNoi({ c, nhan, du, bid, anh }: { c: CampEtpKho | undefined; nhan
         <div style={{ minWidth: 0 }}><b>#{c.camp_id}</b> <span style={{ color: daTat(c) ? 'var(--fg-2)' : choGio(c) ? '#f59e0b' : choChay(c) ? '#60a5fa' : '#4ade80' }}>{daTat(c) ? 'Đã tắt' : choGio(c) ? `Chờ ${conLai(c.lich!)} nữa · ${vn(c.lich)}` : choChay(c) ? 'Đang lên' : 'Đang chạy'}</span>
           <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.ten}>{c.ten}</div></div></div>
       <div style={{ color: 'var(--fg-2)', marginBottom: 6 }}>${c.ngan_sach}/ngày · {bid ?? (c.chien_luoc ? c.chien_luoc.replace('LOWEST_COST_', '').toLowerCase() : 'bid thường')} · bộ {c.bo ?? '—'} · tạo {vn(c.tao)}{c.phim ? ` · ${c.phim}` : ''}</div>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontVariantNumeric: 'tabular-nums', fontSize: 11 }}>
-        <thead><tr style={{ color: 'var(--fg-2)' }}><th /><th style={{ textAlign: 'right' }}>Chi</th><th style={{ textAlign: 'right' }}>Thu</th><th style={{ textAlign: 'right' }}>Lãi</th><th style={{ textAlign: 'right' }}>ROI</th></tr></thead>
-        <tbody>{dong('Hôm nay', c.nay)}{dong('Hôm qua', c.qua)}{dong('Tháng này', c.thang)}{dong('Từ 19/10', tong)}
-          {ngay.slice(0, 7).map((r) => dong(`${r.d.slice(8, 10)}/${r.d.slice(5, 7)}`, r))}</tbody>
-      </table>
+      <SimpleTable rows={dongSo} getRowKey={([t]) => t} columns={[
+        { key: 'ten', header: '', cell: ([t]) => <span style={{ color: 'var(--fg-2)' }}>{t}</span> },
+        { key: 'chi', header: 'Chi', align: 'right', cell: ([, x]) => usd(x.chi) },
+        { key: 'thu', header: 'Thu', align: 'right', cell: ([, x]) => usd(x.thu) },
+        { key: 'lai', header: 'Lãi', align: 'right', cell: ([, x]) => <span style={{ color: x.thu - x.chi >= 0 ? '#4ade80' : '#f87171' }}>{usd(x.thu - x.chi)}</span> },
+        { key: 'roi', header: 'ROI', align: 'right', cell: ([, x]) => { const v = roiOf(x); return <b style={{ color: mauRoi(v) }}>{v == null ? '—' : `${v > 0 ? '+' : ''}${v}%`}</b>; } }]} />
       <div style={{ marginTop: 8 }}><BieuDoQc chuoi={chuoiQc(ngay.slice(0, 14), du.qcCho ?? {})} rong={300} /></div>
     </div>
   );
@@ -1734,7 +1732,6 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
     const cam = /CẤM/.test(NHAN_DC[`${d.k}=${best.v}`]?.[1] ?? '') ? ` Nhưng kiểu này Support đã cấm — phải dựng kiểu mới hợp luật mà giữ cái hay của nó.` : '';
     return { best, chu: chu + (best !== base ? cam : ''), chac };
   };
-  const o: React.CSSProperties = { padding: '6px 8px', borderTop: '1px solid var(--line)', verticalAlign: 'middle', fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap' };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ fontSize: 12.5, color: 'var(--fg-2)' }}>Mỗi khối trả lời một câu: <b>kiểu nào lãi hơn?</b> (độ dài, CTA, giọng đọc…). Số lãi tính trong <b>{khNhan.toLowerCase()}</b>.
@@ -1763,24 +1760,30 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
                 </div></div>; })}
           </div>
           <details style={{ borderTop: '1px solid var(--line)' }}><summary style={{ padding: '6px 12px', fontSize: 11.5, color: 'var(--fg-3, #777)', cursor: 'pointer' }}>Chi tiết số</summary>
-          <div style={{ overflowX: 'auto' }}><table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>
-            <thead><tr style={{ color: 'var(--fg-3, #777)', fontSize: 10.5 }}>{['Kiểu', 'Ảnh', 'Creative', 'Chi', 'Lãi', 'Hơn/kém phim của nó', 'So kiểu chính', 'Bấm vào QC', 'So kiểu chính', 'Chuyển đổi trên trang', 'So kiểu chính', 'Đủ mẫu?'].map((h, i) => <th key={h} style={{ ...o, textAlign: i < 2 ? 'left' : 'right', fontWeight: 500 }}>{h}</th>)}</tr></thead>
-            <tbody>{d.rs.map((r) => { const la = r === base, thang = kl.chac && r === kl.best; const nh = NHAN_DC[`${d.k}=${r.v}`];
-              return <tr key={r.v} title={`CPC ${r.n ? usd(r.chi / r.n) : '—'} · CPM ${r.sh ? usd((r.chi / r.sh) * 1000) : '—'} · S CTR ${pc(r.sh ? r.sn / r.sh : null)} · S giá trị/nhấp ${r.sn ? usd(r.sg / r.sn) : '—'} · ${r.camp} camp`}
-                style={{ boxShadow: thang ? 'inset 3px 0 #4ade80' : undefined, background: thang ? 'rgba(74,222,128,.06)' : undefined }}>
-                <td style={{ ...o, textAlign: 'left', whiteSpace: 'normal', maxWidth: 340, paddingLeft: 12 }}><b>{nh?.[0] ?? r.v}</b>{la ? <span style={{ fontSize: 10, marginLeft: 6, padding: '0 5px', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)' }}>kiểu chính</span> : null}
+          {(() => { type R = (typeof d.rs)[number];
+            // DataTable chung (audit 24/11/2026 "uiDataTable phải chuẩn hoá cho mọi nơi") — trước là <table> chép tay, không ẩn / ghim / kéo rộng được
+            const soChinh = (a: number | null | undefined, b: number | null | undefined) => a == null || b == null ? '—' : `${a - b >= 0 ? '+' : ''}${((a - b) * 100).toFixed(1)}%`;
+            const cot: DataColumn<R>[] = [
+              { key: 'kieu', header: 'Kiểu', align: 'left', sortValue: (r) => NHAN_DC[`${d.k}=${r.v}`]?.[0] ?? r.v, cell: (r) => { const la = r === base, thang = kl.chac && r === kl.best, nh = NHAN_DC[`${d.k}=${r.v}`];
+                return <div style={{ whiteSpace: 'normal', maxWidth: 340 }}><b>{nh?.[0] ?? r.v}</b>{la ? <span style={{ fontSize: 10, marginLeft: 6, padding: '0 5px', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)' }}>kiểu chính</span> : null}
                   {thang && !la ? <span style={{ fontSize: 10, marginLeft: 6, padding: '0 5px', border: '1px solid #4ade80', borderRadius: 4, color: '#4ade80' }}>tốt nhất</span> : null}
-                  {nh?.[1] ? <div style={{ fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.35 }}>{nh[1]}</div> : null}</td>
-                <td style={{ ...o, textAlign: 'left' }}><span style={{ display: 'inline-flex', gap: 3 }}>{r.mau.map((m) => nho(m.cr, d.k))}</span></td>
-                <td style={o}>{r.cr}</td><td style={o}>{usd(r.chi)}</td><td style={o}><Roi s={r} /></td>
-                <td style={{ ...o, color: (lp(r) ?? 0) >= 0 ? '#4ade80' : '#f87171' }}>{lp(r) == null || !d.truPhim ? '—' : dLech(lp(r), 0)}</td>
-                <td style={{ ...o, color: la ? 'var(--fg-3)' : mauD(d.diem(r), d.diem(base)) }}>{la ? '—' : d.truPhim ? dLech(lp(r), lp(base)) : `ROI ${dLech(roiOf(r), roiOf(base), '%')}`}</td>
-                <td style={o}>{pc(ctr(r))}{(() => { const w = wilson(r.n, r.h); return w ? <span style={{ color: 'var(--fg-3, #777)', fontSize: 10 }}> ({(w[0]! * 100).toFixed(0)}–{(w[1]! * 100).toFixed(0)})</span> : null; })()}</td>
-                <td style={{ ...o, color: la ? 'var(--fg-3)' : mauD(ctr(r), ctr(base)) }}>{la || ctr(r) == null || ctr(base) == null ? '—' : `${ctr(r)! - ctr(base)! >= 0 ? '+' : ''}${((ctr(r)! - ctr(base)!) * 100).toFixed(1)}%`}</td>
-                <td style={o}>{pc(cvr(r))}</td>
-                <td style={{ ...o, color: la ? 'var(--fg-3)' : mauD(cvr(r), cvr(base)) }}>{la || cvr(r) == null || cvr(base) == null ? '—' : `${cvr(r)! - cvr(base)! >= 0 ? '+' : ''}${((cvr(r)! - cvr(base)!) * 100).toFixed(1)}%`}</td>
-                <td style={o}>{duMau(r) ? <span style={{ color: '#4ade80' }}>đủ</span> : <span style={{ color: 'var(--fg-3, #777)' }}>{r.cr < 5 ? `${r.cr} creative` : `${r.n} nhấp`}</span>}</td>
-              </tr>; })}</tbody></table></div></details>
+                  {nh?.[1] ? <div style={{ fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.35 }}>{nh[1]}</div> : null}</div>; } },
+              { key: 'anh', header: 'Ảnh', align: 'left', cell: (r) => <span style={{ display: 'inline-flex', gap: 3 }}>{r.mau.map((m) => nho(m.cr, d.k))}</span> },
+              { key: 'cr', header: 'Creative', cell: (r) => r.cr, sortValue: (r) => r.cr },
+              { key: 'chi', header: 'Chi', cell: (r) => usd(r.chi), sortValue: (r) => r.chi },
+              { key: 'lai', header: 'Lãi', cell: (r) => <Roi s={r} />, sortValue: (r) => roiOf(r) },
+              { key: 'phim', header: 'Hơn/kém phim của nó', cell: (r) => <span style={{ color: (lp(r) ?? 0) >= 0 ? '#4ade80' : '#f87171' }}>{lp(r) == null || !d.truPhim ? '—' : dLech(lp(r), 0)}</span>, sortValue: (r) => d.truPhim ? lp(r) : null },
+              { key: 'so_lai', header: 'So kiểu chính', title: 'lãi so với kiểu chính', cell: (r) => { const la = r === base;
+                return <span style={{ color: la ? 'var(--fg-3)' : mauD(d.diem(r), d.diem(base)) }}>{la ? '—' : d.truPhim ? dLech(lp(r), lp(base)) : `ROI ${dLech(roiOf(r), roiOf(base), '%')}`}</span>; } },
+              { key: 'ctr', header: 'Bấm vào QC', sortValue: (r) => ctr(r), cell: (r) => <>{pc(ctr(r))}{(() => { const w = wilson(r.n, r.h); return w ? <span style={{ color: 'var(--fg-3, #777)', fontSize: 10 }}> ({(w[0]! * 100).toFixed(0)}–{(w[1]! * 100).toFixed(0)})</span> : null; })()}</> },
+              { key: 'so_ctr', header: 'So kiểu chính', title: 'bấm vào QC so với kiểu chính', cell: (r) => <span style={{ color: r === base ? 'var(--fg-3)' : mauD(ctr(r), ctr(base)) }}>{r === base ? '—' : soChinh(ctr(r), ctr(base))}</span> },
+              { key: 'cvr', header: 'Chuyển đổi trên trang', cell: (r) => pc(cvr(r)), sortValue: (r) => cvr(r) },
+              { key: 'so_cvr', header: 'So kiểu chính', title: 'chuyển đổi trên trang so với kiểu chính', cell: (r) => <span style={{ color: r === base ? 'var(--fg-3)' : mauD(cvr(r), cvr(base)) }}>{r === base ? '—' : soChinh(cvr(r), cvr(base))}</span> },
+              { key: 'du', header: 'Đủ mẫu?', cell: (r) => duMau(r) ? <span style={{ color: '#4ade80' }}>đủ</span> : <span style={{ color: 'var(--fg-3, #777)' }}>{r.cr < 5 ? `${r.cr} creative` : `${r.n} nhấp`}</span> },
+            ];
+            return <DataTable rows={d.rs} columns={cot} getRowKey={(r) => r.v} persistKey="etp2-dc-so" minWidth={900} stickyCols={1}
+              rowTitle={(r) => `CPC ${r.n ? usd(r.chi / r.n) : '—'} · CPM ${r.sh ? usd((r.chi / r.sh) * 1000) : '—'} · S CTR ${pc(r.sh ? r.sn / r.sh : null)} · S giá trị/nhấp ${r.sn ? usd(r.sg / r.sn) : '—'} · ${r.camp} camp`}
+              rowStyle={(r) => kl.chac && r === kl.best ? { boxShadow: 'inset 3px 0 #4ade80', background: 'rgba(74,222,128,.06)' } : undefined} />; })()}</details>
         </div>; })}
       {trung.length ? <div style={{ border: '1px dashed var(--line)', borderRadius: 10, padding: '8px 12px', fontSize: 12 }}>
         <b>Chưa đo riêng được</b> <span style={{ color: 'var(--fg-2)' }}>— hai thứ này luôn đi cùng nhau trên mọi creative, nên không biết cái nào làm lãi khác đi:</span>

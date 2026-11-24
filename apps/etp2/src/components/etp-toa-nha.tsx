@@ -9,6 +9,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { CampToa } from '@/lib/etp-toa-sql';
 import { KeToan } from '@/components/etp-so';
+import { DataTable, type DataColumn } from '@mos2/bang/data-table';
 import { mauBo } from '@/lib/etp-mau-bo';
 
 type T3 = typeof import('three');
@@ -668,28 +669,27 @@ export function DsCampToa({ camp, tat }: { camp: CampToa[]; tat: CampToa[] }) {
     : c.cho ? { chu: 'Hẹn giờ', giai: 'camp đã tạo, chờ tới giờ chạy (cây non)' }
     : c.chi7 < 1 ? { chu: 'Chưa chi', giai: 'đang chạy nhưng 7 ngày chi chưa tới $1 — chưa đủ số để biết lãi / lỗ (cây xám)' }
     : c.thu7 > c.chi7 ? { chu: c.roas ? '★ Lãi' : 'Lãi', giai: 'thu 7 ngày > chi 7 ngày (cây xanh sáng)' } : { chu: 'Lỗ', giai: 'thu 7 ngày ≤ chi 7 ngày (cây đỏ)' };
-  const dong = (c: CampToa) => { const r = roiCamp(c), mau = c.tat ? '#a8a29e' : mauCamp(c), tt = trangThai(c);
-    return <tr key={c.id} style={{ borderTop: '1px solid var(--line)', opacity: c.tat ? 0.6 : 1 }}>
-      <td style={{ padding: '3px 6px 3px 0', whiteSpace: 'nowrap' }}><b style={{ color: 'var(--fg-1)' }}>#{c.id}</b></td>
-      <td style={{ padding: '3px 6px', whiteSpace: 'nowrap' }}><span title={tt.giai} style={{ cursor: 'help', color: mau, border: `1px solid ${mau}`, borderRadius: 4, padding: '0 5px', fontSize: 10.5 }}>{tt.chu}</span></td>
-      <td style={{ padding: '3px 6px', whiteSpace: 'nowrap' }}>{c.roas ? '★ ROAS' : c.dang}</td>
-      <td style={{ padding: '3px 6px' }}><KeToan v={c.ns} /></td>
-      <td style={{ padding: '3px 6px' }}><KeToan v={c.chi7} /></td>
-      <td style={{ padding: '3px 6px' }}><KeToan v={c.thu7} /></td>
-      <td style={{ padding: '3px 6px' }}><KeToan v={c.thu7 - c.chi7} mau={c.thu7 >= c.chi7 ? XANH : DO} /></td>
-      <td style={{ padding: '3px 6px', textAlign: 'right', color: r == null ? 'var(--fg-3)' : r >= 0 ? XANH : DO }}>{r == null ? '—' : `${r > 0 ? '+' : ''}${r}%`}</td>
-      <td style={{ padding: '3px 0 3px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: laOnDinh(c) ? XANH : 'var(--fg-2)' }}>{c.cho ? 'hẹn giờ' : c.tat ? 'đã tắt' : `${c.ngay_lai}/${c.ngay_chay}${laOnDinh(c) ? ' ổn định' : ''}`}</td>
-    </tr>; };
-  const xep = (a: CampToa, b: CampToa) => (b.thu7 - b.chi7) - (a.thu7 - a.chi7);
-  // MỘT LỚP CUỘN (anh 15/11/2026 "làm sao để ko có 2 lớp scroll thế này"): bảng không tự cuộn nữa — khung bảng phim (KhungKeo / KhungNoi) cuộn; tiêu đề cột dính đầu
+  const lai = (c: CampToa) => c.thu7 - c.chi7;
+  // DataTable chung (audit 24/11/2026 "uiDataTable phải chuẩn hoá cho mọi nơi"): ẩn / ghim / kéo rộng / lọc cột như mọi bảng — trước là <table> chép tay
+  const cot: DataColumn<CampToa>[] = [
+    { key: 'id', header: 'Camp', align: 'left', cell: (c) => <b style={{ color: 'var(--fg-1)' }}>#{c.id}</b>, sortValue: (c) => c.id },
+    { key: 'tt', header: 'Trạng thái', align: 'left', cell: (c) => { const tt = trangThai(c), mau = c.tat ? '#a8a29e' : mauCamp(c);
+      return <span title={tt.giai} style={{ cursor: 'help', color: mau, border: `1px solid ${mau}`, borderRadius: 4, padding: '0 5px', fontSize: 10.5 }}>{tt.chu}</span>; }, sortValue: (c) => trangThai(c).chu },
+    { key: 'dang', header: 'Dạng', align: 'left', cell: (c) => c.roas ? '★ ROAS' : c.dang, sortValue: (c) => c.roas ? '★ ROAS' : c.dang },
+    { key: 'ns', header: 'NS/ngày', cell: (c) => <KeToan v={c.ns} />, sortValue: (c) => c.ns },
+    { key: 'chi7', header: 'Chi 7 ngày', cell: (c) => <KeToan v={c.chi7} />, sortValue: (c) => c.chi7 },
+    { key: 'thu7', header: 'Thu 7 ngày', cell: (c) => <KeToan v={c.thu7} />, sortValue: (c) => c.thu7 },
+    { key: 'lai7', header: 'Lãi 7 ngày', cell: (c) => <KeToan v={c.thu7 - c.chi7} mau={c.thu7 >= c.chi7 ? XANH : DO} />, sortValue: lai },
+    { key: 'roi', header: 'ROI', cell: (c) => { const r = roiCamp(c); return <span style={{ color: r == null ? 'var(--fg-3)' : r >= 0 ? XANH : DO }}>{r == null ? '—' : `${r > 0 ? '+' : ''}${r}%`}</span>; }, sortValue: (c) => roiCamp(c) },
+    { key: 'ngay', header: 'Ngày lãi', title: `số ngày lãi / số ngày có chi ≥ $1 trong 7 ngày Ethopex đã khép · ổn định = lãi ≥ ${ON_DINH} ngày`,
+      cell: (c) => <span style={{ whiteSpace: 'nowrap', color: laOnDinh(c) ? XANH : 'var(--fg-2)' }}>{c.cho ? 'hẹn giờ' : c.tat ? 'đã tắt' : `${c.ngay_lai}/${c.ngay_chay}${laOnDinh(c) ? ' ổn định' : ''}`}</span>, sortValue: (c) => c.ngay_lai },
+  ];
+  // MỘT LỚP CUỘN (anh 15/11/2026): bảng cuộn theo khung phim (KhungKeo / KhungNoi), tiêu đề dính — DataTable mặc định không tự mở hộp cuộn
+  // đang chạy trước, đã tắt (héo) sau — gom cố định, mỗi nhóm xếp theo lãi 7 ngày giảm dần
   return <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>
-    <table style={{ width: '100%', borderCollapse: 'collapse', fontVariantNumeric: 'tabular-nums' }}>
-      <thead style={{ position: 'sticky', top: -10, zIndex: 1, background: 'var(--bg-1, #0f172a)' }}><tr style={{ color: 'var(--fg-3)', fontSize: 10.5 }}><th style={{ textAlign: 'left', fontWeight: 400 }}>Camp</th><th style={{ textAlign: 'left', fontWeight: 400, padding: '0 6px' }}>Trạng thái</th><th style={{ textAlign: 'left', fontWeight: 400, padding: '0 6px' }}>Dạng</th>
-        <th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>NS/ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Chi 7 ngày</th>
-        <th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Thu 7 ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Lãi 7 ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>ROI</th>
-        <th style={{ textAlign: 'right', fontWeight: 400 }} title={`số ngày lãi / số ngày có chi ≥ $1 trong 7 ngày Ethopex đã khép · ổn định = lãi ≥ ${ON_DINH} ngày`}>Ngày lãi</th></tr></thead>
-      <tbody>{[...camp].sort(xep).map(dong)}{tat.length ? <tr><td colSpan={9} style={{ paddingTop: 8, color: 'var(--fg-3)', fontSize: 10.5 }}>Đã tắt (còn chi trong 30 ngày) · {tat.length}</td></tr> : null}{[...tat].sort(xep).map(dong)}</tbody>
-    </table>
-    {!camp.length && !tat.length ? <div style={{ color: 'var(--fg-3)' }}>Không có camp.</div> : null}
+    {camp.length || tat.length ? <DataTable rows={[...camp, ...tat]} columns={cot} getRowKey={(c) => String(c.id)} persistKey="etp2-toa-camp" minWidth={560}
+      defaultSort={[{ key: 'lai7', dir: 'desc' }]} rowStyle={(c) => c.tat ? { opacity: 0.6 } : undefined}
+      groupBy={{ value: (c) => c.tat ? '2' : '1', label: (v, r) => v === '2' ? `Đã tắt (còn chi trong 30 ngày) · ${r.length}` : `Đang chạy · ${r.length}` }} />
+      : <div style={{ color: 'var(--fg-3)' }}>Không có camp.</div>}
   </div>;
 }

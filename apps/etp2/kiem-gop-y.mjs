@@ -666,6 +666,15 @@ const LUAT = [
   { card: 'menu-cot-an-ghim-rong', tep: 'packages/bang/src/data-table.tsx', mot: 'data-nut="an-cot"', vi: 'menu ⚙ Columns: ẩn/hiện từng cột (anh 24/11/2026 "Cho phép ẩn hiện, sticky, resize cột ở đây")' },
   { card: 'menu-cot-an-ghim-rong', tep: 'packages/bang/src/data-table.tsx', mot: 'data-nut="ghim-cot"', vi: 'menu ⚙ Columns: ghim (sticky) từng cột' },
   { card: 'menu-cot-an-ghim-rong', tep: 'packages/bang/src/data-table.tsx', mot: 'data-nut="rong-cot"', vi: 'menu ⚙ Columns: ô bề ngang từng cột' },
+  { card: 'audit-bang', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', mot: 'persistKey="etp2-toa-camp"', vi: 'Tòa nhà: danh sách camp dùng DataTable chung (ẩn / ghim / kéo rộng cột) — audit 24/11/2026 "uiDataTable phải chuẩn hoá cho mọi nơi"' },
+  { card: 'audit-bang', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', cam: '<table style', vi: 'Tòa nhà không quay về bảng <table> chép tay' },
+  { card: 'audit-bang', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'persistKey="etp2-dc-so"', vi: 'Chi tiết số creative dùng DataTable chung' },
+  { card: 'audit-bang', tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<SimpleTable rows={dongSo}', vi: 'bảng so sánh camp (Hôm nay / Hôm qua / tháng / 7 ngày) dùng SimpleTable, không chép tay' },
+  { card: 'audit-bang', tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<SimpleTable rows={dong} getRowKey={(x) => x.kg}', vi: 'bảng Khung máy tự đổi camp dùng SimpleTable' },
+  { card: 'audit-bang', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'const dong = (ten: string, x: SoTien)', vi: 'không quay về hàm dựng <tr> tay của bảng so sánh camp' },
+  { card: 'audit-bang', tep: 'apps/etp2/src/components/etp-insight.tsx', mot: 'persistKey="etp2-ins-ngay"', vi: 'Insight: bảng Theo ngày từng người dùng DataTable chung' },
+  { card: 'audit-bang', tep: 'apps/etp2/src/components/etp-insight.tsx', mot: 'persistKey="etp2-ins-khung"', vi: 'Insight: bảng Theo khung giờ nhà / đội dùng DataTable chung' },
+  { card: 'audit-bang', tep: 'apps/etp2/src/components/etp-insight.tsx', co: '<SimpleTable', vi: 'Insight: hai bảng nhỏ trong dòng mở dùng SimpleTable' },
 ];
 
 const loi = [];

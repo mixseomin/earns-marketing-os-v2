@@ -1770,4 +1770,8 @@ export const LUAT = [
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', cam: "wordBreak: 'break-word', width: rong", vi: 'ô không khoá cứng bề ngang — khoá thì kéo chuột không thu hẹp được cột' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: "path.join(process.cwd(), '..', 'etp', 'form-chu.json')", vi: 'ô form so với đúng một nguồn form-chu.json' },
   { card: 'thiet-lap-2411', tep: 'apps/etp/bai-qc.py', co: 'add column if not exists du jsonb', vi: 'kho giữ trọn cấu hình Ethopex từng camp (bai_camp.du), camp ACTIVE đọc lại sau 6 giờ' },
+  { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: "key: 'van_de', header: 'Vấn đề'", vi: 'cột Vấn đề là cột DUY NHẤT gom mọi vấn đề của camp (form chữ, trạng thái lỗi/treo, ad set dừng, lỗi Meta/kho), không chỉ form chữ (anh 24/11/2026)' },
+  { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'const k = await guiGopY({ loai: \'loi\'', cam: "key: 'form', header:", vi: 'hover ô Vấn đề có nút 🛠 Sửa (AI) gửi góp ý cho kỹ sư sửa tận gốc; không còn cột Form riêng' },
+  { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'ghimDau={ghimMoi}', vi: 'camp mới lên / mới tạo (24 giờ) luôn nằm trên cùng (anh 24/11/2026)' },
+  { card: 'thiet-lap-2411', tep: 'packages/bang/src/data-table.tsx', co: 'ghimDau?: (row: T) => number | null | undefined;', vi: 'DataTable ghimDau: dòng ghim luôn đầu bảng, bất kể cột đang xếp' },
 ];

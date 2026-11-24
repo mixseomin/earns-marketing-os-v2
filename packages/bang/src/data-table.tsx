@@ -103,6 +103,9 @@ interface DataTableProps<T> {
    *  (Hôm nay / Hôm qua / 7 ngày đều ROI · Lãi · Chi) — tên kỳ nằm một lần trên nhóm, không nhét vào từng cột. */
   groupHeader?: boolean;
   defaultSort?: SortSpec[];             // thứ tự khi người xem chưa bấm sắp xếp lần nào (vd [{ key: 'tao', dir: 'desc' }] = mới nhất trên đầu)
+  /** GHIM ĐẦU bất kể sắp xếp người xem chọn (anh 24/11/2026 etp2: "camp mới lên hoặc mới tạo thì luôn ở trên cùng"): dòng trả số → lên đầu, số lớn trước;
+   *  null / undefined → theo sắp xếp thường bên dưới. */
+  ghimDau?: (row: T) => number | null | undefined;
   /**
    * Cắt trang NGAY TRONG bảng, sau khi đã lọc và sắp xếp. Bắt buộc phải ở đây chứ không phải chỗ
    * gọi: bảng còn có ô tìm + LỌC THEO CỘT của riêng nó, nên nếu bên ngoài cắt trang trước rồi mới
@@ -214,7 +217,7 @@ export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey: persistKeyGoc, onRowClick, minWidth = 640, rowTitle, rowStyle, fullRow, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced, timNgoai, giuCot,
   stickyFirst = true, stickyCols, fixedLayout = false, cuonNgang = false,
-  serverSort, serverFilter, hopCuon = false, tree, groupBy, rowData, dauThanh, thanhDinh, locTuDong = true, onTimDoi, khiTimTrong,
+  serverSort, serverFilter, hopCuon = false, tree, ghimDau, groupBy, rowData, dauThanh, thanhDinh, locTuDong = true, onTimDoi, khiTimTrong,
 }: DataTableProps<T>) {
   const persistKey = useKhoaLuu(persistKeyGoc);   // + phạm vi lưu của trang (PhamViLuu) — mỗi phạm vi một bộ cột / sort / lọc / ô tìm riêng
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
@@ -439,7 +442,13 @@ export function DataTable<T>({
     };
   };
 
-  const { sorted: sortedRows, thProps } = useTableSort(shownRows, columns, sliced ? undefined : persistKey, defaultSort);
+  const { sorted: sortedGoc, thProps } = useTableSort(shownRows, columns, sliced ? undefined : persistKey, defaultSort);
+  const sortedRows = useMemo(() => {
+    if (!ghimDau) return sortedGoc;
+    const dau: [T, number][] = [], sau: T[] = [];
+    for (const r of sortedGoc) { const v = ghimDau(r); if (v != null && Number.isFinite(v)) dau.push([r, v]); else sau.push(r); }
+    return dau.length ? [...dau.sort((a, b) => b[1] - a[1]).map(([r]) => r), ...sau] : sortedGoc;
+  }, [sortedGoc, ghimDau]);
   // Cắt trang sau cùng: lọc → sắp xếp → cắt. Đổi bộ lọc thì về trang 1, không thì đứng ở trang 5 của
   // tập cũ rồi thấy rỗng.
   const paged = usePaged(sortedRows, pageSize ?? Math.max(sortedRows.length, 1));

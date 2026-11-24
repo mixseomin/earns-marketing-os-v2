@@ -1758,6 +1758,9 @@ export const LUAT = [
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<ThietLapCamp camps={camps} hep={hep} />', vi: 'Thiết lập theo đúng lọc camp đang chọn' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: "{ key: 'b5', label: '5 · Creative — form chữ'", vi: 'cột gom nhóm theo các bước lên camp Etho (Campaign → Ad set → Ad → Creative → Đồng bộ)' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: "whiteSpace: 'pre-wrap'", vi: 'chữ đủ, xuống dòng, không cắt cụt' },
+  { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'fixedLayout cuonNgang minWidth={0}', vi: 'cột giữ bề ngang, kéo cột không ép cột khác co dồn, cuộn ngang (anh 24/11/2026)' },
+  { card: 'thiet-lap-2411', tep: 'packages/bang/src/data-table.tsx', co: 'const heSo = !cuonNgang &&', vi: 'DataTable cuonNgang: không co tỉ lệ cho vừa khung' },
+  { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', cam: "wordBreak: 'break-word', width: rong", vi: 'ô không khoá cứng bề ngang — khoá thì kéo chuột không thu hẹp được cột' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: "path.join(process.cwd(), '..', 'etp', 'form-chu.json')", vi: 'ô form so với đúng một nguồn form-chu.json' },
   { card: 'thiet-lap-2411', tep: 'apps/etp/bai-qc.py', co: 'add column if not exists du jsonb', vi: 'kho giữ trọn cấu hình Ethopex từng camp (bai_camp.du), camp ACTIVE đọc lại sau 6 giờ' },
 ];

@@ -124,6 +124,9 @@ interface DataTableProps<T> {
    * (cây Tài sản: mỗi shop một bảng) mà cột phải thẳng hàng giữa các bảng. Cột không có `width` chia phần còn lại; ô tràn tự cắt.
    */
   fixedLayout?: boolean;
+  /** bảng NHIỀU CỘT để đọc (vd etp2 Camp › Thiết lập ~95 cột): giữ đúng bề ngang từng cột (`width` / đã kéo), KHÔNG co theo tỉ lệ cho vừa khung —
+   *  kéo cột nào chỉ đổi cột đó, phần dư cuộn ngang (anh 24/11/2026: "các cột ko được để dồn… thu nhỏ cột = chuột") */
+  cuonNgang?: boolean;
   /**
    * `rows` chỉ là MỘT TRANG do server cắt (vd /offers: 50 dòng trên 1.200, lọc chạy ở server). Khi
    * đó lọc/sắp xếp trong bảng chỉ ăn trên trang này = nói dối, nên tắt hẳn — lọc bằng thanh trên.
@@ -198,7 +201,7 @@ const RONG_MAC_DINH = 96;   // px — bề ngang cột chưa khai width khi bả
 export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey: persistKeyGoc, onRowClick, minWidth = 640, rowTitle, rowStyle, fullRow, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced, timNgoai, giuCot,
-  stickyFirst = true, stickyCols, fixedLayout = false,
+  stickyFirst = true, stickyCols, fixedLayout = false, cuonNgang = false,
   serverSort, serverFilter, hopCuon = false, tree, groupBy, rowData, dauThanh, thanhDinh, locTuDong = true, onTimDoi, khiTimTrong,
 }: DataTableProps<T>) {
   const persistKey = useKhoaLuu(persistKeyGoc);   // + phạm vi lưu của trang (PhamViLuu) — mỗi phạm vi một bộ cột / sort / lọc / ô tìm riêng
@@ -463,7 +466,7 @@ export function DataTable<T>({
     const tongKhac = visible.reduce((s, c) => s + (r[c.key] != null ? 0 : typeof c.width === 'number' ? c.width : RONG_MAC_DINH), 0);
     const v = keo != null && r[keo] != null ? r[keo] : 0;
     const coDuoc = tongLuu - v;
-    const heSo = khung > 0 && coDuoc > 0 && tongLuu + tongKhac > khung ? Math.max(0.1, (khung - tongKhac - v) / coDuoc) : 1;
+    const heSo = !cuonNgang && khung > 0 && coDuoc > 0 && tongLuu + tongKhac > khung ? Math.max(0.1, (khung - tongKhac - v) / coDuoc) : 1;
     const out: Record<string, number> = {};
     for (const c of visible) { const x = r[c.key]; if (x != null) out[c.key] = c.key === keo ? x : Math.floor(x * heSo * 100) / 100; }
     return out;

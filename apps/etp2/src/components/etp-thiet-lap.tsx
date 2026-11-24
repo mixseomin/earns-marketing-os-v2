@@ -36,7 +36,7 @@ export function ThietLapCamp({ camps, hep }: { camps: CampCo[]; hep?: boolean })
   const form = du?.form;
   // ô chữ ĐỦ, xuống dòng (không cắt) — td của bảng để nowrap, div con giữ pre-wrap
   const o = (v: OTl | undefined, rong = 120, mau?: string): ReactNode => { const s = chu(v); return s == null ? <span style={{ color: 'var(--fg-3)' }}>—</span>
-    : <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', width: rong, textAlign: 'left', color: mau, fontFamily: 'var(--font-sans, inherit)' }}>{s}</div>; };
+    : <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left', color: mau, fontFamily: 'var(--font-sans, inherit)' }}>{s}</div>; };
   // so với form chuẩn
   const chuan: Record<string, () => string> = form ? { f_kieu: () => form.creative_type, f_cta: () => form.call_to_action, f_link: () => form.link_url, f_chinh: () => form.primaryTexts.join('\n'), f_tieu: () => form.headlines.join('\n'), f_mo_ta: () => form.descriptions.join('\n') } : {};
   const dungForm = (r: DongTl, k: string) => { const s = chu(r[k]); return !chuan[k] || (s ?? '').trim() === chuan[k]().trim(); };
@@ -60,16 +60,16 @@ export function ThietLapCamp({ camps, hep }: { camps: CampCo[]; hep?: boolean })
     C('g_ten', 'b2', 'Tên ad set', 260), C('g_toi_uu', 'b2', 'Tối ưu cho', 70, 'optimization goal'), C('g_tinh_phi', 'b2', 'Tính phí theo', 90, 'billing event'), C('g_dich', 'b2', 'Đích', 70, 'destination type'),
     C('g_su_kien', 'b2', 'Sự kiện', 70), C('g_pixel', 'b2', 'Pixel', 130), C('g_roas', 'b2', 'ROAS sàn', 50), C('g_ns', 'b2', 'NS ad set $', 50),
     C('g_attr', 'b2', 'Attribution', 200), G('g_bat_dau', 'b2', 'Bắt đầu (VN)', 80), G('g_ket_thuc', 'b2', 'Kết thúc (VN)', 80), C('g_lich', 'b2', 'Lịch giờ nhà', 90),
-    C('g_so_nuoc', 'b3', 'Số nước', 40), C('g_nuoc', 'b3', 'Nước nhắm', 300), C('g_kieu_vt', 'b3', 'Kiểu vị trí', 80), C('g_so_loai', 'b3', 'Số nước loại', 40), C('g_loai_nuoc', 'b3', 'Nước loại', 760),
+    C('g_so_nuoc', 'b3', 'Số nước', 40), C('g_nuoc', 'b3', 'Nước nhắm', 300), C('g_kieu_vt', 'b3', 'Kiểu vị trí', 80), C('g_so_loai', 'b3', 'Số nước loại', 40), C('g_loai_nuoc', 'b3', 'Nước loại', 380),
     C('g_ngon_ngu', 'b3', 'Ngôn ngữ (mã)', 60), C('g_tuoi', 'b3', 'Tuổi', 50), C('g_gioi', 'b3', 'Giới', 40), C('g_adv', 'b3', 'Advantage+ đối tượng', 60),
-    C('g_nen', 'b3', 'Nền tảng', 200), C('g_vi_tri', 'b3', 'Vị trí', 820), C('g_thiet_bi', 'b3', 'Thiết bị', 100), C('g_an_toan', 'b3', 'Lọc an toàn', 160), C('g_vung_qd', 'b3', 'Vùng quy định', 160),
+    C('g_nen', 'b3', 'Nền tảng', 200), C('g_vi_tri', 'b3', 'Vị trí', 400), C('g_thiet_bi', 'b3', 'Thiết bị', 100), C('g_an_toan', 'b3', 'Lọc an toàn', 160), C('g_vung_qd', 'b3', 'Vùng quy định', 160),
     C('g_ext', 'b3', 'Mã ad set Meta', 150), C('g_meta', 'b3', 'Ad set trên Meta', 60), C('g_giao', 'b3', 'Ad set phân phối', 70),
     C('a_page_ten', 'b4', 'Page', 140), C('a_page', 'b4', 'Mã Page', 90), C('a_mien', 'b4', 'Tên miền', 90), C('a_lp', 'b4', 'Landing page', 60), C('a_phim', 'b4', 'Phim (content)', 60),
     C('a_url', 'b4', 'Final URL', 360), C('a_tags', 'b4', 'URL tags', 300), C('a_bai_co', 'b4', 'Bài có sẵn', 50), C('a_bai', 'b4', 'Mã bài', 150),
     C('a_ext', 'b4', 'Mã ad Meta', 150), C('a_ext_cr', 'b4', 'Mã creative Meta', 140), C('a_video', 'b4', 'Mã video Meta', 140), C('a_meta', 'b4', 'Ad trên Meta', 60), C('a_giao', 'b4', 'Ad phân phối', 70),
     C('f_cr', 'b5', 'Creative', 60), { ...C('f_kieu', 'b5', 'Ad type', 90), cell: oForm('f_kieu', 90) }, { ...C('f_cta', 'b5', 'CTA', 90), cell: oForm('f_cta', 90) },
     C('f_tt', 'b5', 'Status', 60), { ...C('f_link', 'b5', 'Display link', 90), cell: oForm('f_link', 90) },
-    { ...C('f_chinh', 'b5', 'Primary text', 640), cell: oForm('f_chinh', 640) }, { ...C('f_tieu', 'b5', 'Headline', 220), cell: oForm('f_tieu', 220) },
+    { ...C('f_chinh', 'b5', 'Primary text', 380), cell: oForm('f_chinh', 380) }, { ...C('f_tieu', 'b5', 'Headline', 220), cell: oForm('f_tieu', 220) },
     { ...C('f_mo_ta', 'b5', 'Description', 160), cell: oForm('f_mo_ta', 160) }, C('f_nguon', 'b5', 'Chữ lấy từ', 200, 'ad trên Meta giữ bản creative lúc lên — creative đưa về form SAU khi camp lên thì ad vẫn chạy chữ cũ'),
     C('s_camp', 'b6', 'Camp', 50), C('s_nhom', 'b6', 'Ad set', 50), C('s_ad', 'b6', 'Ad', 50), C('s_media', 'b6', 'Media', 50), C('s_cho', 'b6', 'Chờ kích hoạt', 70),
     C('s_loi', 'b6', 'Lỗi / cảnh báo', 300), G('s_dong_bo_luc', 'b6', 'Ethopex đồng bộ (VN)', 80), G('du_luc', 'b6', 'Kho đọc lúc (VN)', 80),
@@ -84,7 +84,7 @@ export function ThietLapCamp({ camps, hep }: { camps: CampCo[]; hep?: boolean })
       {du.thieu ? <span style={{ color: '#fbbf24' }}>{du.thieu} camp kho chưa đọc cấu hình Ethopex (bai-qc.py đọc dần mỗi lượt đồng bộ)</span> : null}
       <span title="apps/etp/form-chu.json">Form chuẩn: {form?.creative_type} · {form?.call_to_action} · {form?.link_url} · “{form?.primaryTexts.join(' / ')}” · “{form?.headlines.join(' / ')}” · “{form?.descriptions.join(' / ')}”</span>
     </div>
-    <DataTable rows={du.dong} columns={cot} groups={NHOM_TL} groupHeader getRowKey={(r) => String(r.camp_id)} persistKey="etp-thiet-lap" minWidth={cot.reduce((t, c) => t + (Number(c.width) || 0), 0)} pageSize={50}
+    <DataTable rows={du.dong} columns={cot} groups={NHOM_TL} groupHeader getRowKey={(r) => String(r.camp_id)} persistKey="etp-thiet-lap-2" fixedLayout cuonNgang minWidth={0} pageSize={50}
       defaultSort={[{ key: 'tao', dir: 'desc' }]} stickyCols={2}
       searchText={(r) => Object.values(r).map((v) => chu(v as OTl) ?? '').join(' ')} searchPlaceholder="Tìm camp, Page, nước, chữ QC…" />
   </>;

@@ -114,7 +114,7 @@ export function viTriNoi(x: number, y: number, r: number, h: number, W: number, 
 // SỐ THẺ NỔI RIÊNG ĐANG MỞ (mọi KhungNoi trừ thẻ chữ của HoverChu) — HoverChu nhường: thẻ riêng đang mở thì không mở thẻ chữ; thẻ riêng vừa mở thì đóng thẻ chữ
 let SO_THE_RIENG = 0;
 const SU_KIEN_THE_RIENG = 'etp-the-rieng-mo';
-export function KhungNoi({ x, y, rong, cao, noi, children, style, chu = false }: { x: number; y: number; rong: number; cao: number; noi: Noi; children: React.ReactNode; style?: React.CSSProperties; /** thẻ chữ của HoverChu */ chu?: boolean }) {
+export function KhungNoi({ x, y, rong, cao, noi, children, style, chu = false, gon = false }: { x: number; y: number; rong: number; cao: number; noi: Noi; children: React.ReactNode; style?: React.CSSProperties; /** thẻ chữ của HoverChu */ chu?: boolean; /** #1828: chữ MỘT dòng → nhãn nhỏ, không ✕, không bắt chuột */ gon?: boolean }) {
   useLayoutEffect(() => { if (chu) return; SO_THE_RIENG++; window.dispatchEvent(new Event(SU_KIEN_THE_RIENG)); return () => { SO_THE_RIENG--; }; }, [chu]);
   const W = typeof window !== 'undefined' ? window.innerWidth : 1400, H = typeof window !== 'undefined' ? window.innerHeight : 900;
   // PORTAL ra <body> (anh 28/10/2026: thẻ xét luật trong Bảng không hiện): position:fixed nằm trong khung cuộn / có transform của DataTable bị neo + cắt theo khung đó
@@ -128,12 +128,15 @@ export function KhungNoi({ x, y, rong, cao, noi, children, style, chu = false }:
   return createPortal((<>
     {/* lớp tô dòng đang mở thẻ (useNoi) — đặt cùng thẻ nên có ở mọi màn (Cây, Bảng, ROAS) */}
     <style>{/* lặp lớp .dang-noi để thắng luật nền dòng nhóm .etp-cay tr.dt-nhom>td (dòng phim, #1547) */ '.dang-noi.dang-noi.dang-noi,.dang-noi.dang-noi.dang-noi>td{background:var(--hover,rgba(255,255,255,.09))!important}.dang-noi:not(tr),.dang-noi>td:first-child{box-shadow:inset 2px 0 0 #60a5fa}'}</style>
-    <div ref={ref} data-khung-noi="" onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} style={{ position: 'fixed', zIndex: 60, left, top, maxWidth: W - 16, maxHeight: H - 16, overflow: 'auto',
+    {/* #1828 (anh 24/11/2026 "Hover có 1 dòng thì CẤM DÙNG LOẠI to"): chữ một dòng → nhãn nhỏ sát con trỏ, không ✕, không viền bóng to, không chặn chuột */}
+    {gon ? <div ref={ref} data-khung-noi="" data-noi-gon="" style={{ position: 'fixed', zIndex: 60, left, top, maxWidth: W - 16, pointerEvents: 'none',
+      background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,.45)', ...style }}>{children}</div>
+    : <div ref={ref} data-khung-noi="" onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} style={{ position: 'fixed', zIndex: 60, left, top, maxWidth: W - 16, maxHeight: H - 16, overflow: 'auto',
       background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.55)', ...style }}>
       <button type="button" onClick={noi.dong} aria-label="Đóng" title="Đóng (Esc)" style={{ position: 'absolute', top: 4, right: 4, zIndex: 2, width: 24, height: 24, borderRadius: 12, border: '1px solid var(--line)',
         background: 'rgba(0,0,0,.6)', color: '#fff', cursor: 'pointer', fontSize: 13, lineHeight: '20px' }}>✕</button>
       {children}
-    </div>
+    </div>}
   </>), document.body);
 }
 // CHỮ RÊ → KHỐI THẺ: dòng đầu đậm (phần trước " — " / ": " đầu tiên), phần sau tách theo " · " / xuống dòng thành các dòng có chấm — cùng khung TheChung
@@ -150,6 +153,11 @@ export function tachChuRe(t: string): { tieu: string; dong: string[] } {
   else if (s.length > 70) { const i = s.indexOf(' · '); if (i > 0 && i <= TIEU_DAM) { tieu = s.slice(0, i); sau = s.slice(i + 3); } }
   const dong = sau.split(/\n|\s+·\s+/).map((x) => x.trim()).filter(Boolean);
   return { tieu, dong };
+}
+// #1828: chữ rê MỘT dòng (không xuống dòng, không tách được dòng phụ, ngắn ≤ TIEU_DAM) → nhãn nhỏ (TheChuGon trong KhungNoi gon), không dùng thẻ to có ✕
+export function motDong(chu: string): boolean { const { tieu, dong } = tachChuRe(chu); return !dong.length && tieu.length <= TIEU_DAM && !tieu.includes('\n'); }
+export function TheChuGon({ chu }: { chu: string }) {
+  return <div style={{ padding: '3px 7px', fontSize: 11.5, lineHeight: 1.35, whiteSpace: 'nowrap', color: 'var(--fg-0)' }}>{chu.trim()}</div>;
 }
 export function TheChu({ chu }: { chu: string }) {
   const { tieu, dong } = tachChuRe(chu);
@@ -212,7 +220,7 @@ export function HoverChu({ goc }: { goc: React.RefObject<HTMLElement | null> }) 
       giu(); dangEl.current = el;
       hen.current = window.setTimeout(() => {   // trễ hơn thẻ riêng một nhịp → thẻ riêng của cùng ô mở trước, thẻ chữ nhường
         if (SO_THE_RIENG > 0 || dangEl.current !== el) return;
-        hang.current = el.closest('.dong, summary, tr'); setV({ chu, x: CHUOT.x || e.clientX, y: CHUOT.y || e.clientY });
+        hang.current = motDong(chu) ? null : el.closest('.dong, summary, tr'); setV({ chu, x: CHUOT.x || e.clientX, y: CHUOT.y || e.clientY });   // nhãn một dòng không tô dòng
       }, TRE_MO + 60);
     };
     const ra = (e: MouseEvent) => {
@@ -227,5 +235,7 @@ export function HoverChu({ goc }: { goc: React.RefObject<HTMLElement | null> }) 
     return () => { khung.removeEventListener('mouseover', vao); khung.removeEventListener('mouseout', ra); window.removeEventListener(SU_KIEN_THE_RIENG, nhuong); window.removeEventListener('keydown', esc); giu(); };
   }, [goc, giu, dongTre]);
   useDongKhiCuon(!!v, dong);
-  return v ? <KhungNoi chu x={v.x} y={v.y} rong={360} cao={160} noi={{ giu, dongTre, dong }}><TheChu chu={v.chu} /></KhungNoi> : null;
+  if (!v) return null;
+  return motDong(v.chu) ? <KhungNoi chu gon x={v.x} y={v.y} rong={360} cao={24} noi={{ giu, dongTre, dong }}><TheChuGon chu={v.chu} /></KhungNoi>
+    : <KhungNoi chu x={v.x} y={v.y} rong={360} cao={160} noi={{ giu, dongTre, dong }}><TheChu chu={v.chu} /></KhungNoi>;
 }

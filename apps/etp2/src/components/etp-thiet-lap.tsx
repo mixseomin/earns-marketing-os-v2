@@ -65,17 +65,21 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
   const oForm = (k: string) => (r: DongTl) => { const cd = chuaDoc(r), ok = cd || dungForm(r, k); return <div style={{ display: 'flex', gap: 4, alignItems: 'flex-start' }}>
     <b title={cd ? 'kho chưa đọc chữ creative — lượt đồng bộ kế (10 phút) sẽ đọc' : ok ? 'đúng form' : `lệch form — chuẩn: ${chuan[k]?.() ?? ''}`} style={{ color: cd ? 'var(--fg-3)' : ok ? '#4ade80' : '#f87171', flex: 'none' }}>{cd ? '?' : ok ? '✓' : '✗'}</b>{o(r[k], ok ? undefined : '#fca5a5', true)}</div>; };
   // VẤN ĐỀ của một camp — đỏ = hỏng / Meta chặn, vàng = treo / cần xem. PAUSED thường không phải vấn đề.
-  type VanDe = { chu: string; do: boolean };
+  // ai=false: vấn đề KHÔNG gửi AI sửa (không nút Sửa (AI), không vào card) — vd ad gắn mẫu trước khi form về: luật 03/11 cấm đổi creative ad Meta chưa từ chối
+  type VanDe = { chu: string; do: boolean; ai?: boolean };
   const TEN_FORM: Record<string, string> = { f_kieu: 'Ad type', f_cta: 'CTA', f_link: 'Display link', f_chinh: 'Primary text', f_tieu: 'Headline', f_mo_ta: 'Description' };
   const TT_LOI = /error|fail|reject|disapprov|with_issues/i, TT_TREO = /pending|checking|creating|in_process|review/i;
   const TT_CAP: [string, string][] = [['c_meta', 'Camp trên Meta'], ['c_giao', 'Camp phân phối'], ['g_meta', 'Ad set trên Meta'], ['g_giao', 'Ad set phân phối'], ['a_meta', 'Ad trên Meta'],
     ['a_giao', 'Ad phân phối'], ['s_camp', 'Đồng bộ camp'], ['s_nhom', 'Đồng bộ ad set'], ['s_ad', 'Đồng bộ ad'], ['s_media', 'Media']];
   const vanDe = (r: DongTl): VanDe[] => {
     const v: VanDe[] = [], thay = new Set<string>();
-    const them = (chu: string, laDo: boolean) => { const k = chu.replace(/^[^:]*:\s*/, '').slice(0, 80); if (!thay.has(k)) { thay.add(k); v.push({ chu, do: laDo }); } };
+    const them = (chu: string, laDo: boolean, ai = true) => { const k = chu.replace(/^[^:]*:\s*/, '').slice(0, 80); if (!thay.has(k)) { thay.add(k); v.push({ chu, do: laDo, ai }); } };
     const lf = loiForm(r);
     if (chuaDoc(r)) them(`Kho chưa đọc chữ creative #${chu(r.f_cr) ?? '?'} (lượt đồng bộ kế đọc)`, false);
-    if (lf.length) them(`Form chữ lệch ${lf.length}/6: ${lf.map((k) => TEN_FORM[k]).join(', ')}${/^chữ cũ/.test(chu(r.f_nguon) ?? '') ? ' — ad đang chạy chữ cũ' : ''}`, true);
+    // chữ cũ = ad gắn mẫu TRƯỚC khi creative về form (Meta giữ bản lúc lên) → ghi chú vàng, giữ nguyên ad đang chạy, không gửi AI (anh 24/11/2026, góp ý #1813);
+    // lệch form thật (creative hiện tại sai form) vẫn đỏ. Camp mới: cửa CamLechForm (apps/etp/ethopex_api.py) chặn lên bằng mẫu chưa đúng form.
+    if (lf.length && /^chữ cũ/.test(chu(r.f_nguon) ?? '')) them(`Ad gắn mẫu trước khi form về (lệch ${lf.length}/6: ${lf.map((k) => TEN_FORM[k]).join(', ')}) — giữ nguyên ad đang chạy, chữ form áp cho camp lên sau`, false, false);
+    else if (lf.length) them(`Form chữ lệch ${lf.length}/6: ${lf.map((k) => TEN_FORM[k]).join(', ')}`, true);
     for (const [k, ten] of TT_CAP) { const s = chu(r[k]); if (s && (TT_LOI.test(s) || TT_TREO.test(s))) them(`${ten}: ${s.toLowerCase().replace(/_/g, ' ')}`, TT_LOI.test(s)); }
     // ad set / ad ADSET_PAUSED khi giờ bắt đầu (start_time UTC không Z, hoặc lịch nhà) còn ở tương lai = đang HẸN GIỜ, không phải vấn đề
     const tuongLai = (x: string | null) => { if (!x) return false; const t = Date.parse(/[zZ]|[+-]\d\d(:?\d\d)?$/.test(x) ? x.replace(' ', 'T') : `${x.replace(' ', 'T')}Z`); return Number.isFinite(t) && t > Date.now(); };
@@ -97,11 +101,11 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
     } catch (e) { setGui((g) => ({ ...g, [r.camp_id]: { loi: String((e as Error)?.message ?? e) } })); }
   };
   const oVanDe = (r: DongTl): ReactNode => {
-    const v = vanDeHien(r), g = gui[r.camp_id];
+    const v = vanDeHien(r), g = gui[r.camp_id], vAi = v.filter((x) => x.ai !== false);
     return <div className="tl-vd">
       {v.length ? <div className="tl-vd-ds">{v.map((x, i) => <div key={i} title={x.chu} style={{ display: 'flex', gap: 4, alignItems: 'baseline', fontSize: 11, lineHeight: 1.35, color: x.do ? '#fca5a5' : '#fcd34d', whiteSpace: 'normal', wordBreak: 'break-word' }}>
         <i style={{ width: 6, height: 6, borderRadius: 3, background: x.do ? '#f87171' : '#fbbf24', flex: 'none', transform: 'translateY(-1px)' }} />{x.chu.length > 110 ? `${x.chu.slice(0, 110)}…` : x.chu}</div>)}
-        {!g?.id ? <button className="tl-sua" disabled={g?.dang} onClick={(e) => { e.stopPropagation(); void guiAi(r, v); }}
+        {!g?.id && vAi.length ? <button className="tl-sua" disabled={g?.dang} onClick={(e) => { e.stopPropagation(); void guiAi(r, vAi); }}
           title="Gửi các vấn đề này thành card góp ý etp2 → kỹ sư AI (Huy) sửa tận gốc, kết quả trả lời trong hòm 💬">{g?.dang ? '…đang gửi' : '🛠 Sửa (AI)'}</button> : null}</div>
         : <b style={{ color: '#4ade80', fontSize: 11 }}>✓ không có</b>}
       {g?.id ? <div style={{ fontSize: 11, color: '#4ade80', marginTop: 2 }}>✓ đã gửi AI sửa — góp ý #{g.id}</div> : null}
@@ -180,12 +184,13 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
   ];
   if (loi) return <div style={{ margin: 12, padding: '10px 12px', border: '1px solid #f87171', borderRadius: 6, color: '#fca5a5', fontSize: 12 }}>Không tải được Thiết lập: {loi}</div>;
   if (!du) return <div style={{ padding: 24, color: 'var(--fg-2)', fontSize: 12 }}>Đang tải thiết lập {ids.length} camp…</div>;
-  const lech = du.dong.filter((r) => loiForm(r).length).length, coVd = du.dong.filter((r) => vanDe(r).length).length, coDo = du.dong.filter((r) => vanDe(r).some((x) => x.do)).length;
+  const chuCu = (r: DongTl) => /^chữ cũ/.test(chu(r.f_nguon) ?? '');
+  const lech = du.dong.filter((r) => loiForm(r).length && !chuCu(r)).length, soCu = du.dong.filter((r) => loiForm(r).length && chuCu(r)).length, coVd = du.dong.filter((r) => vanDe(r).length).length, coDo = du.dong.filter((r) => vanDe(r).some((x) => x.do)).length;
   const dongLoc = muc ? du.dong.filter((r) => { const v = vanDe(r); return muc === 'khong' ? !v.length : muc === 'do' ? v.some((x) => x.do) : v.some((x) => !x.do); }) : du.dong;
   return <>
     <div style={{ fontSize: 11.5, color: 'var(--fg-2)', margin: '6px 0 4px', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
       <span>{du.dong.length} camp theo lọc ở trên</span>
-      <span style={{ color: coDo ? '#f87171' : coVd ? '#fbbf24' : '#4ade80' }}>{coVd ? `✗ ${coVd} camp có vấn đề (${coDo} đỏ) · ${lech} lệch form chữ` : '✓ không camp nào có vấn đề'}</span>
+      <span style={{ color: coDo ? '#f87171' : coVd ? '#fbbf24' : '#4ade80' }}>{coVd ? `✗ ${coVd} camp có vấn đề (${coDo} đỏ) · ${lech} lệch form chữ${soCu ? ` · ${soCu} ad gắn mẫu trước khi form về (giữ nguyên)` : ''}` : '✓ không camp nào có vấn đề'}</span>
       <style>{'.tl-vd{position:relative;min-height:16px}.tl-vd .tl-sua{display:none;position:absolute;top:-2px;right:-4px;font-size:11px;padding:1px 7px;border-radius:4px;border:1px solid #f59e0b;background:#422006;color:#fde68a;cursor:pointer}.tl-vd-ds{position:relative}.tl-vd-ds:hover .tl-sua{display:inline-block}.tl-vd .tl-sua:disabled{opacity:.6;cursor:wait}.tl-gon summary::-webkit-details-marker{display:none}.tl-gon[open] summary b{display:none}'}</style>
       {du.thieu ? <span style={{ color: '#fbbf24' }}>{du.thieu} camp kho chưa đọc cấu hình Ethopex (bai-qc.py đọc dần mỗi lượt đồng bộ)</span> : null}
       <span title="apps/etp/form-chu.json">Form chuẩn: {form?.creative_type} · {form?.call_to_action} · {form?.link_url} · “{form?.primaryTexts.join(' / ')}” · “{form?.headlines.join(' / ')}” · “{form?.descriptions.join(' / ')}”</span>

@@ -1782,4 +1782,8 @@ export const LUAT = [
   { card: 'thiet-lap-2411', tep: 'apps/etp/ethopex_api.py', co: 'if x and CG.ve_hop_le("doi_cr", [nha_ad[ad]], loai="truc_tiep", dung=True', vi: 'đổi creative ad chưa bị từ chối chỉ khi có vé TRỰC TIẾP doi_cr đúng camp, đốt lúc gửi (anh 24/11/2026)' },
   { card: 'thiet-lap-2411', tep: 'apps/etp/ap-form-chu.py', co: 'os.environ["ETP_VE"] = ve', vi: 'ap-form-chu --ad gắn lại creative form qua vé từng camp, không tự miễn gác' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: 'and b.chu_form_luc is null) chu_cu', vi: 'ad đã gắn lại creative form thì hết báo chữ cũ' },
+  { card: 'gop-y-1813', tep: 'apps/etp/ethopex_api.py', co: 'class CamLechForm(NgoaiNha, ValueError)', vi: 'camp mới lên bằng creative lệch form chữ bị chặn ở cổng (anh 24/11/2026 "chưa có thì chờ chứ không lên chữ cũ")' },
+  { card: 'gop-y-1813', tep: 'apps/etp/ethopex_api.py', co: 'raise CamLechForm(f"creative {cr} chưa đúng form chữ', vi: 'mọi đường tạo camp đọc lại creative trên Ethopex, lệch form thì không gửi' },
+  { card: 'gop-y-1813', tep: 'apps/etp/ethopex_api.py', co: 'raise CamLechForm(f"không đọc được creative', vi: 'đọc creative lỗi → chặn (fail-closed)' },
+  { card: 'gop-y-1813', tep: 'apps/etp/ap-form-chu.py', co: 'F, ds_l, dung_form = EA.FORM, EA.ds_l, EA.dung_form', vi: 'một chuẩn form chữ dùng chung với cổng' },
 ];

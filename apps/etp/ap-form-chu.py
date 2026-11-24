@@ -15,20 +15,8 @@ Dùng (box3): python3 ap-form-chu.py            — chỉ đếm, in mẫu
              python3 ap-form-chu.py --ban-nha <creative> …   — creative của đội / bài đăng có sẵn: tạo bản nhà cùng video, chữ form (in {cũ: mới})"""
 import concurrent.futures as cf, json, os, sys, urllib.request
 D = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, D); import ethopex_api as EA
-F = json.load(open(os.path.join(D, "form-chu.json")))
+F, ds_l, dung_form = EA.FORM, EA.ds_l, EA.dung_form   # một chuẩn form: ethopex_api.py (cửa CamLechForm cũng dùng)
 CHAY = "--chay" in sys.argv
-
-def ds_l(v):
-    if isinstance(v, str):
-        try: v = json.loads(v)
-        except Exception: return [v] if v.strip() else []
-    return [str(x).strip() for x in (v or [])] if isinstance(v, list) else []
-
-def dung_form(c):
-    a = c.get("asset_spec") or {}
-    a = json.loads(a) if isinstance(a, str) and a.strip().startswith("{") else (a if isinstance(a, dict) else {})
-    return (c.get("call_to_action") == F["call_to_action"] and (c.get("link_url") or "") == F["link_url"]
-            and ds_l(a.get("primaryTexts")) == F["primaryTexts"] and ds_l(a.get("headlines")) == F["headlines"] and ds_l(a.get("descriptions")) == F["descriptions"])
 
 BODY = {"call_to_action": F["call_to_action"], "link_url": F["link_url"],
         "asset_spec": {"primaryTexts": F["primaryTexts"], "headlines": F["headlines"], "descriptions": F["descriptions"]}}

@@ -16,6 +16,20 @@ class NgoaiNha(RuntimeError): pass
 class CamThayCreative(NgoaiNha): pass
 class CamNganSach(NgoaiNha, ValueError): pass     # camp mới > $1 (anh 08/11/2026) — cong.ns_tao đọc chính payload tạo camp
 class CamDangAT(NgoaiNha, ValueError): pass       # creative ảnh tĩnh không phải dạng Free (anh 19/11/2026, sổ luật at_chi_dang_free) — cong.at_sai_dang
+class CamLechForm(NgoaiNha, ValueError): pass     # camp MỚI lên bằng creative chưa đúng form chữ (anh 24/11/2026, góp ý #1813: "chưa có thì chờ chứ không lên chữ cũ")
+
+# FORM CHỮ CỐ ĐỊNH (anh 24/11/2026 "Form đúng phải thế này !!") — MỘT nguồn apps/etp/form-chu.json; ap-form-chu.py + cửa CamLechForm dùng chung dung_form
+FORM = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "form-chu.json")))
+def ds_l(v):
+    if isinstance(v, str):
+        try: v = json.loads(v)
+        except Exception: return [v] if v.strip() else []
+    return [str(x).strip() for x in (v or [])] if isinstance(v, list) else []
+def dung_form(c):
+    a = c.get("asset_spec") or {}
+    a = json.loads(a) if isinstance(a, str) and a.strip().startswith("{") else (a if isinstance(a, dict) else {})
+    return (c.get("call_to_action") == FORM["call_to_action"] and (c.get("link_url") or "") == FORM["link_url"]
+            and ds_l(a.get("primaryTexts")) == FORM["primaryTexts"] and ds_l(a.get("headlines")) == FORM["headlines"] and ds_l(a.get("descriptions")) == FORM["descriptions"])
 import importlib.util as _iu
 _s = _iu.spec_from_file_location("cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "cong.py")); CG = _iu.module_from_spec(_s); _s.loader.exec_module(CG)
 
@@ -382,6 +396,16 @@ def api(duong, body=None, timeout=90):
     if body is not None and (duong.endswith("/campaigns/facebook") or (duong.endswith("/campaigns/update") and isinstance(body, dict) and body.get("ads"))):
         ly_at = CG.at_sai_dang(re.findall(r'"creative_id":\s*"?(\d+)', json.dumps(body)), q=_q)
         if ly_at: raise CamDangAT(f"{ly_at} — không gửi {duong}")
+    # CAMP MỚI PHẢI LÊN BẰNG MẪU ĐÃ MANG CHỮ FORM (anh 24/11/2026, góp ý #1813): mọi đường tạo camp (lên phim, nhân bản, hồi chợ, ★ ROAS) — đọc lại từng creative_id
+    # của CHÍNH lệnh trên Ethopex, lệch form → không gửi, chờ bản đúng form (creative đội / mẫu cũ: ap-form-chu.py --ban-nha <creative>). Đọc lỗi → chặn.
+    # Ad đang chạy KHÔNG đụng (CamThayCreative, anh 03/11/2026) — chữ form chỉ áp cho camp lên sau.
+    if body is not None and duong.endswith("/campaigns/facebook"):
+        for cr in sorted({int(x) for x in re.findall(r'"creative_id":\s*"?(\d+)', json.dumps(body))}):
+            try: c = _goi(f"/api/v1/creatives/{cr}", None, timeout); c = c.get("data", c) if isinstance(c, dict) else {}
+            except Exception as e: raise CamLechForm(f"không đọc được creative {cr} để soát form chữ ({type(e).__name__}) — không gửi {duong}")
+            if not dung_form(c or {}):
+                raise CamLechForm(f"creative {cr} chưa đúng form chữ (apps/etp/form-chu.json) — camp mới chờ bản đúng form, không lên chữ cũ "
+                                  f"(tạo bản nhà: ap-form-chu.py --ban-nha {cr}) — không gửi {duong}")
     # PHIM CẤM — LÊN / GẮN CREATIVE (anh 19/11/2026 "ko cho mở camp mới, lên creative dưới mọi hình thức"): lệnh tạo creative (/creatives…, kể cả bulk-jobs) và lệnh
     # gắn / đổi creative vào ad (/campaigns/update ads) soát cùng hàm cong.phim_cam trên phim của CHÍNH lệnh (content_id trong body, phim của creative_id, camp của ad_id).
     # Tạo / nhân bản / bật / tăng camp đã soát ở cua() → chan_cua. Lỗi đọc → chặn.
@@ -455,6 +479,10 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
     _goc_goi, _goc_ch, _goc_ve, _goc_ghi, _gui_that = _goi, CG.doc_cau_hinh, CG.ve_hop_le, _ghi_cua, []
     def _gia(d, b=None, t=90):
         if b is not None: _gui_that.append(d); return {"id": 999999990}
+        if "/creatives/" in d:   # creative giả: đúng form (cửa CamLechForm); 777777771 = lệch form, 777777772 = đọc lỗi
+            if d.endswith("/777777772"): raise RuntimeError("đọc lỗi giả")
+            return {"data": {"call_to_action": FORM["call_to_action"], "link_url": "" if d.endswith("/777777771") else FORM["link_url"],
+                             "asset_spec": {k: FORM[k] for k in ("primaryTexts", "headlines", "descriptions")}}}
         return {"campaign": {"budget_daily": 5}, "ad_groups": []}
     _so = []
     globals().update(_goi=_gia, _ghi_cua=lambda l, ok, ly=None, ve=None, camp_id=None: _so.append((l["viec"], ok, bool(ve))))
@@ -480,6 +508,15 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
         assert any(v == "tang" and 999999997 in i for v, i, _c in _dot) and any(v == "nhan_ban" and _G in i for v, i, _c in _dot), f"vé phải bị đốt lúc gửi: {_dot}"
         assert len(_gui_that) == 4 and ("tang", True, True) in _so and ("tang", False, False) in _so, (_gui_that, _so)
         print("chặn đúng: một cửa — phanh chặn lệnh máy (camp mới / nhân bản / ★ ROAS / tăng), vé tay qua + bị đốt, giảm / tắt qua, sổ etp.cua ghi đủ")
+        # FORM CHỮ (anh 24/11/2026, góp ý #1813): camp mới lên bằng creative lệch form / đọc creative lỗi → chặn trước khi gửi, kể cả có vé; đúng form thì qua
+        _n0 = len(_gui_that)
+        for _cr in (777777771, 777777772):
+            _b = {**_pl("dp1 X EN - creative #2"), "campaign": {"source_payload": {"name": "dp1 X", "daily_budget": 1}, "ad_groups": [{"source_payload": {}, "ads": [{"content_id": 1, "creative_id": _cr}]}]}}
+            try: api("/api/v1/campaigns/facebook", _b); raise SystemExit(f"LỌT FORM CHỮ: camp mới lên bằng creative {_cr}")
+            except CamLechForm as e: assert ("chưa đúng form" if _cr == 777777771 else "không đọc được") in str(e), e
+        assert len(_gui_that) == _n0, f"creative lệch form lọt tới Ethopex: {_gui_that[_n0:]}"
+        assert dung_form(_gia("/api/v1/creatives/2")["data"]) and not dung_form(_gia("/api/v1/creatives/777777771")["data"]), "dung_form sai"
+        print("chặn đúng: form chữ — camp mới lên bằng creative lệch form / đọc creative lỗi đều chặn dù có vé, creative đúng form qua")
         # PHIM CẤM (anh 19/11/2026) — sổ THẬT ethopex_phim_cam, vé vẫn đang "hợp lệ" (ve_hop_le giả ở trên): bật (cả lịch giờ) / nhân bản / ★ ROAS / tạo camp phim cấm / tăng → chặn
         _r = _q(f"select camp_id || '|' || content_id from etp.camp where camp_id in ({CG.SQL_CAMP_PHIM_CAM}) order by 1 limit 1")
         if _r:

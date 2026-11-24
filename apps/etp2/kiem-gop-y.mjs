@@ -7,6 +7,10 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1813, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', mot: 'Ad gắn mẫu trước khi form về', vi: 'ad gắn mẫu trước khi creative về form = dòng vàng "giữ nguyên ad đang chạy, chữ form áp cho camp lên sau", không đỏ (anh 24/11/2026 góp ý #1813)' },
+  { card: 1813, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'x.ai !== false', vi: 'vấn đề "chữ cũ" không gửi Sửa (AI) — không sinh card cho lớp này' },
+  { card: 1813, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'vAi.length', vi: 'nút Sửa (AI) chỉ hiện khi còn vấn đề sửa được' },
+  { card: 1813, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', cam: ' — ad đang chạy chữ cũ', vi: 'không còn báo đỏ "ad đang chạy chữ cũ"' },
   { card: 0, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "{ key: 'mien', header: 'Miền'", vi: 'bảng cây camp có cột Miền (domain trang đích của ad) — anh 23/11/2026 "trên page camp, show thêm cột domain"' },
   { card: 0, tep: 'apps/etp/dong-bo.py', co: '"mien": (a.get("domain") or "") if d else None', vi: 'máy đồng bộ ghi miền camp nhà từ chi tiết ad' },
   { card: 0, tep: 'apps/etp/dong-bo.py', co: 'mien = x.m from jsonb_to_recordset', vi: 'máy đồng bộ ghi miền camp đội' },

@@ -86,7 +86,13 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
     const top = [...dem].sort((a, b) => b[1] - a[1])[0];
     if (top && dem.size > 1 && top[1] * 2 > n) soDong[k] = top[0];   // có số đông rõ (> nửa) mới so; chia đôi thì không biết bên nào đúng → không báo
   }
-  const tomTat = (s: string) => { const m = s.split(/\n|, /); return m.length > 3 ? `${m.slice(0, 3).join(', ')} +${m.length - 3}` : s.length > 60 ? `${s.slice(0, 60)}…` : s; };
+  // mục của một danh sách: dòng "Facebook: feed, story" → "Facebook feed", "Facebook story" (cùng tên vị trí ở hai nền không lẫn nhau)
+  const mucDs = (s: string) => s.split('\n').flatMap((l) => { const i = l.indexOf(': '); return i > 0 ? l.slice(i + 2).split(', ').map((x) => `${l.slice(0, i)} ${x}`) : l.split(', '); }).map((x) => x.trim()).filter(Boolean);
+  const ke = (m: string[]) => m.length > 4 ? `${m.slice(0, 4).join(', ')} +${m.length - 4}` : m.join(', ');
+  // KHÁC SỐ ĐÔNG = chỉ phần chênh (anh 24/11/2026 lần soát: in cả hai bản thì hai đầu giống hệt nhau, không đọc ra khác ở đâu)
+  const chenh = (s: string, d: string) => { const a = mucDs(s), b = mucDs(d), A = new Set(a), B = new Set(b);
+    const them = a.filter((x) => !B.has(x)), thieu = b.filter((x) => !A.has(x));
+    return them.length || thieu.length ? [them.length ? `thêm ${ke(them)}` : '', thieu.length ? `thiếu ${ke(thieu)}` : ''].filter(Boolean).join(' · ') : 'cùng mục, khác thứ tự'; };
   const vanDe = (r: DongTl): VanDe[] => {
     const v: VanDe[] = [], thay = new Set<string>();
     const them = (chu: string, laDo: boolean, ai = true) => { const k = chu.replace(/^[^:]*:\s*/, '').slice(0, 80); if (!thay.has(k)) { thay.add(k); v.push({ chu, do: laDo, ai }); } };
@@ -104,7 +110,7 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
     if (chu(r.s_cho)) them('Chờ kích hoạt', false);
     for (const d of (chu(r.s_loi) ?? '').split('\n').filter(Boolean)) them(`Lỗi ${d}`, !/^[^:]*⚠/.test(d));
     if (!r.du_luc) them('Kho chưa đọc cấu hình Ethopex', false);
-    for (const [k, ten] of GIONG) { const s = chu(r[k]), d = soDong[k]; if (d != null && s != null && s !== d) them(`${ten} khác số đông: ${tomTat(s)} (số đông: ${tomTat(d)})`, false); }
+    for (const [k, ten] of GIONG) { const s = chu(r[k]), d = soDong[k]; if (d != null && s != null && s !== d) them(`${ten} khác số đông: ${chenh(s, d)}`, false); }
     return v;
   };
   const vanDeHien = (r: DongTl) => vanDe(r).filter((x) => muc === 'do' ? x.do : muc === 'vang' ? !x.do : true);
@@ -148,10 +154,11 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
     if (kieu === 'tt') return oTt(s);
     if (kieu === 'bat') return /^(bật|true)$/i.test(s) ? <b style={{ color: '#4ade80' }}>✓</b> : /^(tắt|false|không)$/i.test(s) ? <span style={{ color: 'var(--fg-3)' }}>✗</span> : <span style={{ fontSize: 11 }}>{s}</span>;
     if (kieu === 'gio') return <span style={{ fontSize: 11, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{gioVn(s)}</span>;
-    if (kieu === 'ds') { const m = s.includes('\n') ? s.split('\n') : s.split(', ');
-      // DANH SÁCH DÀI THU GỌN (anh 24/11/2026 "Thu gọn dạng collapsed. Chỉ hiện 1 vài cái đại diện"): > GON_TRAN mục → GON_HIEN mục đầu + "+N", bấm mở / gập
+    if (kieu === 'ds') { const m = mucDs(s);
+      // DANH SÁCH DÀI THU GỌN (anh 24/11/2026 "Thu gọn dạng collapsed. Chỉ hiện 1 vài cái đại diện"): > GON_TRAN mục → GON_HIEN mục đầu + "+N", bấm mở / gập.
+      // đếm theo MỤC chứ không theo dòng: Vị trí chỉ 4 dòng (mỗi nền một dòng) mà 20 mục → trước không gập, ô cao 148px, cả bảng chỉ thấy 3 hàng
       if (m.length > GON_TRAN) return <details className="tl-gon" onClick={(e) => e.stopPropagation()} title={s}>
-        <summary style={{ cursor: 'pointer', listStyle: 'none', fontSize: 11, whiteSpace: 'nowrap' }}>{m.slice(0, GON_HIEN).join(s.includes('\n') ? ' · ' : ', ')} <b style={{ color: 'var(--accent, #f472b6)', fontWeight: 600 }}>+{m.length - GON_HIEN}</b></summary>
+        <summary style={{ cursor: 'pointer', listStyle: 'none', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.slice(0, GON_HIEN).join(', ')} <b style={{ color: 'var(--accent, #f472b6)', fontWeight: 600 }}>+{m.length - GON_HIEN}</b></summary>
         {o(s, undefined, true)}</details>; }
     return o(s, undefined, kieu === 'ds');
   };

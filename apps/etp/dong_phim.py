@@ -875,7 +875,9 @@ def vong():
         if not bs:   # dòng mới (web vừa tạo): dựng 8 bước — hạn từng bước khai MỘT chỗ ở đây
             live = d.get("so_camp") and sql(f"select count(*) from etp.camp where content_id = {d['content_id']} and trang_thai = 'ACTIVE' and not la_roas") not in ("", "0")
             bq = BO_QUA.get(d.get("loai") or "CC", set()) | ({"nhan", "ws", "poster"} if live else set()) | ({"cat", "soat"} if (d.get("khoi") or {}).get("mau") else set())   # khối có mẫu: dung-mau tự tải tập + chọn khung   # mở rộng phim ĐANG có camp Nhà chạy mới bỏ nhận / trang / poster; phim chưa có camp Nhà (vd phim chỉ team chạy, bấm ＋ ở tab Phim) vẫn qua đủ cổng
-            if d.get("so_camp") and not (d.get("khoi") or {}).get("mau") and san_cua(d["content_id"], d.get("loai")) >= int(d["so_camp"]): bq |= {"cat", "soat", "creative"}   # khối có mẫu: creative MỚI theo mẫu, không lấy creative cũ của phim   # DÙNG LẠI creative sạch có sẵn đủ số → không cắt (anh 04/11/2026)
+            co_mau = bool((d.get("khoi") or {}).get("mau"))   # khối có mẫu: creative MỚI theo mẫu, không lấy creative cũ của phim (anh 25/11/2026)
+            if not co_mau:
+                if d.get("so_camp") and san_cua(d["content_id"], d.get("loai")) >= int(d["so_camp"]): bq |= {"cat", "soat", "creative"}   # DÙNG LẠI creative sạch có sẵn đủ số → không cắt (anh 04/11/2026)
             sql("insert into etp.dong_buoc (dong_id, buoc, thu_tu, han_giay, trang_thai) values " + ", ".join(
                 f"({d['id']}, '{b}', {i}, {HAN_RIENG.get((d.get('loai'), b), h)}, '{'bo_qua' if b in bq else 'cho'}')" for i, (b, h) in enumerate(BUOC, 1)) + " on conflict do nothing")
             print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} phim {d['content_id']} ({d.get('loai')}) — dựng bước", flush=True); continue

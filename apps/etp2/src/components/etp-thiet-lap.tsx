@@ -36,20 +36,22 @@ export function ThietLapCamp({ camps, hep }: { camps: CampCo[]; hep?: boolean })
   const form = du?.form;
   // ô chữ ĐỦ, xuống dòng (không cắt) — td của bảng để nowrap, div con giữ pre-wrap
   const o = (v: OTl | undefined, rong = 120, mau?: string): ReactNode => { const s = chu(v); return s == null ? <span style={{ color: 'var(--fg-3)' }}>—</span>
-    : <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', minWidth: rong, maxWidth: Math.max(rong, 360), textAlign: 'left', color: mau, fontFamily: 'var(--font-sans, inherit)' }}>{s}</div>; };
+    : <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', width: rong, textAlign: 'left', color: mau, fontFamily: 'var(--font-sans, inherit)' }}>{s}</div>; };
   // so với form chuẩn
   const chuan: Record<string, () => string> = form ? { f_kieu: () => form.creative_type, f_cta: () => form.call_to_action, f_link: () => form.link_url, f_chinh: () => form.primaryTexts.join('\n'), f_tieu: () => form.headlines.join('\n'), f_mo_ta: () => form.descriptions.join('\n') } : {};
   const dungForm = (r: DongTl, k: string) => { const s = chu(r[k]); return !chuan[k] || (s ?? '').trim() === chuan[k]().trim(); };
   const loiForm = (r: DongTl) => Object.keys(chuan).filter((k) => !dungForm(r, k));
   const oForm = (k: string, rong: number) => (r: DongTl) => { const ok = dungForm(r, k); return <div style={{ display: 'flex', gap: 4, alignItems: 'flex-start' }}>
     <b title={ok ? 'đúng form' : `lệch form — chuẩn: ${chuan[k]?.() ?? ''}`} style={{ color: ok ? '#4ade80' : '#f87171', flex: 'none' }}>{ok ? '✓' : '✗'}</b>{o(r[k], rong, ok ? undefined : '#fca5a5')}</div>; };
+  // bề rộng cột CỐ ĐỊNH, không co (anh 24/11/2026 "các cột ko được để dồn"): đủ chữ nội dung (rong) và đủ tiêu đề; bảng rộng = tổng cột, cuộn ngang
+  const rongCot = (header: string, rong: number) => Math.max(rong + 34, header.length * 8.5 + 44);
   const C = (key: string, group: string, header: string, rong = 110, title?: string): DataColumn<DongTl> =>
-    ({ key, group, header, title: title ?? header, align: 'left', cell: (r) => o(r[key], rong), sortValue: (r) => chu(r[key]) ?? '' });
+    ({ key, group, header, title: title ?? header, align: 'left', width: rongCot(header, rong), cell: (r) => o(r[key], rong), sortValue: (r) => chu(r[key]) ?? '' });
   const G = (key: string, group: string, header: string, rong = 110, title?: string): DataColumn<DongTl> =>
     ({ ...C(key, group, header, rong, title), cell: (r) => o(gioVn(chu(r[key])), rong) });
   const cot: DataColumn<DongTl>[] = [
-    { key: 'camp_id', header: 'Camp', align: 'left', cell: (r) => <b>#{r.camp_id}</b>, sortValue: (r) => r.camp_id },
-    { key: 'form', header: 'Form chữ', title: 'so 6 ô chữ với form chuẩn (apps/etp/form-chu.json)', align: 'left', sortValue: (r) => loiForm(r).length,
+    { key: 'camp_id', header: 'Camp', align: 'left', width: 90, cell: (r) => <b>#{r.camp_id}</b>, sortValue: (r) => r.camp_id },
+    { key: 'form', header: 'Form chữ', width: 110, title: 'so 6 ô chữ với form chuẩn (apps/etp/form-chu.json)', align: 'left', sortValue: (r) => loiForm(r).length,
       cell: (r) => { const l = loiForm(r); return l.length ? <b style={{ color: '#f87171' }}>✗ lệch {l.length}/6</b> : <b style={{ color: '#4ade80' }}>✓ đúng</b>; } },
     C('c_ten', 'b1', 'Tên camp', 260), C('c_bo', 'b1', 'Bộ', 30), C('c_tk', 'b1', 'TK QC', 130, 'mã tài khoản quảng cáo Meta'), C('c_ext', 'b1', 'Mã camp Meta', 150),
     C('c_muc_tieu', 'b1', 'Mục tiêu', 110, 'objective'), C('c_mua', 'b1', 'Kiểu mua', 70, 'buying type'), C('c_gia', 'b1', 'Đặt giá', 180, 'bid strategy'),
@@ -82,7 +84,7 @@ export function ThietLapCamp({ camps, hep }: { camps: CampCo[]; hep?: boolean })
       {du.thieu ? <span style={{ color: '#fbbf24' }}>{du.thieu} camp kho chưa đọc cấu hình Ethopex (bai-qc.py đọc dần mỗi lượt đồng bộ)</span> : null}
       <span title="apps/etp/form-chu.json">Form chuẩn: {form?.creative_type} · {form?.call_to_action} · {form?.link_url} · “{form?.primaryTexts.join(' / ')}” · “{form?.headlines.join(' / ')}” · “{form?.descriptions.join(' / ')}”</span>
     </div>
-    <DataTable rows={du.dong} columns={cot} groups={NHOM_TL} groupHeader getRowKey={(r) => String(r.camp_id)} persistKey="etp-thiet-lap" minWidth={hep ? 900 : 1400} pageSize={50}
+    <DataTable rows={du.dong} columns={cot} groups={NHOM_TL} groupHeader getRowKey={(r) => String(r.camp_id)} persistKey="etp-thiet-lap" minWidth={cot.reduce((t, c) => t + (Number(c.width) || 0), 0)} pageSize={50}
       defaultSort={[{ key: 'tao', dir: 'desc' }]} stickyCols={2}
       searchText={(r) => Object.values(r).map((v) => chu(v as OTl) ?? '').join(' ')} searchPlaceholder="Tìm camp, Page, nước, chữ QC…" />
   </>;

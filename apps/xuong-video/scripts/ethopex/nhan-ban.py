@@ -97,6 +97,19 @@ def gio_roas(luc=None):
     if (a <= vn.hour < b if a <= b else (vn.hour >= a or vn.hour < b)): return None
     d = vn.date() if vn.hour < a else vn.date() + dt.timedelta(days=1)
     return f"{d.isoformat()} {int(a):02d}:00"
+def gio_len(tu=None, luc=None):
+    """GIỜ LÊN CAMP = HAI KHUNG CỐ ĐỊNH (anh 24/11/2026 "Tất cả đều phải lên theo 1 trong 2 khung giờ cố định như vậy. Cái nào gần nhất thì lên vào khung đó.
+    Cấm tự lên ngay !!" — khuôn giờ lên của Kiên: 08h + 21h VN): trả "YYYY-MM-DD HH:MM" giờ VN của khung khung_doi.len_gio GẦN NHẤT, không sớm hơn
+    bây giờ + len_gio_cach_phut và không sớm hơn `tu` (giờ anh đặt, giờ VN). MỌI đường lên (thường · ★ ROAS · vé trực tiếp · đổi giờ · bản nhân · A/B) đi qua đây
+    rồi dat_gio → Ad Set lịch Custom; không đường nào trả "chạy ngay"."""
+    kd = BANG_LUAT["khung_doi"]; ds = sorted(int(x) for x in kd["len_gio"])
+    som = (luc or dt.datetime.now(dt.timezone.utc)).replace(tzinfo=None) + dt.timedelta(hours=7, minutes=int(kd.get("len_gio_cach_phut", 10)))
+    if tu: som = max(som, dt.datetime.strptime(tu.strip().replace("T", " ")[:16], "%Y-%m-%d %H:%M"))
+    for n in range(3):
+        for h in ds:
+            k = dt.datetime.combine(som.date() + dt.timedelta(days=n), dt.time(h))
+            if k >= som: return f"{k:%Y-%m-%d %H:%M}"
+    raise ValueError("khung_doi.len_gio rỗng")
 NGOAI = EA.SUA or EA.XEM   # camp của người trong team (xem docstring) — 0 = nhà; ETP_XEM_NGUOI = chạy khô trên camp thật của người đó (cổng chặn mọi lệnh ghi)
 _TK_SQL = ",".join(str(int(x)) for x in sorted(EA.TK)) or "0"
 def _ap_nuoc(pl, nh):   # A/B kieu 'nuoc': danh sách nước của nhánh vào Ad Set
@@ -585,7 +598,9 @@ def main(a):
     xt_lich = xem_truoc and "--theo-lich" in a   # 👁 xem trước của nút "⏱ Lên theo lịch" (etp2 #1772): chạy khô ĐI ĐƯỜNG LỊCH (lich_len / gio_roas) như vé thường, không như vé trực tiếp
     if xt_lich: truc = False
     if (gio or cu) and not truc: raise SystemExit("--gio / --thay-cho chỉ đi cùng vé TRỰC TIẾP (ETP_VE từ nút etp2, cong.py --ve-truc-tiep)")
-    if truc: lich = "today" if not gio or (dt.datetime.strptime(gio.strip()[:16], "%Y-%m-%d %H:%M") - dt.timedelta(hours=7)).date() == dt.datetime.now(dt.timezone.utc).date() else "tomorrow"
+    # HAI KHUNG CỐ ĐỊNH (gio_len, anh 24/11/2026 "Cấm tự lên ngay"): giờ chạy = khung 08h / 21h VN gần nhất (từ giờ anh đặt nếu có) — cả vé trực tiếp, không còn "chạy ngay"
+    gio = gio_len(gio)
+    lich = "today" if (dt.datetime.strptime(gio, "%Y-%m-%d %H:%M") - dt.timedelta(hours=7)).date() == dt.datetime.now(dt.timezone.utc).date() else "tomorrow"
     ep = "--ep" in a and bool(lay("--bo")); mien_cham = "--mien-cham" in a   # clone sang bộ khác theo lệnh anh — xem docstring
     # ANH NHÂN BẢN TAY (--anh, nút etp2 — anh 10/11/2026 "nếu tao nhân bản bằng tay thì mày không được phép chặn. Đánh dấu camp đó lại, tao chịu trách nhiệm"):
     # đi như lệnh đích danh (ep): bỏ trần phim / ngân sách gốc / trần đoạn / cổng chấm / trần camp ngày; CHỈ còn dừng khẩn (anh tự bật) và cổng tài khoản nhà + $ của API.
@@ -707,7 +722,7 @@ def main(a):
         # CLONE SANG BỘ KHÁC THEO LỆNH ANH (--bo --ep) = bản sao ĐÚNG camp gốc: không chia vào A/B đang chạy (08/11/2026: dup 50 camp bộ 2 → bộ 4 bị AB01 gán nhánh
         # và đặt ngân sách $3 của nhánh; anh: "Sao dup sang bộ 4 lại set ngân sách $3 ngay") — giữ $1 + tham số Ad Set của gốc
         tn = None if ep else ab_lay(kq, pl, lich, goc, moi, cr=ad0["creative_id"])
-        if gio: kq["gio_anh"] = dat_gio(pl, gio)   # giờ anh đặt thắng lịch A/B (sau ab_lay)   # sổ A/B etp.ab — đặt tham số nhánh trước khi tạo (anh 05/11/2026) · bài cũ cũng qua: A/B chỉ đổi Ad Set, ad0 vẫn giữ creative gốc để xếp định dạng
+        kq["gio_anh"] = dat_gio(pl, gio, "khung lên 08h / 21h VN")   # khung cố định thắng lịch A/B (sau ab_lay) — anh 24/11/2026   # sổ A/B etp.ab — đặt tham số nhánh trước khi tạo (anh 05/11/2026) · bài cũ cũng qua: A/B chỉ đổi Ad Set, ad0 vẫn giữ creative gốc để xếp định dạng
         # CỔNG đọc NGÂN SÁCH THẬT sẽ gửi (payload sau A/B), không phải số giả định — 08/11/2026 cổng nhận "1" trong khi payload mang $3 của nhánh AB01
         ns_gui = thang or float((pl["campaign"].get("source_payload") or {}).get("daily_budget") or 1)
         ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, ns_gui, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay, lenh_anh=ep, bac=bool(thang), bai_cu=bool(bai), thay="--thay" in sys.argv, goc=None if moi else goc)   # phanh chợ chỉ miễn khi lệnh mang VÉ thao tác tay (ETP_VE, anh 18/11/2026) — chữ --ai / cờ --tay không miễn
@@ -772,6 +787,13 @@ _u = lambda s: dt.datetime.fromisoformat(s + "+00:00")   # gio_roas: 23–03h VN
 assert BANG_LUAT["khung_doi"]["len_roas"] == [23, 3], "★ ROAS lên ban tối 23–03h VN (anh 22/11/2026)"
 assert gio_roas(_u("2026-11-22T16:30:00")) is None and gio_roas(_u("2026-11-22T19:59:00")) is None, "23:30 / 02:59 VN trong khung → chạy ngay"
 assert gio_roas(_u("2026-11-22T00:14:00")) == "2026-11-22 23:00" and gio_roas(_u("2026-11-22T15:59:00")) == "2026-11-22 23:00" and gio_roas(_u("2026-11-22T20:00:00")) == "2026-11-23 23:00", "ngoài khung → 23:00 VN kế tiếp"
+# HAI KHUNG CỐ ĐỊNH 08h / 21h VN (anh 24/11/2026 "Cái nào gần nhất thì lên vào khung đó. Cấm tự lên ngay !!") — không bao giờ None / chạy ngay
+assert BANG_LUAT["khung_doi"]["len_gio"] == [8, 21], "khung lên camp 08h + 21h VN (anh 24/11/2026)"
+assert gio_len(luc=_u("2026-11-24T05:58:00")) == "2026-11-24 21:00", "12:58 VN → khung 21:00 hôm nay, không chạy ngay"
+assert gio_len(luc=_u("2026-11-24T14:30:00")) == "2026-11-25 08:00", "21:30 VN → 08:00 sáng mai"
+assert gio_len(luc=_u("2026-11-23T23:00:00")) == "2026-11-24 08:00", "06:00 VN → 08:00 sáng nay"
+assert gio_len(luc=_u("2026-11-24T00:55:00")) == "2026-11-24 21:00", "07:55 VN (còn < 10 phút) → sang khung 21:00"
+assert gio_len("2026-11-24 15:00", luc=_u("2026-11-24T01:00:00")) == "2026-11-24 21:00" and gio_len("2026-11-25 08:00", luc=_u("2026-11-24T05:58:00")) == "2026-11-25 08:00", "giờ anh đặt → khung đầu tiên từ giờ đó"
 
 def bao_hay_chan(truc, kq, *cua):
     """cổng → lý do chặn đầu tiên (máy tự lên). Vé TRỰC TIẾP của anh (truc): chạy HẾT các cổng, gom lý do vào kq["canh"] + stderr, trả None — không bao giờ chặn
@@ -793,9 +815,9 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
     moi = {creative, content, ten} (anh 18/11/2026, đợt lên hồi chợ): ★ ROAS từ CREATIVE MỚI trên khuôn `goc` — ngân sách trong sổ luật hoi_cho.ns_khoang ($5–10),
     creative mới nên PHẢI qua cổng chấm Sạch + cổng 18+ / CTA / bài học + trang phim + một creative một camp (khác ★ ROAS bài cũ)."""
     # GIỜ LÊN ★ ROAS BAN TỐI (gio_roas, sổ khung_doi.len_roas): trong khung chạy ngay, ngoài khung hẹn lần mở khung kế — thay khung sáng lich_len cho ★ ROAS
-    ro = None if (gio or doi) else gio_roas()
-    if truc and not gio: ro = None   # LỆNH TRỰC TIẾP (nút etp2 ▶ Lên ngay — anh 22/11/2026 "ko còn gì đc cản tao lên camp thủ công"): chạy liền, khung tối 23h không giữ lại
-    if not (gio or doi) and ro is None: lich = "today"
+    # HAI KHUNG CỐ ĐỊNH (anh 24/11/2026 "Cấm tự lên ngay"): ★ ROAS cũng hẹn khung 08h / 21h VN gần nhất (gio_len) — bỏ khung tối 23h (gio_roas) và lối chạy liền của vé trực tiếp
+    gio = gio_len(gio); ro = None
+    lich = "today" if (dt.datetime.strptime(gio, "%Y-%m-%d %H:%M") - dt.timedelta(hours=7)).date() == dt.datetime.now(dt.timezone.utc).date() else "tomorrow"
     kq = {"ok": False, "viec": "roas", "goc": goc, "moi": None, "ten": None, "roas": roas, "loi": None, "chay": lich}
     try:
         if moi:
@@ -833,7 +855,7 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
         kq["content"] = cid
         tn = ab_lay(kq, pl, lich, goc, None, roas=True) if not moi else None
         if ro: kq["gio_roas"] = dat_gio(pl, ro, f"★ ROAS lên ban tối {BANG_LUAT['khung_doi']['len_roas'][0]}h")
-        if gio: kq["gio_anh"] = dat_gio(pl, gio)   # giờ anh đặt (vé trực tiếp, main đã kiểm)   # gốc nhánh thu A/B → camp ★ mang cùng mã (Ad Set chép từ gốc đã mang tham số nhánh); creative mới trên khuôn không thuộc A/B của khuôn
+        kq["gio_anh"] = dat_gio(pl, gio, "khung lên 08h / 21h VN")   # khung cố định (gio_len) — mọi đường   # gốc nhánh thu A/B → camp ★ mang cùng mã (Ad Set chép từ gốc đã mang tham số nhánh); creative mới trên khuôn không thuộc A/B của khuôn
         if not that:
             print(json.dumps({**kq, "ok": True, "chay_kho": True, "payload": pl}, ensure_ascii=False)); return
         r = api("/api/v1/campaigns/facebook", pl)

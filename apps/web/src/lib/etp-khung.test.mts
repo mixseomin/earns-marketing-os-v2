@@ -15,7 +15,8 @@ assert.strictEqual(h.ds.get(1), 'tang'); assert.strictEqual(h.ds.get(2), 'tat');
 assert.strictEqual(docHoan([{ khoa: 'khung_hoan', gia_tri: { luc: new Date(now - 3 * 3600_000).toISOString(), tang: [1] } }], now).ds.size, 0);   // sổ cũ (máy không chạy) → không hứa
 assert.strictEqual(docHoan([], now).ds.size, 0);
 // giờ chạy camp tạo lúc đó (khung len 07–12h VN): 08:00 VN chạy ngay · 05:00 VN sáng nay · 22:00 VN sáng mai
-assert.strictEqual(chuLich(Date.UTC(2026, 10, 5, 1, 0)), 'chạy ngay'); assert.strictEqual(chuLich(Date.UTC(2026, 10, 4, 22, 0)), 'chạy 07:00 sáng nay'); assert.strictEqual(chuLich(Date.UTC(2026, 10, 5, 15, 0)), 'chạy 07:00 sáng mai');
+// hai khung cố định 08h / 21h VN (anh 24/11/2026 "Cấm tự lên ngay"): 08:00 VN = 01:00 UTC
+assert.strictEqual(chuLich(Date.UTC(2026, 10, 5, 1, 0)), 'chạy 21:00 tối nay'); assert.strictEqual(chuLich(Date.UTC(2026, 10, 4, 22, 0)), 'chạy 08:00 sáng nay'); assert.strictEqual(chuLich(Date.UTC(2026, 10, 5, 15, 0)), 'chạy 08:00 sáng mai'); assert.strictEqual(chuLich(Date.UTC(2026, 10, 5, 0, 55)), 'chạy 21:00 tối nay');
 // lucTang (anh 06/11/2026 "bao lâu nữa sẽ thực sự tăng"): trong khung tăng → nhịp kế (lần gần nhất + 30 phút); ngoài khung → nhịp đầu sau 21:00 VN; sổ cũ → null
 { const luc = new Date(Date.UTC(2026, 10, 5, 18, 0)).toISOString();   // nhịp 01:00 VN 06/11
   assert.strictEqual(lucTang(luc, false, Date.UTC(2026, 10, 5, 18, 10)), Date.UTC(2026, 10, 5, 18, 30), '01:10 VN trong khung tăng → nhịp 01:30');

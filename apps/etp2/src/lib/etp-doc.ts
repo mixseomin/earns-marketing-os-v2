@@ -7,6 +7,7 @@ import { getDb } from '@mos2/db';
 import { tvSx } from '@/lib/etp-sx';
 import BANG_LUAT from './etp-bang-luat.json';
 import { docNhatKyLen } from '@/lib/etp-nhat-ky-len';
+import { gioLen } from '@/lib/etp-khung';
 
 // chữ --luat trong nhật ký máy → tên luật theo SỔ LUẬT CHUNG (regex nhat_ky của từng khoá); không khớp luật nào thì lấy tên lý do trước ' (' / ' —' / ' ·'
 const NHAT_KY_LUAT = Object.values(BANG_LUAT.khoa).flatMap((v) => {
@@ -499,16 +500,13 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     from etp.cho_anh_duyet_cr h join etp.cham_duyet u on u.creative_id = h.creative_id and u.ok join etp.creative r on r.creative_id = h.creative_id
       left join etp.phim f on f.content_id = r.content_id left join etp.cau_hinh x on x.khoa = 'len_cr_roas'
     where not exists (select 1 from etp.camp c where c.creative_id = h.creative_id) order by h.creative_id`).catch((e) => { console.error('etp hangCr', e); return []; });
-  // giờ chạy THẬT của ▶ Lên: ★ ROAS theo nhan-ban.gio_roas (sổ khung_doi.len_roas — trong [23, 03) VN chạy ngay, ngoài khung hẹn 23:00 VN kế); camp $1 theo lich_len (07:00 VN kế)
-  const [lrA, lrB] = ((BANG_LUAT.khung_doi as unknown as { len_roas?: [number, number] }).len_roas ?? [23, 3]);
-  const gioRoas = (() => { const vn = new Date(Date.now() + 7 * 3600_000), h = vn.getUTCHours(); if (lrA <= lrB ? h >= lrA && h < lrB : h >= lrA || h < lrB) return null;
-    return new Date(Date.UTC(vn.getUTCFullYear(), vn.getUTCMonth(), vn.getUTCDate() + (h < lrA ? 0 : 1), lrA - 7)).toISOString(); })();
-  const mai7 = (() => { const t = new Date(); return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate() + 1)).toISOString(); })();   // 07:00 VN kế = 00:00 UTC kế
+  // giờ chạy THẬT của ▶ Lên: khung cố định 08h / 21h VN gần nhất (nhan-ban.gio_len, anh 24/11/2026) — cả ★ ROAS lẫn camp $1
+  const gioKhung = new Date(gioLen()).toISOString();
   const hangCr: CampEtpKho[] = hangRs.map((r) => { const ro = r.ro == null ? null : Number(r.ro), ns = r.ns == null ? 1 : Number(r.ns), cr = n(r.creative_id);
     const lang = r.lang === 'es' ? 'es' : 'en', nk = docNhatKyLen(cr);   // #1770: đã bấm lên mà camp chưa vào sổ = đang lên
     return { camp_id: -cr, xep: { khuon: lang === 'es' ? 65734 : 65110, lang, cta: r.cta === true || r.cta === 't', truoc: nk.truoc, gui: nk.gui },   // khuôn cùng KHUON_CR của lenNgayCr
       ten: `⏳ chờ anh duyệt · ${ro != null ? `★ ROAS ${ro} · $${ns}` : 'camp $1'} · cr #${cr}`.replace(/^⏳ chờ anh duyệt/, nk.gui ? '🚀 đang lên' : '$&'), bo: (r.bo as string) || null, trang_thai: 'ACTIVE', giao: null, ngan_sach: ns,
-      creative_id: cr, content_id: r.content_id == null ? null : n(r.content_id), goc: null, lich: ro != null ? (gioRoas ?? new Date().toISOString()) : mai7, tao: (r.tao as string) ?? null, loi: null, dong_bo: 'xep_hang',
+      creative_id: cr, content_id: r.content_id == null ? null : n(r.content_id), goc: null, lich: gioKhung, tao: (r.tao as string) ?? null, loi: null, dong_bo: 'xep_hang',
       phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, ban: null, giong: null, doan: null, cung_doan: 0,
       thang: st(0, 0), qua: st(0, 0), nay: st(0, 0), lich_tat: false, nuoc: [], ab: null, dong: null, roas: ro, chien_luoc: ro != null ? 'LOWEST_COST_WITH_MIN_ROAS' : null }; });
   // gộp creative / phim từ camp (cùng nguồn số)

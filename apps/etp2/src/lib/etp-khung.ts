@@ -61,9 +61,18 @@ export function lucLam(huong: HuongLuat | 'tao', luc: string | null, cu: boolean
   for (let i = 0; i < 4 * 48; i++, t += buoc) { const k = khungLuc(gioVnNay(t)); if (t >= som && (huong === 'tao' || (huong === 'tang' ? k === 'tang' || (k === 'sang' && don) : k === 'giam'))) return t; }
   return null;
 }
-/** GIỜ CHẠY của camp TẠO lúc `now` — cùng luật nhan-ban.lich_len (khung_doi.len, 07–12h VN): trong khung chạy ngay, ngoài khung hẹn 07:00 hôm sau / sáng nay.
- *  Chữ cho nút / ô "bấm rồi ra sao" (anh 05/11/2026: "Nếu bấm có lên ngay hay vẫn theo lịch?") */
+/** GIỜ LÊN CAMP = HAI KHUNG CỐ ĐỊNH (anh 24/11/2026 "Tất cả đều phải lên theo 1 trong 2 khung giờ cố định như vậy. Cái nào gần nhất thì lên vào khung đó. Cấm tự lên ngay !!"):
+ *  cùng luật nhan-ban.gio_len (sổ khung_doi.len_gio 08h / 21h VN, len_gio_cach_phut) — trả mốc ms của khung gần nhất, không sớm hơn now + cách phút và không sớm hơn `tu` (ms). */
+export function gioLen(now = Date.now(), tu?: number | null): number {
+  const k = BANG_LUAT.khung_doi as unknown as { len_gio: number[]; len_gio_cach_phut?: number };
+  const som = Math.max(now + (k.len_gio_cach_phut ?? 10) * 60_000, tu ?? 0), ds = [...k.len_gio].sort((a, b) => a - b);
+  const ngay0 = Math.floor((som + 7 * 3600_000) / 864e5) * 864e5 - 7 * 3600_000;   // 00:00 VN của ngày `som`
+  for (let n = 0; n < 3; n++) for (const h of ds) { const t = ngay0 + n * 864e5 + h * 3600_000; if (t >= som) return t; }
+  throw new Error('khung_doi.len_gio rỗng');
+}
+/** chữ giờ chạy của camp TẠO lúc `now` — khung gần nhất (gioLen), không bao giờ "chạy ngay". Chữ cho nút / ô "bấm rồi ra sao" (anh 05/11/2026) */
 export function chuLich(now = Date.now()): string {
-  const [a, b] = KD.len, h = gioVnNay(now), g = `${String(a).padStart(2, '0')}:00`;
-  return h >= a && h < b ? 'chạy ngay' : h < a ? `chạy ${g} sáng nay` : `chạy ${g} sáng mai`;
+  const t = gioLen(now), vn = new Date(t + 7 * 3600_000), nay = new Date(now + 7 * 3600_000), p = (n: number) => String(n).padStart(2, '0');
+  const ngay = vn.getUTCDate() === nay.getUTCDate() ? (vn.getUTCHours() < 12 ? 'sáng nay' : 'tối nay') : vn.getUTCHours() < 12 ? 'sáng mai' : 'tối mai';
+  return `chạy ${p(vn.getUTCHours())}:00 ${ngay}`;
 }

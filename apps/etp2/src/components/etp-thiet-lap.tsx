@@ -4,7 +4,7 @@
 // Dữ liệu tải khi mở (actions/etp-thiet-lap.ts ← etp.bai_camp.du, apps/etp/bai-qc.py). Ô form chữ so với form chuẩn apps/etp/form-chu.json: ✓ đúng · ✗ lệch.
 // Cột VẤN ĐỀ (anh 24/11/2026: "cột duy nhất tổng hợp các vấn đề phát sinh chứ ko chỉ về FORM chữ… hover vào có nút sửa thủ công (=AI)"): gom form chữ lệch,
 // Meta từ chối / có vấn đề, đồng bộ lỗi / treo, lỗi Ethopex, camp bật mà ad set / ad tắt, kho chưa đọc. Nút 🛠 gửi card góp ý etp2 → kỹ sư AI Huy (hàng góp ý chung, gop-y-mos2.ts).
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { DataTable, type DataColumn, type DataGroup } from '@mos2/bang/data-table';
 import { docThietLap, type ThietLap, type DongTl, type OTl } from '@/lib/actions/etp-thiet-lap';
 import { guiGopY } from '@/lib/actions/gop-y-mos2';
@@ -235,15 +235,20 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
       <span style={{ color: coDo ? '#f87171' : coVd ? '#fbbf24' : '#4ade80' }}>{coVd ? `✗ ${coVd} camp có vấn đề (${coDo} đỏ) · ${lech} lệch form chữ${soCu ? ` · ${soCu} ad gắn mẫu trước khi form về (giữ nguyên)` : ''}` : '✓ không camp nào có vấn đề'}</span>
       <style>{'.tl-vd{position:relative;min-height:16px}.tl-vd .tl-sua{display:none;position:absolute;top:-2px;right:-4px;font-size:11px;padding:1px 7px;border-radius:4px;border:1px solid #f59e0b;background:#422006;color:#fde68a;cursor:pointer}.tl-vd-ds{position:relative}.tl-vd-ds:hover .tl-sua{display:inline-block}.tl-vd .tl-sua:disabled{opacity:.6;cursor:wait}.tl-gon summary::-webkit-details-marker{display:none}.tl-gon[open] summary b{display:none}'}</style>
       {du.thieu ? <span style={{ color: '#fbbf24' }}>{du.thieu} camp kho chưa đọc cấu hình Ethopex (bai-qc.py đọc dần mỗi lượt đồng bộ)</span> : null}
-      <span title="apps/etp/form-chu.json">Form chuẩn: {form?.creative_type} · {form?.call_to_action} · {form?.link_url} · “{form?.primaryTexts.join(' / ')}” · “{form?.headlines.join(' / ')}” · “{form?.descriptions.join(' / ')}”</span>
+      <span style={{ cursor: 'help', borderBottom: '1px dotted var(--fg-3)' }} title={`Primary text: ${form?.primaryTexts.join(' / ')}\nHeadline: ${form?.headlines.join(' / ')}\nDescription: ${form?.descriptions.join(' / ')}`}>Form chuẩn: {form?.creative_type} · {form?.call_to_action} · {form?.link_url}</span>
     </div>
-    {gon && chung.length ? <div style={{ fontSize: 11, margin: '0 0 6px', padding: '5px 8px', border: '1px solid var(--line, #333)', borderRadius: 6, background: 'var(--bg-2, #16161f)' }}>
-      <div style={{ color: 'var(--fg-2)', marginBottom: 4 }}><b style={{ color: 'var(--fg-1)' }}>Cấu hình chung</b> — {chung.length} cột giống hệt nhau ở cả {dongLoc.length} camp đang hiện, đã gom khỏi bảng (bấm <b>Đủ</b> để xem lại từng cột)</div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 6px' }}>{NHOM_TL.map((g) => chung.filter((c) => c.group === g.key).map((c) => {
-        const s = chu(dongLoc[0]![c.key]);
-        return <span key={c.key} title={`${g.label} · ${typeof c.title === 'string' ? c.title : ''}`} style={{ display: 'inline-flex', gap: 4, alignItems: 'baseline', padding: '1px 6px', borderRadius: 4, borderLeft: `3px solid ${g.color}`, background: 'var(--bg-1, #0f0f16)', maxWidth: '100%' }}>
-          <span style={{ color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{typeof c.header === 'string' ? c.header : c.key}</span>
-          <span style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{s == null ? '—' : c.cell(dongLoc[0]!, 0)}</span></span>; }))}</div>
+    {/* DẢI CẤU HÌNH CHUNG (anh #1816 "Cần dễ nhìn hơn"): MỘT HÀNG MỖI BƯỚC — cột trái tên bước (màu nhóm như tiêu đề nhóm của bảng, thẳng cột), cột phải các cặp
+        nhãn mờ · giá trị sáng cách nhau rộng; bỏ hộp chip + viền màu từng ô (cầu vồng trang trí); câu giải thích gập vào chữ rê. */}
+    {gon && chung.length ? <div className="tl-chung" style={{ fontSize: 12, margin: '0 0 8px', padding: '6px 10px', border: '1px solid var(--line, #333)', borderRadius: 6, background: 'var(--bg-2, #16161f)' }}>
+      <div style={{ color: 'var(--fg-2)', marginBottom: 4 }} title={`${chung.length} cột có cùng một giá trị ở cả ${dongLoc.length} camp đang hiện nên đã gom khỏi bảng — bấm Đủ để xem lại từng cột`}><b style={{ color: 'var(--fg-1)' }}>Cấu hình chung</b> <span style={{ color: 'var(--fg-3)' }}>· giống nhau ở cả {dongLoc.length} camp</span></div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: 14 }}>{NHOM_TL.map((g) => { const ds = chung.filter((c) => c.group === g.key); return ds.length ? <Fragment key={g.key}>
+        <span data-cot="buoc" title={g.title} style={{ color: g.color, fontWeight: 600, whiteSpace: 'nowrap', padding: '4px 0', borderTop: '1px solid var(--line, #2a2a35)' }}>{g.label}</span>
+        <div data-cot="muc" style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 20px', padding: '4px 0', borderTop: '1px solid var(--line, #2a2a35)' }}>{ds.map((c) => {
+          const s = chu(dongLoc[0]![c.key]);
+          return <span key={c.key} title={typeof c.title === 'string' ? c.title : undefined} style={{ display: 'inline-flex', gap: 6, alignItems: 'baseline', maxWidth: '100%' }}>
+            <span style={{ color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{typeof c.header === 'string' ? c.header : c.key}</span>
+            <span style={{ color: 'var(--fg-1)', fontWeight: 500, whiteSpace: 'normal', wordBreak: 'break-word' }}>{s == null ? '—' : c.cell(dongLoc[0]!, 0)}</span></span>; })}</div>
+      </Fragment> : null; })}</div>
     </div> : null}
     <DataTable rows={dongLoc} columns={cotHien} groups={[...(them?.nhom ?? []), ...NHOM_TL]} groupHeader getRowKey={(r) => String(r.camp_id)} persistKey={gon ? 'etp-thiet-lap-gon' : 'etp-thiet-lap-2'} fixedLayout cuonNgang minWidth={0} pageSize={50}
       defaultSort={[{ key: 'tao', dir: 'desc' }]} ghimDau={ghimMoi} stickyCols={2 + cotNay.length}

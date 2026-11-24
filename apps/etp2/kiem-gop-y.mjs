@@ -7,6 +7,9 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1816, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', mot: "gridTemplateColumns: 'max-content 1fr', columnGap: 14", vi: 'dải Cấu hình chung dễ nhìn: một hàng mỗi bước, tên bước thẳng cột bên trái, cặp nhãn · giá trị bên phải (anh 24/11/2026 góp ý #1816)' },
+  { card: 1816, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', cam: "borderLeft: `3px solid ${g.color}`", vi: 'không quay về chip hộp viền màu từng ô dồn chung một khối' },
+  { card: 1816, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', cam: '· “{form?.primaryTexts.join', vi: 'dòng Form chuẩn không bày cả ba câu chữ QC (để ở chữ rê)' },
   { card: 1814, tep: 'packages/bang/src/data-table.tsx', mot: 'const rongVe = (c: DataColumn<T>)', vi: 'bảng fixed: cột không khai width có bề ngang mặc định ở ô thân, tiêu đề và colgroup — không co 0px làm chữ nhóm Hôm nay đè nhau (Thiết lập)' },
   { card: 1814, tep: 'packages/bang/src/data-table.tsx', co: '<col key={c.key} style={{ width: rongVe(c) }} />', vi: 'colgroup hàng nhãn nhóm dùng cùng bề ngang với ô thân' },
   { card: 1813, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', mot: 'Ad gắn mẫu trước khi form về', vi: 'ad gắn mẫu trước khi creative về form = dòng vàng "giữ nguyên ad đang chạy, chữ form áp cho camp lên sau", không đỏ (anh 24/11/2026 góp ý #1813)' },

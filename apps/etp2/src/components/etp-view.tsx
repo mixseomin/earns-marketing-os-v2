@@ -3242,6 +3242,11 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   // tô là tập RIÊNG mỗi ô (toChon[k] = các mục anh bấm 🖍), chỉ tô vàng camp TRONG danh sách đã lọc. Trước kia bật 🖍 cho một ô là ô đó thôi lọc → muốn giữ Lọc
   // chay,cho,duyet mà tô một mục cùng ô thì mất cả lọc; nay hai việc độc lập, tô được cả mục trong chính ô đang lọc
   const BO_LOC = BO_LOC_DU;
+  // #1825 (anh 24/11/2026 "con số này phải update theo filter đang chọn — nhìn AD thấy 2 camp bấm vào không thấy gì"): SỐ CẠNH MỖI MỤC của MỌI ô lọc = camp qua
+  // MỌI ô lọc KHÁC (trừ chính ô đó — chọn một mục trong ô vẫn thấy số các mục còn lại), cùng tập với widget tách (veTach). Trước đếm trên cả kho du.camps nên Loại AD
+  // ghi 2 trong khi đang lọc Chờ giờ chạy thì 0 camp. Ô nào thêm số mới phải đếm trên demO(k), không đếm du.camps
+  const demO = useMemo(() => { const m = new Map<string, CampEtpKho[]>();
+    return (k: string): CampEtpKho[] => { let v = m.get(k); if (!v) { v = du.camps.filter((c) => BO_LOC.every(([kk, f]) => kk === k || f(c))); m.set(k, v); } return v; }; }, [du.camps, BO_LOC]);
   const KHOP = useMemo((): Record<string, (v: string, c: CampEtpKho) => boolean> => ({ loc: hopLocV, luat: hopLuatV, lai: locLaiV, tuoi: locTuoiV,
     dang: (v, c) => c.dang === v, ro: (v, c) => (v === 'co') === laRoas(c), ab: (v, c) => !!c.ab && (v === c.ab.ma || v === `${c.ab.ma}|${c.ab.nhanh}`) }), [hopLocV, hopLuatV, locLaiV]);   // eslint-disable-line react-hooks/exhaustive-deps
   const phamViTo = tab === 'camp' && (xemCamp === 'cay' || xemCamp === 'bang' || xemCamp === 'thietlap');
@@ -3255,7 +3260,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   // widget breakdown Tổng quan 2: mỗi widget tách trên tập camp qua MỌI ô lọc TRỪ ô của chính nó (anh 10/11/2026 "trạng thái có nhiều sao hiện mỗi Đang chạy" — như cách đếm trong ô lọc),
   // bằng đúng hàm phân loại của ô đó; số = kỳ đang chọn (khCamp). Loại: dòng con = biến thể (bản mẫu c.ban) · A/B: xếp theo lần, dòng con = nhánh Thử / Đối chứng (anh 10/11/2026)
   const veTach = useMemo((): Record<string, () => React.ReactNode> => {
-    const goc = (k: string) => du.camps.filter((c) => BO_LOC.every(([kk, f]) => kk === k || f(c)));
+    const goc = demO;
     const gom = (cs: CampEtpKho[], f: (c: CampEtpKho) => [string, React.ReactNode?, string?], fCon?: (c: CampEtpKho) => [string, React.ReactNode?, string?]): NhomTach[] => {
       const m = new Map<string, NhomTach>();
       for (const c of cs) { const [ten, nhan, xep] = f(c); const g = m.get(ten) ?? (() => { const x: NhomTach = { ten, nhan: nhan ?? ten, cs: [], xep }; m.set(ten, x); return x; })(); g.cs.push(c); }
@@ -3409,36 +3414,37 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
 
   // ô chọn lọc camp — MỘT bản cho máy tính (cùng hàng chip) và điện thoại (bảng Lọc, ba ô một hàng)
   const luatOpts = useMemo(() => { const m = new Map<string, { dac: boolean; dem: number }>(); let khong = 0, dang = 0, sap = 0;
-    for (const c of du.camps) { const ch = chipMap.get(c.camp_id); if (!ch) { khong++; continue; } if (ch.dac) dang++; else sap++; const x = m.get(ch.chip); if (x) x.dem++; else m.set(ch.chip, { dac: ch.dac, dem: 1 }); }
+    const cs = demO('luat'), ids = new Set(cs.map((c) => c.camp_id)), lamO = lamKy.filter((t) => ids.has(t.camp_id));   // #1825: số theo các ô lọc khác
+    for (const c of cs) { const ch = chipMap.get(c.camp_id); if (!ch) { khong++; continue; } if (ch.dac) dang++; else sap++; const x = m.get(ch.chip); if (x) x.dem++; else m.set(ch.chip, { dac: ch.dac, dem: 1 }); }
     const chip = [...m].map(([chip, x]) => ({ value: chip, label: chip, nhom: x.dac ? 'Đang chạm' : 'Sắp chạm', dem: x.dem })).sort((a, b) => (a.nhom === b.nhom ? b.dem - a.dem : a.nhom === 'Đang chạm' ? -1 : 1));
-    const lam = [...lamKy.reduce((a, t) => a.set(`${t.viec}:${t.ma}`, (a.get(`${t.viec}:${t.ma}`) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1])
+    const lam = [...lamO.reduce((a, t) => a.set(`${t.viec}:${t.ma}`, (a.get(`${t.viec}:${t.ma}`) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1])
       .map(([k, dem]) => { const [viec, ...ma] = k.split(':'); return { value: DA_LAM + k, label: `${viec === 'tat' ? '⏹' : '↓'} ${ma.join(':')}`, nhom: NHOM_LAM[viec!] ?? viec!, dem }; });
     // #1587: mục "Tất cả <nhóm>" đứng đầu mỗi nhóm (đếm CAMP khác nhau, một camp chạm nhiều luật chỉ tính một)
     const ca = (value: string, nhom: string, dem: number) => ({ value, label: `Tất cả ${nhom.toLowerCase()}${nhom.endsWith(' theo') ? ' luật' : ''}`, nhom, dem, title: `lọc mọi camp trong nhóm "${nhom}"` });
-    const camLam = (viec: string) => new Set(lamKy.filter((t) => t.viec === viec).map((t) => t.camp_id)).size;
+    const camLam = (viec: string) => new Set(lamO.filter((t) => t.viec === viec).map((t) => t.camp_id)).size;
     return [...(dang ? [ca(LUAT_NHOM_DANG, 'Đang chạm', dang)] : []), ...chip.filter((o) => o.nhom === 'Đang chạm'),
       ...(sap ? [ca(LUAT_NHOM_SAP, 'Sắp chạm', sap)] : []), ...chip.filter((o) => o.nhom === 'Sắp chạm'),
       ...(khong ? [{ value: KHONG_LUAT, label: 'Không chạm luật', nhom: 'Khác', dem: khong }] : []),
       ...Object.entries(NHOM_LAM).flatMap(([viec, nhom]) => { const con = lam.filter((o) => o.nhom === nhom); return con.length ? [ca(`${DA_LAM}${viec}:${LAM_CA}`, nhom, camLam(viec)), ...con] : []; }),
-      ...lam.filter((o) => !Object.values(NHOM_LAM).includes(o.nhom))]; }, [du.camps, lamKy, chipMap]);
+      ...lam.filter((o) => !Object.values(NHOM_LAM).includes(o.nhom))]; }, [demO, lamKy, chipMap]);
   const luatSel = () => <Chon2 chan={chanLoc.luat} to={toCua('luat')} value={luatLoc} onChange={(v) => doi({ luat: v }, () => setLuatLoc(v))} nhan="Luật" title="lọc camp theo thẻ luật đang hiện ở cột Luật (đang chạm: viền liền · sắp chạm: viền nét đứt)" options={luatOpts} />;
   const dangSel = () => <Chon2 chan={chanLoc.dang} to={toCua('dang')} value={dangLoc} onChange={(v) => doi({ dang: v }, () => setDangLoc(v))} nhan="Loại" title="lọc camp theo loại creative"
     // #1486: mỗi dòng = ĐÚNG badge cột LOẠI (BadgeDang ngắn, cùng màu MAU_DANG) + tên loại; chữ tìm + nhãn gọn trên nút giữ dạng chữ
     options={Object.entries(MA_DANG).map(([d, m]) => ({ value: d, label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><BadgeDang d={d} ngan /><span>{d}</span></span>,
-      tim: `${m} ${d}`, ngan: `${m} · ${d}`, dem: du.camps.filter((c) => c.dang === d).length }))} />;   // mọi dạng trong sổ đều hiện, kể cả dạng mới chưa có camp (dem 0) — anh 24/11/2026 "Thêm vào đây" (ảnh động AD)
+      tim: `${m} ${d}`, ngan: `${m} · ${d}`, dem: demO('dang').filter((c) => c.dang === d).length }))} />;   // mọi dạng trong sổ đều hiện, kể cả dạng mới chưa có camp (dem 0) — anh 24/11/2026 "Thêm vào đây" (ảnh động AD)
   // #1515 (anh 03/11/2026 'thêm nhóm option nhanh khác như <7 ngày, ≤3 ngày'): mốc CỘNG DỒN trước, khoảng sau — cùng mã 'a-b' (locTuoi đọc chung)
   const TUOI_MUC = [['0-3', '< 3 ngày'], ['0-7', '< 7 ngày'], ['0-14', '< 14 ngày'], ['7-', '≥ 7 ngày'], ['0-1', 'Dưới 1 ngày'], ['1-2', '1–2 ngày'], ['2-3', '2–3 ngày'], ['3-7', '3–7 ngày'], ['7-14', '7–14 ngày'], ['14-30', '14–30 ngày'], ['30-', 'Trên 30 ngày']] as const;
   const tuoiSel = () => <Chon2 chan={chanLoc.tuoi} to={toCua('tuoi')} value={tuoiChon} onChange={(v) => doi({ tu: v }, () => setTuoiChon(v))} nhan="Tuổi" title="lọc camp theo tuổi (tính từ lúc lên camp)"
-    options={TUOI_MUC.map(([v, t]) => { const [a, b] = v.split('-'); return { value: v, label: t, dem: du.camps.filter((c) => { const x = tuoiNgay(c.tao); return x != null && x >= Number(a) && (b === '' || x < Number(b)); }).length }; }).filter((o) => o.dem)} />;
+    options={TUOI_MUC.map(([v, t]) => { const [a, b] = v.split('-'); return { value: v, label: t, dem: demO('tuoi').filter((c) => { const x = tuoiNgay(c.tao); return x != null && x >= Number(a) && (b === '' || x < Number(b)); }).length }; }).filter((o) => o.dem)} />;
   // ROAS (anh 02/11/2026 #1506 "thêm bộ lọc camp ROAS"): camp thầu ROAS (★, nhận theo chiến lược thầu thật — laRoas) / camp thường
   const roSel = () => <Chon2 chan={chanLoc.ro} to={toCua('ro')} value={roLoc} onChange={(v) => doi({ ro: v }, () => setRoLoc(v))} nhan="ROAS" title="lọc camp thầu ROAS (★) / camp thường"
-    options={[{ value: 'co', label: '★ Camp ROAS', ngan: '★ ROAS', dem: du.camps.filter((c) => laRoas(c)).length }, { value: 'khong', label: 'Camp thường (không ROAS)', ngan: 'Không ROAS', dem: du.camps.filter((c) => !laRoas(c)).length }]} />;
+    options={[{ value: 'co', label: '★ Camp ROAS', ngan: '★ ROAS', dem: demO('ro').filter((c) => laRoas(c)).length }, { value: 'khong', label: 'Camp thường (không ROAS)', ngan: 'Không ROAS', dem: demO('ro').filter((c) => !laRoas(c)).length }]} />;
   // LẦN A/B: đọc SỔ etp.ab (du.abSo — lần đang chạy) + mã còn trên camp (lần đã xong); mỗi mã một nhóm (cả hai nhánh + Thử + Đối chứng), số = camp đang có trong kho
   const abSel = () => { const so = new Map((du.abSo ?? []).map((a) => [a.ma, a]));
     for (const c of du.camps) if (c.ab && !so.has(c.ab.ma)) so.set(c.ab.ma, { ma: c.ab.ma, ten: c.ab.ten, batDau: c.ab.batDau, giaThuyet: c.ab.giaThuyet, thu: c.ab.nhanh === 'thu' ? c.ab.nhanhTen : 'thu', doi: c.ab.nhanh === 'doi' ? c.ab.nhanhTen : 'doi' });
     const ma = [...so.values()].sort((a, b) => b.ma.localeCompare(a.ma)); if (!ma.length) return null;
     return <Chon2 chan={chanLoc.ab} to={toCua('ab')} value={abLoc} onChange={(v) => doi({ ab: v }, () => setAbLoc(v))} nhan="A/B" title="lọc camp theo lần A/B: cả hai nhánh, hoặc riêng nhánh thử / đối chứng — chọn một nhánh thì dòng tổng ra số riêng nhánh"
-      options={ma.flatMap((a) => { const cs = du.camps.filter((c) => c.ab?.ma === a.ma), nhom = `${a.ma} · ${a.ten} · từ ${ngayVn(a.batDau)}`;
+      options={ma.flatMap((a) => { const cs = demO('ab').filter((c) => c.ab?.ma === a.ma), nhom = `${a.ma} · ${a.ten} · từ ${ngayVn(a.batDau)}`;
         return [{ value: a.ma, label: `${a.ma} · cả hai nhánh`, ngan: `${a.ma} · ${a.ten}`, nhom, dem: cs.length, title: a.giaThuyet ?? undefined },
           ...(['thu', 'doi'] as const).map((n) => ({ value: `${a.ma}|${n}`, label: `${n === 'thu' ? 'Thử' : 'Đối chứng'} · ${a[n]}`, ngan: `${a.ma} · ${a[n]}`, nhom, dem: cs.filter((c) => c.ab!.nhanh === n).length }))]; })} />; };
   const laiSel = () => <Chon2 chan={chanLoc.lai} to={toCua('lai')} value={laiLoc} onChange={(v) => doi({ ll: v }, () => setLaiLoc(v))} nhan="Lãi/lỗ" title="lọc camp lãi / lỗ — trong ngày hôm nay, theo kỳ đang chọn, hoặc lỗ N ngày đã khép gần nhất"
@@ -3470,7 +3476,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     return <span>Không có trong phần <b>{tenNguoi}</b>, nhưng có ở: {ds.map((x, i) => <Fragment key={x.nguoi_id}>{i ? ' · ' : ''}<a href={urlNguoi(x.nha ? '' : String(x.nguoi_id)).href} style={{ color: '#60a5fa' }}>{x.nguoi}{x.nha ? ' (nhà)' : ''}</a> {x.so} camp{x.chay ? `, ${x.chay} đang chạy` : ''}{x.so === 1 ? ` (#${x.vi_du})` : ''}</Fragment>)}{du.nguoi.ds.length > 1 && !du.nguoi.doi ? <> · <a href={urlNguoi('team').href} style={{ color: '#60a5fa' }}>xem Team</a></> : null}</span>;
   };
   const boSel = () => (!boCo.length ? null : <Chon2 chan={chanLoc.bo} value={boHieu} onChange={(v) => doi({ bo: v }, () => setBoLoc(v))} nhan="TK" align="left" title="lọc camp theo bộ tài khoản QC (tài khoản + Page)"
-    options={boCo.map((b) => ({ value: b, label: `Bộ ${b}${gon ? '' : du.boTk[b] ? ` · ${du.boTk[b]!.ten}` : ''}${du.boTk[b]?.mui_gio ? ` · ${du.boTk[b]!.mui_gio}` : du.nguoi.ngoai ? '' : ' · múi giờ ?'}`, ngan: `Bộ ${b}`, tim: `bộ ${b} ${du.boTk[b]?.ten ?? ''}`, dem: du.camps.filter((c) => c.bo === b && c.trang_thai === 'ACTIVE').length }))} />);
+    options={boCo.map((b) => ({ value: b, label: `Bộ ${b}${gon ? '' : du.boTk[b] ? ` · ${du.boTk[b]!.ten}` : ''}${du.boTk[b]?.mui_gio ? ` · ${du.boTk[b]!.mui_gio}` : du.nguoi.ngoai ? '' : ' · múi giờ ?'}`, ngan: `Bộ ${b}`, tim: `bộ ${b} ${du.boTk[b]?.ten ?? ''}`, dem: demO('bo').filter((c) => c.bo === b && c.trang_thai === 'ACTIVE').length }))} />);
   // LÊN DÒNG DÍNH (anh 01/11/2026 #1499 "chuyển chọn ngày lên trên + sticky (vẫn cho chọn)", #1500 "chuyển cả bộ TK vào sau chỗ chọn người + sticky; phần chọn Người cũng cho đổi ở sticky"):
   // máy tính: Người · TK · kỳ đứng LIỀN một cụm (anh 01/11/2026 "chọn kỳ cũng cho lên cùng dòng với Người, TK") — ở dòng tiêu đề khi chưa cuộn, ở dòng số gọn dính khi đã cuộn; hàng tab / hàng lọc không còn hai ô này.
   // Điện thoại giữ như cũ (dòng gọn cuộn ngang, ô TK trong bảng Lọc)
@@ -3479,7 +3485,8 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const hienLoc = TAB_LOC_CAMP.includes(tab) && !(tab === 'camp' && xemCamp === 'lich'), coBo = hienLoc && locCoTab(tab, 'bo');
   // các ô lọc phụ theo thứ tự cố định, chỉ ô trang này áp (LOC_TAB)
   // Ô "Lọc" (trạng thái / luật / ngưỡng) — hàm dựng để dùng ở hàng lọc trang VÀ ngăn Logs (anh 08/11/2026 "Dùng bộ lọc này cho đầy đủ")
-  const locSel = () => (() => { const dem: Record<string, number> = { all: du.camps.length, chay: du.camps.filter(dangChay).length, cho: du.camps.filter(choChay).length, duyet: du.hangCr?.length ?? 0,   /* trạng thái đếm trên CẢ kho như 'tat' — đếm trên tập đã lọc thì 'Chờ giờ chạy' luôn 0 khi đang lọc Đang chạy (anh 05/11/2026) */ tat: du.camps.filter(daTat).length, gtang: demGan('tang'), ggiam: demGan('giam'), gtat: demGan('tat'), mlai: [...moiMap.values()].filter((v) => v === 'mlai').length, mlo: [...moiMap.values()].filter((v) => v === 'mlo').length, sx: du.camps.filter((c) => phimSx.has(c.content_id ?? -1)).length, ...Object.fromEntries((['tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran'] as const).map((k) => [k, du.camps.filter((c) => mucTieu(c) === k).length])), chua_tieu: du.camps.filter(chuaTieu).length, cung: du.camps.filter((c) => c.cung_doan > tranT).length, bai_cu: du.camps.filter(laBaiCu).length, bai_moi: du.camps.filter((c) => !laBaiCu(c)).length, roas: roasDat.size, luat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')).length, ganluat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')).length };
+  const locSel = () => (() => { const cs = demO('loc'), ids = new Set(cs.map((c) => c.camp_id)), coId = <V,>(m: Map<number, V>) => [...m].filter(([id]) => ids.has(id)).map(([, v]) => v);
+    const dem: Record<string, number> = { all: cs.length, chay: cs.filter(dangChay).length, cho: cs.filter(choChay).length, duyet: (du.hangCr ?? []).filter((c) => BO_LOC.every(([k, f]) => k === 'ky' || k === 'loc' || f(c))).length,   /* #1825: đếm trên camp qua MỌI ô lọc KHÁC (demO, trừ chính ô Lọc) — vẫn giữ luật 05/11/2026: đang lọc Đang chạy thì 'Chờ giờ chạy' không về 0, vì ô Lọc không tự lọc chính nó */ tat: cs.filter(daTat).length, gtang: coId(ganMap).filter((g) => g.tang).length, ggiam: coId(ganMap).filter((g) => g.giam).length, gtat: coId(ganMap).filter((g) => g.tat).length, mlai: coId(moiMap).filter((v) => v === 'mlai').length, mlo: coId(moiMap).filter((v) => v === 'mlo').length, sx: cs.filter((c) => phimSx.has(c.content_id ?? -1)).length, ...Object.fromEntries((['tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran'] as const).map((k) => [k, cs.filter((c) => mucTieu(c) === k).length])), chua_tieu: cs.filter(chuaTieu).length, cung: cs.filter((c) => c.cung_doan > tranT).length, bai_cu: cs.filter(laBaiCu).length, bai_moi: cs.filter((c) => !laBaiCu(c)).length, roas: [...roasDat].filter((id) => ids.has(id)).length, luat: cs.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')).length, ganluat: cs.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')).length };
         const m = (value: keyof typeof LOC_NHOM, label: string, title?: string): Chon2Muc => ({ value, label, nhom: LOC_NHOM[value], dem: dem[value], title });
         return <Chon2 chan={chanLoc.loc} to={toCua('loc')} value={loc} onChange={doiLoc} nhieu tatCa="all" nhan="Lọc" anRong title="lọc camp theo trạng thái / luật / ngưỡng — chọn được nhiều mục: cùng nhóm = khớp một trong các mục, khác nhóm = phải thoả mọi nhóm" options={[
           { value: 'all', label: 'Tất cả', dem: dem.all },   // "Tất cả" luôn đứng ĐẦU, cùng chữ với mọi ô lọc (anh 27/10/2026)

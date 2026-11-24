@@ -582,8 +582,9 @@ const LUAT = [
   { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const tongNgay = (rs0: CampEtpKho[], tk = false): SoTien[] => { if (tk) return [...ngay.map(tongTk)', vi: 'tổng ngày: dòng Tổng (tk) cộng cả tài khoản từ sổ ngày, dòng phim qua caPhim' },
   { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const demCamp = (rs0: CampEtpKho[], tk = false): number[] => { if (tk) return [...ngay.map((d) => [...so.values()]', vi: 'đếm camp dòng Tổng = mọi camp có chi trong sổ ngày (62–92 camp 17–20/11 như Ethopex)' },
   // #1788 lần 3 (anh 23/11/2026 "Ai cho mày ẩn" · "Ko làm à"): bộ lọc trạng thái HIỆN TẠI không giấu camp có chi trong 7 ngày gần nhất; dòng Tổng = cả tài khoản
-  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', mot: '|| (coChi7(c) && hopLocV(boTrangThai(loc), c))', vi: 'camp có chi 7 ngày / hôm nay qua nhóm Trạng thái của ô Lọc (camp tiêu 17–20/11 rồi tắt vẫn hiện)' },
-  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'const hopLoc = useCallback((c: CampEtpKho) => luatLoc.startsWith(`${DA_LAM}tat:`) || hopLocV(loc, c), [loc, luatLoc, hopLocV]);', vi: 'không quay về ô Lọc trạng thái giấu camp đã tắt có chi 7 ngày' },
+  // anh 24/11/2026 (lọc Đang chạy + Chờ giờ chạy + Chờ duyệt vẫn hiện camp dừng): nhóm Trạng thái là lọc cứng, bỏ đường vòng coChi7 của #1788 lần 3
+  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const hopLoc = useCallback((c: CampEtpKho) => luatLoc.startsWith(`${DA_LAM}tat:`) || hopLocV(loc, c), [loc, luatLoc, hopLocV]);', vi: 'ô Lọc trạng thái lọc cứng: chọn Đang chạy / Chờ / Chờ duyệt không hiện camp dừng' },
+  { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'hopLocV(boTrangThai(loc), c)', vi: 'không quay về đường vòng cho camp có chi 7 ngày lọt qua nhóm Trạng thái' },
   { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const tk = !!o?.tong, sd = tongNgay(rs, tk);', vi: 'ô ngày dòng Tổng cuối bảng đọc cờ tong của DataTable → cả tài khoản' },
   { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const tg = tongNgay(camps, true)', vi: 'dải tổng trên đầu (điện thoại) cũng cả tài khoản' },
   { card: '1788', tep: 'packages/bang/src/data-table.tsx', mot: 'c.total(shownRows, { tong: true })', vi: 'DataTable báo cột biết đang vẽ dòng Tổng cuối bảng (khác dòng nhóm)' },

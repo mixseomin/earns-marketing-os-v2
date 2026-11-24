@@ -3190,13 +3190,10 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     : k === 'luat' ? (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')
     : k === 'ganluat' ? (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')
     : k === 'gtang' ? !!ganMap.get(c.camp_id)?.tang : k === 'ggiam' ? !!ganMap.get(c.camp_id)?.giam : k === 'gtat' ? !!ganMap.get(c.camp_id)?.tat : k === 'mlai' || k === 'mlo' ? moiMap.get(c.camp_id) === k : k === 'tieu0' || k === 'tieu25' || k === 'tieu50' || k === 'tieu90' || k === 'tran' ? mucTieu(c) === k : k === 'chua_tieu' ? chuaTieu(c) : k === 'sx' ? phimSx.has(c.content_id ?? -1) : k === 'bai_cu' ? laBaiCu(c) : k === 'bai_moi' ? !laBaiCu(c) : c.cung_doan > tranT))); }, [roasDat, ganMap, baoCampBang, tranT, moiMap, phimSx, chuaTieu]);   // eslint-disable-line react-hooks/exhaustive-deps
-  // #1788 lần 3 (anh 23/11/2026 "danh sách 7 ngày gần nhất luôn luôn phải hiện. Ai cho mày ẩn"): camp CÓ CHI trong 7 ngày đã khép gần nhất hoặc hôm nay luôn qua
-  // nhóm Trạng thái (Đang chạy / Chờ chạy / Chờ duyệt / Đã tắt) — trạng thái là của BÂY GIỜ, camp tiêu 17–20/11 rồi tắt vẫn phải hiện số 7 ngày. Các nhóm lọc khác
-  // (Luật máy, Gần ngưỡng…) vẫn áp. Chỉ ở bộ lọc danh sách, không ở KHOP (tô vàng mục Đang chạy vẫn chỉ tô camp đang chạy thật).
-  const ngay7 = useMemo(() => [1, 2, 3, 4, 5, 6, 7].map((k) => ngayCong(du.nay, -k)), [du.nay]);
-  const coChi7 = useCallback((c: CampEtpKho) => c.nay.chi > 0 || ngay7.some((d) => coChi.has(`${c.camp_id}|${d}`)), [ngay7, coChi]);
-  const boTrangThai = (v: string) => locDs(v).filter((k) => LOC_NHOM[k as keyof typeof LOC_NHOM] !== 'Trạng thái').join(',');
-  const hopLoc = useCallback((c: CampEtpKho) => luatLoc.startsWith(`${DA_LAM}tat:`) || hopLocV(loc, c) || (coChi7(c) && hopLocV(boTrangThai(loc), c)), [loc, luatLoc, hopLocV, coChi7]);   // eslint-disable-line react-hooks/exhaustive-deps
+  // Ô Lọc nhóm Trạng thái là LỌC CỨNG (anh 24/11/2026 "Bố mày chọn thế này thì sao lại hiện ra?" — chọn Đang chạy + Chờ giờ chạy + Chờ duyệt mà vẫn hiện camp dừng):
+  // bỏ đường vòng #1788 lần 3 cho camp có chi 7 ngày qua nhóm Trạng thái. Số 7 ngày của camp đã tắt vẫn đủ ở dòng Tổng (cả tài khoản từ sổ ngày) + dòng phim (caPhim);
+  // muốn thấy từng camp đã tắt thì chọn thêm Đã tắt.
+  const hopLoc = useCallback((c: CampEtpKho) => luatLoc.startsWith(`${DA_LAM}tat:`) || hopLocV(loc, c), [loc, luatLoc, hopLocV]);
   // BỘ LỌC CAMP CÓ TÊN (anh 02/11/2026 "tại sao ko còn hiện camp nào? Filter nào gây ra phải highlight chứ?"): MỘT danh sách vừa lọc cây / bảng, vừa chỉ ra
   // ô lọc nào đang ẩn camp người dùng gõ trong ô tìm (ô đó viền đỏ) — thêm bộ lọc mới thì thêm vào đây, không lọc riêng chỗ khác
   const BO_LOC_DU = useMemo((): [string, (c: CampEtpKho) => boolean][] => [['loc', hopLoc], ['luat', hopLuat], ['phim', (c) => !phimLoc || xemCamp !== 'bang' || c.content_id === phimLoc],

@@ -197,7 +197,10 @@ const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 const NEN_DAC = 'var(--bg-2, var(--surface, #16181d))';
 const TONG_BG = `color-mix(in srgb, var(--accent, #60a5fa) 14%, ${NEN_DAC})`;   // nền dòng tổng (pha trên nền đặc → vẫn đặc)
 const KHUNG_DINH_MIN = 420;   // px — khung cuộn thấp hơn mức này thì tiêu đề / chân bảng không dính (góp ý #1721)
-const RONG_MAC_DINH = 96;   // px — bề ngang cột chưa khai width khi bảng ở chế độ fixed
+const RONG_MAC_DINH = 96;
+// SÀN co theo khung (anh 24/11/2026, mos2 Tài sản + etp2 Thiết lập: "các cột ko được để dồn"): co tỉ lệ cho vừa khung KHÔNG ép cột hẹp hơn
+// 64px (cột người kéo hẹp hơn thế thì giữ đúng bề người kéo) — hết chỗ thì bảng rộng hơn khung và cuộn ngang, không co dồn tới mất chữ
+const SAN_CO = 64;   // px — bề ngang cột chưa khai width khi bảng ở chế độ fixed
 export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey: persistKeyGoc, onRowClick, minWidth = 640, rowTitle, rowStyle, fullRow, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced, timNgoai, giuCot,
@@ -468,7 +471,7 @@ export function DataTable<T>({
     const coDuoc = tongLuu - v;
     const heSo = !cuonNgang && khung > 0 && coDuoc > 0 && tongLuu + tongKhac > khung ? Math.max(0.1, (khung - tongKhac - v) / coDuoc) : 1;
     const out: Record<string, number> = {};
-    for (const c of visible) { const x = r[c.key]; if (x != null) out[c.key] = c.key === keo ? x : Math.floor(x * heSo * 100) / 100; }
+    for (const c of visible) { const x = r[c.key]; if (x != null) out[c.key] = c.key === keo ? x : Math.max(Math.floor(x * heSo * 100) / 100, Math.min(x, SAN_CO)); }
     return out;
   };
   const hien = hienRef.current(rong, dangKeo);

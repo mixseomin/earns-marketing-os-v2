@@ -505,18 +505,15 @@ export function DataTable<T>({
   // người ĐÃ kéo cột (bản tự chốt lúc vẽ đầu không tính) → mới có gì để ↺ đưa về
   const daKeoTay = Object.keys(rong).length > 0 && tuChotRef.current == null;
   const rongCot = (k: string): number | undefined => hien[k];
-  // bề ngang VẼ của một cột — MỘT chỗ cho ô thân, ô tiêu đề và <colgroup>: bảng fixed mà cột không khai width → RONG_MAC_DINH.
-  // Trước chỉ ô thân có mặc định; colgroup (hàng nhãn nhóm) để trống → table-layout:fixed ép cột về 0px, chữ nhóm đè lên nhau (etp2 #1814, Thiết lập: nhóm Hôm nay / Hôm qua)
-  const rongVe = (c: DataColumn<T>): number | string | undefined => rongCot(c.key) ?? c.width ?? (coDinh ? RONG_MAC_DINH : undefined);
   const cellStyle = (c: DataColumn<T>, extra?: CSSProperties, i = -1): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
     // bảng đã chuyển fixed (đã kéo cột) mà cột này chưa có bề ngang (cột MỚI thêm sau lần kéo) → bề ngang mặc định, không thì table-layout:fixed
     // dồn hết chỗ cho các cột đã chốt và cột mới bị ép còn 0px — biến mất (etp cột Luật, anh 27/10/2026 "ko có cột Luật nào")
-    return { ...baseCell, textAlign: c.align ?? 'right', width: rongVe(c), ...(rong[c.key] ? { maxWidth: rongCot(c.key) } : {}), ...(coDinh ? { overflow: 'hidden', textOverflow: 'ellipsis' } : {}), background: bandSoft(g?.color), ...stick(i, false), ...extra };
+    return { ...baseCell, textAlign: c.align ?? 'right', width: rongCot(c.key) ?? c.width ?? (coDinh ? RONG_MAC_DINH : undefined), ...(rong[c.key] ? { maxWidth: rongCot(c.key) } : {}), ...(coDinh ? { overflow: 'hidden', textOverflow: 'ellipsis' } : {}), background: bandSoft(g?.color), ...stick(i, false), ...extra };
   };
   const headStyle = (c: DataColumn<T>, i = 0): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
-    return { ...baseHead, textAlign: c.headerAlign ?? c.align ?? 'right', width: rongVe(c),
+    return { ...baseHead, textAlign: c.headerAlign ?? c.align ?? 'right', width: rongCot(c.key) ?? c.width,
       color: g?.color ?? 'var(--fg-3)',
       // nền = lớp ĐỤC + lớp màu nhóm (trong suốt) chồng lên, để hàng cuộn qua không lộ xuyên
       backgroundColor: 'var(--bg-2)',
@@ -668,14 +665,18 @@ export function DataTable<T>({
   // hàng nhãn nhóm (groupHeader): dải cột liền nhau cùng group → một ô colSpan; cột không nhóm → ô trống
   const hangNhom = () => {
     if (!groupHeader) return null;
+    // NHÃN NHÓM CHỒNG NHAU (etp2 Thiết lập, anh 24/11/2026): (1) dải nhóm vắt qua ranh cột ghim → tách đôi tại ranh, phần trong vùng ghim dính theo cột của nó
+    // (trước chỉ ô đầu dính → cuộn ngang, nhãn nhóm của cột ghim trôi đi còn nhãn nhóm sau chui vào trên cột ghim); (2) nhãn dài hơn dải → cắt … trong dải, hover đọc đủ
+    // (trước nowrap tràn đè lên nhãn dải bên cạnh: "HÔM NAY (ĐANG CHẠY)" đè "HÔM QUA")
     const dai: { g?: string; n: number; i: number }[] = [];
-    visible.forEach((c, i) => { const d = dai[dai.length - 1]; if (d && d.g === c.group) d.n++; else dai.push({ g: c.group, n: 1, i }); });
+    visible.forEach((c, i) => { const d = dai[dai.length - 1]; if (d && d.g === c.group && (i < soGhim) === (d.i < soGhim)) d.n++; else dai.push({ g: c.group, n: 1, i }); });
     return (
       <tr>
-        {dai.map((d) => { const g = d.g ? groupMeta.get(d.g) : undefined; return (
+        {dai.map((d) => { const g = d.g ? groupMeta.get(d.g) : undefined, gh = ghim(d.i), cuoi = gh && d.i + d.n >= soGhim; return (
           <th key={`${d.g ?? '-'}:${d.i}`} colSpan={d.n} style={{ ...baseHead, textAlign: 'center', color: g?.color ?? 'var(--fg-2)', fontWeight: 700, backgroundColor: 'var(--bg-2)',
             backgroundImage: g?.color ? `linear-gradient(${band(g.color)}, ${band(g.color)})` : undefined, borderLeft: d.i ? '1px solid var(--line)' : undefined,
-            borderBottom: g ? `2px solid ${g.color ?? 'var(--line)'}` : undefined, ...(stickyFirst && d.i === 0 ? { position: 'sticky', left: 0, zIndex: 4 } : {}) }} title={g?.title}>{g?.label ?? ''}</th>
+            borderBottom: g ? `2px solid ${g.color ?? 'var(--line)'}` : undefined, overflow: 'hidden', textOverflow: 'ellipsis',
+            ...(gh ? { position: 'sticky', left: gh.left, zIndex: 4, ...(cuoi ? { boxShadow: '1px 0 0 var(--line)' } : {}) } : {}) }} title={[g?.label, g?.title].filter(Boolean).join(' — ') || undefined}>{g?.label ?? ''}</th>
         ); })}
       </tr>
     );
@@ -981,7 +982,7 @@ export function DataTable<T>({
       )}
       <div ref={thanRef} className={`dt-scroll${theoTrang ? '' : ' dt-hop'}`} onScroll={theoTrang ? dongCuon('than') : undefined} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
         <table ref={bangRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: fixedLayout || Object.keys(rong).length ? 'fixed' : 'auto', minWidth: trongO && !hienHet ? 0 : minWidth, ...(theoTrang && cotDo.cao ? { marginTop: -cotDo.cao } : {}) }}>
-          {groupHeader ? <colgroup>{visible.map((c) => <col key={c.key} style={{ width: rongVe(c) }} />)}</colgroup> : null}{/* hàng nhãn nhóm (ô gộp) đứng ĐẦU thead → table-layout:fixed bỏ qua bề rộng ở hàng cột → kéo giãn cột bị chia đều; khai bề rộng bằng colgroup */}
+          {groupHeader ? <colgroup>{visible.map((c) => <col key={c.key} style={{ width: rongCot(c.key) ?? c.width }} />)}</colgroup> : null}{/* hàng nhãn nhóm (ô gộp) đứng ĐẦU thead → table-layout:fixed bỏ qua bề rộng ở hàng cột → kéo giãn cột bị chia đều; khai bề rộng bằng colgroup */}
           {!hideHeader && (theoTrang
             ? <thead ref={doRef} style={{ visibility: 'hidden' }}>{hangNhom()}{hangDau(false)}</thead>
             : <thead>{hangNhom()}{hangDau(true)}</thead>)}

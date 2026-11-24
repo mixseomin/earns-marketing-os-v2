@@ -45,6 +45,11 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
   const [gui, setGui] = useState<Record<number, { dang?: boolean; id?: number; loi?: string }>>({});
   // LỌC THEO MỨC VẤN ĐỀ (anh 24/11/2026 "Nếu đỏ thì show cái đỏ, ko show vàng"): '' = tất cả · do / vang = chỉ camp có mức đó, ô chỉ hiện vấn đề mức đó · khong = camp không vấn đề
   const [muc, setMuc] = useState<'' | 'do' | 'vang' | 'khong'>('');
+  // GỌN / ĐỦ (anh 24/11/2026 "Bảng đó còn làm gì cho gọn và giúp tao nắm đc tổng thể"): Gọn = cột giống hệt nhau ở MỌI camp đang hiện gom lên dải "Cấu hình chung",
+  // 13 cột trạng thái / đồng bộ gộp thành một ô · Đủ = bảng đủ cột như cũ (lệnh 24/11 "đủ cột, chữ không cắt" — luôn cách một lần bấm)
+  const [gon, setGon] = useState(true);
+  useEffect(() => { try { if (localStorage.getItem('etp-tl-gon') === '0') setGon(false); } catch { /* không có localStorage: giữ mặc định Gọn */ } }, []);
+  const doiGon = (v: boolean) => { setGon(v); try { localStorage.setItem('etp-tl-gon', v ? '1' : '0'); } catch { /* như trên */ } };
   useEffect(() => {
     let bo = false; setLoi(null);
     docThietLap(ids).then((r) => { if (bo) return; if ('loi' in r) setLoi(r.loi); else setDu(r); }, (e) => { if (!bo) setLoi(String(e?.message ?? e)); });
@@ -65,21 +70,28 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
   const oForm = (k: string) => (r: DongTl) => { const cd = chuaDoc(r), ok = cd || dungForm(r, k); return <div style={{ display: 'flex', gap: 4, alignItems: 'flex-start' }}>
     <b title={cd ? 'kho chưa đọc chữ creative — lượt đồng bộ kế (10 phút) sẽ đọc' : ok ? 'đúng form' : `lệch form — chuẩn: ${chuan[k]?.() ?? ''}`} style={{ color: cd ? 'var(--fg-3)' : ok ? '#4ade80' : '#f87171', flex: 'none' }}>{cd ? '?' : ok ? '✓' : '✗'}</b>{o(r[k], ok ? undefined : '#fca5a5', true)}</div>; };
   // VẤN ĐỀ của một camp — đỏ = hỏng / Meta chặn, vàng = treo / cần xem. PAUSED thường không phải vấn đề.
-  // ai=false: vấn đề KHÔNG gửi AI sửa (không nút Sửa (AI), không vào card) — vd ad gắn mẫu trước khi form về: luật 03/11 cấm đổi creative ad Meta chưa từ chối
-  type VanDe = { chu: string; do: boolean; ai?: boolean };
+  type VanDe = { chu: string; do: boolean };
   const TEN_FORM: Record<string, string> = { f_kieu: 'Ad type', f_cta: 'CTA', f_link: 'Display link', f_chinh: 'Primary text', f_tieu: 'Headline', f_mo_ta: 'Description' };
   const TT_LOI = /error|fail|reject|disapprov|with_issues/i, TT_TREO = /pending|checking|creating|in_process|review/i;
   const TT_CAP: [string, string][] = [['c_meta', 'Camp trên Meta'], ['c_giao', 'Camp phân phối'], ['g_meta', 'Ad set trên Meta'], ['g_giao', 'Ad set phân phối'], ['a_meta', 'Ad trên Meta'],
     ['a_giao', 'Ad phân phối'], ['s_camp', 'Đồng bộ camp'], ['s_nhom', 'Đồng bộ ad set'], ['s_ad', 'Đồng bộ ad'], ['s_media', 'Media']];
+  // PHẢI GIỐNG NHAU ở mọi camp (Fable soát 24/11/2026: chỉ danh sách cố định này, không so số đông mọi cột — cột khác khác nhau là bình thường): lệch số đông = vàng
+  const GIONG: [string, string][] = [['c_muc_tieu', 'Mục tiêu'], ['g_pixel', 'Pixel'], ['g_su_kien', 'Sự kiện'], ['g_attr', 'Attribution'], ['g_nuoc', 'Nước nhắm'],
+    ['g_loai_nuoc', 'Nước loại'], ['g_vi_tri', 'Vị trí'], ['g_an_toan', 'An toàn thương hiệu']];
+  const soDong: Record<string, string> = {};
+  for (const [k] of GIONG) {
+    const dem = new Map<string, number>(); let n = 0;
+    for (const r of du?.dong ?? []) { const s = chu(r[k]); if (s != null) { n++; dem.set(s, (dem.get(s) ?? 0) + 1); } }
+    const top = [...dem].sort((a, b) => b[1] - a[1])[0];
+    if (top && dem.size > 1 && top[1] * 2 > n) soDong[k] = top[0];   // có số đông rõ (> nửa) mới so; chia đôi thì không biết bên nào đúng → không báo
+  }
+  const tomTat = (s: string) => { const m = s.split(/\n|, /); return m.length > 3 ? `${m.slice(0, 3).join(', ')} +${m.length - 3}` : s.length > 60 ? `${s.slice(0, 60)}…` : s; };
   const vanDe = (r: DongTl): VanDe[] => {
     const v: VanDe[] = [], thay = new Set<string>();
-    const them = (chu: string, laDo: boolean, ai = true) => { const k = chu.replace(/^[^:]*:\s*/, '').slice(0, 80); if (!thay.has(k)) { thay.add(k); v.push({ chu, do: laDo, ai }); } };
+    const them = (chu: string, laDo: boolean) => { const k = chu.replace(/^[^:]*:\s*/, '').slice(0, 80); if (!thay.has(k)) { thay.add(k); v.push({ chu, do: laDo }); } };
     const lf = loiForm(r);
     if (chuaDoc(r)) them(`Kho chưa đọc chữ creative #${chu(r.f_cr) ?? '?'} (lượt đồng bộ kế đọc)`, false);
-    // chữ cũ = ad gắn mẫu TRƯỚC khi creative về form (Meta giữ bản lúc lên) → ghi chú vàng, giữ nguyên ad đang chạy, không gửi AI (anh 24/11/2026, góp ý #1813);
-    // lệch form thật (creative hiện tại sai form) vẫn đỏ. Camp mới: cửa CamLechForm (apps/etp/ethopex_api.py) chặn lên bằng mẫu chưa đúng form.
-    if (lf.length && /^chữ cũ/.test(chu(r.f_nguon) ?? '')) them(`Ad gắn mẫu trước khi form về (lệch ${lf.length}/6: ${lf.map((k) => TEN_FORM[k]).join(', ')}) — giữ nguyên ad đang chạy, chữ form áp cho camp lên sau`, false, false);
-    else if (lf.length) them(`Form chữ lệch ${lf.length}/6: ${lf.map((k) => TEN_FORM[k]).join(', ')}`, true);
+    if (lf.length) them(`Form chữ lệch ${lf.length}/6: ${lf.map((k) => TEN_FORM[k]).join(', ')}${/^chữ cũ/.test(chu(r.f_nguon) ?? '') ? ' — ad đang chạy chữ cũ' : ''}`, true);
     for (const [k, ten] of TT_CAP) { const s = chu(r[k]); if (s && (TT_LOI.test(s) || TT_TREO.test(s))) them(`${ten}: ${s.toLowerCase().replace(/_/g, ' ')}`, TT_LOI.test(s)); }
     // ad set / ad ADSET_PAUSED khi giờ bắt đầu (start_time UTC không Z, hoặc lịch nhà) còn ở tương lai = đang HẸN GIỜ, không phải vấn đề
     const tuongLai = (x: string | null) => { if (!x) return false; const t = Date.parse(/[zZ]|[+-]\d\d(:?\d\d)?$/.test(x) ? x.replace(' ', 'T') : `${x.replace(' ', 'T')}Z`); return Number.isFinite(t) && t > Date.now(); };
@@ -88,6 +100,7 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
     if (chu(r.s_cho)) them('Chờ kích hoạt', false);
     for (const d of (chu(r.s_loi) ?? '').split('\n').filter(Boolean)) them(`Lỗi ${d}`, !/^[^:]*⚠/.test(d));
     if (!r.du_luc) them('Kho chưa đọc cấu hình Ethopex', false);
+    for (const [k, ten] of GIONG) { const s = chu(r[k]), d = soDong[k]; if (d != null && s != null && s !== d) them(`${ten} khác số đông: ${tomTat(s)} (số đông: ${tomTat(d)})`, false); }
     return v;
   };
   const vanDeHien = (r: DongTl) => vanDe(r).filter((x) => muc === 'do' ? x.do : muc === 'vang' ? !x.do : true);
@@ -101,11 +114,11 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
     } catch (e) { setGui((g) => ({ ...g, [r.camp_id]: { loi: String((e as Error)?.message ?? e) } })); }
   };
   const oVanDe = (r: DongTl): ReactNode => {
-    const v = vanDeHien(r), g = gui[r.camp_id], vAi = v.filter((x) => x.ai !== false);
+    const v = vanDeHien(r), g = gui[r.camp_id];
     return <div className="tl-vd">
       {v.length ? <div className="tl-vd-ds">{v.map((x, i) => <div key={i} title={x.chu} style={{ display: 'flex', gap: 4, alignItems: 'baseline', fontSize: 11, lineHeight: 1.35, color: x.do ? '#fca5a5' : '#fcd34d', whiteSpace: 'normal', wordBreak: 'break-word' }}>
         <i style={{ width: 6, height: 6, borderRadius: 3, background: x.do ? '#f87171' : '#fbbf24', flex: 'none', transform: 'translateY(-1px)' }} />{x.chu.length > 110 ? `${x.chu.slice(0, 110)}…` : x.chu}</div>)}
-        {!g?.id && vAi.length ? <button className="tl-sua" disabled={g?.dang} onClick={(e) => { e.stopPropagation(); void guiAi(r, vAi); }}
+        {!g?.id ? <button className="tl-sua" disabled={g?.dang} onClick={(e) => { e.stopPropagation(); void guiAi(r, v); }}
           title="Gửi các vấn đề này thành card góp ý etp2 → kỹ sư AI (Huy) sửa tận gốc, kết quả trả lời trong hòm 💬">{g?.dang ? '…đang gửi' : '🛠 Sửa (AI)'}</button> : null}</div>
         : <b style={{ color: '#4ade80', fontSize: 11 }}>✓ không có</b>}
       {g?.id ? <div style={{ fontSize: 11, color: '#4ade80', marginTop: 2 }}>✓ đã gửi AI sửa — góp ý #{g.id}</div> : null}
@@ -182,20 +195,45 @@ export function ThietLapCamp<T extends CampCo>({ camps, them }: { camps: T[]; he
     C('s_camp', 'b6', 'Camp', 50, 'đồng bộ camp', 'tt'), C('s_nhom', 'b6', 'Ad set', 50, 'đồng bộ ad set', 'tt'), C('s_ad', 'b6', 'Ad', 50, 'đồng bộ ad', 'tt'), C('s_media', 'b6', 'Media', 50, undefined, 'tt'),
     C('s_cho', 'b6', 'Chờ', 70, 'chờ kích hoạt', 'tt'), C('s_loi', 'b6', 'Lỗi / cảnh báo', 240, undefined, 'ds'), G('s_dong_bo_luc', 'b6', 'Đồng bộ', 'Ethopex đồng bộ lúc (giờ VN)'), G('du_luc', 'b6', 'Kho đọc', 'kho đọc cấu hình lúc (giờ VN)'),
   ];
+  // Ô TRẠNG THÁI GỘP (chế độ Gọn): 13 cột trạng thái / đồng bộ → một ô; ổn hết = một chấm xanh, không thì chỉ liệt kê cấp đang không ổn
+  const TT_GOP: [string, string][] = [['c_tt', 'Camp (kho)'], ...TT_CAP.slice(0, 6), ['f_tt', 'Creative'], ...TT_CAP.slice(6), ['s_cho', 'Chờ kích hoạt']];
+  const XANH = /^(active|enabled|ok|synced|success|delivering|ready|on|live|done|completed)$/i;
+  const ttXau = (r: DongTl) => TT_GOP.map(([k, ten]) => [ten, chu(r[k])] as const).filter(([, s]) => s != null && !XANH.test(s));
+  const cotTt: DataColumn<DongTl> = { key: 'tt_gop', group: 'b6', header: 'Trạng thái', align: 'left', width: 190, sortValue: (r) => ttXau(r).length,
+    title: `gộp ${TT_GOP.length} cột: ${TT_GOP.map((x) => x[1]).join(' · ')} — chế độ Đủ để xem từng cột`,
+    cell: (r) => { const x = ttXau(r); return x.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>{x.map(([ten, s]) => <span key={ten} style={{ display: 'flex', gap: 4, fontSize: 11 }}><span style={{ color: 'var(--fg-3)' }}>{ten}</span>{oTt(s!)}</span>)}</div>
+      : <span style={{ fontSize: 11 }}>{oTt('active')}<span style={{ color: 'var(--fg-3)', marginLeft: 4 }}>mọi cấp</span></span>; } };
   if (loi) return <div style={{ margin: 12, padding: '10px 12px', border: '1px solid #f87171', borderRadius: 6, color: '#fca5a5', fontSize: 12 }}>Không tải được Thiết lập: {loi}</div>;
   if (!du) return <div style={{ padding: 24, color: 'var(--fg-2)', fontSize: 12 }}>Đang tải thiết lập {ids.length} camp…</div>;
-  const chuCu = (r: DongTl) => /^chữ cũ/.test(chu(r.f_nguon) ?? '');
-  const lech = du.dong.filter((r) => loiForm(r).length && !chuCu(r)).length, soCu = du.dong.filter((r) => loiForm(r).length && chuCu(r)).length, coVd = du.dong.filter((r) => vanDe(r).length).length, coDo = du.dong.filter((r) => vanDe(r).some((x) => x.do)).length;
+  const lech = du.dong.filter((r) => loiForm(r).length).length, coVd = du.dong.filter((r) => vanDe(r).length).length, coDo = du.dong.filter((r) => vanDe(r).some((x) => x.do)).length;
   const dongLoc = muc ? du.dong.filter((r) => { const v = vanDe(r); return muc === 'khong' ? !v.length : muc === 'do' ? v.some((x) => x.do) : v.some((x) => !x.do); }) : du.dong;
+  // CỘT CHUNG (chế độ Gọn): cột cấu hình (bước 1–6) có CÙNG một giá trị ở 100% camp đang hiện → lên dải "Cấu hình chung", bỏ khỏi bảng. Ngưỡng 100% (không 90%):
+  // cột không nhảy ra vào khi một camp đổi, và camp lệch vẫn nằm trong bảng. Tên camp / cột mượn bảng Camp không bao giờ gom.
+  const boGop = new Set(TT_GOP.map((x) => x[0]));
+  const chung = gon && dongLoc.length > 1 ? cot.filter((c) => /^b[1-6]$/.test(c.group ?? '') && c.key !== 'c_ten' && !boGop.has(c.key)
+    && dongLoc.every((r) => chu(r[c.key]) === chu(dongLoc[0]![c.key]))) : [];
+  const boChung = new Set(chung.map((c) => c.key));
+  const cotHien = gon ? [...cot.filter((c) => !boChung.has(c.key) && !boGop.has(c.key)), cotTt] : cot;
+  const nutGon = (v: boolean, nhan: string, title: string) => <button onClick={() => doiGon(v)} title={title} style={{ fontSize: 11, padding: '1px 9px', cursor: 'pointer', border: '1px solid var(--line, #333)',
+    background: gon === v ? 'var(--accent, #f472b6)' : 'transparent', color: gon === v ? '#111' : 'var(--fg-2)', fontWeight: gon === v ? 700 : 400, borderRadius: v ? '4px 0 0 4px' : '0 4px 4px 0' }}>{nhan}</button>;
   return <>
     <div style={{ fontSize: 11.5, color: 'var(--fg-2)', margin: '6px 0 4px', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+      <span style={{ display: 'inline-flex' }}>{nutGon(true, 'Gọn', 'gom cột giống nhau ở mọi camp lên dải Cấu hình chung + gộp 13 cột trạng thái thành một ô')}{nutGon(false, 'Đủ', 'đủ mọi cột như bảng gốc')}</span>
       <span>{du.dong.length} camp theo lọc ở trên</span>
-      <span style={{ color: coDo ? '#f87171' : coVd ? '#fbbf24' : '#4ade80' }}>{coVd ? `✗ ${coVd} camp có vấn đề (${coDo} đỏ) · ${lech} lệch form chữ${soCu ? ` · ${soCu} ad gắn mẫu trước khi form về (giữ nguyên)` : ''}` : '✓ không camp nào có vấn đề'}</span>
+      <span style={{ color: coDo ? '#f87171' : coVd ? '#fbbf24' : '#4ade80' }}>{coVd ? `✗ ${coVd} camp có vấn đề (${coDo} đỏ) · ${lech} lệch form chữ` : '✓ không camp nào có vấn đề'}</span>
       <style>{'.tl-vd{position:relative;min-height:16px}.tl-vd .tl-sua{display:none;position:absolute;top:-2px;right:-4px;font-size:11px;padding:1px 7px;border-radius:4px;border:1px solid #f59e0b;background:#422006;color:#fde68a;cursor:pointer}.tl-vd-ds{position:relative}.tl-vd-ds:hover .tl-sua{display:inline-block}.tl-vd .tl-sua:disabled{opacity:.6;cursor:wait}.tl-gon summary::-webkit-details-marker{display:none}.tl-gon[open] summary b{display:none}'}</style>
       {du.thieu ? <span style={{ color: '#fbbf24' }}>{du.thieu} camp kho chưa đọc cấu hình Ethopex (bai-qc.py đọc dần mỗi lượt đồng bộ)</span> : null}
       <span title="apps/etp/form-chu.json">Form chuẩn: {form?.creative_type} · {form?.call_to_action} · {form?.link_url} · “{form?.primaryTexts.join(' / ')}” · “{form?.headlines.join(' / ')}” · “{form?.descriptions.join(' / ')}”</span>
     </div>
-    <DataTable rows={dongLoc} columns={cot} groups={[...(them?.nhom ?? []), ...NHOM_TL]} groupHeader getRowKey={(r) => String(r.camp_id)} persistKey="etp-thiet-lap-2" fixedLayout cuonNgang minWidth={0} pageSize={50}
+    {gon && chung.length ? <div style={{ fontSize: 11, margin: '0 0 6px', padding: '5px 8px', border: '1px solid var(--line, #333)', borderRadius: 6, background: 'var(--bg-2, #16161f)' }}>
+      <div style={{ color: 'var(--fg-2)', marginBottom: 4 }}><b style={{ color: 'var(--fg-1)' }}>Cấu hình chung</b> — {chung.length} cột giống hệt nhau ở cả {dongLoc.length} camp đang hiện, đã gom khỏi bảng (bấm <b>Đủ</b> để xem lại từng cột)</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 6px' }}>{NHOM_TL.map((g) => chung.filter((c) => c.group === g.key).map((c) => {
+        const s = chu(dongLoc[0]![c.key]);
+        return <span key={c.key} title={`${g.label} · ${typeof c.title === 'string' ? c.title : ''}`} style={{ display: 'inline-flex', gap: 4, alignItems: 'baseline', padding: '1px 6px', borderRadius: 4, borderLeft: `3px solid ${g.color}`, background: 'var(--bg-1, #0f0f16)', maxWidth: '100%' }}>
+          <span style={{ color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{typeof c.header === 'string' ? c.header : c.key}</span>
+          <span style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{s == null ? '—' : c.cell(dongLoc[0]!, 0)}</span></span>; }))}</div>
+    </div> : null}
+    <DataTable rows={dongLoc} columns={cotHien} groups={[...(them?.nhom ?? []), ...NHOM_TL]} groupHeader getRowKey={(r) => String(r.camp_id)} persistKey={gon ? 'etp-thiet-lap-gon' : 'etp-thiet-lap-2'} fixedLayout cuonNgang minWidth={0} pageSize={50}
       defaultSort={[{ key: 'tao', dir: 'desc' }]} ghimDau={ghimMoi} stickyCols={2 + cotNay.length}
       searchText={(r) => Object.values(r).map((v) => chu(v as OTl) ?? '').join(' ')} searchPlaceholder="Tìm camp, Page, nước, chữ QC…" />
   </>;

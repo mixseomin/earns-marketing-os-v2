@@ -30,6 +30,15 @@ def dung_form(c):
     a = json.loads(a) if isinstance(a, str) and a.strip().startswith("{") else (a if isinstance(a, dict) else {})
     return (c.get("call_to_action") == FORM["call_to_action"] and (c.get("link_url") or "") == FORM["link_url"]
             and ds_l(a.get("primaryTexts")) == FORM["primaryTexts"] and ds_l(a.get("headlines")) == FORM["headlines"] and ds_l(a.get("descriptions")) == FORM["descriptions"])
+_TAO_CR = re.compile(r"^/api/v1/creatives(?:/bulk-jobs)?/?$")
+def lech_tao(duong, body):
+    """lệnh TẠO creative (/api/v1/creatives, /creatives/bulk-jobs — thân dict, mảng trần hoặc {items}) → tên các bản chữ KHÁC form; không phải lệnh tạo → [].
+    Anh 24/11/2026: "Tao cấm mày tự viết + sửa chỗ đó trong mọi phim, mọi camp" — tối 24/11 soát ra chữ camp nhà lỗ là chữ máy tự sinh (câu dự phòng chu-qc.py
+    "<tên> — watch the full story free", bản AI kể chuyện "…Watch Now - Learn More."). Cửa này chặn ở gốc: không creative nào lên Ethopex mang chữ ngoài form-chu.json."""
+    if body is None or not _TAO_CR.match(duong.split("?")[0]): return []
+    if isinstance(body, (str, bytes)): body = json.loads(body)
+    ds = body if isinstance(body, list) else (body["items"] if isinstance(body, dict) and isinstance(body.get("items"), list) else [body])
+    return [str(x.get("name") or "?")[:60] if isinstance(x, dict) else "?" for x in ds if not (isinstance(x, dict) and dung_form(x))]
 import importlib.util as _iu
 _s = _iu.spec_from_file_location("cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "cong.py")); CG = _iu.module_from_spec(_s); _s.loader.exec_module(CG)
 
@@ -411,6 +420,8 @@ def api(duong, body=None, timeout=90):
     # Tạo / nhân bản / bật / tăng camp đã soát ở cua() → chan_cua. Lỗi đọc → chặn.
     ly_pc = phim_cam_lenh(duong, body)
     if ly_pc: raise ChanCua(f"cửa API chặn lên / gắn creative: {ly_pc} — không gửi {duong}")
+    _lt = lech_tao(duong, body)   # CHỮ CREATIVE MỚI = FORM, không ngoại lệ (lech_tao — anh 24/11/2026 cấm tự viết chữ QC)
+    if _lt: raise CamLechForm(f"{len(_lt)} creative mang chữ khác form (apps/etp/form-chu.json), vd {_lt[0]!r} — máy không tự viết chữ QC, không gửi {duong}")
     if body is not None and isinstance(body, dict) and duong.endswith("/campaigns/update"):   # đặt lại ngân sách camp VỪA TẠO (Ethopex không nhận lúc tạo) → không vượt trần lúc tạo
         cp = body.get("campaign") or {}; cid = int(cp.get("campaign_id") or 0); ns = (cp.get("source_payload") or {}).get("daily_budget")
         if cid in _TRAN_TAO and ns is not None and float(ns) > _TRAN_TAO[cid]:
@@ -536,6 +547,16 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
             finally: _TAO.discard(_cc)
             assert len(_gui_that) == _n0, f"phim cấm lọt tới Ethopex: {_gui_that[_n0:]}"
             print(f"chặn đúng: phim cấm #{_ct} (camp #{_cc}) — bật / bật theo lịch / tăng / nhân bản / ★ ROAS / tạo camp đều chặn dù có vé, không lệnh nào tới Ethopex")
+        # CHỮ TỰ VIẾT (anh 24/11/2026): tạo creative mang chữ khác form — đơn, bulk-jobs {items}, mảng trần — đều chặn trước khi gửi; đúng form thì cửa này cho qua
+        _n0 = len(_gui_that); _fm = {"call_to_action": FORM["call_to_action"], "link_url": FORM["link_url"], "asset_spec": {k: FORM[k] for k in ("primaryTexts", "headlines", "descriptions")}}
+        _tv = {**_fm, "name": "TU KIEM CHU TU VIET", "asset_spec": {**_fm["asset_spec"], "primaryTexts": ["Get Out of My Bugatti — watch the full story free. Watch more"]}}
+        for _d, _b in [("/api/v1/creatives", _tv), ("/api/v1/creatives/bulk-jobs", {"items": [_fm, _tv]}), ("/api/v1/creatives/bulk-jobs", [_tv]),
+                       ("/api/v1/creatives/bulk-jobs", [{**_fm, "call_to_action": "LEARN_MORE"}])]:
+            try: api(_d, _b); raise SystemExit(f"LỌT CHỮ TỰ VIẾT: {_d}")
+            except CamLechForm as e: assert "khác form" in str(e), e
+        assert len(_gui_that) == _n0, f"chữ tự viết lọt tới Ethopex: {_gui_that[_n0:]}"
+        assert lech_tao("/api/v1/creatives/bulk-jobs", [_fm, _fm]) == [] and lech_tao("/api/v1/creatives/12/x", _tv) == [] and lech_tao("/api/v1/creatives", None) == []
+        print("chặn đúng: tạo creative chữ khác form (đơn / bulk-jobs items / mảng trần / CTA lệch) — không lệnh nào tới Ethopex; đúng form qua cửa")
         # PHIM CẤM — LÊN / GẮN CREATIVE (anh 19/11/2026, phá thử phim 167292 The Dragon's Silly Captive, sổ thật): tạo creative (bulk-jobs / đơn) · gắn creative vào ad
         # của camp phim cấm · creative của phim cấm gắn vào ad bất kỳ · tạo camp · nhân bản camp phim cấm → chặn, vé không miễn, không lệnh nào tới Ethopex
         _P = 167292

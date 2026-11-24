@@ -99,7 +99,8 @@ def main(lo_f, ma, dang):
 import json,os,subprocess,urllib.request,time
 T=subprocess.run(["psql",os.environ["DATABASE_URL"],"-tAc","select gia_tri->>%s from xv_khoa_ngoai where ten=%s"%(chr(39)+"access_token"+chr(39),chr(39)+"ethopex"+chr(39))],capture_output=True,text=True).stdout.strip()
 H={{"authorization":"Bearer "+T,"content-type":"application/json","user-agent":"mos2-kiem"}}
-j=json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/creatives/bulk-jobs",data=open("/root/etp-kc/creative-{ma}.json","rb").read(),method="POST",headers=H),timeout=60))
+import sys; sys.path.insert(0,"/opt/earns-marketing-os-v2/apps/etp"); import ethopex_api as EA
+j=EA.api("/api/v1/creatives/bulk-jobs",json.load(open("/root/etp-kc/creative-{ma}.json")))   # MỘT CỬA: phim cấm + chữ đúng form (lech_tao) — không POST thô
 for i in range(80):
     k=json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/creatives/bulk-jobs/%s"%j["job_id"],headers=H),timeout=60))
     if k.get("status") not in ("pending","processing","running","queued"): break

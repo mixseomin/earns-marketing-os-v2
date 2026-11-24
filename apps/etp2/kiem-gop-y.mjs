@@ -25,6 +25,7 @@ const LUAT = [
   { card: 1818, tep: 'apps/etp2/src/components/etp-view.tsx', co: '{them ? <> · {them}</> : null}', vi: 'PhimO in phần thông tin creative ở dòng phụ' },
   { card: 'tran-ghim', tep: 'packages/bang/src/data-table.tsx', mot: 'const TRAN_GHIM = 0.4;', vi: 'vùng cột ghim tối đa 40% khung cuộn, cột vượt trần trôi như cột thường (anh 24/11/2026 "sticky hết các khối này thì xem được à")' },
   { card: 'tran-ghim', tep: 'packages/bang/src/data-table.tsx', mot: 'tong + cotDo.w[n]! <= rongKhungCuon * TRAN_GHIM', vi: 'trần ghim áp cho cả stickyCols bên gọi lẫn cột người ghim trong menu' },
+  { card: 'tran-ghim', tep: 'packages/bang/src/data-table.tsx', cam: 'const soGhimHien = (() => {', vi: 'trần ghim đọc thanRef / cotDo khai ở dưới → phải là HÀM gọi lúc vẽ, không tính ngay (bản tính ngay làm vỡ trang Thiết lập: TDZ)' },
   { card: 'tran-ghim', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', cam: 'stickyCols={2 + cotNay.length}', vi: 'Thiết lập không ghim 7 cột ngày' },
   { card: 1816, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', mot: "gridTemplateColumns: 'max-content 1fr', columnGap: 14", vi: 'dải Cấu hình chung dễ nhìn: một hàng mỗi bước, tên bước thẳng cột bên trái, cặp nhãn · giá trị bên phải (anh 24/11/2026 góp ý #1816)' },
   { card: 1816, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', cam: "borderLeft: `3px solid ${g.color}`", vi: 'không quay về chip hộp viền màu từng ô dồn chung một khối' },

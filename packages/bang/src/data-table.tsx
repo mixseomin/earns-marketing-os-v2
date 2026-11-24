@@ -608,14 +608,16 @@ export function DataTable<T>({
   }, [colsXep, columns, soGhimGoc, shown, visible, ghimCot, anCot.length]);
   // TRẦN VÙNG GHIM (anh 24/11/2026, etp2 Thiết lập ghim Camp + Vấn đề + 7 ngày: "sticky hết các khối này thì xem được à?"): tổng bề ngang các cột ghim
   // không quá TRAN_GHIM khung cuộn — cột ghim nào vượt trần thì trôi như cột thường (bên gọi đặt stickyCols lớn, hay người ghim thêm trong menu, đều qua đây)
-  const rongKhungCuon = thanRef.current?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 0);
-  const soGhimHien = (() => {
+  // HÀM chứ không phải hằng: thanRef / cotDo khai ở dưới (đọc ngay lúc này = lỗi TDZ "Cannot access before initialization", trang vỡ 24/11/2026)
+  const soGhimThat = () => {
+    const rongKhungCuon = thanRef.current?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 0);
     if (soGhim <= 1 || cotDo.w.length < soGhim || !rongKhungCuon) return soGhim;
     let n = 1, tong = cotDo.w[0]!;
     while (n < soGhim && tong + cotDo.w[n]! <= rongKhungCuon * TRAN_GHIM) { tong += cotDo.w[n]!; n++; }
     return n;
-  })();
+  };
   const ghim = (i: number): { left: number; cuoi: boolean } | null => {
+    const soGhimHien = soGhimThat();
     if (i < 0 || i >= soGhimHien) return null;
     if (i === 0) return { left: 0, cuoi: soGhimHien === 1 || cotDo.w.length < soGhimHien };
     if (cotDo.w.length < soGhimHien) return null;
@@ -816,6 +818,7 @@ export function DataTable<T>({
     // (trước chỉ ô đầu dính → cuộn ngang, nhãn nhóm của cột ghim trôi đi còn nhãn nhóm sau chui vào trên cột ghim); (2) nhãn dài hơn dải → cắt … trong dải, hover đọc đủ
     // (trước nowrap tràn đè lên nhãn dải bên cạnh: "HÔM NAY (ĐANG CHẠY)" đè "HÔM QUA")
     const dai: { g?: string; n: number; i: number }[] = [];
+    const soGhimHien = soGhimThat();
     visible.forEach((c, i) => { const d = dai[dai.length - 1]; if (d && d.g === c.group && (i < soGhimHien) === (d.i < soGhimHien)) d.n++; else dai.push({ g: c.group, n: 1, i }); });
     return (
       <tr>

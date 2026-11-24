@@ -681,6 +681,12 @@ const LUAT = [
   { card: '1832', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'data-o="cr-dang-sx"', vi: 'dòng đang sản xuất: ô creative giữ chỗ, dạng creative vẫn hiện' },
   { card: '1832', tep: 'apps/etp2/src/lib/etp-doc.ts', mot: "dong_bo: 'dang_sx'", vi: 'dữ liệu dựng dòng 🏭 từ dòng phim đang làm creative' },
   { card: '1832', tep: 'apps/etp2/src/lib/etp-chay.ts', co: '!chuaCoCamp(c)', vi: 'dòng đang sản xuất không bị đếm vào chạy / chờ giờ / tắt' },
+  // KHỐI CAMP (anh 25/11/2026 "Nếu lên theo khối của phim thì sẽ phải nhìn thấy đủ các thành phần, các camp đang sx")
+  { card: 'khoi', tep: 'apps/etp2/src/components/etp-view.tsx', co: "c.sx?.khoi ? `k${c.sx.khoi.id}`", vi: 'Cây nhóm dòng đang sản xuất theo KHỐI trước' },
+  { card: 'khoi', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'data-o="nhom-khoi"', vi: 'nhãn nhóm khối hiện tham số chung + thành phần mẫu' },
+  { card: 'khoi', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'thanh_phan: (mau?.o ?? [])', vi: 'thành phần khối đọc từ sổ mẫu etp-mau-cr.json, không gõ tay' },
+  { card: 'khoi', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'for (let i = 1; i <= soK; i++)', vi: 'mỗi dòng phim khối nở thành đủ số camp sắp lên' },
+  { card: 'khoi', tep: 'apps/etp/dong_phim.py', co: 'if d.get("khoi"): return b_camp_khoi(d, truoc)', vi: 'bước camp của dòng khối đọc tham số từ khối, không hoi_cho' },
 ];
 
 const loi = [];

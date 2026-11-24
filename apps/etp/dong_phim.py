@@ -489,7 +489,38 @@ def b_camp_mr(d, truoc):
     thieu = int(d["so_camp"]) - len(xong) - len(cu)
     return ket, (f"{len(xong) + len(cu)}/{d['so_camp']} camp · " + ghi + (f" · thiếu {thieu} (không đủ creative sạch)" if thieu > 0 and not loi else "")) if ket == "xong" else ghi, kq
 
+# KHỐI CAMP (anh 25/11/2026 "Nếu lên theo khối của phim thì sẽ phải nhìn thấy đủ các thành phần, các camp đang sx", etp.khoi — migration 0470):
+# dòng thuộc khối lên camp bằng ĐÚNG tham số khối (★ ROAS · $/ngày · khuôn theo tiếng có miền = khối.mien), mỗi creative cr_camp camp — không đọc hoi_cho / KHUON.
+# Một creative nhiều camp chỉ đi được bằng vé trực tiếp (nhan-ban chặn creative đã có camp khi không có vé) → dòng khối mang ai DONG_TRUC_TIEP, mỗi camp một vé
+# trong số camp của etp.cau_hinh.nhiem_vu_ngay (cong.py cấp theo câu anh). Hết vé = chờ, không có đường tự lên.
+def b_camp_khoi(d, truoc):
+    k = d["khoi"]
+    if k.get("trang_thai") != "chay": return "cho", f"khối #{k['id']} {k.get('ten') or ''} chưa duyệt (trạng thái {k.get('trang_thai')})", None
+    cr = truoc.get("creative") or {}; ds = [int(x["creative_id"]) for x in (cr.get("sach") or ([cr] if cr.get("creative_id") else []))]
+    if not ds: return "loi", "chưa có creative sạch", None
+    bo = str(d.get("bo") or "").strip() or sql(CG.SQL_BO_PHIM.format(cid=int(d['content_id'])))
+    if not bo: return "loi", "không đọc được bộ của phim", None
+    xong, loi, gan, may_ = [], [], [], False
+    da = {int(a): int(b) for a, b in (l.split("\t") for l in sql(f"select creative_id, count(*) from etp.camp where creative_id in ({','.join(map(str, ds))}) group by 1").splitlines() if l.count("\t") == 1)}
+    for c in ds:
+        lang = sql(f"select coalesce(lang, 'en') from etp.creative where creative_id = {c}") or "en"
+        khuon = int((k.get("khuon") or {}).get(lang) or 0)
+        if not khuon: loi.append(f"#{c}: khối #{k['id']} không có khuôn tiếng {lang}"); continue
+        mien = sql(f"select coalesce(mien, '') from etp.camp where camp_id = {khuon}")
+        if k.get("mien") and mien != k["mien"]: return "dung", f"khuôn #{khuon} miền {mien or '?'} khác miền khối {k['mien']} — sửa etp.khoi.khuon", None
+        for i_ in range(max(0, int(k.get("cr_camp") or 1) - da.get(c, 0))):
+            ve = ve_dong(d)
+            if not ve: return ("cho", f"đã lên {len(xong)} camp · chờ vé nhiệm vụ ngày cho phim {d['content_id']} (cong.py --ve-truc-tiep nhan_ban --phim {d['content_id']})", None) if not xong else ket_camp(d, xong, loi + ["hết vé"], {}, gan, may_)
+            sql(f"update etp.dong_buoc set ghi = {s(f'khối #{k['id']}: lên camp {len(xong) + 1} (creative #{c})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")
+            ten = re.sub(r"[^ -~]|['\"$`\\]", "", f"dp{d['id']} {d.get('ten') or ''} {lang.upper()} - khoi {k['id']} cr moi #{c}")
+            rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {khuon} --roas {float(k["roas"])} --ns {int(float(k["ns"]))} --tay --bo {bo} --creative {c} --content {d["content_id"]} --ten "{ten}" --that --luat "khối #{k['id']} (anh 25/11/2026)" --ai "{ai_dong(d, f"khối #{k['id']} etp2")}"'""", 1500, ve=ve)
+            j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None) or {}
+            if j.get("ok") and j.get("moi"): xong.append(int(j["moi"])); gan.append({"creative_id": c, "camp": int(j["moi"])})
+            else: loi.append(f"#{c}: {(j.get('loi') or out[-120:])[:120]}"); may_ = may_ or not j or bool(j.get("may")); break
+    return ket_camp(d, xong, loi, {}, gan, may_) if xong or loi else ("xong", f"khối #{k['id']}: mọi creative đã đủ {k.get('cr_camp')} camp", None)
+
 def b_camp(d, truoc):
+    if d.get("khoi"): return b_camp_khoi(d, truoc)
     if d.get("loai") in TINH and not str(d.get("ai") or "").startswith("máy: bù camp"): d = {**d, "so_camp": max(int(d.get("so_camp") or 0), AT_BAN)}   # 3 camp $1 / phim (anh 08/11/2026); dòng bù giữ đúng k (09/11)
     if d.get("so_camp"): return b_camp_mr(d, truoc)
     if d.get("loai") == "LT": return b_camp_lt(d, truoc)
@@ -617,7 +648,8 @@ def dung_imac():
 
 # ---------------- vòng chính ----------------
 def doc_dong():
-    j = sql("""select coalesce(json_agg(x), '[]') from (select p.id, p.content_id, p.ten, p.trang_thai, p.camp_id, p.loai, p.so_camp, p.ai, p.bo,
+    j = sql("""select coalesce(json_agg(x), '[]') from (select p.id, p.content_id, p.ten, p.trang_thai, p.camp_id, p.loai, p.so_camp, p.ai, p.bo, p.khoi_id,
+               (select row_to_json(k) from etp.khoi k where k.id = p.khoi_id) khoi,
                (select json_object_agg(b.buoc, json_build_object('trang_thai', b.trang_thai, 'ket_qua', b.ket_qua, 'lan', b.lan, 'fix', b.fix, 'huy', b.huy,
                        'tuoi', extract(epoch from now() - coalesce(b.nhip, b.bat_dau))::int)) from etp.dong_buoc b where b.dong_id = p.id) buoc
                from etp.dong_phim p where p.trang_thai = 'chay' or exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.fix)

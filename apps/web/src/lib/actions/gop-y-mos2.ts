@@ -10,7 +10,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
-import { quyenGopYS2 } from '@/lib/gop-y-quyen-s2';
+import { quyenGopYS2, tuStudio2 } from '@/lib/gop-y-quyen-s2';
 import { boLocNguon, noiDangXem, trangRieng } from '@/lib/gop-y-loc-nguon';
 import { HEADER_KHACH, laTrangKhach, nguoiKhach } from '@/lib/gop-y-khach';
 import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture';
@@ -61,10 +61,10 @@ export async function guiGopYMos2(input: { loai: string; noiDung: string; trang:
     if (await khachQuaNhieu(nguoi.email)) return { ok: false, error: 'Bạn đã gửi 6 góp ý trong một giờ — đợi một lúc rồi gửi tiếp; nháp vẫn giữ.' };
     return hom.guiGopY(h, nguoi, input, { ...ghiTrangThai, choPhepGui: h === 'mos2' && laTrangKhach(hostCua(input.trang)) });
   }
-  const me = await getCurrentUser();
+  const me = await getCurrentUser(), hd = await headers();
   const choPhepGui = !!me && me.role !== 'admin' && (
     (h === 'mos2' && laTrangEtp(String(input.trang || '')) && !!(await quyenEtp(me)))
-    || (h === 'xuong-video' && (await noiGui()) === 'studio2.on.tc' && (await quyenGopYS2(me.id))));
+    || (h === 'xuong-video' && tuStudio2(hd.get('host'), hd.get('referer'), hd.get('sec-fetch-dest')) && (await quyenGopYS2(me.id))));
   return hom.guiGopY(h, me, input, { ...ghiTrangThai, choPhepGui });
 }
 export async function dsGopYCuaToi(homVao?: string) { return hom.dsGopYCuaToi(await homCua(homVao), await nguoiGui(), await tuyChonDoc()); }

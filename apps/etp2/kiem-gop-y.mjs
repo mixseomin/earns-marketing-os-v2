@@ -686,9 +686,15 @@ const LUAT = [
   { card: '1832', tep: 'apps/etp2/src/lib/etp-chay.ts', co: '!chuaCoCamp(c)', vi: 'dòng đang sản xuất không bị đếm vào chạy / chờ giờ / tắt' },
   // KHỐI CAMP (anh 25/11/2026 "Nếu lên theo khối của phim thì sẽ phải nhìn thấy đủ các thành phần, các camp đang sx")
   { card: 'khoi', tep: 'apps/etp2/src/components/etp-view.tsx', co: "c.sx?.khoi ? `k${c.sx.khoi.id}`", vi: 'Cây nhóm dòng đang sản xuất theo KHỐI trước' },
-  { card: 'khoi', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'data-o="nhom-khoi"', vi: 'nhãn nhóm khối hiện tham số chung + thành phần mẫu' },
+  { card: 'khoi', tep: 'apps/etp2/src/components/etp-khoi.tsx', mot: 'data-o="nhom-khoi"', vi: 'nhãn nhóm khối hiện tham số chung + thành phần mẫu' },
+  { card: 'khoi', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<DauKhoi kh={kh}', vi: 'đầu nhóm khối dùng DauKhoi (nút thật), không dựng lại chữ trơn' },
+  // anh 25/11/2026 "duyệt khối kiểu gì · điều chỉnh thế nào · nhìn không ngửi được": nút thật + ngăn sửa + một dòng mỗi phim
+  { card: 'khoi-nut', tep: 'apps/etp2/src/components/etp-khoi.tsx', co: 'data-o="nut-khoi-bat-dau"', vi: 'nút ▶ Bắt đầu sản xuất trên đầu khối' },
+  { card: 'khoi-nut', tep: 'apps/etp2/src/components/etp-khoi.tsx', co: 'data-o="nut-khoi-huy"', vi: 'nút Huỷ khối (trạng thái huy, không xoá)' },
+  { card: 'khoi-nut', tep: 'apps/etp2/src/components/etp-khoi.tsx', co: 'data-o="drawer-khoi"', vi: 'ngăn sửa tham số / phim / số camp của khối' },
+  { card: 'khoi-nut', tep: 'apps/etp2/src/components/etp-view.tsx', cam: "'chờ anh duyệt' : 'đang chạy'", vi: 'nhãn khối không còn "chờ anh duyệt" mà không có nút' },
   { card: 'khoi', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'thanh_phan: (mau?.o ?? [])', vi: 'thành phần khối đọc từ sổ mẫu etp-mau-cr.json, không gõ tay' },
-  { card: 'khoi', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'for (let i = 1; i <= soK; i++)', vi: 'mỗi dòng phim khối nở thành đủ số camp sắp lên' },
+  { card: 'khoi-nut', tep: 'apps/etp2/src/lib/etp-doc.ts', cam: 'for (let i = 1; i <= soK; i++)', vi: 'MỘT dòng mỗi phim khối (anh 25/11 bỏ nở so_camp dòng giống hệt)' },
   { card: 'khoi', tep: 'apps/etp/dong_phim.py', co: 'if d.get("khoi"): return b_camp_khoi(d, truoc)', vi: 'bước camp của dòng khối đọc tham số từ khối, không hoi_cho' },
   { card: '1836', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'groupBy={{ value: nhomCay', vi: 'bảng Cây nhóm theo một hàm khoá nhóm chung' },
   { card: '1836', tep: 'apps/etp2/src/components/etp-view.tsx', co: '...nhomBang.map((k) => `p${k}`)', vi: 'Mở hết mở cả nhóm khối / nhóm chỉ có dòng sắp lên (lọc Đang sản xuất)' },

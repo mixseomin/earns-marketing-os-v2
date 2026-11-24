@@ -101,7 +101,8 @@ import { TabDoiThu } from './etp-doi-thu';   // tab Phim đối thủ (anh giao 
 import { TabMauCr } from './etp-mau-cr';   // tab Mẫu creative (anh giao 19/11/2026)
 import { KhungBaiQc } from './etp-bai-qc';
 import { CamCauHinh } from './etp-camp-cau-hinh';
-import { ThietLapCamp } from './etp-thiet-lap';   // tab Camp › ⚙ Thiết lập (anh 24/11/2026)
+import { ThietLapCamp } from './etp-thiet-lap';
+import { DauKhoi, chuTrangThaiKhoi } from './etp-khoi';   // khối camp: đầu nhóm ▶ Bắt đầu sản xuất / Huỷ / ✎ Sửa (anh 25/11/2026)   // tab Camp › ⚙ Thiết lập (anh 24/11/2026)
 import { ChipCrPhim, useDemCrPhim } from './etp-cr-phim-chip';   // 🎬 N · ＋ trên hàng phim (anh 23/11/2026)   // khung bài QC như người xem thấy (anh 20/11/2026)
 
 type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'dt' | 'mau' | 'dong' | 'tv' | 'tn' | 'luat' | 'insight';
@@ -2580,10 +2581,10 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
       `· phim: ${c.phim ?? `#${c.content_id ?? '?'}`} · dạng creative: ${c.dang ?? '?'}`,
       `· sẽ lên ${c.sx?.so_camp ?? 1} camp ★ ROAS ${c.roas} (Lowest cost + min ROAS) · $${c.ngan_sach}/ngày · bộ ${c.bo ?? '?'}`,
       `· giờ chạy: ${vn ? `${p(vn.getUTCHours())}:${p(vn.getUTCMinutes())} ${p(vn.getUTCDate())}/${p(vn.getUTCMonth() + 1)} giờ VN` : 'chưa hẹn'}${c.sx?.ai ? ` · lệnh của ${c.sx.ai}` : ''}`,
-      ...(c.sx?.khoi ? ['', ...chuKhoi(c.sx.khoi), `· dòng này = camp ${c.sx.thu ?? 1}/${c.sx.so_camp ?? c.sx.khoi.cr_camp} của phim trong khối`] : []), '',
+      ...(c.sx?.khoi ? ['', ...chuKhoi(c.sx.khoi), `· phim này: tiếng ${(c.sx.tieng ?? '?').toUpperCase()} · chép khung camp khuôn #${c.sx.khuon ?? '?'} · ${c.sx.so_camp ?? c.sx.khoi.cr_camp} camp`] : []), '',
       'Chưa có: creative, ID camp, điểm chấm — xong creative máy tự tạo camp, dòng này thành camp thật'].join('\n'); };
   // KHỐI CAMP (etp.khoi, anh 25/11/2026 "phải nhìn thấy đủ các thành phần, các camp đang sx"): tham số chung + thành phần mẫu dựng — đọc từ sổ, không gõ tay
-  const chuKhoi = (k: KhoiEtp) => [`🧱 KHỐI #${k.id} · ${k.ten} · ${k.trang_thai === 'cho' ? 'chờ anh duyệt' : k.trang_thai === 'chay' ? 'đang chạy' : k.trang_thai}`,
+  const chuKhoi = (k: KhoiEtp) => [`🧱 KHỐI #${k.id} · ${k.ten} · ${chuTrangThaiKhoi(k)}`,
     `· ${k.so_phim} phim · ${k.so_camp} camp · mỗi creative ${k.cr_camp} camp${k.tran_ngay ? ` · trần $${k.tran_ngay}/ngày` : ''}`,
     `· ★ ROAS ${k.roas} · $${k.ns}/ngày mỗi camp · giờ lên ${k.gio} VN · miền ${k.mien ?? '?'} · ${k.nuoc ?? '?'} nước · ${k.locale ? 'có' : 'không'} nhắm ngôn ngữ`,
     `· dạng ${k.dang ?? '?'} · mẫu ${k.mau_ten ?? k.mau ?? '?'}`, ...k.thanh_phan.map((o) => `   – ${o.ten}: ${o.luat}`)];
@@ -2600,9 +2601,12 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
     // #1770 LẶP "đã gửi thì status này phải update ngay lập tức": ▶ Lên trả ok là dòng đổi "đang lên" liền (dấu tạm ở trình duyệt) — không chờ tải lại bộ số ~10 giây; bộ số dựng sau lúc gửi về thì số thật thắng
     const tam = useDangLenTam(c.creative_id ?? -c.camp_id, du.luc), x = tam && c.xep && !c.xep.gui ? { ...c.xep, gui: tam, truoc: null } : c.xep;
     if (dangSxCr(c)) return <span data-o="dang-sx-ngan" title={chuDangSx(c)} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, fontSize: 10.5, lineHeight: 1.25, cursor: 'help' }}>   {/* #1832 */}
-      <span style={{ color: '#a78bfa', fontWeight: 600 }}>đang sản xuất · {c.sx?.buoc ?? '?'}</span>
-      {c.sx?.khoi ? <span data-o="khoi-camp"><b>{c.phim ?? `#${c.content_id ?? '?'}`}</b> · khối #{c.sx.khoi.id} · camp {c.sx.thu ?? 1}/{c.sx.so_camp ?? c.sx.khoi.cr_camp}</span> : null}
-      <span>★{c.roas} · ${c.ngan_sach} · {g ? `${String(g.getUTCHours()).padStart(2, '0')}:${String(g.getUTCMinutes()).padStart(2, '0')} VN` : 'chưa hẹn'}</span></span>;
+      {c.sx?.khoi ? <span data-o="khoi-camp" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>   {/* khối: tham số chung ở đầu nhóm, dòng chỉ ghi cái RIÊNG của phim (anh 25/11/2026) */}
+        <span style={{ padding: '0 4px', borderRadius: 3, background: 'var(--bg-3, #334155)', fontWeight: 600 }}>{(c.sx.tieng ?? '?').toUpperCase()}</span>
+        <span>khuôn #{c.sx.khuon ?? '?'}</span><b>{c.sx.so_camp ?? c.sx.khoi.cr_camp} camp</b>
+        <span style={{ color: c.sx.khoi.trang_thai === 'cho' ? 'var(--warn, #f5a524)' : '#a78bfa', fontWeight: 600 }}>{c.sx.buoc}</span></span>
+      : <><span style={{ color: '#a78bfa', fontWeight: 600 }}>đang sản xuất · {c.sx?.buoc ?? '?'}</span>
+      <span>★{c.roas} · ${c.ngan_sach} · {g ? `${String(g.getUTCHours()).padStart(2, '0')}:${String(g.getUTCMinutes()).padStart(2, '0')} VN` : 'chưa hẹn'}</span></>}</span>;
     return <span data-o="cho-duyet-ngan" title={chuChoDuyet({ ...c, xep: x })} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, fontSize: 10.5, lineHeight: 1.25, cursor: 'help' }}>
       {x?.gui ? <span data-o="dang-len" data-tam={tam ? '1' : undefined} style={{ color: 'var(--good, #17c964)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}><Den mau={MAU_DEN.cho} song t="đã gửi lệnh lên, chờ Ethopex tạo camp" />đang lên · {gioVn(x.gui)}</span>
         : <span style={{ color: 'var(--warn, #f5a524)', fontWeight: 600 }}>chờ anh duyệt</span>}
@@ -2610,14 +2614,15 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
       {x && !x.cta ? <span style={{ color: 'var(--bad, #f31260)' }}>⚠ chưa đạt CTA</span> : x ? <span style={{ color: 'var(--good, #17c964)' }}>✓ CTA</span> : null}
     </span>; };
   const tenMien = (m: string | null | undefined) => (m ? m.replace(/\.com$/, '') : '—');   // maybic.com → maybic (cột hẹp)
-  const cotCay: DataColumn<CampEtpKho>[] = [
+  const cotCay: DataColumn<CampEtpKho>[] = ([
     // chữ rê ô camp: tên camp + nghĩa vạch mép trái (đỏ / cam) — #1546: trước nằm ở rowTitle của cả dòng (hộp chữ thô, rê đâu cũng bật); nay ở ô camp, HoverChu dựng thẻ nổi chung
     { key: 'camp', header: 'Phim → camp', align: 'left', width: 260, cellTitle: (c) => { const l = loiNb.get(c.camp_id); const r3 = ngay.slice(-3).map((d) => roi(so.get(c.camp_id)?.get(d)));
       const vach = l ? `Vạch ĐỎ: máy không nhân bản được camp này (${l.lan} lần thử trong 24 giờ) — ${loiThuong(l.loi)}` : giam(c) ? `Vạch CAM: ROI giảm 2 ngày liền ${ngay.slice(-3).map((d, i) => `${d.slice(8, 10)}/${d.slice(5, 7)} ${r3[i]}%`).join(' → ')}` : '';
       return [c.ten ?? `#${c.camp_id}`, vach].filter(Boolean).join('\n') || undefined; }, sortValue: (c) => c.camp_id,
       // loại (CC…) + số bản nhân (x9 / ⚠) DẠT PHẢI ô, thẳng một cột ở mọi tầng cây — trước bám sau số camp nên thụt theo tầng (anh 31/10/2026 #1493 "cho sang phải")
       cell: (c) => { if (c.camp_id < 0) return <span data-o="camp-cay" data-xep-hang="" title={chuChoDuyet(c)} style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0, cursor: 'help' }}>   {/* khuôn dòng camp thật, ID = ⏳ chờ (anh 22/11/2026 "trình bày gần giống camp đang có, chỉ thiếu ID") */}
-          <span style={{ width: 8, textAlign: 'center', fontSize: 10 }}>⏳</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /><b style={{ color: laRoas(c) ? MAU_ROAS : '#60a5fa', opacity: 0.75 }}>{dangSxCr(c) ? (c.sx?.buoc ?? 'đang làm') : `cr #${c.creative_id}`}</b>
+          {c.sx?.khoi ? <b data-o="khoi-phim-ten" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>🎬 {c.phim ?? `#${c.content_id ?? '?'}`}</b>
+          : <><span style={{ width: 8, textAlign: 'center', fontSize: 10 }}>⏳</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /><b style={{ color: laRoas(c) ? MAU_ROAS : '#60a5fa', opacity: 0.75 }}>{dangSxCr(c) ? (c.sx?.buoc ?? 'đang làm') : `cr #${c.creative_id}`}</b></>}
           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><span style={{ minWidth: 22 }} /></span></span>;
         const n = dem(c); return <span data-o="camp-cay" style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} />
         <b data-nut="mo-camp" onClick={moCamp ? (e) => { e.preventDefault(); e.stopPropagation(); moCamp(c.camp_id); } : undefined} title={moCamp ? 'mở ngăn chi tiết camp' : undefined}
@@ -2671,7 +2676,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
       total: (rs) => <LaiCot s={rs.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 })} /> },
     // CỘT ĐỆM (không tiêu đề, không số): mọi cột có bề rộng cố định → khoảng thừa của bảng dồn ra mép phải, số liệu xếp sát nhau (anh 29/10/2026 "cho gọn lại")
     { key: 'dem', header: '', align: 'left', cell: () => null },
-  ];
+  ] as DataColumn<CampEtpKho>[]).map((k) => (['lai_nay', 'chi', 'lai'].includes(k.key) || cotNgay.some((x) => x.key === k.key) ? { ...k, cell: (c: CampEtpKho, i: number) => (c.sx?.khoi ? null : k.cell(c, i)) } : k));   // dòng KHỐI chưa có camp → ô tiền trống, không in $0.00 (anh 25/11/2026)
   // KT ĐANG SINH / SẴN SÀNG theo phim (anh 29/10/2026 kế hoạch KT cho phim đang chạy): bản kể chuyện VideoExpress trong etp.thu_vien chưa thành creative
   const ktCua = useMemo(() => new Map((du.thuVien ?? []).filter(tvChuaCr).map((v) => [v.content_id, v.tv as string])), [du.thuVien]);
   const nhomCua = useMemo(() => new Map(du.phims.map((x) => [x.content_id, x.nhom_goc])), [du.phims]);
@@ -2681,10 +2686,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
   const nhanPhim = (k: string) => { if (k[0] === 'k') { const ds = (du.hangCr ?? []).filter((x) => x.sx?.khoi && `k${x.sx.khoi.id}` === k), kh = ds[0]?.sx?.khoi;   // nhóm KHỐI (etp.khoi)
       if (!kh) return <span>{k}</span>;
       const phims = [...new Map(ds.map((x) => [x.content_id, x.phim ?? `#${x.content_id}`])).values()];
-      return <span data-o="nhom-khoi" title={[...chuKhoi(kh), '', 'Phim:', ...phims.map((t) => `   – ${t}`)].join('\n')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0, flexWrap: 'wrap', cursor: 'help' }}>
-        <b>🧱 Khối #{kh.id} · {kh.ten}</b><span style={{ color: kh.trang_thai === 'cho' ? 'var(--warn, #f5a524)' : '#a78bfa', fontWeight: 600 }}>{kh.trang_thai === 'cho' ? 'chờ anh duyệt' : 'đang chạy'}</span>
-        <span style={{ fontWeight: 400 }}>{kh.so_phim} phim · {kh.so_camp} camp{kh.tran_ngay ? ` · trần $${kh.tran_ngay}` : ''} · ★{kh.roas} · ${kh.ns} · {kh.gio} · {kh.mien ?? '?'} · {kh.nuoc ?? '?'} nước · {kh.locale ? 'có' : 'không'} locale</span>
-        <span style={{ fontWeight: 400, color: 'var(--muted)' }}>mẫu {kh.mau_ten ?? kh.mau}: {kh.thanh_phan.map((o) => o.ten).join(' · ')}</span></span>; }
+      return <DauKhoi kh={kh} phims={phims} chu={chuKhoi(kh)} />; }
     const p = phimMap.get(k);
     if (!p) { const h = du.hangCr?.find((x) => String(x.content_id ?? 0) === k); return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{h?.phim ? <b title={`phim #${k}`}>{h.phim}</b> : `#${k}`}<ChipCrPhim cid={Number(k)} dem={demCr[Number(k)]} /></span>; }   // nhóm chỉ có dòng ⏳ xếp hàng
     return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>{<HexBo bos={p.all.map((c) => c.bo)} boTk={du.boTk} />}

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // CHỐNG QUAY VỀ BẢN CŨ cho góp ý etp2 (cùng khuôn scripts/check-etp-gop-y.mjs của etp, tệp riêng trong app vì etp2 tách khỏi apps/web 09/11/2026).
 //   { card, tep (tính từ gốc repo), mot | co | cam: '<chuỗi>', vi: '<anh muốn gì>' }   mot = đúng một lần · co = phải có · cam = không được có
-// Chạy: node apps/etp2/kiem-gop-y.mjs   (trước khi submit card /tasks-etp2)
+// Chạy: node apps/etp2/kiem-gop-y.mjs   (trước khi submit card /tasks-etp2) — và tự chạy trong `npm run build` của etp2 (GHA dựng etp2 bằng lệnh đó), từ #1815
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -12,6 +12,8 @@ const LUAT = [
   { card: 1816, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', cam: '· “{form?.primaryTexts.join', vi: 'dòng Form chuẩn không bày cả ba câu chữ QC (để ở chữ rê)' },
   { card: 1814, tep: 'packages/bang/src/data-table.tsx', mot: 'const rongVe = (c: DataColumn<T>)', vi: 'bảng fixed: cột không khai width có bề ngang mặc định ở ô thân, tiêu đề và colgroup — không co 0px làm chữ nhóm Hôm nay đè nhau (Thiết lập)' },
   { card: 1814, tep: 'packages/bang/src/data-table.tsx', co: '<col key={c.key} style={{ width: rongVe(c) }} />', vi: 'colgroup hàng nhãn nhóm dùng cùng bề ngang với ô thân' },
+  { card: 1815, tep: 'packages/bang/src/data-table.tsx', cam: '<col key={c.key} style={{ width: rongCot(c.key) ?? c.width }} />', vi: 'Thiết lập: nhóm Hôm nay không biến mất — colgroup không quay về dạng cột chưa khai width co 0px (lần đẩy 16:45 24/11 đè mất bản sửa #1814)' },
+  { card: 1815, tep: 'apps/etp2/package.json', co: '"build": "node kiem-gop-y.mjs && next build"', vi: 'máy kiểm này chạy trong lệnh dựng etp2 — bản đè mất góp ý đã sửa không dựng được, bản đang chạy giữ nguyên' },
   { card: 1813, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', mot: 'Ad gắn mẫu trước khi form về', vi: 'ad gắn mẫu trước khi creative về form = dòng vàng "giữ nguyên ad đang chạy, chữ form áp cho camp lên sau", không đỏ (anh 24/11/2026 góp ý #1813)' },
   { card: 1813, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'x.ai !== false', vi: 'vấn đề "chữ cũ" không gửi Sửa (AI) — không sinh card cho lớp này' },
   { card: 1813, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'vAi.length', vi: 'nút Sửa (AI) chỉ hiện khi còn vấn đề sửa được' },

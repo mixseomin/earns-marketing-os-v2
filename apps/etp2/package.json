@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3880",
-    "build": "next build",
+    "build": "node kiem-gop-y.mjs && next build",
     "start": "next start -p ${PORT:-3880}",
     "typecheck": "tsc --noEmit"
   },

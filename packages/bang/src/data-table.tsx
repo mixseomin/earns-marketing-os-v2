@@ -678,6 +678,9 @@ export function DataTable<T>({
                                   ref={searchOpen ? searchAnchor : undefined}
                                   onClick={() => setSearchCol(searchOpen ? null : c.key)}
                                   style={filtering ? { color: 'var(--accent)', borderColor: 'var(--accent)' } : undefined}>🔍</button>
+                          {/* đã kéo cột → ↺ đưa MỌI cột về bề ngang gọn mặc định (anh 24/11/2026 "kéo nó về lại kích thước gọn"; "↺ thôi, hover vào tên mới hiện") */}
+                          {Object.keys(rong).length > 0 && <button type="button" title="Mọi cột về bề ngang gọn mặc định (nhấp đúp mép cột = một cột)"
+                                  onClick={(e) => { e.stopPropagation(); tuChotRef.current = null; setRong({}); if (khoaRong) ghiRongCot(khoaRong, {}); }}>↺</button>}
                         </span>
                       )}
                     </span>

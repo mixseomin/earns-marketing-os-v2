@@ -3586,7 +3586,9 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'thietlap' ? (
-        <ThietLapCamp camps={camps} hep={hep} />
+        <ThietLapCamp camps={camps} hep={hep} them={{   /* nhóm cột phụ: creative + hiệu suất hiện tại — chính cột của bảng Camp (anh 24/11/2026) */
+          cot: cotCamp.filter((k) => k.key === 'phim' || /^(nay|qua|kh)_/.test(k.key)).map((k) => (k.key === 'phim' ? { ...k, group: 'cr', width: 200 } : k)),
+          nhom: [{ key: 'cr', label: 'Creative', color: '#34d399', title: 'phim · creative đang gắn vào camp (bấm ảnh xem video)' }, ...NHOM] }} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
         <CayCamp camps={camps} hang={hangLoc} hl={hlCamp} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e, camp) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr, camp }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} />
       ) : tab === 'camp' ? (

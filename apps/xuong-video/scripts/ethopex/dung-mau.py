@@ -663,7 +663,8 @@ LAT_LECH = 4.0   # chênh trung bình (/255) tối đa giữa khung lật và g�
 CHI_LAT = [False]   # --lat: cấm gửi AI chuyển động (chỉ lật clip đã trả)
 def chuyen_dong(nen, tm, cid, ma, b):
     """khung sạch (chưa chữ) → clip AI 8 giây 9:16 → (tệp mp4, ₫). Ảnh đưa lên R2 qua box3 (tai-len.mts) làm anh_dau; cổng tự lùi nếu cổng đầu lỗi."""
-    jpg = os.path.join(tm, f"dong-{ma}-{b}.jpg"); moi = Image.open(nen).convert("RGB"); ra = os.path.join(tm, f"dong-{ma}-{b}.mp4")
+    _l = "-lat" if CHI_LAT[0] else ""   # bản lật mang tên riêng: chung tên dong-<mẫu>-<b> với clip gốc thì vòng dưới bỏ qua đúng clip gương của nó + ghi đè clip đã trả
+    jpg = os.path.join(tm, f"dong-{ma}{_l}-{b}.jpg"); moi = Image.open(nen).convert("RGB"); ra = os.path.join(tm, f"dong-{ma}{_l}-{b}.mp4")
     # DỰNG LẠI CÙNG KHUNG = DÙNG LẠI CLIP ĐÃ TRẢ TIỀN (anh 25/11/2026 thêm nhãn "All Episodes" vào mẫu → dựng lại creative Genie): clip AI chỉ phụ thuộc khung sạch,
     # lớp chữ phủ sau (dung_dong) — khung y hệt lần trước (chênh trung bình < 1/255) mà clip còn trên máy thì không gửi AI lần nữa, 0₫
     if os.path.exists(ra) and os.path.exists(jpg):
@@ -673,15 +674,16 @@ def chuyen_dong(nen, tm, cid, ma, b):
     # KHUNG LẬT (mot(lat=True)): khung mới = gương của một khung đã có clip trong thư mục phim → clip đó lật ngang (ffmpeg hflip), 0₫
     import glob
     guong = ImageOps.mirror(moi); lech = lambda a, b: sum(ImageStat.Stat(ImageChops.difference(a, b)).mean) / 3
+    ds_lech = []
     for j in sorted(glob.glob(os.path.join(tm, f"dong-{ma}-*.jpg"))):
         mp = j[:-4] + ".mp4"
-        if j == jpg or not os.path.exists(mp): continue
-        cu = Image.open(j).convert("RGB")
-        if cu.size == moi.size and lech(cu, guong) < LAT_LECH:
+        if j == jpg or "-lat-" in os.path.basename(j) or not os.path.exists(mp): continue
+        cu = Image.open(j).convert("RGB"); d = lech(cu, guong) if cu.size == moi.size else 999; ds_lech.append(f"{os.path.basename(j)} {d:.1f}")
+        if d < LAT_LECH:
             r = AT.sh("ffmpeg", "-v", "error", "-y", "-i", mp, "-vf", "hflip", "-an", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", ra)
             if r.returncode or not os.path.exists(ra): raise RuntimeError(f"lật clip lỗi: {r.stderr[-200:]}")
             moi.save(jpg, quality=92); print(f"chuyển động: khung lật của {os.path.basename(j)} → clip đó lật ngang · 0₫", flush=True); return ra, 0
-    if CHI_LAT[0]: raise RuntimeError("--lat: không tìm thấy clip đã trả tiền khớp khung gốc của bản lật — không gửi AI (giữ giá ~0₫)")
+    if CHI_LAT[0]: raise RuntimeError(f"--lat: không tìm thấy clip đã trả tiền khớp khung gốc của bản lật (lệch /255, ngưỡng {LAT_LECH}: {', '.join(ds_lech) or 'không có clip'}) — không gửi AI (giữ giá ~0₫)")
     moi.save(jpg, quality=92)
     tmb = f"/var/tmp/anh-dong/{int(cid)}"; AT.sh("ssh", AT.B, f"mkdir -p {tmb}", han=60)
     r = AT.sh("rsync", "-q", jpg, f"{AT.B}:{tmb}/", han=300)
@@ -822,7 +824,8 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
             AT.sh("ssh", AT.B, "systemctl start --no-block etp-dong-bo", han=60)   # đồng bộ kho trang phim ngay, không chờ 10 phút
             tt("trang_phim", "cho", f"chờ Ethopex sinh trang + link tập 1 (lượt sau tự dựng tiếp) · {ly or 'trang phim đã đủ, chờ đồng bộ điền link'}"[:300])
             return []
-        if cid not in _NHO and xem: _NHO.update({cid: x for x in [doc_uv(tm)] if x})   # xem trước: khung đã xếp hạng nằm trên đĩa → không tải / không xếp lại (0₫)
+        if cid not in _NHO and (xem or lat): _NHO.update({cid: x for x in [doc_uv(tm)] if x})   # lật: ứng viên lấy từ khung sạch đã trả (dưới) — không tải / xếp AI lại (xep-khung box3 hay quá 300 giây, 26/11/2026)
+        if cid not in _NHO and lat: _NHO[cid] = {"uv": [], "mo_ta": TB.mo_ta(p["url"])}   # xem trước: khung đã xếp hạng nằm trên đĩa → không tải / không xếp lại (0₫)
         if cid not in _NHO:   # một phim chỉ tải tập / xếp khung / viết câu nhử MỘT lần trong tiến trình (bảng xem trước vẽ 12 mẫu)
             uv = AT.khung(cid, p["url"], tm)
             if not xem: ghi_poster(cid, p["url"], tm)
@@ -842,7 +845,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
             da_khung, da_cau = ([x for x in y.split(";") if x] for y in (r_.split("\t") + [""])[:2])
         khoa = lambda u: f"{u['tap']}#{u['so']}" + ("~lat" if u.get("lat") else ""); cx_dung = {x.split("|")[1] for x in da_khung if "|" in x}
         uv = [u for u in uv if khoa(u) not in {x.split("|")[0] for x in da_khung}]
-        if not uv: raise RuntimeError(f"phim này đã dùng hết {len(da_khung)} khung ứng viên cho mẫu — không còn khung mới để ra bản khác")
+        if not uv and not lat: raise RuntimeError(f"phim này đã dùng hết {len(da_khung)} khung ứng viên cho mẫu — không còn khung mới để ra bản khác")   # lật: ứng viên dựng riêng bên dưới
         if da_khung: uv = sorted(uv, key=lambda u: bool(u.get("cam_xuc")) and u.get("cam_xuc") in cx_dung)   # khác cảm xúc lên trước, giữ thứ hạng AI trong từng nhóm
         # BẢN ANH SOẠN (etp2 ngăn "Creative của phim", 23/11/2026): etp.mau_dung.tuy_chon = {soan, cau, nhan, chu_dau} — câu nhử anh gõ thay câu AI, chữ QC dòng đầu anh gõ
         tc = dict(tc_xem) if XT else {}
@@ -866,8 +869,18 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
             def _lat(u):
                 v = copy.deepcopy(u); v["lat"] = True; m = v["mat"]; v["mat"] = [1 - m[0] - m[2], m[1], m[2], m[3]]
                 v["xoa"] = [[1 - x - w, y, w, h] for x, y, w, h in v.get("xoa") or []]; return v
-            uv = [_lat(u) for u in uv_du if khoa(u) in co_hinh]; k_ghim = None
-            if not uv: raise RuntimeError(f"--lat: phim chưa có creative nào của mẫu {ma} để lật")
+            # nguồn lật = KHUNG SẠCH ĐÃ TRẢ TIỀN (dong-<mẫu>-N.jpg + clip .mp4 trong thư mục phim): dựng lại khung từ phim (khung → xoá chữ AI) ra ảnh khác
+            # khung đã gửi AI (đo 26/11/2026 phim 85055: lệch 66–85/255) → không bao giờ khớp clip; nên lấy thẳng ảnh đã gửi, gương nó, clip của nó lật ngang
+            import glob, hashlib
+            uv = []
+            for j in sorted(glob.glob(os.path.join(tm, f"dong-{ma}-[0-9]*.jpg"))):
+                if not os.path.exists(j[:-4] + ".mp4"): continue
+                g_ = ImageOps.mirror(Image.open(j).convert("RGB")); gp = j[:-4] + "-guong.png"; g_.save(gp)
+                try: ms = sorted([m for m in (AT.doc_mat([gp], 300) or [{}])[-1].get("mat") or [] if m[4] >= 0.45], key=lambda m: -m[2] * m[3])
+                except Exception as e: print("đọc mặt khung lật lỗi:", e, file=sys.stderr); ms = []
+                uv.append({"tap": "lat" + hashlib.md5(open(j, "rb").read()).hexdigest()[:8], "so": 0, "lat": True, "dong_goc": gp, "mat": list(ms[0][:4]) if ms else [0.3, 0.2, 0.4, 0.3], "xoa": []})
+            k_ghim = None
+            if not uv: raise RuntimeError(f"--lat: thư mục phim không còn khung sạch đã trả tiền (dong-{ma}-N.jpg + .mp4) để lật")
         uv = [u for u in uv if khoa(u) not in co_hinh]
         if not uv and not k_ghim: raise RuntimeError(f"phim này không còn khung chưa có creative cho mẫu {ma} — mỗi creative phải khác hình, không lặp khung")
         if k_ghim: uv = [k_ghim]
@@ -890,11 +903,14 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
                 if khoa(k) in {x.split("|")[0] for x in da_khung} and not xem: continue   # vòng modulo quay về khung bản trước của chính lượt này → bỏ (một hình một creative)
                 tt("ve_mau", g=f"bản {b + 1}/{ban}: vẽ mẫu trên khung {k['tap']}#{k['so']}" + (f" (khung xếp hạng {lan + 1} — các khung trước chữ che mặt / không đủ chỗ)" if lan else ""))
                 AT.CO_FREE, cu = False, AT.CO_FREE   # nền sạch không lớp Free — mẫu tự quyết lớp CTA của nó
-                try: nen, _ = AT.anh(cid, ten, k, tm, nb)
+                try:
+                    if k.get("dong_goc"):   # khung lật: nền = gương khung sạch đã trả tiền, nguyên ảnh (không cắt / xoá lại)
+                        nen = os.path.join(tm, f"nen-{nb}.png"); Image.open(k["dong_goc"]).convert("RGB").save(nen); Image.open(k["dong_goc"]).convert("RGB").save(os.path.join(tm, f"goc-{nb}.png"))
+                    else: nen, _ = AT.anh(cid, ten, k, tm, nb)
                 finally: AT.CO_FREE = cu
                 goc = os.path.join(tm, f"goc-{nb}.png"); khac = [os.path.join(tm, f"goc-{nb + 100}.png")]
                 if os.path.exists(khac[0]): os.remove(khac[0])
-                if ma in CAN_KHUNG2 and (k2_ghim or len(uv_du) > 1):   # nhân vật thứ hai: khung anh ghim, không ghim thì khung xếp hạng kế
+                if ma in CAN_KHUNG2 and not k.get("dong_goc") and (k2_ghim or len(uv_du) > 1):   # nhân vật thứ hai: khung anh ghim, không ghim thì khung xếp hạng kế
                     k2 = k2_ghim or next(u for u in uv_du[(b + 1):] + uv_du if khoa(u) != khoa(k)); AT.sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k2["tap"] + ".mp4"), "-vf", f"{AT.LOC},select=eq(n\\,{k2['so'] - 1})", "-frames:v", "1", khac[0])
                 mats = []
                 try:   # mọi mặt trên khung gốc (máy đọc Vision của anh-tinh) — khung 9:16 cắt từ khung gốc nên quy toạ độ dọc theo cùng tỉ lệ

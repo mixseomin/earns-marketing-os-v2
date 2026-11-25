@@ -20,7 +20,7 @@ Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--ban N bản / phi
 import difflib, hashlib, json, os, random, re, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageStat
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps, ImageStat
 
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex/anh-tinh")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"

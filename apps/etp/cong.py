@@ -359,7 +359,9 @@ LY_CHI_LENH = "CHỈ LÊN CAMP MỚI THEO LỆNH ANH (etp.cau_hinh.chi_len_theo_
 # {ngay: 'YYYY-MM-DD' giờ VN, so_camp: N, ly_do} của ĐÚNG ngày hôm nay; không có nhiệm vụ ngày nay = 0 vé. Mỗi lần ghi nhiệm vụ phải là câu anh duyệt trong chat.
 KHOA_NHIEM_VU = "nhiem_vu_ngay"
 SQL_VE_LEN_NGAY = ("select count(*) from etp.ve_tay where loai = 'truc_tiep' and viec = 'nhan_ban' and coalesce(phien, '') <> 'nut-etp2'"
-                   " and (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date")
+                   " and (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date"
+                   # trần nhiệm vụ đếm CAMP, không đếm lần xin vé: vé hết hạn chưa dùng không lên camp nào → không ăn trần (26/11/2026: 18 vé cấp mà 12 camp, 6 vé bỏ không chặn 6 camp còn lại của nhiệm vụ)
+                   " and (da_dung is not null or het_han > now())")
 def ngoai_nhiem_vu(nv, da_cap, hom_nay):
     """hàm thuần: nhiệm vụ ngày (dict | None) + số vé lên camp đã cấp hôm nay + ngày VN 'YYYY-MM-DD' → câu chặn | None"""
     nv = nv if isinstance(nv, dict) else {}

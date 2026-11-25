@@ -710,7 +710,8 @@ export const LUAT = [
   { card: 'khung-gio-2411', tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: '"len_gio": [7, 22]', vi: 'sổ luật etp2 cùng hai khung 07h + 22h' },
   { card: 'roas-dem-2211', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"muc": [0.9, 1.1], "ns": 5, "dem"', vi: 'sổ nhân đôi ★ ROAS lãi qua đêm: 0.9 + 1.1 ở $5 (camp mới $5, anh 25/11/2026), giữ gốc' },
   { card: 'roas-dem-2211', tep: 'apps/etp/nuoi_bo.py', co: 'import roas_doi; rd = roas_doi.chay(xem)', vi: 'worker gọi máy nhân đôi ★ ROAS mỗi nhịp' },
-  { card: 'roas-dem-2211', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'moi = {"creative": a["creative_id"], "content": a["content_id"]}', vi: 'gốc ★ ROAS creative mới không có bài đăng → bản ROAS dùng lại creative + content của gốc (trước gãy "không có mã bài đăng")' },
+  // roas-dem-2211 (22/11: gốc không bài đăng → ★ ROAS dùng lại creative gốc) BỊ ANH ĐẢO 25/11/2026 "Mỗi camp mới đều phải có creative mới !! Cấm dùng lại" — xem cr-moi-2511
+  { card: 'roas-dem-2211', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if not re.fullmatch(r"\\d+_\\d+", sid): raise ValueError(f"camp gốc #{goc_id} không có mã bài đăng', vi: 'gốc ★ ROAS không có bài đăng → báo rõ "không có mã bài đăng", không dùng lại creative (anh 25/11/2026)' },
   { card: 'roas-dem-2211', tep: 'apps/etp/cong.py', co: 'NGUON_MOI = ("lenh_cho", "roas_doi")', vi: 'nhân đôi ★ ROAS là luật mới 22/11 — cổng luật cũ không chặn' },
   { card: 'roas-dem-2211', tep: 'apps/etp/roas_doi.py', co: 'env={**os.environ, "ETP_NGUON": "roas_doi"}', vi: 'máy nhân đôi tự khai nguồn khi gọi nhan-ban' },
   { card: 'roas-dem-2211', tep: 'apps/etp/roas_doi.py', co: '"--roas-doi"]', vi: 'bản nhân đôi lên sáng theo lich_len, không chờ khung tối' },
@@ -1822,4 +1823,10 @@ export const LUAT = [
   { card: 'nhan-xet-2511', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: 'bam(cr, () => duyetChoAnh(cr, hoi, chu), hoi)', vi: 'ô xác nhận Duyệt / Loại có ô nhận xét, chữ gửi kèm lệnh duyệt (anh 25/11/2026 "phải cho tao comment vào đó để mày có hướng sửa")' },
   { card: 'nhan-xet-2511', tep: 'apps/etp2/src/components/etp-len-gio.tsx', co: 'khongDuyetCr(Number(cr), nx)', vi: '✕ Không duyệt ở bảng cây cũng gửi nhận xét' },
   { card: 'nhan-xet-2511', tep: 'apps/etp2/src/lib/actions/etp-cham.ts', co: 'insert into etp.nhan_xet_cr (creative_id, ok, chu, ai, noi)', vi: 'nhận xét lưu lịch sử etp.nhan_xet_cr (0474), không ghi đè' },
+  { card: 'mien-2511', tep: 'apps/etp/ethopex_api.py', co: 'class CamThieuTin(NgoaiNha, ValueError)', vi: 'camp chưa đủ thông tin trước khi lên (miền, tài khoản, pixel, Page, creative, phim) bị chặn ở cửa (anh 25/11/2026 "CẤM KHÔNG ĐƯỢC BẬT")' },
+  { card: 'mien-2511', tep: 'apps/etp/ethopex_api.py', co: '_tt = thieu_tin(body)', vi: 'cửa tạo camp gọi thieu_tin ngay trước khi gửi' },
+  { card: 'mien-2511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'MIEN_LEN = str(_cau_hinh("mien_len", "") or "").strip()', cam: '"domain": a.get("domain") or ""', vi: 'mọi camp mới đi miền etp.cau_hinh mien_len (marcusbeilby.com), không chép miền camp gốc' },
+  { card: 'cr-moi-2511', tep: 'apps/etp/ethopex_api.py', co: 'def creative_cu(cr):', vi: 'camp mới chỉ lên creative chưa từng có camp (anh 25/11/2026 "Cấm dùng lại")' },
+  { card: 'cr-moi-2511', tep: 'apps/etp/ethopex_api.py', co: 'camp mới phải creative mới, nhân bản thì clone bài đăng', vi: 'cửa API chặn creative cũ ở mọi đường tạo camp' },
+  { card: 'cr-moi-2511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'nhân bản chỉ clone bài đăng, creative cũ cấm dùng lại', cam: 'moi = {"creative": a["creative_id"], "content": a["content_id"]}', vi: 'nhân bản / ★ ROAS nhân bản = clone bài đăng; không đăng lại creative của camp gốc' },
 ];

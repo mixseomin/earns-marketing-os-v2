@@ -549,6 +549,10 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       bo: (r.bo as string) || (r.bo_moi as string) || null, trang_thai: 'ACTIVE', giao: null, ngan_sach: kh && soK ? ns * soK : ns, creative_id: null, content_id: r.content_id == null ? null : n(r.content_id), goc: null,
       lich: gioKhung, tao: (r.tao as string) ?? null, loi: null, dong_bo: 'dang_sx', phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.loai as string) ?? null,
       ban: null, giong: null, doan: null, cung_doan: 0, thang: st(0, 0), qua: st(0, 0), nay: st(0, 0), lich_tat: false, nuoc: [], ab: null, dong: null, roas: ro, chien_luoc: 'LOWEST_COST_WITH_MIN_ROAS' }); }
+  // MIỀN ĐẶT TRƯỚC (anh 25/11/2026 "Chỗ này phải set trước chứ ko phải đợi"): dòng chờ lên / đang sản xuất chưa có ad để đọc — miền là khoá etp.cau_hinh mien_len,
+  // đúng thứ nhan-ban.py gắn vào ad và cửa ethopex_api.thieu_tin bắt buộc (camp khác miền không được tạo)
+  const mienLen = cauHinh.find((k) => k.khoa === 'mien_len')?.gia_tri;
+  for (const h of hangCr) h.mien ??= typeof mienLen === 'string' && mienLen ? mienLen : null;
   // gộp creative / phim từ camp (cùng nguồn số)
   const cong = (a: SoTien, b: SoTien) => ({ chi: a.chi + b.chi, thu: a.thu + b.thu });
   const crMap = new Map<number, CreativeEtpKho>();

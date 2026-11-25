@@ -463,6 +463,9 @@ THANG_MUC = {float(x) for x in _cau_hinh("thang_muc", [1, 3, 7, 15, 30]) if floa
 BO_DANG_CHAN = {str(k): set(v) for k, v in _cau_hinh("bo_dang_chan", {}).items()}   # bộ → dạng creative không lên camp mới (migration 0394, anh 01/11/2026 "bộ 2 chỉ lên cảnh cuối")
 BO_CHI_PHIM_LAI = {str(x) for x in _cau_hinh("bo_chi_phim_lai", [])}   # bộ chỉ mở camp cho phim đã lãi 7 ngày ở bộ đó (migration 0399, anh 02/11/2026 "chặn mở camp phim mới" ở bộ 2)
 ROAS_MIN, ROAS_MAX = 0.9, 1.4   # 0.9 (Dol 22/11/2026: "ngoài mức bid roas 1, lên camp test thêm mức 0.9, 1.1")
+MIEN_LEN = str(_cau_hinh("mien_len", "") or "").strip()   # miền trang đích MỌI camp mới (anh 25/11/2026 "marcusbeilby.com : tất cả đổi hết sang domain này") — rỗng thì cửa API chặn
+def mien_goc(goc_id, a):   # miền link của bài đăng camp gốc: ad.domain trên Ethopex, không có thì sổ etp.camp.mien
+    return (a.get("domain") or (q(f"select mien from etp.camp where camp_id = {int(goc_id)}") if str(goc_id).isdigit() else "") or "").strip()
 KHUON_ES = 65734   # camp mẫu ES (cùng sổ lenh_cho.KHUON_CR / dot-phim-moi.KHUON) — mang locales [1002] trong targeting Ad Set
 def phim_es(content_id, goc_id=None):
     """Phim tiếng Tây Ban Nha? Đọc etp.phim.locale; không đọc được thì coi khuôn ES là phim ES (nghiêng về bỏ khoá ngôn ngữ)."""
@@ -495,7 +498,7 @@ def giong_doi(d, pl):
     for ten, goc, moi, mien in (("camp", js(c.get("source_payload")), pc, GIONG_DOI_MIEN_C), ("adset", sg, pg, GIONG_DOI_MIEN_G)):
         for k in sorted((set(goc) | set(moi)) - BO - mien):
             if goc.get(k) != moi.get(k): lech.append(f"{ten}.{k}: {str(goc.get(k))[:60]} → {str(moi.get(k))[:60]}")
-    for k in ("creative_id", "content_id", "domain"):
+    for k in ("creative_id", "content_id"):   # miền KHÔNG so: mọi camp mới đi miền MIEN_LEN (anh 25/11/2026 — lệnh trực tiếp đè "giống hệt đội")
         if (a.get(k) or "") != (pa.get(k) or ""): lech.append(f"ad.{k}: {a.get(k)} → {pa.get(k)}")
     if pl.get("pixel_id_arb") != d.get("pixel_id"): lech.append(f"pixel: {d.get('pixel_id')} → {pl.get('pixel_id_arb')}")
     if lech: raise ValueError("clone camp đội phải giống hệt gốc trừ ngân sách (anh 23/11/2026) — lệch: " + "; ".join(lech))
@@ -518,7 +521,8 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
     # NHÂN BẢN BÀI CŨ (anh 11/11/2026 "khi dup camp lãi ổn định dạng ko phải roas thì chọn Use existing post"): clone camp thường CÙNG BỘ (bài đăng thuộc Page của bộ)
     # → ad dùng lại bài đăng của camp gốc (giữ tương tác), ngân sách CONG.NS_MOI ($5), không đòi CTA mới. Creative mới (--creative), sang bộ khác, camp team → đăng bài mới như cũ.
     sid_goc = (a.get("effective_object_story_id") or "").strip()
-    bai = (not roas and not moi and not NGOAI and bool(re.fullmatch(r"\d+_\d+", sid_goc)) and (not bo or str(bo) == str(bo_cua_camp(c))))
+    bai = (not roas and not moi and not NGOAI and bool(re.fullmatch(r"\d+_\d+", sid_goc)) and (not bo or str(bo) == str(bo_cua_camp(c)))
+           and mien_goc(goc_id, a) == MIEN_LEN)   # bài cũ mang link miền của camp gốc → chỉ dùng lại khi đúng miền lên camp, không thì đăng bài mới miền MIEN_LEN (anh 25/11/2026)
     if len(d.get("ad_groups") or []) != 1 or len(g.get("ads") or []) != 1: raise ValueError("camp gốc không đúng khuôn 1 nhóm 1 ad")
     if roas and moi:   # ★ ROAS creative mới (đợt hồi chợ): không có gốc để "duplicate by" — tên mang mức ROAS đầu + đuôi, cong.la_roas nhận bằng ★ và chiến lược thầu
         ten = f"★ ROAS {roas:g} · {moi['ten']} roas {roas:g}"; a = {**a, "creative_id": moi["creative"], "content_id": moi["content"]}
@@ -554,14 +558,16 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
         # GỐC KHÔNG CÓ BÀI ĐĂNG (anh 22/11/2026, nhân đôi ★ ROAS lãi qua đêm): ad dựng từ creative (★ ROAS creative mới, is_existing_post false) → Ethopex không giữ
         # effective_object_story_id → bản ROAS dùng lại đúng creative + content của gốc (đăng bài mới, như nút Duplicate trên Ethopex) thay vì gãy "không có mã bài đăng"
         sid = (a.get("effective_object_story_id") or "").strip()
-        if not moi and not re.fullmatch(r"\d+_\d+", sid) and a.get("creative_id") and a.get("content_id"):
-            moi = {"creative": a["creative_id"], "content": a["content_id"]}
+        # CẤM DÙNG LẠI CREATIVE CŨ (anh 25/11/2026 "Mỗi camp mới đều phải có creative mới !! Cấm dùng lại … nhân bản thì clone post đang viral"): bỏ nhánh 22/11
+        # "gốc không có bài đăng → dùng lại creative + content của gốc". ★ ROAS nhân bản = clone bài đăng của gốc (đúng miền lên camp), không có bài thì không lên.
+        if not moi and re.fullmatch(r"\d+_\d+", sid) and mien_goc(goc_id, a) != MIEN_LEN:
+            raise ValueError(f"bài đăng {sid} của camp gốc #{goc_id} mang miền {mien_goc(goc_id, a) or 'chưa biết'} ≠ {MIEN_LEN} — không clone (creative cũ cấm dùng lại, anh 25/11/2026)")
         if moi:   # ★ ROAS creative mới: ad = creative mới (đăng bài mới, như camp mới thường) — khuôn chỉ cho cấu hình
             return d, ten, moi["content"], {
                 "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo) if bo else None,
                 "external_account_id": ext,
                 "campaign": {"source_payload": sp_c, "ad_groups": [{"type_run": lich, "source_payload": sp_g,
-                    "ads": [{"content_id": moi["content"], "creative_id": moi["creative"], "facebook_page_id": page, "domain": a.get("domain") or "",
+                    "ads": [{"content_id": moi["content"], "creative_id": moi["creative"], "facebook_page_id": page, "domain": MIEN_LEN,
                              "source_payload": {"name": ten, "status": "ACTIVE"}}]}]}}
         if not re.fullmatch(r"\d+_\d+", sid): raise ValueError(f"camp gốc #{goc_id} không có mã bài đăng (effective_object_story_id) để dùng lại")
         if bo and str(bo) != str(bo_cua_camp(c)): raise ValueError("camp ROAS dùng bài đăng của camp gốc → phải cùng bộ tài khoản / Page với camp gốc")
@@ -574,7 +580,7 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
         "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo) if bo else None, "bai_cu": sid_goc if bai else None,
         "external_account_id": ext,
         "campaign": {"source_payload": sp_c, "ad_groups": [{"type_run": lich, "source_payload": sp_g,
-            "ads": [{"content_id": a.get("content_id"), "creative_id": a.get("creative_id"), "facebook_page_id": page, "domain": a.get("domain") or "",
+            "ads": [{"content_id": a.get("content_id"), "creative_id": a.get("creative_id"), "facebook_page_id": page, "domain": MIEN_LEN,
                      "source_payload": {"name": ten, "status": "ACTIVE"}}]}]}}
 
 class ChanLuat(ValueError):
@@ -725,10 +731,11 @@ def main(a):
         kq["phim_dang_chay"] = n
         if ad0["creative_id"] != cr_bai: bai = None   # cổng chấm vừa thay creative (nhánh trên) → cũng không còn là bài cũ
         if hoi_cho and not bai: raise ChanLuat(f"bản nhân của #{goc} phải đổi creative (đoạn đủ trần / cổng chấm) → không còn là bài cũ — đợt hồi chợ chỉ nhân bản bài cũ (anh 18/11/2026)")
-        if bai0 and not bai:   # không còn là bài cũ: đăng bài mới, $1 như clone thường
-            ten = ten.replace(" bai-cu ", " doi-cr "); kq["ten"] = ten
-            pl = json.loads(json.dumps(pl, ensure_ascii=False).replace(" bai-cu ", " doi-cr ")); pl["campaign"]["source_payload"]["daily_budget"] = int(thang) if thang else 1
-            ad0 = pl["campaign"]["ad_groups"][0]["ads"][0]
+        # NHÂN BẢN = CLONE BÀI ĐĂNG, KHÔNG BAO GIỜ ĐĂNG LẠI CREATIVE CŨ (anh 25/11/2026 "Nếu là camp nhân bản thì sẽ clone post đang viral thì đúng luật, còn CẤM
+        # ko bao giờ dùng creative cũ"): gốc không có bài đăng dùng được (khác bộ / khác miền / không mã bài) hay đã phải đổi creative → không nhân bản.
+        # Creative chưa từng có camp thì lên đường camp mới (--creative); cửa ethopex_api.thieu_tin chặn creative cũ ở mọi đường.
+        if not moi and not bai:
+            raise ChanLuat(f"camp gốc #{goc} không clone được bài đăng (không mã bài / khác bộ / miền khác {MIEN_LEN} / đã đổi creative) — nhân bản chỉ clone bài đăng, creative cũ cấm dùng lại (anh 25/11/2026)")
         if bai:   # ad = CHỈ bài đăng cũ (Ethopex chặn trộn effective_object_story_id với creative_id / content_id — mã form app.ethopex.dev 11/11/2026)
             pl["campaign"]["ad_groups"][0]["ads"][0] = {"effective_object_story_id": bai, "source_payload": {"name": ten, "status": "ACTIVE"}}
             kq["bai_cu"] = bai
@@ -854,9 +861,8 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
                               lambda: trang_chua_san(cid, pl.get("ad_account_id")), lambda: giu_boi_nguoi_khac(cid, pl.get("ad_account_id")))
             if ly: raise ChanLuat(ly)
             dem_dang_chay(cid)
-            if DEM_CR.get(int(moi["creative"]), 0) > 0 or q(f"select 1 from etp.camp where creative_id = {int(moi['creative'])} limit 1") == "1":
-                ly = bao_hay_chan(truc, kq, lambda: f"creative #{moi['creative']} đã có camp — ★ ROAS creative mới chỉ lên creative chưa có camp")
-                if ly: raise ChanLuat(ly)
+            if DEM_CR.get(int(moi["creative"]), 0) > 0 or (cu := EA.creative_cu(int(moi["creative"]))):   # cứng, vé trực tiếp không miễn (anh 25/11/2026 "CẤM ko bao giờ dùng creative cũ")
+                raise ChanLuat(f"creative #{moi['creative']} đã có camp ({cu if DEM_CR.get(int(moi['creative']), 0) == 0 else 'vừa tạo'}) — camp mới chỉ lên creative chưa từng có camp")
         else:
             # CAMP ROAS KHÔNG QUA CỔNG CHẤM (anh 29/10/2026: "Camp roas lên ko cần chấm lại" — thay luật 26/10 "áp cho mọi loại camp"): ad ROAS = đúng bài đăng
             # của camp gốc đang chạy lãi (lãi 30 ngày ≥ $75), không phải creative mới. Điểm chấm chỉ ghi vào nhật ký để xem; luật chấm lich-gio cũng bỏ qua camp ★.

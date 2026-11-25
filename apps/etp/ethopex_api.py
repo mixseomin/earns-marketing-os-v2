@@ -17,6 +17,7 @@ class CamThayCreative(NgoaiNha): pass
 class CamNganSach(NgoaiNha, ValueError): pass     # camp mới > $1 (anh 08/11/2026) — cong.ns_tao đọc chính payload tạo camp
 class CamDangAT(NgoaiNha, ValueError): pass       # creative ảnh tĩnh không phải dạng Free (anh 19/11/2026, sổ luật at_chi_dang_free) — cong.at_sai_dang
 class CamLechForm(NgoaiNha, ValueError): pass
+class CamThieuTin(NgoaiNha, ValueError): pass      # camp mới chưa biết đủ thông tin trước khi lên (miền, tài khoản, Page, pixel, creative, phim) — anh 25/11/2026
 class CamNgonNgu(NgoaiNha, ValueError): pass      # Ad Set nhắm ngôn ngữ (locales) — LUẬT CỐ ĐỊNH anh 24/11/2026: không camp nào target ngôn ngữ, theo khuôn Kiên     # camp MỚI lên bằng creative chưa đúng form chữ (anh 24/11/2026, góp ý #1813: "chưa có thì chờ chứ không lên chữ cũ")
 
 # FORM CHỮ CỐ ĐỊNH (anh 24/11/2026 "Form đúng phải thế này !!") — MỘT nguồn apps/etp/form-chu.json; ap-form-chu.py + cửa CamLechForm dùng chung dung_form
@@ -392,6 +393,58 @@ def phim_cam_lenh(duong, body, q=None):
     if tao_cr and not cts: return None   # lệnh creative không mang phim (đọc / sửa chữ) — không có gì để soát
     return CG.phim_cam(camps, cts, q=q)
 
+def mien_len():
+    """miền trang đích của MỌI camp mới (etp.cau_hinh mien_len, migration 0475 — anh 25/11/2026 "marcusbeilby.com : tất cả đổi hết sang domain này"). Rỗng = chưa đặt → mọi lệnh tạo bị chặn."""
+    try: return (_q("select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'mien_len'") or "").strip()
+    except Exception: return ""
+
+_CR_DA_GUI = set()   # creative vừa gửi tạo camp trong tiến trình này (kho etp.camp đồng bộ 10 phút mới thấy)
+
+def creative_cu(cr):
+    """CREATIVE ĐÃ TỪNG LÊN CAMP (anh 25/11/2026 "Mỗi camp mới đều phải có creative mới !! Cấm dùng lại … CẤM ko bao giờ dùng creative cũ"):
+    → mô tả camp đã dùng (chuỗi) hoặc "" khi creative chưa từng có camp. Đọc kho nhà + team + nhật ký lên camp 24 giờ + creative vừa gửi trong tiến trình.
+    Đọc lỗi → coi là cũ (fail-closed)."""
+    cr = int(cr)
+    if cr in _CR_DA_GUI: return "vừa gửi tạo camp trong lượt này"
+    try:
+        r = _q(f"""select coalesce(string_agg(x, ','), '') from (
+                     (select '#' || camp_id x from etp.camp where creative_id = {cr} limit 3)
+                     union all (select '#' || camp_id || ' (team)' from etp.camp_ngoai where creative_id = {cr} limit 3)
+                     union all (select 'nhật ký ' || (x->>'luc') from xv_khoa_ngoai, jsonb_array_elements(gia_tri) x where ten = 'ethopex_nhat_ky'
+                                and x->>'viec' in ('tao_camp', 'nhan_ban', 'roas') and (x->>'ok')::boolean and coalesce(x->>'creative', x->>'creative_id') = '{cr}' limit 1)) t""")
+    except Exception as e:
+        return f"không đọc được kho creative ({str(e)[:60]})"
+    return r or ""
+
+def thieu_tin(body, mien=None):
+    """ĐỦ THÔNG TIN TRƯỚC KHI LÊN (anh 25/11/2026 "Các camp mà ko thể biết đủ thông tin trước khi lên thì CẤM KHÔNG ĐƯỢC BẬT"): đọc trên CHÍNH lệnh tạo camp.
+    Ad creative: creative + phim + Page + miền == mien_len. Ad dùng lại bài đăng: bài phải của camp nhà đã đọc miền == mien_len (bài mang link miền cũ thì không).
+    Tài khoản + pixel bắt buộc. Trả danh sách thiếu ([] = đủ). Đọc lỗi → coi là thiếu."""
+    m = mien_len() if mien is None else mien
+    if not m: return ["chưa đặt miền lên camp (etp.cau_hinh mien_len)"]
+    if not isinstance(body, dict): return ["lệnh tạo camp không phải đối tượng JSON"]
+    ly = []
+    if not str(body.get("ad_account_id") or "").isdigit(): ly.append("thiếu tài khoản QC")
+    if not str(body.get("pixel_id_arb") or "").strip(): ly.append("thiếu pixel")
+    gs = [g for g in (body.get("campaign") or {}).get("ad_groups") or [] if isinstance(g, dict)]
+    ads = [a for g in gs for a in g.get("ads") or [] if isinstance(a, dict)]
+    if not ads: ly.append("không có ad")
+    for a in ads:
+        sid = str(a.get("effective_object_story_id") or "").strip()
+        if sid:
+            if not re.fullmatch(r"\d+_\d+", sid): ly.append(f"mã bài {sid!r} sai dạng"); continue
+            try: mc = _q(f"select coalesce(string_agg(distinct coalesce(nullif(mien, ''), '?'), ','), '') from etp.camp where bai_viet = '{sid}'")
+            except Exception: mc = ""
+            if mc != m: ly.append(f"bài cũ {sid} miền {mc or 'chưa biết'} ≠ {m}")
+            continue
+        if not str(a.get("creative_id") or "").isdigit(): ly.append("ad thiếu creative")
+        if not str(a.get("content_id") or "").isdigit() or not int(a.get("content_id")): ly.append("ad thiếu phim")
+        if not str(a.get("facebook_page_id") or body.get("facebook_page_id") or "").isdigit(): ly.append("thiếu Page")
+        if (a.get("domain") or "") != m: ly.append(f"miền ad {a.get('domain') or 'trống'} ≠ {m}")
+        if str(a.get("creative_id") or "").isdigit() and (cu := creative_cu(a["creative_id"])):   # camp mới = creative mới; nhân bản chỉ bằng bài đăng (effective_object_story_id)
+            ly.append(f"creative #{a['creative_id']} đã dùng ({cu}) — camp mới phải creative mới, nhân bản thì clone bài đăng")
+    return ly
+
 def api(duong, body=None, timeout=90):
     if isinstance(body, (str, bytes)): body = json.loads(body)
     if XEM and body is not None and not duong.startswith("/api/v1/report"): raise NgoaiNha(f"chế độ xem người #{XEM}: chỉ đọc — không gửi {duong}")
@@ -467,7 +520,11 @@ def api(duong, body=None, timeout=90):
                 raise CamThayCreative(f"ad #{ad} (camp #{nha_ad[ad]}) không bị Meta từ chối — cấm tự ý đổi creative (anh 03/11/2026)")
     ids = _id_cham(duong, body if not isinstance(body, list) else {"x": body})
     if body is not None and duong.endswith("/campaigns/facebook"):   # tạo camp (đã qua tài khoản nhà + $1 + cửa ở trên)
-        d = _gui(duong, body, timeout, lenh)   # camp vừa tạo (vào tài khoản nhà) có thể chưa hiện trong danh sách → nhớ id để lệnh sau (tạm dừng / lịch) không bị chặn oan
+        _tt = thieu_tin(body)   # chặn CUỐI, ngay trước khi gửi: chưa biết đủ tin (miền marcusbeilby.com, tài khoản, Page, pixel, creative, phim) → không tạo
+        if _tt: raise CamThieuTin(f"camp chưa đủ thông tin trước khi lên (anh 25/11/2026 cấm lên): {'; '.join(_tt[:4])} — không gửi {duong}")
+        d = _gui(duong, body, timeout, lenh)
+        _CR_DA_GUI.update(int(a["creative_id"]) for g in (body.get("campaign") or {}).get("ad_groups") or [] for a in g.get("ads") or [] if str(a.get("creative_id") or "").isdigit())
+        # camp vừa tạo (vào tài khoản nhà) có thể chưa hiện trong danh sách → nhớ id để lệnh sau (tạm dừng / lịch) không bị chặn oan
         moi = d.get("id") or (d.get("data") or {}).get("id") or (d.get("campaign") or {}).get("id") if isinstance(d, dict) else None
         if moi and str(moi).isdigit(): _TAO.add(int(moi)); _TRAN_TAO[int(moi)] = tran
         return d
@@ -509,7 +566,7 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
     globals().update(_goi=_gia, _ghi_cua=lambda l, ok, ly=None, ve=None, camp_id=None: _so.append((l["viec"], ok, bool(ve))))
     CG.doc_cau_hinh = lambda: {"phanh_cho": {"phanh": {"den_tang": _bay, "den_len": _bay, "ly_do": "tự kiểm"}}}
     _goc_pc, CG.PC_CHAN = CG.PC_CHAN, True   # phá thử cơ chế chặn của phanh — sổ luật thật đang để phanh chỉ cảnh báo (anh 22/11/2026), không đổi sổ
-    _pl = lambda ten, **sp: {"name": ten, "ad_account_id": tk0, "campaign": {"source_payload": {"name": ten, "daily_budget": 1, **sp}, "ad_groups": [{"source_payload": {}, "ads": [{"content_id": 1, "creative_id": 2}]}]}}
+    _pl = lambda ten, **sp: {"name": ten, "ad_account_id": tk0, "campaign": {"source_payload": {"name": ten, "daily_budget": 1, **sp}, "ad_groups": [{"source_payload": {}, "ads": [{"content_id": 1, "creative_id": 2, "facebook_page_id": 3, "domain": mien_len()}]}]}, "pixel_id_arb": "4"}
     try:
         os.environ["ETP_VE"] = "0" * 32   # mã đúng dạng nhưng không có trong etp.ve_tay → không miễn
         # camp gốc mẫu: camp nhà KHÔNG thuộc phim cấm (65110 cũ là phim 94344 — cấm từ 19/11/2026, cửa chặn trước phanh)
@@ -530,6 +587,20 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
         assert any(v == "tang" and 999999997 in i for v, i, _c in _dot) and any(v == "nhan_ban" and _G in i for v, i, _c in _dot), f"vé phải bị đốt lúc gửi: {_dot}"
         assert len(_gui_that) == 4 and ("tang", True, True) in _so and ("tang", False, False) in _so, (_gui_that, _so)
         print("chặn đúng: một cửa — phanh chặn lệnh máy (camp mới / nhân bản / ★ ROAS / tăng), vé tay qua + bị đốt, giảm / tắt qua, sổ etp.cua ghi đủ")
+        # ĐỦ TIN TRƯỚC KHI LÊN (anh 25/11/2026): vé hợp lệ vẫn chặn khi miền khác mien_len / trống, thiếu Page / pixel / phim, bài cũ miền chưa biết; đủ tin thì qua
+        assert mien_len(), "etp.cau_hinh mien_len chưa đặt (migration 0475)"; _CR_DA_GUI.clear()   # các lượt vé ở trên đã gửi creative #2
+        _n0 = len(_gui_that); _ok = _pl(f"X (nhan ban 1 cua {_G})"); _ad = _ok["campaign"]["ad_groups"][0]["ads"][0]
+        for _ten, _b in (("miền cũ", {**_ok, "campaign": {**_ok["campaign"], "ad_groups": [{"source_payload": {}, "ads": [{**_ad, "domain": "maybic.com"}]}]}}),
+                         ("miền trống", {**_ok, "campaign": {**_ok["campaign"], "ad_groups": [{"source_payload": {}, "ads": [{**_ad, "domain": ""}]}]}}),
+                         ("thiếu pixel", {**_ok, "pixel_id_arb": None}),
+                         ("creative cũ", {**_ok, "campaign": {**_ok["campaign"], "ad_groups": [{"source_payload": {}, "ads": [{**_ad, "creative_id": int(_q("select creative_id from etp.camp where creative_id is not null limit 1"))}]}]}}),
+                         ("bài cũ không rõ miền", {**_ok, "campaign": {**_ok["campaign"], "ad_groups": [{"source_payload": {}, "ads": [{"effective_object_story_id": "1_999999999"}]}]}})):
+            try: api("/api/v1/campaigns/facebook", _b); raise SystemExit(f"LỌT THIẾU TIN: {_ten}")
+            except CamThieuTin: pass
+        assert len(_gui_that) == _n0, f"camp thiếu tin lọt tới Ethopex: {_gui_that[_n0:]}"
+        assert thieu_tin(_ok) == [] and thieu_tin({**_ok, "facebook_page_id": None}) == [] and thieu_tin(_ok, mien="") and "thiếu phim" in "".join(thieu_tin({**_ok, "campaign": {"ad_groups": [{"ads": [{**_ad, "content_id": 0}]}]}}))
+        _CR_DA_GUI.add(2); assert "creative #2" in "".join(thieu_tin(_ok)), "creative vừa gửi phải bị chặn lần hai"; _CR_DA_GUI.discard(2)
+        print(f"chặn đúng: đủ tin trước khi lên — miền khác {mien_len()} / trống, thiếu pixel, creative cũ, bài cũ miền chưa biết đều chặn dù có vé; đủ tin qua")
         # FORM CHỮ (anh 24/11/2026, góp ý #1813): camp mới lên bằng creative lệch form / đọc creative lỗi → chặn trước khi gửi, kể cả có vé; đúng form thì qua
         _n0 = len(_gui_that)
         for _cr in (777777771, 777777772):

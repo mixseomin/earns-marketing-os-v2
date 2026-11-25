@@ -23,7 +23,8 @@ const tra = (ly) => { console.log('✗ TRỌNG TÀI TRẢ: ' + ly); process.exit
 g('fetch', '-q', 'origin', 'main');
 const sha = g('rev-parse', 'HEAD'), doi = g('diff', '--name-only', 'origin/main...HEAD').split('\n').filter(Boolean);
 if (!doi.length) { console.log('✓ không có commit nào chưa lên main'); process.exit(0); }
-if (g('status', '--porcelain', '--untracked-files=no', '--', 'apps/castle')) tra('cây còn thay đổi apps/castle CHƯA commit — commit rồi chạy lại (trọng tài chấm đúng thứ sẽ lên main)');
+// sổ kiem-ke-kq.json do CHÍNH trọng tài ghi (lần trả trước để lại) — không tính là thay đổi của người sửa (#1842: mọi lần chấm sau đều bị trả "cây còn thay đổi")
+if (g('status', '--porcelain', '--untracked-files=no', '--', 'apps/castle', ':!apps/castle/public/du-lieu/*-kiem-ke-kq.json')) tra('cây còn thay đổi apps/castle CHƯA commit — commit rồi chạy lại (trọng tài chấm đúng thứ sẽ lên main)');
 // NGƯỜI SỬA KHÔNG ĐƯỢC SỬA THƯỚC (16/11/2026: Thắng tự sửa trong-tai.mjs giữa thẻ #1630 → đụng bản trên main, 6 commit kẹt): commit nào của kỹ sư
 // đụng công cụ đo / chấm / mốc thì TRẢ. Commit mốc do chính trọng tài tạo ("castle: bảng chấm góc chuẩn sau …") được miễn.
 const THUOC = /^apps\/castle\/(scripts\/(trong-tai|cham-goc|chung|kiem-ke|so-lech|quet-giao)\.mjs|du-lieu-goc\/[^/]*-tia-that\.json|public\/du-lieu\/[^/]*-(cham-goc|goc-chuan)\.json)$/;
@@ -32,14 +33,28 @@ for (const c of g('log', '--format=%H%x09%s', 'origin/main..HEAD').split('\n').f
 const NHO = join(os.homedir(), '.cache', 'castle-trong-tai'); mkdirSync(NHO, { recursive: true });
 // khoá nhớ = NỘI DUNG phần sửa castle (không phải mã commit: máy đặt lại commit lên main mới mỗi lượt, mã commit đổi mà bài không đổi)
 // + mốc + kho tia: mốc / cách đo đổi thì kết luận cũ hết hiệu lực (16/11: mốc đo lại bằng cách quét mới mà trọng tài vẫn trả theo kết luận cũ)
-const khoa = createHash('sha1').update(g('diff', 'origin/main...HEAD', '--', 'apps/castle')).update(existsSync(du('cham-goc')) ? readFileSync(du('cham-goc')) : '').update(readFileSync(join(GOC, 'scripts', 'cham-goc.mjs'))).update(readFileSync(join(GOC, 'public', 'ns.js'))).digest('hex').slice(0, 16), tepNho = join(NHO, khoa + '.json');
+const khoa = createHash('sha1').update(g('diff', 'origin/main...HEAD', '--', 'apps/castle')).update(existsSync(du('cham-goc')) ? readFileSync(du('cham-goc')) : '').update(readFileSync(join(GOC, 'scripts', 'cham-goc.mjs'))).update(readFileSync(join(GOC, 'public', 'ns.js'))).update(readFileSync(new URL(import.meta.url))).digest('hex').slice(0, 16), tepNho = join(NHO, khoa + '.json');
 if (existsSync(tepNho)) { const n = JSON.parse(readFileSync(tepNho, 'utf8')); if (!n.dat) { console.log(n.ra); tra(`commit ${sha.slice(0, 9)} đã bị trả lúc ${n.luc} — sửa tiếp bằng commit mới (không sửa lại lịch sử)`); } }
 const nho = (dat, ra) => writeFileSync(tepNho, JSON.stringify({ dat, luc: new Date().toISOString(), ra }));
 const loi = (e) => String(e.stdout || '') + String(e.stderr || e.message), tom_ok = () => 'đạt: kiểm kê + chiều cao theo DOM20';
 // 1. kiểm tĩnh
 try { chay('kiem-chu-thich.mjs'); chay('kiem-nap-phien-ban.mjs'); for (const f of doi.filter((f) => /^apps\/castle\/.*\.m?js$/.test(f) && existsSync(join(REPO, f)))) execFileSync(process.execPath, ['--check', join(REPO, f)], { stdio: 'pipe' }); }
 catch (e) { const ra = loi(e).split('\n').slice(0, 8).join('\n'); nho(false, ra); console.log(ra); tra('kiểm mã hỏng'); }
-const hinh = doi.filter((f) => /^apps\/castle\/public\/.*\.(js|json)$/.test(f) && !/cham-goc\.json$|goc-chuan\.json$|kiem-ke-kq\.json$/.test(f));
+// tệp GIAO DIỆN không dựng hình (hòm góp ý, báo lệch, đánh giá, âm thanh) → không chấm hình (25/11/2026 #1842: Thắng chỉ sửa gopy.js mà bị trả "kiểm kê xấu đi")
+const GIAO_DIEN = /^apps\/castle\/public\/(gopy|baolech|danhgia|amthanh)\.js$/;
+const hinh = doi.filter((f) => /^apps\/castle\/public\/.*\.(js|json)$/.test(f) && !GIAO_DIEN.test(f) && !/cham-goc\.json$|goc-chuan\.json$|kiem-ke-kq\.json$/.test(f));
+// MỐC KIỂM KÊ = ĐO LẠI TRÊN CHÍNH origin/main (cây phụ, nhớ theo mã main) khi bản sửa có vẻ xấu đi: sổ kiem-ke-kq.json commit trên main cũ đi mỗi khi
+// có commit castle lên thẳng main (08:13 25/11/2026 Hà phải làm mới mốc vì 42 commit; 13:18 lại trả Thắng vì lỗi cửa way/223145713#2 đã có sẵn trên main).
+const mocMain = () => {
+  const ma = g('rev-parse', 'origin/main'), wt = join(NHO, 'main-' + ma.slice(0, 12)), kq = join(wt, 'apps/castle/public/du-lieu/neuschwanstein-kiem-ke-kq.json'), xong = join(NHO, 'main-' + ma.slice(0, 12) + '.json');
+  if (existsSync(xong)) return JSON.parse(readFileSync(xong, 'utf8'));
+  for (const d of g('worktree', 'list', '--porcelain').split('\n').filter((l) => l.startsWith('worktree ') && l.includes(join(NHO, 'main-'))).map((l) => l.slice(9))) try { g('worktree', 'remove', '--force', d); } catch { /* đã mất */ }
+  g('worktree', 'add', '-q', '--detach', wt, ma);
+  try { writeFileSync(kq, ''); execFileSync(process.execPath, [join(wt, 'apps/castle/scripts/kiem-ke.mjs'), '--lau', 'neuschwanstein'], { cwd: wt, stdio: 'pipe', timeout: 90 * 60e3, maxBuffer: 64 << 20 }); } catch { /* còn lỗi thì thoát 1 — vẫn ghi kết quả */ }
+  let mat = null; try { mat = JSON.parse(readFileSync(kq, 'utf8')).mat || {}; } catch { /* đo hỏng → không có mốc main, dùng sổ */ }
+  try { g('worktree', 'remove', '--force', wt); } catch { /* dọn lượt sau */ }
+  if (mat) writeFileSync(xong, JSON.stringify(mat)); return mat;
+};
 if (!hinh.length) { console.log('· không đổi mã / dữ liệu dựng hình — bỏ bước chấm góc'); }
 else {
   // KIỂM KÊ SO VỚI MỐC TRÊN MAIN (17/11/2026: bỏ luật đoán → hàng chục mặt báo THIẾU cùng lúc; đòi sạch hết thì sửa xong một mặt vẫn bị chặn vì mặt khác):
@@ -47,6 +62,8 @@ else {
   let raKK = ''; try { raKK = chay('kiem-ke.mjs', ['--lau', 'neuschwanstein']); } catch (e) { raKK = loi(e); }
   { let goc = {}; try { goc = JSON.parse(g('show', 'origin/main:apps/castle/public/du-lieu/neuschwanstein-kiem-ke-kq.json')).mat || {}; } catch { /* chưa có mốc: so với rỗng */ }
     const moi = existsSync(du('kiem-ke-kq')) ? JSON.parse(readFileSync(du('kiem-ke-kq'), 'utf8')).mat || {} : {};
+    const xauSo = (b) => Object.entries(moi).some(([k, v]) => (v.loi?.length || 0) > (b[k]?.loi?.length || 0));
+    if (xauSo(goc)) { const m = mocMain(); if (m) { console.log('· sổ kiểm kê trên main cũ → so với kiểm kê đo lại trên origin/main'); goc = m; } }
     const xau = Object.entries(moi).filter(([k, v]) => (v.loi?.length || 0) > (goc[k]?.loi?.length || 0)).map(([k, v]) => `${k}: ${goc[k]?.loi?.length || 0} → ${v.loi.length} lỗi — ${v.loi.filter((l) => !(goc[k]?.loi || []).includes(l)).slice(0, 3).join(' · ')}`);
     const tong = (m) => Object.values(m).reduce((s, v) => s + (v.loi?.length || 0), 0);
     console.log(`· kiểm kê: ${tong(goc)} → ${tong(moi)} lỗi so với mốc main`);

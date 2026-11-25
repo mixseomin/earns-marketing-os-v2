@@ -8,6 +8,7 @@ import { DataTable, type DataColumn } from '@/components/ui';
 import { useShallowParam } from '@/lib/url-shallow';
 import type { Agent, CardKet, PhienDoi, ViecMay } from '@/lib/cty-agents-kieu';
 import { ThanhO, cotTheoRong, useKhungO } from '@/components/home/khung-o';
+import { aiGiuCard, nhanCardKet } from '@/lib/card-ket-giu';
 
 const khongDau = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').toLowerCase();
 const ngayVN = (iso: string) => new Date(Date.parse(iso) + 7 * 3600_000).toISOString().slice(0, 10);
@@ -47,11 +48,8 @@ export function PhongViec({ ds, phien, may, cardKet = [], loiCardKet = null }: {
       if (v.bat) h.mayBat++; else h.mayTat++;
     }
     // card góp ý kẹt → kỹ sư đang được chờ (việc đã chuyển) hoặc kỹ sư nói cuối → phòng của người đó; không ra người thì vào dòng "Chưa gắn phòng"
-    const theoTen = new Map(ds.map((a) => [khongDau(a.ten), a]));
     for (const c of cardKet) {
-      const giu = c.cho.map((id) => phongCua.get(id)).filter((a): a is Agent => !!a);
-      const ai = giu.length ? giu : c.ten && theoTen.get(khongDau(c.ten)) ? [theoTen.get(khongDau(c.ten))!] : [];
-      const nhan = `#${c.id} ${c.tieuDe}${c.treo ? ' (Đang làm quá trần, không phiên nào chạy)' : ''}${ai.length ? ` · ${ai.map((a) => a.ten).join(', ')}` : ` · hòm ${c.hom}`}`;
+      const ai = aiGiuCard(ds, c), nhan = nhanCardKet(c, ai);
       const phong = ai.length ? [...new Map(ai.map((a) => [a.phong, a])).values()] : [null];
       for (const a of phong) { const h = lay(a?.phong ?? null, a?.phongTen ?? null); h.ket++; h.ketDs.push(nhan); }
     }

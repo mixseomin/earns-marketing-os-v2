@@ -3,6 +3,7 @@
 // mà không phiên nào chạy. Người giữ card: thẻ máy "· chờ kỹ sư a, b]" (việc đã CHUYỂN) thắng; không có thì tên kỹ sư
 // trong tin "[Tên · …]" mới nhất của AI — ra phòng ở phía trình duyệt (phong-viec.tsx) theo danh sách agent của cty.
 import 'server-only';
+import { cache } from 'react';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { TRAN_DANG_LAM_MS } from '@mos2/gop-y/server';
@@ -24,7 +25,8 @@ export function nguoiGiu(tin: string[]): { cho: string[]; ten: string | null } {
   return { cho, ten };
 }
 
-export async function docCardKet(): Promise<CardKet[]> {
+// cache: dải số, bảng agents, M7 cùng một màn chỉ hỏi DB một lần
+export const docCardKet = cache(async (): Promise<CardKet[]> => {
   const phut = Math.round(TRAN_DANG_LAM_MS / 60_000);
   const db = getDb();
   if (!db) throw new Error('chưa nối được DB mos2');
@@ -40,4 +42,4 @@ export async function docCardKet(): Promise<CardKet[]> {
             OR (coalesce(h.prep_payload->'site_status'->>h.project_id, h.status) = 'claimed' AND h.updated_at < now() - make_interval(mins => ${phut})))
      ORDER BY h.updated_at DESC LIMIT 200`)) as unknown as Array<{ id: number; hom: string; title: string | null; tt: string; ai: string[] }>;
   return r.map((x) => ({ id: x.id, hom: x.hom, tieuDe: (x.title || '').slice(0, 80), treo: x.tt === 'claimed', ...nguoiGiu(x.ai || []) }));
-}
+});

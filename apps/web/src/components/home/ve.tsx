@@ -96,8 +96,10 @@ function LoiTat() {
 
 // tên người theo mã — widget phiên / sự kiện / việc nền chỉ có mã người; đọc chung phần 'nguoi' (React cache: một lần hỏi cty cho cả màn)
 async function tenAgents(): Promise<Record<string, string>> { const r = await docAgents<{ ds: Agent[] }>('nguoi'); return r.ok ? Object.fromEntries(r.du.ds.map((a) => [a.id, a.ten])) : {}; }
-async function AgSo() { const r = await docAgents<SoAgents>('so'); return r.ok ? <SoAgentsW du={r.du} /> : <LoiCty loi={r.loi} />; }
-async function AgBang() { const r = await docAgents<{ ds: Agent[]; thang: number }>('nguoi'); return r.ok ? <BangAgents ds={r.du.ds} admin={r.admin} thang={r.du.thang} /> : <LoiCty loi={r.loi} />; }
+// card góp ý kẹt (DB mos2) — dải số, bảng agents và M7 cùng đếm; DB hỏng thì các ô vẫn hiện phần cty (M7 kêu lỗi to)
+const cardKetAnToan = () => docCardKet().catch(() => [] as CardKet[]);
+async function AgSo() { const [r, k] = await Promise.all([docAgents<SoAgents>('so'), cardKetAnToan()]); return r.ok ? <SoAgentsW du={r.du} cardKet={k} /> : <LoiCty loi={r.loi} />; }
+async function AgBang() { const [r, k] = await Promise.all([docAgents<{ ds: Agent[]; thang: number }>('nguoi'), cardKetAnToan()]); return r.ok ? <BangAgents ds={r.du.ds} admin={r.admin} thang={r.du.thang} cardKet={k} /> : <LoiCty loi={r.loi} />; }
 async function AgViec() {
   const [r, ten] = await Promise.all([docAgents<{ may: { luc: string | null; loiDo: Record<string, string>; ds: ViecMay[] }; nen: ViecNen[] }>('viec'), tenAgents()]);
   return r.ok ? <ViecAgents may={r.du.may.ds} nen={r.du.nen} luc={r.du.may.luc} loiDo={r.du.may.loiDo} admin={r.admin} tenNguoi={ten} /> : <LoiCty loi={r.loi} />;

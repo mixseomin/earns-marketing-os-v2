@@ -498,6 +498,7 @@ const LUAT = [
   { card: 1875, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'if (laCham()) noi.bam({ id: 0 }, e);', vi: 'chạm ô ngày trên điện thoại mở thẻ ngày, không lan lên mở ngăn camp / phim' },
   { card: 1875, tep: 'apps/etp2/src/components/etp-view.tsx', co: "t=\"ROI cả phim hôm nay\" s={sn} max={mx} mo n={dc[ngay.length]}", cam: 's={coQua ? undefined : sn}', vi: 'dòng phim trên điện thoại truyền số tiền + số camp để thẻ ngày có Chi · Thu · Lãi · TB' },
   { card: 1875, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'gio={{ camps: idTk, ngay: ngay[i] ?? du.nay }}', vi: 'chip tổng đầu cây (cả tài khoản) cũng mở thẻ ngày khi chạm' },
+  { card: 1875, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'onMouseLeave={noi.dongTre} onClick={(e) => e.stopPropagation()}', vi: 'bấm ✕ / bấm trong thẻ nổi không lan lên dòng mở ngăn camp (lượt 2, anh 26/11/2026)' },
   { card: 1753, tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: '<VideoXem src={video}', cam: 'autoPlay muted loop playsInline controls', vi: 'khung bài QC dùng VideoXem (bật tiếng), không còn video tắt tiếng cứng' },
   { card: 1753, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'autoPlay muted loop playsInline controls', vi: 'video xem creative trong etp-view dùng VideoXem (bật tiếng)' },
   { card: 1753, tep: 'apps/etp2/src/components/etp-mau-cr.tsx', cam: 'controls muted', vi: 'video mẫu creative có nút điều khiển không tắt tiếng cứng' },

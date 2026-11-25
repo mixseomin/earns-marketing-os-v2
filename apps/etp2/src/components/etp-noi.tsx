@@ -131,7 +131,9 @@ export function KhungNoi({ x, y, rong, cao, noi, children, style, chu = false, g
     {/* #1828 (anh 24/11/2026 "Hover có 1 dòng thì CẤM DÙNG LOẠI to"): chữ một dòng → nhãn nhỏ sát con trỏ, không ✕, không viền bóng to, không chặn chuột */}
     {gon ? <div ref={ref} data-khung-noi="" data-noi-gon="" style={{ position: 'fixed', zIndex: 60, left, top, maxWidth: W - 16, pointerEvents: 'none',
       background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,.45)', ...style }}>{children}</div>
-    : <div ref={ref} data-khung-noi="" onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} style={{ position: 'fixed', zIndex: 60, left, top, maxWidth: W - 16, maxHeight: H - 16, overflow: 'auto',
+    // #1875 lượt 2 (anh 26/11/2026 "chỉ mở bảng tao cần thôi, ko phải đóng lại lại mở bảng camp chi tiết"): thẻ là PORTAL nhưng sự kiện React vẫn nổi bọt theo cây React
+    // lên ô → dòng camp / dòng phim → bấm ✕ hay bấm trong thẻ mở ngăn camp. Chặn bấm lan ra ngoài thẻ ngay tại khung — một chỗ cho mọi thẻ nổi
+    : <div ref={ref} data-khung-noi="" onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', zIndex: 60, left, top, maxWidth: W - 16, maxHeight: H - 16, overflow: 'auto',
       background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.55)', ...style }}>
       <button type="button" onClick={noi.dong} aria-label="Đóng" title="Đóng (Esc)" style={{ position: 'absolute', top: 4, right: 4, zIndex: 2, width: 24, height: 24, borderRadius: 12, border: '1px solid var(--line)',
         background: 'rgba(0,0,0,.6)', color: '#fff', cursor: 'pointer', fontSize: 13, lineHeight: '20px' }}>✕</button>

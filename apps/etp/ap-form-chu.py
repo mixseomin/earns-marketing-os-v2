@@ -32,7 +32,7 @@ def patch(cid, body=BODY):
         else:   # kiểu khác Dol (chu-kieu.json): form_luc nghĩa là "về form Dol" (etp2 Thiết lập in chữ form khi thấy nó) → ghi CHỮ THẬT vừa PATCH vào bai_cr
             a = d.get("asset_spec") or {}; a = json.loads(a) if isinstance(a, str) else a
             j = lambda v: "'" + json.dumps(EA.ds_l(v), ensure_ascii=False).replace("'", "''") + "'::jsonb"
-            EA._q(f"update etp.bai_cr set chinh = {j(a.get('primaryTexts'))}, tieu_de = {j(a.get('headlines'))}, mo_ta = {j(a.get('descriptions'))}, form_luc = null where creative_id = {cid}")
+            EA._q(f"update etp.bai_cr set chinh = {j(a.get('primaryTexts'))}, tieu_de = {j(a.get('headlines'))}, mo_ta = {j(a.get('descriptions'))}, link = '{(d.get('link_url') or '').replace("'", "''")}', form_luc = null where creative_id = {cid}")
         return cid, "ok"
     except Exception as e: return cid, str(e)[:160]
 
@@ -72,7 +72,7 @@ def gan_lai(camp, ve, cr_ep=None):
     return camp, "ok"
 
 def kieu(cr, ten):
-    """creative NHÀ chưa gắn ad → chữ kiểu `ten` (ethopex_api.KIEU_DOI): bộ chữ CÙNG phim trong apps/etp/chu-kieu.json; CTA + link theo form"""
+    """creative NHÀ chưa gắn ad → chữ kiểu `ten` (ethopex_api.KIEU_DOI): bộ chữ CÙNG phim trong apps/etp/chu-kieu.json; CTA theo form, link = ethopex_api.link_kieu(ten)"""
     toi = (EA.jwt_tai(EA.T) or {}).get("user_id")
     c = EA.api(f"/api/v1/creatives/{int(cr)}"); c = c.get("data", c)
     if not toi or c.get("user_id") != toi: return cr, "không phải creative nhà — không đụng"
@@ -80,7 +80,7 @@ def kieu(cr, ten):
     ds = EA.chu_doi(ten, c["content_id"])
     if not ds: return cr, f"sổ chu-kieu.json chưa có chữ kiểu {ten} cho phim {c['content_id']}"
     pt, hl, de = ds[0]
-    return patch(int(cr), {"call_to_action": F["call_to_action"], "link_url": F["link_url"], "asset_spec": {"primaryTexts": pt, "headlines": hl, "descriptions": de}})
+    return patch(int(cr), {"call_to_action": F["call_to_action"], "link_url": EA.link_kieu(ten), "asset_spec": {"primaryTexts": pt, "headlines": hl, "descriptions": de}})
 
 if __name__ == "__main__" and "--kieu" in sys.argv:
     i = sys.argv.index("--kieu"); ten = sys.argv[i + 1]

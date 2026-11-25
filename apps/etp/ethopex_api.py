@@ -30,21 +30,26 @@ def ds_l(v):
 # KIỂU LÊN CAMP (anh 26/11/2026: "Camp đang chạy là 1 kiểu lên camp của Dol. Giờ tao thêm kiểu lên camp khác"; "cứ viết kiểu của Kiên, chứ ko phải nguyên văn"):
 #   dol  = chữ form-chu.json (mặc định, mọi đường lên camp cũ)
 #   kien = chữ viết riêng TỪNG PHIM theo khuôn Kiên (hook cốt truyện + câu hỏi + đuôi FREE; tiêu đề cảm thán ngắn; mô tả một dòng), ghi trong sổ
-#          apps/etp/chu-kieu.json theo content_id; CTA + link vẫn theo form. Cửa chỉ cho qua ĐÚNG bộ chữ trong sổ. Áp: ap-form-chu.py --kieu kien <creative> …
+#          apps/etp/chu-kieu.json theo content_id; CTA theo form, link hiển thị = "_link_url" của kiểu (kien: search.com như camp Kiên), thiếu thì theo form.
+#          Cửa chỉ cho qua ĐÚNG bộ chữ + link trong sổ. Áp: ap-form-chu.py --kieu kien <creative> …
 _KIEU = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "chu-kieu.json")))
 KIEU_DOI = sorted(k for k in _KIEU if not k.startswith("_"))
 def chu_doi(kieu, content_id):
     """bộ chữ kiểu `kieu` cho phim content_id → [(primaryTexts, headlines, descriptions)], [] khi sổ chưa có phim đó"""
     x = (_KIEU.get(kieu) or {}).get(str(int(content_id)))
     return [(ds_l(x["primaryTexts"]), ds_l(x["headlines"]), ds_l(x["descriptions"]))] if x else []
+def link_kieu(kieu):
+    """link hiển thị của kiểu `kieu` (sổ chu-kieu.json "_link_url"), thiếu → link form"""
+    return (_KIEU.get(kieu) or {}).get("_link_url") or FORM["link_url"]
 def dung_form(c):
-    """chữ creative đúng MỘT kiểu lên camp: form-chu.json (Dol) hoặc bộ chữ cùng phim trong chu-kieu.json (KIEU_DOI); CTA + link luôn theo form"""
+    """chữ creative đúng MỘT kiểu lên camp: form-chu.json (Dol, link form) hoặc bộ chữ cùng phim trong chu-kieu.json (KIEU_DOI, link của kiểu); CTA luôn theo form"""
     a = c.get("asset_spec") or {}
     a = json.loads(a) if isinstance(a, str) and a.strip().startswith("{") else (a if isinstance(a, dict) else {})
-    if c.get("call_to_action") != FORM["call_to_action"] or (c.get("link_url") or "") != FORM["link_url"]: return False
+    if c.get("call_to_action") != FORM["call_to_action"]: return False
+    lk = c.get("link_url") or ""
     bo = (ds_l(a.get("primaryTexts")), ds_l(a.get("headlines")), ds_l(a.get("descriptions")))
-    if bo == (FORM["primaryTexts"], FORM["headlines"], FORM["descriptions"]): return True
-    try: return bool(c.get("content_id")) and any(bo == x for kieu in KIEU_DOI for x in chu_doi(kieu, c["content_id"]))
+    if bo == (FORM["primaryTexts"], FORM["headlines"], FORM["descriptions"]): return lk == FORM["link_url"]
+    try: return bool(c.get("content_id")) and any(bo == x and lk == link_kieu(kieu) for kieu in KIEU_DOI for x in chu_doi(kieu, c["content_id"]))
     except Exception: return False   # content_id hỏng → coi như lệch (cửa chặn, không lọt)
 _TAO_CR = re.compile(r"^/api/v1/creatives(?:/bulk-jobs)?/?$")
 def lech_tao(duong, body):

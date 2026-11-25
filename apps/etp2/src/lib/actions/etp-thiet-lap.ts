@@ -125,8 +125,8 @@ export async function docThietLap(ids: number[], ke: KeTl[] = []): Promise<Thiet
     // chữ THẬT của creative sắp lên (bai_cr, ap-form-chu ghi sau mỗi PATCH) — creative có thể mang kiểu khác Dol (apps/etp/chu-kieu.json, anh 26/11/2026);
     // chưa có dòng / form_luc (đã về form Dol) → chữ form
     const crKe = ke_.map((k) => -k.id);
-    const chuKe = new Map(crKe.length ? ((await db.execute(sql`select creative_id, chinh, tieu_de, mo_ta from etp.bai_cr
-        where creative_id in (${sql.join(crKe.map((c) => sql`${c}`), sql`, `)}) and form_luc is null and jsonb_array_length(coalesce(chinh, '[]')) > 0`)) as unknown as { creative_id: number; chinh: unknown; tieu_de: unknown; mo_ta: unknown }[])
+    const chuKe = new Map(crKe.length ? ((await db.execute(sql`select creative_id, link, chinh, tieu_de, mo_ta from etp.bai_cr
+        where creative_id in (${sql.join(crKe.map((c) => sql`${c}`), sql`, `)}) and form_luc is null and jsonb_array_length(coalesce(chinh, '[]')) > 0`)) as unknown as { creative_id: number; link: string | null; chinh: unknown; tieu_de: unknown; mo_ta: unknown }[])
       .map((r) => [Number(r.creative_id), r]) : []);
     for (const k of ke_) {
       const g = khuon.get(k.khuon);
@@ -137,7 +137,7 @@ export async function docThietLap(ids: number[], ke: KeTl[] = []): Promise<Thiet
         Object.assign(d, {
           ke_cha: k.id, ke_thu: `${i}/${k.so}`, ke_khuon: k.khuon, ke_thieu: g ? null : `kho không đọc được camp khuôn #${k.khuon}`,
           c_tt: 'kế hoạch', c_bo: k.bo || boPhim.get(k.cid) || null, a_phim: String(k.cid), a_url: `Ethopex sinh theo phim #${k.cid} lúc tạo camp`,
-          f_kieu: form.creative_type, f_cta: form.call_to_action, f_link: form.link_url, f_chinh: gon((ct ? L(ct.chinh).map(String) : form.primaryTexts).join('\n')), f_tieu: gon((ct ? L(ct.tieu_de).map(String) : form.headlines).join('\n')),
+          f_kieu: form.creative_type, f_cta: form.call_to_action, f_link: (ct && ct.link) || form.link_url, f_chinh: gon((ct ? L(ct.chinh).map(String) : form.primaryTexts).join('\n')), f_tieu: gon((ct ? L(ct.tieu_de).map(String) : form.headlines).join('\n')),
           f_mo_ta: gon((ct ? L(ct.mo_ta).map(String) : form.descriptions).join('\n')),
           f_nguon: ct ? 'chữ creative (bai_cr) — kiểu lên camp trong apps/etp/chu-kieu.json hoặc form, cửa CamLechForm soát lúc lên' : 'chữ form chuẩn — creative mới, máy chỉ lên khi creative đúng form (CamLechForm)',
         });

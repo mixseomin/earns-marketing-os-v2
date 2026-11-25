@@ -1,6 +1,7 @@
 {
- "_": "KIỂU LÊN CAMP thứ hai (anh 26/11/2026: 'cứ viết kiểu của Kiên, chứ ko phải nguyên văn'): chữ viết riêng cho từng phim theo khuôn Kiên = hook cốt truyện + câu hỏi + đuôi FREE; tiêu đề cảm thán ngắn; mô tả một dòng. CTA + link vẫn theo form-chu.json. Khoá = content_id. Áp: ap-form-chu.py --kieu kien <creative>",
+ "_": "KIỂU LÊN CAMP thứ hai (anh 26/11/2026: 'cứ viết kiểu của Kiên, chứ ko phải nguyên văn'): chữ viết riêng cho từng phim theo khuôn Kiên = hook cốt truyện + câu hỏi + đuôi FREE; tiêu đề cảm thán ngắn; mô tả một dòng. CTA theo form-chu.json; link hiển thị = \"_link_url\" của kiểu (kien: search.com như camp Kiên 134241). Khoá = content_id. Áp: ap-form-chu.py --kieu kien <creative>",
  "kien": {
+  "_link_url": "search.com",
   "134241": {
    "primaryTexts": ["Le prestó su Bugatti a la mujer que lo despreciaba, sin decirle que él es el verdadero dueño de la empresa. ¿Qué hará ella cuando lo vea entrar a la sala de juntas? Watch Free! Stream The Full Series"],
    "headlines": ["¡Humillaron al jefe sin saberlo!"],

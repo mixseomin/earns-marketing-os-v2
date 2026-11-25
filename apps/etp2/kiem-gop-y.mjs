@@ -654,6 +654,7 @@ const LUAT = [
   { card: 'duyet-ngan', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: 'await docThietLap([], [...ke.values()])', vi: 'tóm tắt thẻ = docThietLap camp dự kiến, không gõ tay' },
   { card: 'duyet-ngan', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: 'const ten = tenCampCr(x.ten, lang, id);', vi: 'lệnh ▶ Lên và camp dự kiến cùng một chỗ khai tên / khuôn (lib/etp-ke-cr)' },
   { card: 'duyet-ngan', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: "where x.ten = 'ethopex_bo_tk'", vi: 'camp dự kiến đổi tài khoản + Page theo bộ như nhan-ban.py' },
+  { card: '1848', tep: 'apps/etp2/src/components/etp-view.tsx', co: "choGio(c) ? { chu: gioGonVn(c.lich!)", cam: "chu: `chờ ${conLai(c.lich!)} nữa`", vi: 'ô TT camp hẹn giờ hiện giờ hẹn gọn (22:00 / mai 22:00), không chữ dài bị cắt "chờ …"' },
   { card: 'cho-len-gio', tep: 'apps/etp2/src/components/etp-view.tsx', co: "motDong: true, chu: c.lich && Date.parse(c.lich) > Date.now() + 60_000 ? gioGonVn(c.lich) : 'chạy ngay'", cam: "chu: '⏳ Chờ lên camp'", vi: 'ô TT dòng chờ lên camp hiện GIỜ HẸN CHẠY, không chữ Chờ lên camp (anh 25/11/2026)' },
   { card: 'cho-len-gio', tep: 'apps/etp2/src/components/etp-view.tsx', co: "...(t.motDong ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }", vi: 'ô TT giờ hẹn MỘT dòng, không xuống dòng (anh 25/11/2026 "Ko để xuống dòng")' },
   { card: 'cho-len-gio', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<NutHoan cr={c.creative_id} hoan={!!c.xep?.hoan} />', vi: 'ô TT có nút ⏸ tạm dừng thủ công' },

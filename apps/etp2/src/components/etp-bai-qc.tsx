@@ -59,14 +59,20 @@ function useDich(b: BaiQc | null): LayVi {
 // bản dịch y hệt chữ gốc (tên phim, tên riêng: "Get Out of My Bugatti" → "Get Out of My Bugatti") = dòng thừa, không hiện (anh #1778 "trình bày cho hợp lý")
 const chuanSo = (s: string) => s.toLowerCase().normalize('NFC').replace(/[\s\p{P}\p{S}]+/gu, '');
 const trungGoc = (g: string, v: string) => chuanSo(g) === chuanSo(v);
-/** dòng dịch dưới chữ gốc — sang = nằm trong khung bài trắng (chữ xám tối) */
+/** dòng dịch dưới chữ gốc — sang = nằm trong khung bài trắng (chữ xám tối).
+ *  #1862 (anh: "Phần dịch chỉ hiện cờ vn. Hover vào mới lên nội dung tương ứng"): mặc định CHỈ một lá cờ 🇻🇳; rê chuột (máy tính) hoặc chạm (điện thoại,
+ *  không có rê chuột) vào cờ mới mở bản dịch ngay dưới — YDNI chữ phụ gập vào rê. Lỗi dịch vẫn hiện đỏ đủ câu (lỗi phải kêu to, không gập). */
 function DongVi({ d, dong = 2, sang = false, hien }: { d: Dv; dong?: number; sang?: boolean; hien?: (s: string) => string }) {
+  const [re, setRe] = useState(false); const [cham, setCham] = useState(false);
   if (!d) return null;
   const nhat = sang ? XAM : 'var(--fg-3, #888)';
-  if (d === 'cho') return <div data-vi="cho" style={{ fontSize: 11, color: nhat, whiteSpace: 'normal' }}>🇻🇳 đang dịch…</div>;
+  if (d === 'cho') return <div data-vi="cho" title="đang dịch…" style={{ fontSize: 11, color: nhat, opacity: 0.5, lineHeight: 1.2 }}>🇻🇳</div>;
   if ('loi' in d) return <div data-vi="loi" style={{ fontSize: 11, color: sang ? '#dc2626' : '#f87171', whiteSpace: 'normal' }}>🇻🇳 {d.loi}</div>;
-  return <div data-vi style={{ ...DONG(dong), fontSize: 12, color: sang ? XAM : 'var(--fg-2, #bbb)', whiteSpace: sang ? 'pre-wrap' : 'normal', fontWeight: 400 }} title={d.vi}>
-    <span style={{ marginRight: 4, fontStyle: 'normal' }}>🇻🇳</span><i>{hien ? hien(d.vi) : d.vi}</i></div>;
+  const mo = re || cham;
+  return <div data-vi={mo ? 'mo' : 'gap'} onMouseEnter={() => setRe(true)} onMouseLeave={() => setRe(false)}
+    onClick={(e) => { e.stopPropagation(); setCham((x) => !x); }} title={mo ? undefined : d.vi}
+    style={{ ...(mo ? DONG(dong) : {}), fontSize: 12, color: sang ? XAM : 'var(--fg-2, #bbb)', whiteSpace: sang ? 'pre-wrap' : 'normal', fontWeight: 400, cursor: 'pointer', lineHeight: mo ? undefined : 1.2, width: mo ? undefined : 'fit-content' }}>
+    <span style={{ marginRight: mo ? 4 : 0, fontStyle: 'normal' }}>🇻🇳</span>{mo ? <i>{hien ? hien(d.vi) : d.vi}</i> : null}</div>;
 }
 const goiLai = (s: string) => s.replace(/\s*\n\s*/g, ' / ');
 const viTitle = (v: LayVi, s: string | null) => { const t = viCua(v(s)); return t ? `\n🇻🇳 ${t}` : ''; };

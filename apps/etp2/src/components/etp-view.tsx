@@ -211,6 +211,7 @@ const ttCamp = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat
   : suaLaiCr(c) ? { chu: '✎ Sửa lại', mau: SUA_MAU, t: 'anh bấm Sửa lại — không lên camp; con dựng lại creative theo nhận xét', loai: 'tat' }   // #1863
   : daLoaiCr(c) ? { chu: '✕ Đã loại', mau: '#f87171', t: 'anh vừa loại creative này — không lên camp; tải lại xong dòng rời bảng', loai: 'tat' }   // #1847 đổi ngay lúc bấm
   : choAnhDuyet(c) ? { chu: '⏸ Chờ duyệt', mau: '#e879f9', t: 'creative CHƯA được anh duyệt, chưa có camp — duyệt / loại ở ô ⏸ Chờ anh duyệt phía trên; duyệt xong thành ⏳ Chờ lên camp', loai: 'cho' }   // trạng thái riêng (anh 25/11/2026)
+  : choDuyet(c) && c.xep?.moi ? { chu: `✓ đã lên #${c.xep.moi}`, mau: '#34d399', t: `máy đã tạo camp #${c.xep.moi} trên Ethopex — kho đồng bộ về (≤ 10 phút) thì dòng này thành camp thật; nút Lên đã khoá`, loai: 'cho' }
   : choDuyet(c) && c.xep?.gui ? { chu: '🚀 đang lên', mau: '#60a5fa', t: 'anh đã duyệt, máy đã gửi lệnh tạo camp lên Ethopex — xong thì dòng này thành camp thật', loai: 'cho' }
   : choDuyet(c) && c.xep?.hoan ? { motDong: true, chu: 'Tạm dừng', mau: '#9ca3af', t: 'anh đã tạm dừng — máy KHÔNG lên camp creative này; bấm ▶ ở ô TT để chạy tiếp (hoặc ▶ Lên ở ô camp)', loai: 'cho' }   // anh 25/11/2026 "Vẫn có nút pause"
   : choDuyet(c) ? { motDong: true, chu: c.lich && Date.parse(c.lich) > Date.now() + 60_000 ? gioGonVn(c.lich) : 'chạy ngay',   /* không ⏳ trong ô TT: ô camp đã có ⏳, biểu tượng ăn chỗ làm cắt '22:…' (anh 25/11/2026) */ mau: '#f59e0b', t: `Chờ lên camp — anh đã duyệt, máy lên lúc ${c.lich ? gioNganVn(c.lich) : '?'} giờ VN (khung cố định); tạo xong thành camp thật`, loai: 'cho' }   // anh 25/11/2026 "hiện giờ hẹn chạy" (thay chữ Chờ lên camp)   // anh 25/11/2026 "Sau khi duyệt thì phải có ngay camp chờ ở danh sách… Trạng thái sẽ là Chờ lên camp"   // #1767: dòng xếp hàng không phải "chờ giờ chạy"
@@ -3270,6 +3271,13 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       const m = await fetch(`/etp/phien${ng ? `?ng=${encodeURIComponent(ng)}` : ''}`, { cache: 'no-store' }).then((r) => (r.ok ? r.text() : '')).catch(() => '');
       if (m && m !== 'dang' && m !== phien) await lamMoiAnToan(router);   // 'dang' = kho đang đồng bộ (#1582) · rỗng = lỗi mạng → bỏ lượt, không tải lại ~940 KB
     })(); }, 60_000); return () => t(); }, [router, phien]);
+  // NÚT LÊN KHOÁ REALTIME (anh 25/11/2026 "mày đẩy hay tao bấm thì nút này phải thay đổi, khoá... tự động realtime"): mọi đường lên (nút, máy lenh_cho.py, lệnh chat)
+  // đều ghi /tmp/etp-len-cr-<cr>.log → hỏi mã /etp/len mỗi 5 giây (vài byte, không chờ lượt đồng bộ kho), đổi thì làm mới → dòng thành 🚀 đang lên / ✓ đã lên #camp
+  const maLen = useRef<string | null>(null);
+  useEffect(() => { const t = nhip(() => { void (async () => {
+      const m = await fetch('/etp/len', { cache: 'no-store' }).then((r) => (r.ok ? r.text() : '')).catch(() => '');
+      if (!m) return; const cu = maLen.current; maLen.current = m; if (cu && cu !== m) await lamMoiAnToan(router);
+    })(); }, 5_000); return () => t(); }, [router]);
   // URL không ghi kiểu xem cây/bảng → dùng lựa chọn đã nhớ (localStorage). Cờ daDoc: lượt ghi URL / nhớ chỉ chạy SAU khi đã đọc xong — không đè bằng giá trị mặc định
   const [daDoc, setDaDoc] = useState(false);
   useEffect(() => { if (!laXemCamp(dauVao?.v)) { try { const v = localStorage.getItem('etp-camp-xem'); if (laXemCamp(v)) setXemCamp(v); } catch { /* trình duyệt chặn */ } } setDaDoc(true); }, []);   // eslint-disable-line react-hooks/exhaustive-deps

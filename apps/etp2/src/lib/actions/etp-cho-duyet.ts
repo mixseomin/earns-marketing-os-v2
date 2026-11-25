@@ -4,7 +4,8 @@
 // ngoài 07–12h VN hẹn 07:00). Loại = cham_duyet ok=false. Không tự lên khi chưa bấm — view chặn mọi đường lên camp khác.
 
 import { openSync, readFileSync } from 'node:fs';
-import { execFile, spawn } from 'node:child_process';
+import { execFile } from 'node:child_process';
+import { chayTach } from '@/lib/etp-chay-tach';
 import { envVe, xinVeTrucTiep } from '@/lib/etp-ve';
 import { docNhatKyLen, gioVnIso, moNhatKyLen } from '@/lib/etp-nhat-ky-len';
 import { THEO_LICH, chayLuc, chuGio, daQua, gioVn } from '@/lib/etp-nb';   // giờ VN dùng chung với nhân bản ★ ROAS bài cũ (etp-tay.ts)
@@ -213,7 +214,7 @@ export async function lenNgayCr(cr: number, gio?: string | null, o?: { roas: num
   const v = await xinVeTrucTiep('tao_camp', { content: L.content, lenh, ns: ro.ns });   // ⏱ theo lịch / ▶ Lên ngay / hẹn giờ đều là anh bấm = vé trực tiếp (anh 25/11/2026 "fix tất cả nút thủ công"); giờ chạy vẫn khung cố định gio_len của nhan-ban
   if (!('ma' in v)) return v;
   const log = moNhatKyLen(id, `anh (etp2 ${me.email})`);   // #1770: dòng gửi → bảng hiện "đang lên" ngay
-  spawn('python3', [...L.args, '--that', '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
+  chayTach('python3', [...L.args, '--that', '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
   return { ok: true, chu: `đã gửi lệnh lên ★ ROAS ${ro.roas} · $${ro.ns} — ${L.lich ? `theo lịch: ${chayLuc(Date.now(), true)}` : chuGio(g, tuDo(g))}`, gui: docNhatKyLen(id).gui };
 }
 
@@ -247,7 +248,7 @@ export async function doiGioCamp(campId: number, gio: string): Promise<KqNut> {
   const v = await xinVeTrucTiep('nhan_ban', { camp: id, lenh, ns: ro?.ns ?? Number(c.ngan_sach ?? 1) });
   if (!('ma' in v)) return v;
   const log = openSync(`/tmp/etp-doi-gio-${id}.log`, 'a');
-  spawn('python3', ['nhan-ban.py', String(id), ...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), ...lenhGio(g), '--thay-cho', String(id), '--that',
+  chayTach('python3', ['nhan-ban.py', String(id), ...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), ...lenhGio(g), '--thay-cho', String(id), '--that',
     '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
   return { ok: true, chu: `đã gửi lệnh: camp mới ${chuGio(g, tuDo(g))}, xong thì tạm dừng #${id}` };
 }
@@ -269,7 +270,7 @@ export async function doiRoasCamp(campId: number, roas: number): Promise<KqNut> 
   const v = await xinVeTrucTiep('nhan_ban', { camp: id, lenh, ns });
   if (!('ma' in v)) return v;
   const log = openSync(`/tmp/etp-doi-gio-${id}.log`, 'a');   // cùng nhật ký đổi giờ → nhatKyDoiGio đọc lỗi KÊU TO dưới nút
-  spawn('python3', ['nhan-ban.py', String(id), '--roas', String(r), '--ns', String(ns), ...lenhGio(g), '--thay-cho', String(id), '--that',
+  chayTach('python3', ['nhan-ban.py', String(id), '--roas', String(r), '--ns', String(ns), ...lenhGio(g), '--thay-cho', String(id), '--that',
     '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
   return { ok: true, chu: `đã gửi lệnh: camp mới ★ ROAS ${r} · $${ns} giữ giờ ${chuGio(g, tuDo(g))}, xong thì tạm dừng #${id}` };
 }

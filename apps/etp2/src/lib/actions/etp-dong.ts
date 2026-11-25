@@ -2,7 +2,7 @@
 // DÒNG PHIM TỰ ĐỘNG (anh 03/11/2026): chọn phim → form hỏi loại nội dung QC (KT / CC / CT…, có mô tả + ví dụ) + thể loại → máy chạy dòng (apps/etp/dong_phim.py, iMac)
 // làm hết 8 bước tới khi camp chạy; dính policy thì dòng tự dừng; nút FIX từng bước; thằng Mạnh (apps/etp/manh.py, box3) canh bước kẹt. Kho: etp.dong_phim / etp.dong_buoc (0413).
 // Chỉ chủ / admin (tài khoản Nhà) — đội chưa có đường tự động (luật "ko làm gì tự động ngoài tk Nhà", 02/11/2026).
-import { spawn } from 'node:child_process';
+import { chayTach } from '@/lib/etp-chay-tach';
 import { docNhatKyLen, moNhatKyLen } from '@/lib/etp-nhat-ky-len';
 import { sql } from 'drizzle-orm';
 import { banCr, giongCr } from '@/lib/etp-ban';
@@ -311,7 +311,7 @@ export async function lenCampCr(dongId: number, creativeId: number): Promise<{ o
   if ('canh' in vt) return { loi: `⚠ ${vt.canh}` };
   const ve = vt.ma;
   const log = moNhatKyLen(cr, `anh (etp2 ${me.email})`);   // #1770: dòng gửi → bảng hiện "đang lên" ngay
-  spawn('python3', ['nhan-ban.py', String(khuon), '--roas', String(roas), '--ns', String(ns), '--tay',   // ★ ROAS theo etp.ke_cr (khối dàn mức) · ngoài khối mặc định hoi_cho
+  chayTach('python3', ['nhan-ban.py', String(khuon), '--roas', String(roas), '--ns', String(ns), '--tay',   // ★ ROAS theo etp.ke_cr (khối dàn mức) · ngoài khối mặc định hoi_cho
     '--bo', x.bo ?? '', '--creative', String(cr), '--content', String(x.content_id), '--ten', ten, '--that',   // giờ chạy do nhan-ban.lich_len quyết (anh 05/11/2026: ngoài 07–12h VN hẹn 07:00 hôm sau)
     '--luat', `anh duyệt / bấm lên camp creative #${cr} — ★ ROAS ${roas} · $${ns} (${nguon})`, '--ai', `anh (etp.on.tc ${me.email})`], { cwd: dir, detached: true, stdio: ['ignore', log, log], env: envVe(ve) }).unref();
   return { ok: true, roas, ns, nguon };

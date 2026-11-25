@@ -5,7 +5,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp, xemNha } from '@/lib/etp-quyen';
-import { spawn } from 'node:child_process';
+import { chayTach } from '@/lib/etp-chay-tach';
 
 // CHỮ CỦA LỚP CHẤM (chữ trên hình · lời nói · tóm tắt) — trang không chở sẵn nữa (etp-doc gonLop, anh 27/10/2026 "load chậm quá");
 // tab Quét nội dung gọi một lần lúc mở, cắt 900 ký tự như thẻ hover
@@ -82,7 +82,7 @@ export async function tatCreative(id: number): Promise<{ ok: true; so: number } 
   if (!Number.isInteger(id) || id <= 0) return { loi: 'creative sai' };
   const ids = ((await getDb()!.execute(sql`select c.camp_id from etp.camp c where c.trang_thai = 'ACTIVE' and etp.creative_cua(c.creative_id, c.ten) = ${id}`)) as unknown as { camp_id: number }[]).map((r) => Number(r.camp_id));
   if (!ids.length) return { loi: 'không có camp đang chạy' };
-  const p = spawn('python3', [LAM, 'tat-loat', ids.join(','), '--ep', '--luat', `anh bấm Tắt ở etp.on.tc › Soát creative #${id}`, '--ai', `anh (etp.on.tc ${me.email})`], { detached: true, stdio: 'ignore', env: process.env });
+  const p = chayTach('python3', [LAM, 'tat-loat', ids.join(','), '--ep', '--luat', `anh bấm Tắt ở etp.on.tc › Soát creative #${id}`, '--ai', `anh (etp.on.tc ${me.email})`], { detached: true, stdio: 'ignore', env: process.env });
   p.unref();
   return { ok: true, so: ids.length };
 }

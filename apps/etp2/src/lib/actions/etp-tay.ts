@@ -4,7 +4,8 @@
 // Không viết đường gọi Ethopex mới: đi đúng hai máy đang chạy cho Nhà — lam-ethopex.py (bật / tắt / tăng / giảm, gác thang · trần · nhịp · cổng etp)
 // và nhan-ban.py (nhân bản thường / thang / sang bộ / ROAS). ai = "anh (etp2)" → nhật ký luật ghi đúng người bấm. Chỉ admin mos2 (chủ).
 import { boLuotDoc } from '@/lib/etp-du-kho';
-import { execFile, spawn } from 'node:child_process';
+import { execFile } from 'node:child_process';
+import { chayTach } from '@/lib/etp-chay-tach';
 import { openSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -119,7 +120,7 @@ export async function nhanBanTay(campId: number, x: KieuNb, ghi?: string): Promi
     }
     const ten = muc.map(String).join(' + ');
     const chung = ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that', '--luat', `tay etp2: nhân bản ★ ROAS ${ten} — ANH CHỊU TRÁCH NHIỆM, máy không chặn${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, '--ai', AI];
-    spawn('sh', ['-c', muc.map((r, i) => `ETP_VE="$V${i}" python3 "$@" --roas ${r.toFixed(2)}${g ? ' --gio "$G"' : ''}`).join('; '), 'sh', ...chung],
+    chayTach('sh', ['-c', muc.map((r, i) => `ETP_VE="$V${i}" python3 "$@" --roas ${r.toFixed(2)}${g ? ' --gio "$G"' : ''}`).join('; '), 'sh', ...chung],
       { cwd: DIR, detached: true, stdio: ['ignore', log, log], env: { ...envVe(null), G: g ?? '', ...Object.fromEntries(ves.map((v, i) => [`V${i}`, v])) } }).unref();
     await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản ★ ROAS ${ten} · $${x.ns}${muc.length > 1 ? ' mỗi camp' : ''} · ${chuChay}` });
     return { ok: true, chu: `đã gửi máy ${muc.length > 1 ? `${muc.length} camp ★ ROAS ${muc.join(' / ')} (chạy nối tiếp)` : `camp ★ ROAS ${muc[0]}`} · $${x.ns}${muc.length > 1 ? ' mỗi camp' : ''} · bài cũ của #${campId} · camp mới ${chuChay} · kết quả ghi nhật ký luật` };
@@ -129,7 +130,7 @@ export async function nhanBanTay(campId: number, x: KieuNb, ghi?: string): Promi
   if ('loi' in vt) return { loi: vt.loi };
   if ('canh' in vt) return { loi: `⚠ ${vt.canh}` };
   const ve = vt.ma;
-  spawn('python3', ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that', '--luat', `tay etp2: nhân bản ${x.kieu} — ANH CHỊU TRÁCH NHIỆM, máy không chặn${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, '--ai', AI],
+  chayTach('python3', ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that', '--luat', `tay etp2: nhân bản ${x.kieu} — ANH CHỊU TRÁCH NHIỆM, máy không chặn${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, '--ai', AI],
     { cwd: DIR, detached: true, stdio: ['ignore', log, log], env: envVe(ve) }).unref();
   await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản ${x.kieu === 'thuong' ? 'thường' : x.kieu === 'thang' ? `thang $${x.ns}` : `sang bộ ${x.bo}`}${x.kieu !== 'thang' && x.ns != null ? ` · $${x.ns}` : ''}` });
   return { ok: true, chu: `đã gửi máy nhân bản (anh chịu trách nhiệm — máy không chặn bằng luật, chỉ dừng khẩn) · camp mới ${chayLuc()} · camp hiện sau lượt đồng bộ kế, kết quả ghi nhật ký luật` };

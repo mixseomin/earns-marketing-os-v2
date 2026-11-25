@@ -3,6 +3,7 @@
 // cơ bản hơn!! nhân bản camp roas... Khi hiện các option thì có mô tả cụ thể, hướng dẫn, đề xuất... nhưng vẫn phải ưu tiên edit = tay").
 // Không viết đường gọi Ethopex mới: đi đúng hai máy đang chạy cho Nhà — lam-ethopex.py (bật / tắt / tăng / giảm, gác thang · trần · nhịp · cổng etp)
 // và nhan-ban.py (nhân bản thường / thang / sang bộ / ROAS). ai = "anh (etp2)" → nhật ký luật ghi đúng người bấm. Chỉ admin mos2 (chủ).
+import { boLuotDoc } from '@/lib/etp-du-kho';
 import { execFile, spawn } from 'node:child_process';
 import { openSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
@@ -66,6 +67,7 @@ export async function campTay(campId: number, viec: 'bat' | 'tat' | 'ns', o: { n
   if (!k) return { loi: `máy không trả kết quả: ${ra.trim().slice(-200) || '(trống)'}` };
   if (!k.ok) return { loi: k.loi || 'không làm được' };
   if (!k.lich) await ghiCho({ camp_id: campId, viec, sau: viec === 'ns' ? o.ns! : null, chu: viec === 'ns' ? `$${o.nsDang} → $${o.ns}` : viec === 'tat' ? 'tắt' : 'bật' });
+  boLuotDoc();   // lam-ethopex.py đã ghi etp.nhat_ky — lần làm mới kế đọc sổ mới
   return { ok: true, chu: k.lich ?? (viec === 'ns' ? `$${k.truoc?.ns ?? '?'} → $${k.sau?.ns ?? '?'}` : `${k.truoc?.tt ?? '?'} → ${k.sau?.tt ?? '?'}`) };
 }
 

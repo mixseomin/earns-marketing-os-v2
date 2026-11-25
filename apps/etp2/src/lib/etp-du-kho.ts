@@ -41,6 +41,9 @@ export async function duTrang(quyen: QuyenEtp, ng?: string): Promise<{ du: DuLie
   return p;
 }
 
+/** bỏ lượt đọc ĐANG CHẠY (anh 25/11/2026 "Thiếu lịch sử đổi ngân sách"): lệnh tay vừa ghi sổ → router.refresh ngay sau đó không được ăn chung lượt đọc bắt đầu TRƯỚC lúc ghi */
+export function boLuotDoc() { DOC.clear(); }
+
 const khoa = (q: QuyenEtp, phien: string) => `${q.vai}:${q.nguoiId ?? ''}:${phien}`;   // kèm vai: người thường nhận bản đã cắt
 
 // brotli mức 9 nén cùng gzip (~0,3 s / phần). KHÔNG chạy mức 11 nền: 13/11/2026 22:30 mỗi lượt ~10 s chiếm luồng phụ zlib, trong lúc đồng bộ mỗi lần mở trang

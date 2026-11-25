@@ -781,6 +781,10 @@ const LUAT = [
   { card: '1853', tep: 'apps/etp2/src/lib/etp-doc.ts', cam: 'tron: st(r.dc, r.dt)', vi: 'không giữ nguồn trọn đời thứ hai trong SQL — một nguồn là sổ ngày' },
   { card: '1855', tep: 'apps/etp2/src/components/etp-view.tsx', mot: "key: 'roi_ky'", vi: 'cột ROI trong kỳ trên Cây' },
   { card: '1855', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'cellTitle: (c) => roiKyTitle(laiKy(c), tenKy), cell: (c) => <Roi s={laiKy(c)} />', vi: 'ROI kỳ cùng nguồn laiKy với cột Chi / Lãi kỳ, chi-thu gập vào chữ rê' },
+  // LỊCH SỬ BẬC GỒM LẦN ĐỔI VỪA BẤM (anh 25/11/2026 "Thiếu lịch sử đổi ngân sách !!")
+  { card: 'ls-bac-2511', tep: 'apps/etp2/src/components/etp-view.tsx', co: "lsBac: gopBac(d0.lsBac ?? {}, vuaBac)", vi: 'du.lsBac ghép đổi bậc vừa bấm' },
+  { card: 'ls-bac-2511', tep: 'apps/etp2/src/components/etp-view.tsx', co: "ctx?.ghiBac?.(c.camp_id, {", vi: 'lệnh ngân sách xong ghi vào lịch sử bậc của trang' },
+  { card: 'ls-bac-2511', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "boLuotDoc();", vi: 'lệnh tay xong bỏ lượt đọc sổ đang chạy' },
 ];
 
 const loi = [];

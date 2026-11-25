@@ -63,7 +63,8 @@ const LsBacCtx = createContext<DuLieuEtp['lsBac']>({});   // lịch sử đổi 
 // LỊCH SỬ THAY ĐỔI của một camp cho tab 🕘 Lịch sử (anh 09/11/2026 "thêm lịch sử thay đổi vào đó"): lệnh tay etp2 (sổ chờ áp, 2 giờ) · bật / tắt (nhật ký luật) · bậc 30 ngày
 type LsDk = { tay: ChoAp[]; batTat: DuLieuEtp['nhatKy']; bac: DuLieuEtp['lsBac'][number] };
 const DieuKhienCtx = createContext<{ bo: string[]; cho: Map<number, ChoAp[]>; ls: (id: number) => LsDk; /** phanh chợ đang chạy → cảnh báo ở bước xác nhận (etp-phanh-cho canhBaoPhanh) */ phanh?: { tang: string | null; len: string | null };
-  /** lệnh ĐANG GỬI theo camp (anh 25/11/2026 "2 cái này phải hiện đồng thời"): ngăn camp ghi lúc bấm Làm, ô ngân sách dòng bảng hiện ⏳ cùng lúc với "đang gửi máy…" */ gui?: Map<number, string>; datGui?: (id: number, chu: string | null) => void } | null>(null);
+  /** lệnh ĐANG GỬI theo camp (anh 25/11/2026 "2 cái này phải hiện đồng thời"): ngăn camp ghi lúc bấm Làm, ô ngân sách dòng bảng hiện ⏳ cùng lúc với "đang gửi máy…" */ gui?: Map<number, string>; datGui?: (id: number, chu: string | null) => void;
+  /** đổi bậc anh VỪA làm xong ở trang này (anh 25/11/2026 "Thiếu lịch sử đổi ngân sách") — ghép vào lịch sử bậc ngay, không chờ trang đọc lại sổ */ ghiBac?: (id: number, x: DuLieuEtp['lsBac'][number][number]) => void } | null>(null);
 // VẾT CHỜ (anh 09/11/2026 "khi thay đổi mà chưa áp dụng ngay thì phải show lại vết"): lệnh tay còn chờ = kho chưa khớp với lệnh (ngân sách / trạng thái);
 // nhân bản giữ vết 45 phút (camp mới hiện ở lượt đồng bộ kế). Hết chờ thì tự biến mất — không ai phải xoá.
 function conCho(ds: ChoAp[], camps: Pick<CampEtpKho, 'camp_id' | 'ngan_sach' | 'trang_thai'>[]): Map<number, ChoAp[]> {
@@ -87,6 +88,15 @@ function BienLotCua({ canhBao }: { canhBao: { luc: string; muc: string; noi_dung
   </div>;
 }
 
+// LỊCH SỬ BẬC GỒM CẢ LẦN ĐỔI VỪA BẤM (anh 25/11/2026 "Thiếu lịch sử đổi ngân sách !!" — #108661 $1 → $2 lúc 15:29 đã vào etp.nhat_ky nhưng thẻ bậc vẫn 3 dòng:
+// tab đang mở qua lượt deploy / lần làm mới ăn chung lượt đọc sổ cũ). Lệnh tay xong = ghi vào sổ của trang (ghiBac), ghép vào du.lsBac tới khi sổ thật có dòng cùng việc + mức (±30 phút).
+function gopBac(ls: DuLieuEtp['lsBac'], vua: DuLieuEtp['lsBac']): DuLieuEtp['lsBac'] {
+  const m = { ...ls };
+  for (const [k, ds] of Object.entries(vua)) { const id = Number(k), co = ls[id] ?? [];
+    const them = ds.filter((x) => !co.some((y) => y.viec === x.viec && Number(y.sau) === Number(x.sau) && Math.abs(Date.parse(y.luc) - Date.parse(x.luc)) < 30 * 60_000));
+    if (them.length) m[id] = [...co, ...them].sort((a, b) => Date.parse(a.luc) - Date.parse(b.luc)); }
+  return m;
+}
 function DauCho({ ds, gui }: { ds?: ChoAp[]; /** lệnh đang gửi (chưa có kết quả) — DieuKhienCtx.gui */ gui?: string }) {
   if (gui) return <span title={`đang gửi máy: ${gui} (đọc lại Ethopex có thể tới 2 phút)`} style={{ color: '#60a5fa', fontSize: 11, cursor: 'help', whiteSpace: 'nowrap' }}>⏳ {gui}</span>;
   if (!ds?.length) return null;
@@ -929,7 +939,10 @@ function DieuKhienCamp({ c, lon, tat, boDs, choDs, lsDk }: { c: Pick<CampEtpKho,
     }
     setDang(null); ctx?.datGui?.(c.camp_id, null);
     if ('loi' in r) { setKq({ ok: false, chu: r.loi, o: ten }); return; }
-    setKq({ ok: true, chu: r.chu, o: ten }); router.refresh();
+    setKq({ ok: true, chu: r.chu, o: ten });
+    const doi = ten === 'ns' ? /^\$([\d.]+) → \$([\d.]+)$/.exec(r.chu) : null;   // campTay trả "$truoc → $sau" khi Ethopex đã đổi (đặt lịch thì trả chữ lịch — không ghi)
+    if (doi && Number(doi[1]) !== Number(doi[2])) ctx?.ghiBac?.(c.camp_id, { luc: new Date().toISOString(), viec: Number(doi[2]) > Number(doi[1]) ? 'tang' : 'giam', truoc: doi[1] ?? null, sau: doi[2] ?? null, luat: 'tay etp2 (vừa bấm ở trang này)', ai: 'anh (etp2)' });
+    router.refresh();
   };
   const kieuNb = (): KieuNb => kieu === 'thang' ? { kieu, ns: Number(nsThang) } : kieu === 'bo' ? { kieu, bo: boDen, ns: nsTay ? Number(nsTay) : undefined } : kieu === 'roas' ? { kieu, roas: Number(roas), ns: Number(nsRoas), tamDung, cap: nhieu ? [...nhieu] : undefined, gio: chay === 'lich' ? null : chay === 'ngay' ? 'ngay' : gioDat } : { kieu: 'thuong', ns: nsTay ? Number(nsTay) : undefined };
   const moCrMoi = async () => { setNguonRoas('moi'); setNhieu(null); setXem(null); if (Number(nsRoas) > 10) setNsRoas('5'); if (crDs == null) setCrDs(await dsCrMoiCamp(c.camp_id)); };
@@ -3119,14 +3132,17 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   // ĐỔI TRẠNG THÁI NGAY LÚC BẤM (#1847 anh 25/11/2026 "Đã bấm, đang đợi thì phải đổi status ở đây"): bấm Xác nhận Duyệt / Loại (ô ⏸ Chờ anh duyệt hoặc ngăn camp) phát SU_DUYET
   // → dòng ⏸ Chờ duyệt đổi thành ⏳ Chờ lên camp / ✕ Đã loại ngay (cây, ngăn camp, ô Lọc, số đếm cùng đọc du.hangCr); máy chủ báo lỗi → trả về ⏸; tải lại xong (dòng đã khác ⏸) thì bỏ dấu
   const [bamDuyet, setBamDuyet] = useState<Record<number, boolean>>({});
+  const [vuaBac, setVuaBac] = useState<DuLieuEtp['lsBac']>({});   // đổi bậc vừa bấm xong ở trang này — gopBac ghép vào du.lsBac
+  const ghiBac = useCallback((id: number, x: DuLieuEtp['lsBac'][number][number]) => setVuaBac((m) => ({ ...m, [id]: [...(m[id] ?? []), x] })), []);
   useEffect(() => { const f = (e: Event) => { const d = (e as CustomEvent<SuDuyet>).detail; if (!d) return;
     setBamDuyet((m) => { const n = { ...m }; if (d.pha === 'loi') delete n[d.cr]; else n[d.cr] = d.ok; return n; }); };
     window.addEventListener(SU_DUYET, f); return () => window.removeEventListener(SU_DUYET, f); }, []);
   useEffect(() => { setBamDuyet((m) => { const ks = Object.keys(m).map(Number); if (!ks.length) return m;
     const con = ks.filter((cr) => duGoc.hangCr?.some((x) => x.creative_id === cr && choAnhDuyet(x))); if (con.length === ks.length) return m; const n: Record<number, boolean> = {}; for (const cr of con) n[cr] = m[cr] === true; return n; }); }, [duGoc]);
-  const du = useMemo(() => { const d = duGoc.nhe && nang ? ghepNang(duGoc, nang) : duGoc; if (!Object.keys(bamDuyet).length || !d.hangCr) return d;
+  const du = useMemo(() => { const d0 = duGoc.nhe && nang ? ghepNang(duGoc, nang) : duGoc, d = Object.keys(vuaBac).length ? { ...d0, lsBac: gopBac(d0.lsBac ?? {}, vuaBac) } : d0;
+    if (!Object.keys(bamDuyet).length || !d.hangCr) return d;
     return { ...d, hangCr: d.hangCr.map((c) => { const ok = c.creative_id != null && choAnhDuyet(c) ? bamDuyet[c.creative_id] : undefined; if (ok == null) return c;
-      return ok ? { ...c, dong_bo: 'xep_hang', ten: c.ten.replace(/^⏸ Chờ duyệt/, '⏳ Chờ lên camp') } : { ...c, dong_bo: 'da_loai', ten: c.ten.replace(/^⏸ Chờ duyệt/, '✕ Đã loại') }; }) }; }, [duGoc, nang, bamDuyet]);
+      return ok ? { ...c, dong_bo: 'xep_hang', ten: c.ten.replace(/^⏸ Chờ duyệt/, '⏳ Chờ lên camp') } : { ...c, dong_bo: 'da_loai', ten: c.ten.replace(/^⏸ Chờ duyệt/, '✕ Đã loại') }; }) }; }, [duGoc, nang, bamDuyet, vuaBac]);
   const choMap = useMemo(() => conCho(choAp, du.camps), [choAp, du.camps]);
   const [guiMap, setGuiMap] = useState<Map<number, string>>(() => new Map());   // lệnh tay đang gửi theo camp — ngăn camp + ô ngân sách dòng bảng cùng đọc
   const datGui = useCallback((id: number, chu: string | null) => setGuiMap((m) => { const n = new Map(m); if (chu) n.set(id, chu); else n.delete(id); return n; }), []);   // lệnh tay chờ áp còn hiệu lực (vết ⏳)
@@ -3669,7 +3685,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     // TRANG TỰ CUỘN (body của mos2 khoá cuộn — trong mos2 chỉ vùng nội dung cuộn; etp.on.tc đứng riêng): khung cao đúng màn hình, cuộn bên trong,
     // đầu trang trôi đi, tiêu đề bảng + thanh trang của DataTable dính theo khung này — kéo lên xem hết bảng như bên Ethopex
     <ChiXem.Provider value={chiXem}><HoanCtx.Provider value={hoanSo}><LsBacCtx.Provider value={du.lsBac ?? {}}>
-    <PhamViLuu value={phamViNg(du)}><DieuKhienCtx.Provider value={quyen?.vai === 'chu' && !du.nguoi.ngoai ? { bo: Object.keys(du.boTk).sort(), cho: choMap, ls: lsCamp, phanh: canhBaoPhanh(du.cauHinh), gui: guiMap, datGui } : null}><SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
+    <PhamViLuu value={phamViNg(du)}><DieuKhienCtx.Provider value={quyen?.vai === 'chu' && !du.nguoi.ngoai ? { bo: Object.keys(du.boTk).sort(), cho: choMap, ls: lsCamp, phanh: canhBaoPhanh(du.cauHinh), gui: guiMap, datGui, ghiBac } : null}><SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
     <div ref={cuonRef} onScroll={(e) => { const h = heroRef.current; const g = !!h && e.currentTarget.scrollTop > (gon ? h.offsetTop + h.offsetHeight : 12); if (g !== gonHero) setGonHero(g); }} style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <HoverChu goc={cuonRef} />{/* #1546: mọi title= trong trang → thẻ nổi chung */}
       <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}@keyframes etpXoay{to{transform:rotate(360deg)}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>

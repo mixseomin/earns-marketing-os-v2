@@ -43,12 +43,14 @@ export function CamCauHinh({ campId, soLieu, xemTruoc, phim, ke }: {
   useEffect(() => { try { const v = localStorage.getItem(KHOA); if (v === 'camp' || v === 'nhom' || v === 'ad' || v === 'so') datTrang(v); } catch { /* không có localStorage: mở trang Campaign */ } }, []);
   const chon = (v: Trang) => { datTrang(v); try { localStorage.setItem(KHOA, v); } catch { /* như trên */ } };
   const [du, setDu] = useState<{ r: DongTl | null; chung: string[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
+  // #1862: danh sách Chờ duyệt tải lại mỗi ~13s trao `ke` là object MỚI cùng nội dung → effect chạy lại, xoá du → khung xem trước bị dựng lại, bản dịch vừa mở gập mất. Khoá theo NỘI DUNG ke.
+  const keKhoa = ke ? JSON.stringify(ke) : '';
   useEffect(() => {
     let bo = false; setDu(null); setLoi(null);
     (ke ? docThietLap([], [ke]) : docThietLap([campId])).then((x) => { if (bo) return; if ('loi' in x) setLoi(x.loi);
       else setDu({ r: (ke ? x.dong.find((d) => d.ke_cha === ke.id) : x.dong[0]) ?? null, chung: x.chung }); }, (e) => { if (!bo) setLoi(String(e?.message ?? e)); });
     return () => { bo = true; };
-  }, [campId, ke]);
+  }, [campId, keKhoa]); // eslint-disable-line react-hooks/exhaustive-deps
   const [rong, setRong] = useState(true);
   useEffect(() => { const f = () => setRong(window.innerWidth >= 760); f(); window.addEventListener('resize', f); return () => window.removeEventListener('resize', f); }, []);
 

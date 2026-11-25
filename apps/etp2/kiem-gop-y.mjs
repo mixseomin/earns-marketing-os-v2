@@ -585,6 +585,7 @@ const LUAT = [
   { card: '1778', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: '${viTitle(v, d.lyDo)}', vi: 'lý do chấm ở rê chuột có kèm bản dịch' },
   { card: '1862', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: "{mo ? <i>{hien ? hien(d.vi) : d.vi}</i> : null}", vi: 'phần dịch mặc định chỉ hiện cờ 🇻🇳, bản dịch chỉ hiện khi rê / chạm cờ' },
   { card: '1862', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: 'onMouseEnter={() => setRe(true)} onMouseLeave={() => setRe(false)}', vi: 'rê chuột vào cờ mở bản dịch tương ứng' },
+  { card: '1862', tep: 'apps/etp2/src/components/etp-camp-cau-hinh.tsx', co: "const keKhoa = ke ? JSON.stringify(ke) : '';", vi: 'ngăn camp dự kiến không đọc lại cấu hình mỗi lần danh sách Chờ duyệt tải lại — bản dịch đã mở không tự gập' },
   { card: '1862', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: 'setCham((x) => !x)', vi: 'điện thoại (không rê chuột) chạm cờ mở / gập bản dịch' },
   { card: '1862', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', cam: "🇻🇳 đang dịch…</div>", vi: 'lúc đang dịch cũng chỉ hiện cờ, không dòng chữ' },
   { card: '1778', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', cam: 'function HookVi(',vi: 'không quay về dịch riêng mỗi hook một lượt' },

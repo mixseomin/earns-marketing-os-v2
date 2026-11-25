@@ -15,6 +15,7 @@ ids = [int(x) for x in sys.argv[1:] if x.isdigit()]
 if not ids: sys.exit(__doc__)
 rows = json.loads(sql(f"select coalesce(json_agg(row_to_json(v)), '[]') from (select id, content_id, dang, lang, ten, video, giay, creative_id, trang_thai, ghi, chu_qc->>'chu_dau' chu_dau, coalesce((chu_qc->>'lop_free')::boolean, false) lop_free from etp.thu_vien where id in ({','.join(map(str, ids))})) v") or "[]")
 lo, tm = [], os.path.join(C, "thu-vien"); os.makedirs(tm, exist_ok=True)
+moi = 0   # số creative vừa tạo → gọi đồng bộ kho ngay (anh 25/11/2026: tìm #114887 trên etp2 "Không dòng nào khớp" vì kho etp.creative chờ nhịp 10 phút)
 for r in rows:
     if r["creative_id"]: print(f"tv{r['id']}: đã là creative #{r['creative_id']} — bỏ qua"); continue
     if r["trang_thai"] != "san_sang" or not r["video"]: print(f"tv{r['id']}: trạng thái {r['trang_thai']} — chỉ đưa bản sẵn sàng"); continue
@@ -45,6 +46,9 @@ for gi, (dang, lo) in enumerate(nhom.items()):
         if cr and l.get("ok", True) and not l.get("loi"):
             sql(f"update etp.thu_vien set creative_id = {int(cr)}, trang_thai = 'da_len', cap_nhat = now() where id = {x['tv']}")
             print(f"✓ tv{x['tv']} → creative #{cr} (chấm Sạch thì nhịp ethopex tự lên camp KT $1 — anh 29/10/2026)")
+            moi += 1
         else: print(f"✗ tv{x['tv']}: {l.get('loi') or 'không tạo được creative'}")
+if moi:   # creative mới vào kho etp.creative ngay → etp2 (Chờ duyệt / tìm số) hiện trong ~2 phút, không chờ nhịp 10 phút
+    subprocess.run(["ssh", B, "systemctl start --no-block etp-dong-bo"], capture_output=True)
 # dọn bản đầu vào tải lại được (tv*.mp4, tập tải về) — anh 15/11/2026: iMac cấm đầy ổ; don-kho.py giữ bản ra + tệp dưới 24 giờ
 subprocess.run(["python3", os.path.join(D, "don-kho.py")])

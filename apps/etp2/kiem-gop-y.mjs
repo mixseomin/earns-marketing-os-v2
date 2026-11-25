@@ -465,7 +465,10 @@ const LUAT = [
   { card: 1711, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "const laTay = (ai: string | null) => !!ai && !/^(máy|\\?)/.test(ai.trim());", vi: 'dòng do "máy …" (luật) ghi không tính là tay' },
   { card: 1711, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<CoTay ls={ls} />', vi: 'ô ngân sách camp (BacCamp, dùng ở cây / bảng / điện thoại) hiện cờ ✋ khi đang nâng bậc tay (anh "phải có 1 cờ trên camp đó là đang nâng bậc = tay")' },
   { card: 1711, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'data-o="co-nang-tay"', vi: 'cờ nâng tay có mốc data-o để kiểm' },
-  { card: 1753, tep: 'apps/etp2/src/components/ui/video-xem.tsx', co: 'v.muted = false;', vi: 'video có nút điều khiển mặc định bật tiếng (anh "Default là có bật âm thanh !"), trình duyệt chặn mới lùi về tắt tiếng' },
+  // #1753 "Default là có bật âm thanh" đã được anh thay bằng #1849 (25/11/2026): mở creative KHÔNG bật tiếng ngay, bấm loa thì nhớ làm mặc định mới.
+  { card: 1849, tep: 'apps/etp2/src/components/ui/video-xem.tsx', co: 'v.muted = !docBatTieng();', cam: 'v.muted = false;', vi: 'mở creative mặc định tắt tiếng, chỉ bật khi lần trước anh đã bật loa (anh "Khi mở creative, ko bật voice ngay")' },
+  { card: 1849, tep: 'apps/etp2/src/components/ui/video-xem.tsx', co: "localStorage.setItem(KHOA_TIENG, bat ? '1' : '0')", vi: 'bấm loa tắt / bật thì ghi nhớ, video mở sau theo mặc định mới (anh "thao tác tiếp theo sẽ theo nó default mới")' },
+  { card: 1849, tep: 'apps/etp2/src/components/ui/video-xem.tsx', co: 'if (!mayDoi.current) ghiBatTieng(', vi: 'máy tự tắt tiếng khi trình duyệt chặn không ghi đè lựa chọn đã nhớ của anh' },
   { card: 1753, tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: '<VideoXem src={video}', cam: 'autoPlay muted loop playsInline controls', vi: 'khung bài QC dùng VideoXem (bật tiếng), không còn video tắt tiếng cứng' },
   { card: 1753, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'autoPlay muted loop playsInline controls', vi: 'video xem creative trong etp-view dùng VideoXem (bật tiếng)' },
   { card: 1753, tep: 'apps/etp2/src/components/etp-mau-cr.tsx', cam: 'controls muted', vi: 'video mẫu creative có nút điều khiển không tắt tiếng cứng' },

@@ -17,7 +17,7 @@ Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--ban N bản / phi
   --anh <tệp ảnh> (lặp được) = KHUNG CHỈ ĐỊNH (anh 22/11/2026 "trên spy … cắt theo 1 cảnh tương tự … ảnh dùng chung cho cả EN/ES thay nội dung"): bỏ bước tải tập + AI xếp hạng,
     dựng đúng ảnh đưa vào (một ảnh dùng cho mọi phim trong lệnh — bản EN và ES cùng cảnh, chỉ đổi tên phim / lớp Free / giọng theo ngôn ngữ từng phim)
   không id = tự chọn N phim (mặc định 10) · --xem = chỉ dựng + tờ khung (~/.cache/ethopex/anh-tinh/to-<giờ>.jpg), không nạp thư viện / tạo creative"""
-import hashlib, json, os, random, re, subprocess, sys, time
+import difflib, hashlib, json, os, random, re, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageStat
@@ -303,20 +303,32 @@ def giong_tu(a, b):
     while i < len(a) and a[i] == b[i]: i += 1
     return a[i + (len(a) == len(b)):] == b[i + 1:]
 
-def khop_tu(doc, can):
+def khop_tu(doc, can, ten=None):
     """các từ của tên phim (can) có trong tập từ máy đọc (doc), cho phép lệch một ký tự"""
-    return {c for c in can if any(giong_tu(d, c) for d in doc)}
+    # máy đọc chữ hay DÍNH từ (25/11/2026 Deny Me, Dragon King: đọc "DenyMe," "Dragonkus") → từ đọc được chứa trọn từ của tên (≥ 2 ký tự) cũng tính là khớp
+    co = {c for c in can if any(giong_tu(d, c) or (len(d) > len(c) >= 2 and c in d) for d in doc)}
+    if ten:   # cụm 2–3 từ liền nhau của tên bị đọc dính + lệch đuôi ("Dragonkus" ≈ "dragonking") → cả cụm tính là khớp
+        tt = [w for w in re.findall(r"[a-z0-9áéíóúñü]+", re.sub(r"['’`]", "", ten.lower()))]
+        for n in (2, 3):
+            for i in range(len(tt) - n + 1):
+                cum = "".join(tt[i:i + n])
+                if any(len(d) >= 6 and difflib.SequenceMatcher(None, d, cum).ratio() >= 0.73 for d in doc): co |= set(tt[i:i + n]) & can
+    return co
+
+def tu_chu(x):
+    """tách từ một dòng chữ để so với tên phim — bỏ dấu nháy trước (25/11/2026 "WHAT IF I'M": "i'm" bị tách "i" + "m", không khớp tên) — dùng chung anh-tinh + logo-goc"""
+    return set(re.findall(r"[a-z0-9áéíóúñü]+", re.sub(r"['’`]", "", x.lower())))
 
 def thieu_tu(ten, j, hop):
     """từ của tên phim mà các hộp tên KHÔNG đọc ra (đã khớp được một phần tên) — 21/11/2026 Get Out of My Bugatti: chữ "Bugatti" viết tay máy đọc chữ bỏ sót,
     cắt theo hộp chữ thì logo chỉ còn "Get Out of My". Hộp lấy theo khối chữ to nhất (không khớp từ nào) → set() (không đo được)."""
-    tu = lambda x: set(re.findall(r"[a-z0-9áéíóúñü]+", x.lower())); can = tu(ten)
-    doc = khop_tu(set().union(*[tu(k[0]) for k in j.get("khung") or [] if k[1:] in hop]), can)
+    tu = tu_chu; can = tu(ten)
+    doc = khop_tu(set().union(*[tu(k[0]) for k in j.get("khung") or [] if k[1:] in hop]), can, ten)
     return can - doc if doc else set()
 
 def hop_ten(ten, j):
     """các hộp chữ (x, y, rộng, cao — tỉ lệ ảnh) là TÊN PHIM trong kết quả máy đọc chữ một poster; không thấy → [] (dùng chung: ten_poster + logo-goc.py)"""
-    tu = lambda x: set(re.findall(r"[a-z0-9áéíóúñü]+", x.lower()))
+    tu = tu_chu
     can = tu(ten); hop = [k[1:] for k in j.get("khung") or [] if tu(k[0]) and sum(1 for d in tu(k[0]) if khop_tu({d}, can)) / len(tu(k[0])) >= 0.6]
     if not hop:
         # CHỮ HOA VĂN (08/11/2026 The Dragon's Silly Captive: chữ gothic, Vision đọc lệch → không khớp tên): tên phim gần như luôn là KHỐI CHỮ TO NHẤT nửa dưới poster

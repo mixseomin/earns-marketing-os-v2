@@ -69,7 +69,7 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
     if not hop: noi("máy đọc chữ không thấy tên phim trên poster"); return None, None
     # ĐỦ KHỐI LOGO: máy đọc chữ hay đọc trượt dòng chữ hoa văn (20/11/2026: "Rising", "INTERN", "MechGod" rụng khỏi logo) → dòng chữ to sát trên / dưới khối tên,
     # không phải nhãn nền tảng, nhập vào khối. Sau đó chữ đọc được phải khớp ≥ 50% số từ của tên phim, không thì coi như KHÔNG đọc ra logo (thà dừng hơn lấy nhầm biển hiệu).
-    tu = lambda x: set(re.findall(r"[a-z0-9áéíóúñü]+", x.lower())); hop = [list(b) for b in hop]; kh = [list(k) for k in j.get("khung") or []]
+    tu = AT().tu_chu; hop = [list(b) for b in hop]; kh = [list(k) for k in j.get("khung") or []]
     them = True
     while them:
         them = False; cao = float(np.median([b[3] for b in hop])); t_, d_ = min(b[1] for b in hop), max(b[1] + b[3] for b in hop); l_, r_ = min(b[0] for b in hop), max(b[0] + b[2] for b in hop)
@@ -77,7 +77,7 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
             b = k[1:]
             if b in hop or tu(k[0]) & NHAN or len(k[0].strip()) < 3 or b[3] < 0.45 * cao or b[0] + b[2] < l_ or b[0] > r_: continue
             if -0.9 * cao <= b[1] - d_ <= 0.9 * cao or -0.9 * cao <= t_ - (b[1] + b[3]) <= 0.9 * cao or (b[1] >= t_ and b[1] + b[3] <= d_): hop.append(b); them = True
-    can = tu(ten); doc = AT().khop_tu(set().union(*[tu(k[0]) for k in kh if k[1:] in hop]), can)
+    can = tu(ten); doc = AT().khop_tu(set().union(*[tu(k[0]) for k in kh if k[1:] in hop]), can, ten)
     if len(doc) < 0.5 * len(can): noi(f"chữ đọc được trên poster chỉ khớp {len(doc)}/{len(can)} từ của tên phim"); return None, None
     im = np.asarray(Image.open(poster).convert("RGB")).astype(np.float32); Y, X = im.shape[:2]
     px = lambda b: (b[0] * X, b[1] * Y, (b[0] + b[2]) * X, (b[1] + b[3]) * Y)
@@ -200,7 +200,8 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
     if not ly:
         al = nd.gaussian_filter(al, 0.7); ys, xs = np.where(al > 0.08)
         Image.fromarray(np.dstack([c, al * 255]).astype(np.uint8)[ys.min():ys.max() + 1, xs.min():xs.max() + 1], "RGBA").save(ra); return ra, cach
-    if thieu: noi(f"không cắt rời được ({ly}) — tên thiếu từ nên không dùng dải poster"); return None, None
+    # chỉ chặn dải poster khi thiếu TỪ CHÍNH; từ nối ngắn (of, a, the… ≤ 3 ký tự) máy đọc chữ hay bỏ sót nhưng nằm cùng dải tên (25/11/2026 One Hell of a Fighter: rụng "OF A")
+    if {w for w in thieu if len(w) > 3}: noi(f"không cắt rời được ({ly}) — tên thiếu từ nên không dùng dải poster"); return None, None
     noi(f"không cắt rời được ({ly}) → dùng dải poster")
     # BẢN DẢI: dải ngang poster quanh logo; chặn trên / dưới tại chữ khác (nhãn nền tảng) để không mang nhãn đó vào creative
     t0 = min(b[1] for b in hp); d0 = max(b[3] for b in hp); tren, duoi = max(0.0, t0 - 0.9 * lh), min(float(Y), d0 + 0.6 * lh)
@@ -209,6 +210,8 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
         a, b_, e, f = px((bx, by, bw, bh))
         if f <= t0 + 0.2 * lh: tren = max(tren, f + 2)
         elif b_ >= d0 - 0.2 * lh: duoi = min(duoi, b_ - 2)
+        elif tu(t_) & NHAN and (b_ + f) / 2 > (t0 + d0) / 2:   # nhãn nền tảng dưới tâm khối tên mà hộp tên lấn qua nó (25/11/2026 Deny Me, Dragon King: hộp "Dragonkus" đọc cao tới đáy 728px, nhãn DramaBox ở 700px) → nhãn vẫn là đáy dải
+            duoi = min(duoi, b_ - 2); d0 = min(d0, b_ - 2)
     tren, duoi = int(tren), int(duoi)
     if duoi - tren < 1.05 * (d0 - t0): noi("dải logo bị chữ khác của poster chèn sát — không lấy được"); return None, None
     g = im[tren:duoi]; hh = g.shape[0]; yy = np.arange(hh, dtype=np.float32)

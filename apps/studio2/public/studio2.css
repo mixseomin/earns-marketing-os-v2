@@ -251,7 +251,7 @@ html.dung-mo body { padding-block: 10px }
 .dung { grid-template-columns: minmax(0, 1fr); grid-template-areas: "tren" "giua" "tl" }
 .d-giua { grid-area: giua; display: grid; gap: 8px; min-height: 0; min-width: 0 }
 .wg { display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; padding: 0 }
-.w-than { min-height: 0; min-width: 0; overflow: auto }
+.w-than { grid-row: 2; min-height: 0; min-width: 0; overflow: auto } /* Gọn ẩn .w-dau → không ghim thì thân rơi vào hàng auto, khung xem cao 0 */
 .w-dau { display: none; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border-bottom: 1px solid var(--line); min-height: 32px }
 .pro .w-dau { display: flex }
 .w-ten { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-2); font-size: 12px; white-space: nowrap } .w-ten b { font-weight: 600 }

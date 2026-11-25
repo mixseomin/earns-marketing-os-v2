@@ -2510,8 +2510,8 @@ function SuaRoas({ c }: { c: CampEtpKho }) {
   return <span style={{ position: 'relative', flex: 'none' }}>
     <button ref={neo} type="button" data-nut="sua-roas" disabled={dang} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBao(null); setHoi(null); setMo((m) => !m); }}
       title={`ROAS level ${hien ?? '—'} — bấm để sửa${chua ? ' (máy lên camp đúng mức anh chọn)' : ' (camp chưa chạy: máy tạo camp mới đúng mức, giữ giờ chạy)'}`}
-      style={{ fontSize: 11, lineHeight: 1, padding: '1px 3px', borderRadius: 4, border: `1px dashed ${MAU_ROAS}`, background: mo ? 'var(--bg-2)' : 'transparent', color: MAU_ROAS, fontWeight: 700, fontVariantNumeric: 'tabular-nums', cursor: 'pointer' }}>
-      {dang ? '…' : `${hien != null ? hien.toFixed(1) : '—'} ✎`}</button>
+      style={{ fontSize: 11, lineHeight: 1, padding: 0, border: 'none', background: 'transparent', color: MAU_ROAS, fontWeight: 700, fontVariantNumeric: 'tabular-nums', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+      {dang ? '…' : hien != null ? hien.toFixed(1) : '—'}</button>{/* #1864 chỉ số gạch chân, bỏ ✎ + viền (anh "Chỉ cần hiện số có gạch chân là hiểu có thể edit") */}
     <AnchoredPopover anchorRef={neo} open={mo} onClose={() => { setMo(false); setHoi(null); }}>
       <div data-o="hang-muc-roas" role="menu" onClick={(e) => e.stopPropagation()} style={{ padding: 6, display: 'flex', flexDirection: 'column', gap: 6, width: 250, fontSize: 11, lineHeight: 1.4,
         background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>

@@ -85,11 +85,12 @@ export function NutLenGio({ cr, camp, lich, nhan, anh, video }: { cr?: number | 
   const router = useRouter();
   const neo = useRef<HTMLButtonElement>(null);
   const [mo, setMo] = useState(false), [gio, setGio] = useState(''), [dang, setDang] = useState<'ngay' | 'lich' | 'gio' | 'khong' | null>(null)   /* MỖI NÚT MỘT CỜ (anh 22/11/2026 "sao lại 2 chữ đang gửi"): chỉ nút vừa bấm hiện đang gửi */, [kq, setKq] = useState<KqNut | null>(null);
+  const [nx, setNx] = useState('');   // nhận xét khi ✕ Không duyệt (anh 25/11/2026) → etp.nhan_xet_cr
   const doiGio = camp != null && camp > 0;
   const bam = async (g: string | null, khong?: boolean) => {
     setDang(khong ? 'khong' : g === THEO_LICH ? 'lich' : g ? 'gio' : 'ngay'); setKq(null);
     let r: KqNut;
-    try { r = khong ? await khongDuyetCr(Number(cr)) : doiGio ? await doiGioCamp(camp, g ?? '') : await lenNgayCr(Number(cr), g); }
+    try { r = khong ? await khongDuyetCr(Number(cr), nx) : doiGio ? await doiGioCamp(camp, g ?? '') : await lenNgayCr(Number(cr), g); }
     catch (e) { r = { loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` }; }
     setKq(r); setDang(null);
     if (!khong && !doiGio && 'ok' in r) { danhDauDangLen(Number(cr), r.gui); router.refresh(); }   // #1770 LẶP: dòng đổi "đang lên" NGAY ở trình duyệt (lib/etp-dang-len-tam), không chờ tải lại ~7 MB × 2 — "đã gửi thì status này phải update ngay": ▶ Lên xong làm mới NGAY — dòng còn (camp chưa vào sổ) nên khung không mất, ô trạng thái thành "đang lên"
@@ -111,6 +112,8 @@ export function NutLenGio({ cr, camp, lich, nhan, anh, video }: { cr?: number | 
           <OGioVn gio={gio} setGio={setGio} /></label>
         {doiGio ? <span style={{ color: 'var(--fg-2)' }}>Ethopex không sửa giờ được: lên camp mới đúng giờ, tạm dừng camp cũ.</span>
           : <span data-theo-lich-chu="" style={{ color: 'var(--fg-2)' }}>⏱ Theo lịch: {chayLuc()}.</span>}
+        {doiGio ? null : <textarea data-o="nhan-xet-cr" value={nx} onChange={(e) => setNx(e.target.value)} rows={2} maxLength={4000}
+          placeholder="Nhận xét khi ✕ Không duyệt: vì sao, cần sửa gì (con đọc làm hướng sửa)" style={{ ...o, width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />}
         <div style={{ display: 'flex', gap: 6 }}>
           {doiGio ? null : <button disabled={!!dang} onClick={() => bam(null)} title="bỏ qua ô giờ — camp lên vào khung cố định 22h VN gần nhất, không còn chạy ngay (anh 24/11/2026)" style={nutXanh}>{dang === 'ngay' ? 'đang gửi…' : `▶ Lên · ${chuLich()}`}</button>}
           {doiGio ? null : <button data-len-theo-lich="" disabled={!!dang} onClick={() => bam(THEO_LICH)} title="bỏ qua ô giờ, máy lên camp theo khung giờ lên trong sổ luật (#1772)" style={nutXanh}>{dang === 'lich' ? 'đang gửi…' : '⏱ Lên theo lịch'}</button>}

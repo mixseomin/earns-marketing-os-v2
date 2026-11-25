@@ -49,6 +49,16 @@ function TomTl({ x }: { x: ChoDuyet }) {
   </div>;
 }
 
+/** NHẬN XÉT ĐÃ GHI cho creative khác của cùng phim (etp.nhan_xet_cr) — anh thấy mình đã dặn gì, con thấy hướng sửa */
+function NhanXetCu({ ds }: { ds: ChoDuyet['nx'] }) {
+  if (!ds?.length) return null;
+  return <div data-o="nx-cu" style={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: 11.5, borderTop: '1px solid var(--line)', paddingTop: 4 }}>
+    <span style={{ color: 'var(--fg-3, #888)' }}>Nhận xét trước của phim này:</span>
+    {ds.map((n, i) => <div key={i} title={`${n.luc.slice(0, 16)} · cr #${n.cr}`} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <b style={{ color: n.ok ? '#4ade80' : '#f87171' }}>{n.ok ? '✓' : '✕'} #{n.cr}</b> {n.chu}</div>)}
+  </div>;
+}
+
 /** TRẠNG THÁI + BƯỚC KẾ của creative (anh 25/11/2026 "Hiện thêm trạng thái hiện tại của camp này !! Nếu duyệt sẽ sang trạng thái tiếp theo là gì ?") */
 function TrangThaiCr({ x, dk }: { x: ChoDuyet; dk: boolean }) {
   const lich = x.tl?.g_lich ?? null;
@@ -71,15 +81,19 @@ export type SuDuyet = { cr: number; ok: boolean; pha: 'gui' | 'xong' | 'loi' };
 const phat = (d: SuDuyet) => window.dispatchEvent(new CustomEvent<SuDuyet>(SU_DUYET, { detail: d }));
 function NutDuyet({ cr, roas, lich, dk, dang, bam }: { cr: number; roas: string | null; lich: string | null; dk: boolean; dang: number | null; bam: Bam }) {
   const [hoi, setHoi] = useState<boolean | null>(null);   // true = hỏi duyệt, false = hỏi loại
+  const [nx, setNx] = useState('');   // NHẬN XÉT (anh 25/11/2026 "phải cho tao comment vào đó để mày có hướng sửa") → etp.nhan_xet_cr
   if (hoi != null) {
     return <div data-o="xac-nhan-duyet" role="alertdialog" style={{ display: 'flex', flexDirection: 'column', gap: 5, padding: 6, borderRadius: 6, fontSize: 12,
       border: `1px solid ${hoi ? '#22c55e' : '#ef4444'}`, background: hoi ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)' }}>
       <div>{hoi ? <>Duyệt cr #{cr}? → <b style={{ color: '#60a5fa' }}>⏳ Chờ lên camp</b>, máy tạo camp {kieu(roas)}{dk ? ' khi nhả dừng khẩn' : lich ? ` lúc ${lich}` : ''}.</>
         : <>Loại cr #{cr}? → <b style={{ color: '#f87171' }}>✕ Loại</b>, creative không lên camp.</>}</div>
+      <textarea data-o="nhan-xet-cr" value={nx} onChange={(e) => setNx(e.target.value)} rows={3} maxLength={4000} autoFocus
+        placeholder={hoi ? 'Nhận xét (không bắt buộc): chỗ nào hay / cần sửa ở lượt dựng sau' : 'Vì sao loại? Con đọc làm hướng sửa (vd: chữ che mặt, hook yếu, logo mờ…)'}
+        style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, padding: 6, borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'inherit', resize: 'vertical' }} />
       <div style={{ display: 'flex', gap: 6 }}>
-        <button type="button" disabled={dang != null} onClick={() => { setHoi(null); bam(cr, () => duyetChoAnh(cr, hoi), hoi); }}
+        <button type="button" disabled={dang != null} onClick={() => { const chu = nx; setHoi(null); setNx(''); bam(cr, () => duyetChoAnh(cr, hoi, chu), hoi); }}
           style={{ ...nut, fontWeight: 600, borderColor: hoi ? '#22c55e' : '#ef4444', color: hoi ? '#4ade80' : '#f87171' }}>{hoi ? '✓ Xác nhận duyệt' : '✕ Xác nhận loại'}</button>
-        <button type="button" onClick={() => setHoi(null)} style={nut}>Huỷ</button>
+        <button type="button" onClick={() => { setHoi(null); setNx(''); }} style={nut}>Huỷ</button>
       </div>
     </div>;
   }
@@ -171,6 +185,7 @@ export function ChoDuyetCr() {
                 {x.diem_thap ? <div style={{ color: '#fbbf24' }} title={`tiêu chí chấm ≤ 4: ${x.diem_thap} — duyệt thì người duyệt thắng điểm (0443)`}>⚠ điểm thấp: {x.diem_thap.slice(0, 40)}</div> : null}
                 <TomTl x={x} />
                 </div>
+                <NhanXetCu ds={x.nx} />
                 <TrangThaiCr x={x} dk={!!du.dungKhan} />
                 {cho1 ? (
                   <div style={{ marginTop: 'auto' }}><NutDuyet cr={x.creative_id} roas={x.roas} lich={x.tl?.g_lich ?? null} dk={!!du.dungKhan} dang={dang} bam={bam} /></div>

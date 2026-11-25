@@ -22,6 +22,7 @@ export type ChoDuyet = {
   creative_id: number; content_id: number | null; phim: string | null; lang: string | null; dang: string | null; video: string | null; anh: string | null;
   /** giọng đọc (ky_di…) — giongCr (#1844 "show thêm kiểu giọng") */ giong: string | null;
   ghi: string; tao: string; duyet: boolean | null; diem_thap: string | null; camp_id: number | null; trang_thai: string | null; nhat_ky: string | null;
+  /** nhận xét anh ghi trước đó cho creative KHÁC của cùng phim (etp.nhan_xet_cr, 0474) — đọc lại để thấy hướng sửa đã nêu */ nx: { cr: number; ok: boolean; chu: string; luc: string }[];
   /** '1|5' = máy lên ★ ROAS 1 · $5 thay camp $1 (etp.cau_hinh.len_cr_roas, apps/etp/lenh_cho.py — anh 22/11/2026) */ roas: string | null;
   /** camp DỰ KIẾN (lib/etp-ke-cr keCr) — ngăn camp đọc lại bằng docThietLap([], [ke]) */ ke: KeTl | null;
   /** tóm tắt camp dự kiến để REVIEW ngay trên thẻ (anh 25/11/2026 "nhất là các thông tin về ngôn ngữ, targeting,... form text rất quan trọng") — ô = mã docThietLap, giá trị đã mở khỏi `chung` */
@@ -42,7 +43,7 @@ function nhatKy(cr: number): string | null {
 export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean } | { loi: string }> {
   const me = await getCurrentUser();
   if (me?.role !== 'admin') return { loi: 'chỉ admin' };
-  const ds = await run<Omit<ChoDuyet, 'nhat_ky' | 'ke' | 'tl' | 'tlLoi'>>(sql`select h.creative_id, r.content_id, f.ten phim, r.lang, r.dang, r.video, r.anh, ${giongCr('h.creative_id')} giong, h.ghi, h.tao::text tao, u.ok duyet,
+  const ds = await run<Omit<ChoDuyet, 'nhat_ky' | 'ke' | 'tl' | 'tlLoi' | 'nx'>>(sql`select h.creative_id, r.content_id, f.ten phim, r.lang, r.dang, r.video, r.anh, ${giongCr('h.creative_id')} giong, h.ghi, h.tao::text tao, u.ok duyet,
       (select string_agg(e.k || ' ' || e.v, ', ' order by e.v::numeric) from etp.cham c, jsonb_each_text(c.diem) e(k, v)
         where c.creative_id = h.creative_id and (e.k like 'meta.%' or e.k like 'afs.%') and e.v::numeric <= 4) diem_thap,
       k.camp_id, k.trang_thai,
@@ -53,6 +54,11 @@ export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean 
     where u.ok is null   -- ô vàng CHỈ giữ creative chưa duyệt; đã duyệt thì xuống bảng cây camp (etp-doc hangCr — anh 22/11/2026 "duyệt rồi thì phải cho vào table bên dưới")
     order by h.tao, h.creative_id`);
   const [dk] = await run<{ v: boolean }>(sql`select coalesce((select gia_tri = 'true'::jsonb from etp.cau_hinh where khoa = 'dung_khan'), false) v`);
+  // nhận xét trước của cùng phim (3 dòng mới nhất) — anh 25/11/2026: comment khi duyệt là hướng sửa cho lượt dựng sau
+  const cids = [...new Set(ds.map((x) => x.content_id).filter((v): v is number => v != null).map(Number))];
+  const nxDs = cids.length ? await run<{ content_id: number; cr: number; ok: boolean; chu: string; luc: string }>(sql`select r.content_id, n.creative_id cr, n.ok, n.chu, n.luc::text luc
+      from etp.nhan_xet_cr n join etp.creative r using (creative_id) where r.content_id in (${sql.join(cids.map((c) => sql`${c}`), sql`, `)}) order by n.luc desc`) : [];
+  const nxCua = (cid: number | null) => cid == null ? [] : nxDs.filter((n) => Number(n.content_id) === Number(cid)).slice(0, 3).map((n) => ({ cr: Number(n.cr), ok: n.ok, chu: n.chu, luc: n.luc }));
   // camp DỰ KIẾN của từng creative (cùng lệnh ▶ Lên: khuôn theo tiếng, ★ ROAS, bộ phim mới) — một lượt docThietLap cho cả ô
   const ke = new Map(ds.filter((x) => x.content_id != null && !x.camp_id).map((x) => [Number(x.creative_id),
     keCr({ cr: Number(x.creative_id), cid: Number(x.content_id), lang: x.lang, phim: x.phim, roas: x.roas, bo: null /* null → docThietLap tính bộ cùng luật máy lên (SQL_BO_PHIM) */ })]));
@@ -63,16 +69,16 @@ export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean 
   };
   return { ds: ds.map((x) => { const cr = Number(x.creative_id);
     return { ...x, creative_id: cr, camp_id: x.camp_id == null ? null : Number(x.camp_id), nhat_ky: x.duyet && !x.camp_id ? nhatKy(cr) : null,
-      ke: ke.get(cr) ?? null, tl: tom(cr), tlLoi: tl && 'loi' in tl ? tl.loi : null }; }), dungKhan: !!dk?.v };
+      ke: ke.get(cr) ?? null, tl: tom(cr), tlLoi: tl && 'loi' in tl ? tl.loi : null, nx: nxCua(x.content_id) }; }), dungKhan: !!dk?.v };
 }
 
 /** ✓ Duyệt → ghi duyệt + lên ★ ROAS mặc định (hoi_cho, anh 24/11/2026); ✕ Loại → ghi loại. Phanh đang bật (dừng khẩn…): duyệt = XẾP HÀNG, máy tự lên camp ở nhịp đầu phanh nhả
  *  (apps/etp/lenh_cho.py len_cr — anh 22/11/2026 "thằng ngu !": không bắt anh bấm lại) */
-export async function duyetChoAnh(cr: number, ok: boolean): Promise<{ ok: true; chu: string } | { loi: string }> {
+export async function duyetChoAnh(cr: number, ok: boolean, chu?: string | null): Promise<{ ok: true; chu: string } | { loi: string }> {
   const id = Math.trunc(Number(cr));
   const [h] = await run<{ x: number }>(sql`select 1 x from etp.cho_anh_duyet_cr where creative_id = ${id}`);
   if (!h) return { loi: `creative #${id} không nằm trong danh sách chờ anh duyệt` };
-  const d = await duyetCham(id, ok);
+  const d = await duyetCham(id, ok, chu, 'cho-duyet');
   if ('loi' in d) return d;
   if (!ok) return { ok: true, chu: `đã loại creative #${id} — không lên camp` };
   return lenCamp(id);
@@ -80,11 +86,11 @@ export async function duyetChoAnh(cr: number, ok: boolean): Promise<{ ok: true; 
 
 /** ✕ KHÔNG DUYỆT dòng ⏳ chờ anh duyệt ở bảng cây camp (anh 22/11/2026 "Nếu tao bấm ko duyệt thì sao"): ghi LOẠI (cham_duyet ok=false — cùng ✕ Loại ô vàng)
  *  + bỏ creative khỏi sổ ★ ROAS len_cr_roas → dòng biến mất, lenh_cho.py / ▶ Lên không bao giờ lên. Không tạo camp, không gọi Ethopex, không tốn tiền. */
-export async function khongDuyetCr(cr: number): Promise<{ ok: true; chu: string } | { loi: string }> {
+export async function khongDuyetCr(cr: number, chu?: string | null): Promise<{ ok: true; chu: string } | { loi: string }> {
   const id = Math.trunc(Number(cr));
   const [c] = await run<{ x: number }>(sql`select 1 x from etp.camp where creative_id = ${id} limit 1`);
   if (c) return { loi: `creative #${id} đã có camp — không còn ở hàng chờ duyệt (muốn dừng thì tắt camp)` };
-  const d = await duyetCham(id, false); if ('loi' in d) return d;
+  const d = await duyetCham(id, false, chu, 'khong-duyet'); if ('loi' in d) return d;
   await getDb()!.execute(sql`update etp.cau_hinh set gia_tri = gia_tri - ${String(id)} where khoa = 'len_cr_roas' and gia_tri ? ${String(id)}`);
   return { ok: true, chu: `đã KHÔNG DUYỆT creative #${id} — ghi loại, bỏ khỏi sổ ★ ROAS; không camp nào được tạo, dòng tự biến mất` };
 }

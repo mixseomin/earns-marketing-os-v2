@@ -1819,4 +1819,7 @@ export const LUAT = [
   { card: 'gop-y-1813', tep: 'apps/etp/ap-form-chu.py', co: 'F, ds_l, dung_form = EA.FORM, EA.ds_l, EA.dung_form', vi: 'một chuẩn form chữ dùng chung với cổng' },
   { card: 'content-0-2411', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if not int(a.get("content_id") or 0) and str(goc_id).isdigit():', vi: 'ad Ethopex trả content_id 0 → nhân bản lấp phim từ sổ etp.camp, ★ ROAS gốc không bài đăng vẫn dùng lại creative (lỗi #108852 24/11/2026)' },
   { card: '1857', tep: 'apps/etp/lenh_cho.py', co: 'if cr in ro_ and not ro_[cr].get("tu"):', vi: 'mức ROAS anh sửa tay (cờ tu) vẫn tự lên theo lịch, không đợi bấm ▶ Lên (anh 25/11/2026 #1857)' },
+  { card: 'nhan-xet-2511', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: 'bam(cr, () => duyetChoAnh(cr, hoi, chu), hoi)', vi: 'ô xác nhận Duyệt / Loại có ô nhận xét, chữ gửi kèm lệnh duyệt (anh 25/11/2026 "phải cho tao comment vào đó để mày có hướng sửa")' },
+  { card: 'nhan-xet-2511', tep: 'apps/etp2/src/components/etp-len-gio.tsx', co: 'khongDuyetCr(Number(cr), nx)', vi: '✕ Không duyệt ở bảng cây cũng gửi nhận xét' },
+  { card: 'nhan-xet-2511', tep: 'apps/etp2/src/lib/actions/etp-cham.ts', co: 'insert into etp.nhan_xet_cr (creative_id, ok, chu, ai, noi)', vi: 'nhận xét lưu lịch sử etp.nhan_xet_cr (0474), không ghi đè' },
 ];

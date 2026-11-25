@@ -56,13 +56,16 @@ export async function luuTieuChi(x: { nhom: string; ma?: string; ten: string; mo
 
 // DUYỆT CREATIVE 5 ĐIỂM (anh 26/10/2026: "5 điểm thì sẽ cần review người thật" · "không duyệt qua tele — gửi 1 tin tổng hợp rồi link đến page trên etp.on.tc"):
 // Đạt = cho lên / chạy tiếp; Loại = chặn lên + máy tắt mọi camp dùng creative này ở lượt lịch giờ kế (≤ 10 phút, apps/etp/lich-gio.py tat_cham). Một nguồn: view etp.cham_cong (0341).
-export async function duyetCham(id: number, ok: boolean): Promise<{ ok: true } | { loi: string }> {
+/** chu = NHẬN XÉT anh gõ lúc duyệt / loại (anh 25/11/2026 "phải cho tao comment vào đó để mày có hướng sửa") → etp.nhan_xet_cr (0474), giữ lịch sử */
+export async function duyetCham(id: number, ok: boolean, chu?: string | null, noi?: string): Promise<{ ok: true } | { loi: string }> {
   const me = await getCurrentUser();
   if (!me) return { loi: 'chưa đăng nhập' };
   if (me.role !== 'admin') return { loi: 'chỉ admin' };
   if (!Number.isInteger(id) || id <= 0) return { loi: 'creative sai' };
   await getDb()!.execute(sql`insert into etp.cham_duyet (creative_id, ok, ai, ghi) values (${id}, ${ok}, ${me.email}, 'etp.on.tc')
     on conflict (creative_id) do update set ok = excluded.ok, ai = excluded.ai, ghi = excluded.ghi, luc = now()`);
+  const nx = (chu ?? '').trim().slice(0, 4000);
+  if (nx) await getDb()!.execute(sql`insert into etp.nhan_xet_cr (creative_id, ok, chu, ai, noi) values (${id}, ${ok}, ${nx}, ${me.email}, ${noi ?? null})`);
   return { ok: true };
 }
 

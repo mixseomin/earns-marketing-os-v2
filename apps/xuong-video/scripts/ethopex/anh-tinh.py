@@ -492,13 +492,15 @@ def giong_phim(p, ai=None, ghim=None):
     return (tl, f"thể loại {p.get('the_loai')}") if tl else (GIONG_MAC_DINH, "mặc định sổ luật")
 assert giong_phim({"the_loai": "mafia"}) == ("gao", "thể loại mafia") and giong_phim({}, "tinh_nghich")[0] == "tinh_nghich" and giong_phim({}, "x", "cam_xuc")[0] == "cam_xuc" and giong_phim({})[0] == GIONG_MAC_DINH
 
-def giong_ban(kg, ng):
-    """CÁC BẢN GIỌNG của một bản dựng (anh 25/11/2026 "có 2 phiên bản chứ ko phải bỏ"): giọng mặc định sổ luật (tốt nhất theo số) LUÔN giữ,
-    thêm bản giọng theo chủ đề phim nếu khác; anh ghim giọng thì chỉ bản đó. → [(kiểu, nguồn)]"""
-    if ng == "anh ghim": return [(kg, ng)]
-    return [(GIONG_MAC_DINH, "mặc định sổ luật")] + ([(kg, ng)] if kg != GIONG_MAC_DINH else [])
-assert [k for k, _ in giong_ban("hao_hung", "AI theo chủ đề phim")] == [GIONG_MAC_DINH, "hao_hung"] or GIONG_MAC_DINH == "hao_hung"
-assert len(giong_ban(GIONG_MAC_DINH, "x")) == 1 and giong_ban("gao", "anh ghim") == [("gao", "anh ghim")]
+def giong_ban(kg, ng, thu=0):
+    """GIỌNG của MỘT khung hình — đúng MỘT giọng (anh 25/11/2026 "Creatives mà chỉ đổi giọng mà ko đổi hình thì ko đc coi là khác nhau"):
+    hai giọng (mặc định sổ luật + theo chủ đề phim, anh 25/11 "có 2 phiên bản") giờ XOAY theo thứ tự bản → mỗi giọng nằm trên một hình khác;
+    anh ghim giọng thì đúng giọng đó. thu = số khung đã dựng của (mẫu, phim) + bản đang dựng. → [(kiểu, nguồn)] một phần tử"""
+    if ng == "anh ghim" or kg == GIONG_MAC_DINH: return [(kg, ng)]
+    return [[(GIONG_MAC_DINH, "mặc định sổ luật"), (kg, ng)][thu % 2]]
+assert all(len(giong_ban(k, "AI theo chủ đề phim", t)) == 1 for k in ("hao_hung", "gao", GIONG_MAC_DINH) for t in range(4)), "một khung chỉ MỘT giọng"
+assert GIONG_MAC_DINH == "hao_hung" or [giong_ban("hao_hung", "AI", t)[0][0] for t in range(2)] == [GIONG_MAC_DINH, "hao_hung"], "hai giọng xoay qua hai bản (hai hình)"
+assert giong_ban("gao", "anh ghim", 1) == [("gao", "anh ghim")]
 
 def cau_doc(lang, so_mau, kieu, ten):
     """câu đọc của một mẫu — MỘT chỗ cho giọng đọc lẫn dấu sổ. Gộp mạo từ lặp khi tên phim đã mở bằng nó ("Watch the The Great…" — Genie 21/11/2026)"""

@@ -550,6 +550,9 @@ def b_camp_khoi(d, truoc):
     bo = str(d.get("bo") or "").strip() or sql(CG.SQL_BO_PHIM.format(cid=int(d['content_id'])))
     if not bo: return "loi", "không đọc được bộ của phim", None
     ds = [int(x["creative_id"]) for x in sach[:len(muc)]]
+    # creative anh / máy đã LOẠI (etp.cham_duyet ok=false — vd trùng hình chỉ khác giọng, anh 25/11/2026 "Vi phạm nghiêm trọng luật") KHÔNG BAO GIỜ lên camp, kể cả đã nằm trong danh sách sạch của khối
+    bo_loai = {int(x) for x in sql(f"select creative_id from etp.cham_duyet where ok is false and creative_id in ({','.join(map(str, ds))})").split() if x.isdigit()} if ds else set()
+    if bo_loai: ds = [c for c in ds if c not in bo_loai]; muc = muc[:len(ds)]
     xong, loi, gan, may_ = [], [], [], False
     da = {int(a): int(b) for a, b in (l.split("\t") for l in sql(f"select creative_id, count(*) from etp.camp where creative_id in ({','.join(map(str, ds))}) group by 1").splitlines() if l.count("\t") == 1)}
     for i, c in enumerate(ds):

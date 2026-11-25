@@ -157,7 +157,7 @@ const RoiSo = ({ r }: { r: number | null | undefined }) => {
 const Tien = ({ v }: { v: number }) => <KeToan v={v} />;
 /** cột ROI tổng (#1853): cộng số trọn đời của nhiều camp (dòng phim / dòng tổng) + chữ rê chi · thu · lãi */
 const roiKyTitle = (s: SoTien, tenKy: string) => (s.chi || s.thu ? `${tenKy.toLowerCase()}: chi ${usd(s.chi)} · thu ${usd(s.thu)} · lãi ${usd(s.thu - s.chi)}` : 'chưa chi trong kỳ');
-const roiTongTitle = (s?: SoTien) => (s && (s.chi || s.thu) ? `trọn đời: chi ${usd(s.chi)} · thu ${usd(s.thu)} · lãi ${usd(s.thu - s.chi)}` : 'chưa chi');
+const roiTongTitle = (s?: SoTien) => (s && (s.chi || s.thu) ? `7 ngày: chi ${usd(s.chi)} · thu ${usd(s.thu)} · lãi ${usd(s.thu - s.chi)}` : 'chưa chi');
 const LaiCot = ({ s }: { s: SoTien }) => <KeToan v={s.thu - s.chi} mau={mauLai(s.thu - s.chi)} />;   // trong CỘT bảng / lưới
 const Lai = ({ s }: { s: SoTien }) => { const v = s.thu - s.chi; return <span style={{ color: Math.abs(v) < 0.005 ? MO : mauLai(v), fontVariantNumeric: 'tabular-nums' }}>{usd(v)}</span>; };   // trong câu / thẻ số
 const vn = (iso: string | null) => (iso ? new Date(iso).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—');
@@ -2579,10 +2579,11 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
   // điện thoại: dòng ⏳ CHỜ ANH DUYỆT (hang, camp_id < 0) vào nhóm phim như bảng máy tính — trước chỉ con.goc nên lọc Chờ duyệt ra "Tổng 0 phim" (anh 22/11/2026)
   const theoPhim = useMemo(() => { const g = new Map<string, CampEtpKho[]>(); for (const c of hep && hang?.length ? [...con.goc, ...hang] : con.goc) { const k = String(c.content_id ?? 0); g.set(k, [...(g.get(k) ?? []), c]); } return g; }, [con.goc, hang, hep]);
   const laiDai = (c: CampEtpKho) => { const x = laiKy(c); return x.thu - x.chi; };
-  // TỔNG ĐÃ CHI TỪ LÚC LÊN (#1852 anh 25/11/2026 "Thêm cột tổng đã chi"): cộng mọi ngày của camp trong sổ du.soNgay (sổ có từ 19/10 trước camp đầu tiên, gồm cả hôm nay) — không theo kỳ đang chọn
-  const tongChi = useMemo(() => { const m = new Map<number, number>(); for (const r of du.soNgay) m.set(r.c, (m.get(r.c) ?? 0) + r.chi); return m; }, [du.soNgay]);
-  // ROI TỔNG trọn đời camp (#1853): cùng nguồn sổ ngày với Tổng đã chi — không theo kỳ đang chọn
-  const tronSo = useMemo(() => { const m = new Map<number, SoTien>(); for (const r of du.soNgay) { const a = m.get(r.c); m.set(r.c, { chi: (a?.chi ?? 0) + r.chi, thu: (a?.thu ?? 0) + r.thu }); } return m; }, [du.soNgay]);
+  // TỔNG 7 NGÀY GẦN NHẤT (#1866 anh 25/11/2026 "Đổi thành Tổng và Roi của 7 ngày chứ không phải cả all time" — trước #1852 / #1853 cộng trọn đời):
+  // cột Chi tổng + ROI tổng cộng ĐÚNG 7 ô của dải ngày ROI (6 ngày đã khép `ngay` + hôm nay du.nay) trong sổ du.soNgay — không theo kỳ đang chọn; MỘT nguồn cho cả hai cột
+  const bayNgay = useMemo(() => new Set([...ngay, du.nay]), [ngay, du.nay]);
+  const tronSo = useMemo(() => { const m = new Map<number, SoTien>(); for (const r of du.soNgay) { if (!bayNgay.has(r.d)) continue; const a = m.get(r.c); m.set(r.c, { chi: (a?.chi ?? 0) + r.chi, thu: (a?.thu ?? 0) + r.thu }); } return m; }, [du.soNgay, bayNgay]);
+  const tongChi = useMemo(() => new Map([...tronSo].map(([k, v]) => [k, v.chi])), [tronSo]);
   const tronCong = (rs: CampEtpKho[]): SoTien => rs.reduce((a, c) => { const t = tronSo.get(c.camp_id); return { chi: a.chi + (t?.chi ?? 0), thu: a.thu + (t?.thu ?? 0) }; }, { chi: 0, thu: 0 });
   const sapXep = (ds: CampEtpKho[]) => [...ds].sort((a, b) => (xep === 'tuoi' ? (tuoi(b) ?? -1) - (tuoi(a) ?? -1) : laiDai(b) - laiDai(a)));
   const dem = (c: CampEtpKho): number => (con.m.get(c.camp_id) ?? []).reduce((a, x) => a + 1 + dem(x), 0);
@@ -2773,7 +2774,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
       cellTitle: (c) => roiKyTitle(laiKy(c), tenKy), cell: (c) => <Roi s={laiKy(c)} />, sortValue: (c) => roiOf(laiKy(c)) ?? -1e9,
       total: (rs) => { const s = rs.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 }); return <span title={roiKyTitle(s, tenKy)}><Roi s={s} /></span>; } },
     // ROI TỔNG — TRỌN ĐỜI CAMP (#1853 anh 25/11/2026 "Thêm cột ROI tổng thể toàn camp"): mọi ngày từ lúc lên + hôm nay, không theo kỳ; dòng phim / dòng tổng = ROI của tổng chi-thu cộng lại; chi / thu / lãi gập vào chữ rê
-    { key: 'roi_tong', group: 'roi', header: 'tổng', width: 68, title: 'ROI trọn đời camp (mọi ngày từ lúc lên, gồm hôm nay) — không theo kỳ đang chọn; rê xem chi · thu · lãi; chi dưới $0.30 thì để trống',
+    { key: 'roi_tong', group: 'roi', header: 'tổng 7n', width: 68, title: 'ROI tổng 7 ngày gần nhất (6 ngày trước + hôm nay, đúng dải cột ngày) — không theo kỳ đang chọn; rê xem chi · thu · lãi; chi dưới $0.30 thì để trống',
       cellTitle: (c) => roiTongTitle(tronSo.get(c.camp_id)), cell: (c) => { const t = tronSo.get(c.camp_id); return t ? <Roi s={t} /> : null; }, sortValue: (c) => { const t = tronSo.get(c.camp_id); return t ? roiOf(t) ?? -1e9 : -1e9; },
       total: (rs) => { const s = tronCong(rs); return <span title={roiTongTitle(s)}><Roi s={s} /></span>; } },
     // LÃI HÔM NAY — CỘT CỐ ĐỊNH (anh 02/11/2026 #1508): không đổi theo kỳ đang chọn, luôn là ngày Ethopex hôm nay; dòng phim / dòng tổng cộng lại
@@ -2784,7 +2785,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
     // TỔNG CHI TRONG KHUNG THỜI GIAN đang chọn (anh 29/10/2026) — cùng nguồn laiKy với cột lãi; dòng phim / dòng tổng cộng lại
     { key: 'chi', group: 'chi', header: tenKy.toLowerCase(), width: 96, title: `tổng chi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <Tien v={laiKy(c).chi} />, sortValue: (c) => Math.round(laiKy(c).chi * 100) / 100,
       total: (rs) => <Tien v={rs.reduce((a, c) => a + laiKy(c).chi, 0)} /> },
-    { key: 'tong_chi', group: 'chi', header: 'tổng', width: 96, title: 'tổng đã chi từ lúc lên camp tới giờ (mọi ngày, cả hôm nay) — không theo kỳ đang chọn; dòng phim / dòng tổng cộng lại', cell: (c) => <Tien v={tongChi.get(c.camp_id) ?? 0} />,
+    { key: 'tong_chi', group: 'chi', header: 'tổng 7n', width: 96, title: 'tổng chi 7 ngày gần nhất (6 ngày trước + hôm nay, đúng dải cột ngày) — không theo kỳ đang chọn; dòng phim / dòng tổng cộng lại', cell: (c) => <Tien v={tongChi.get(c.camp_id) ?? 0} />,
       sortValue: (c) => Math.round((tongChi.get(c.camp_id) ?? 0) * 100) / 100, total: (rs) => <Tien v={rs.reduce((a, c) => a + (tongChi.get(c.camp_id) ?? 0), 0)} /> },
     // CỘT ĐỆM (không tiêu đề, không số): mọi cột có bề rộng cố định → khoảng thừa của bảng dồn ra mép phải, số liệu xếp sát nhau (anh 29/10/2026 "cho gọn lại")
     { key: 'dem', header: '', align: 'left', cell: () => null },

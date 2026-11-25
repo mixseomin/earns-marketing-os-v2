@@ -240,8 +240,8 @@ def logo_khoa_ai(c):
         ra, v = _nap("logo_goc", "logo-goc.py").anh_khoa(link, os.path.join(c["tm"], "logo-khoa.png"), c.get("cid") or ""); _CHI_LOGO[0] += v; return ra
     return lam
 LOGO_BAN = 5   # đổi cách tách thì tăng số này → logo đã nhớ của mọi phim tách lại
-def logo_goc(c):
-    """logo gốc đã tách của phim (MỘT lần / phim, nhớ logo-goc.png + .json) → (ảnh RGBA đã đưa về cỡ chuẩn, 'cat' | 'ai' | 'dai'); không tách được → dừng kêu to"""
+def logo_goc(c, cao=None):
+    """cao = trần chiều cao riêng của mẫu (phần khung) — mặc định LOGO_CAO · logo gốc đã tách của phim (MỘT lần / phim, nhớ logo-goc.png + .json) → (ảnh RGBA đã đưa về cỡ chuẩn, 'cat' | 'ai' | 'dai'); không tách được → dừng kêu to"""
     ra = os.path.join(c["tm"], "logo-goc.png"); so = ra[:-4] + ".json"; ly = []; kieu = None
     try:
         n = json.load(open(so))
@@ -252,7 +252,7 @@ def logo_goc(c):
         if not tp: raise RuntimeError(f"không lấy được logo gốc từ poster phim ({'; '.join(ly) or 'không rõ'}) — mẫu Logo gốc không dựng bằng chữ vẽ thay")
         json.dump({"ban": LOGO_BAN, "kieu": kieu, "ghi": ly}, open(so, "w"), ensure_ascii=False)
         print(f"logo gốc: kiểu {kieu}" + (f" · {'; '.join(ly)}" if ly else ""), flush=True)
-    lg = Image.open(ra).convert("RGBA"); tl = W / lg.width if kieu == "dai" else min(W * LOGO_RONG / lg.width, H * LOGO_CAO / lg.height)
+    lg = Image.open(ra).convert("RGBA"); tl = W / lg.width if kieu == "dai" else min(W * LOGO_RONG / lg.width, H * (cao or LOGO_CAO) / lg.height)
     return lg.resize((max(1, round(lg.width * tl)), max(1, round(lg.height * tl))), Image.LANCZOS), kieu
 # CỔNG CHUNG "CHỮ KHÔNG CHE MẶT" cho MỌI mẫu (anh 20/11/2026 "các mẫu mới tìm thấy hnay từ spy và chưa có quy trình chuẩn thế này thì chuẩn bị luôn"): trước đây mỗi hàm vẽ tự
 # né mặt theo toạ độ dọc của khung gốc (đoán), nhiều mẫu vẫn đè mặt khi khung chật. Giờ vòng dựng ĐO trên ảnh thật: máy đọc mặt chạy trên nền cuối (1080×1920, nền riêng của mẫu nếu có)
@@ -293,17 +293,17 @@ def nen_dat_mat(c, tren, duoi):
         if dk: ImageDraw.Draw(mk).rectangle({"tren": (0, 0, nho.width, 40), "duoi": (0, nho.height - 40, nho.width, nho.height), "trai": (0, 0, 40, nho.height), "phai": (nho.width - 40, 0, nho.width, nho.height)}[canh], fill=255)
     nen.paste(nho, (ox, oy), mk); ra = os.path.join(c["tm"], f"nen-dat-{c['ma']}.png"); nen.save(ra); return ra
 
-def logo_cho(c, cao):
+def logo_cho(c, cao, vung=LOGO_VUNG):
     """chỗ đặt một khối cao `cao` dưới mọi mặt của khung → (y, hệ số co) hoặc None nếu co tới LOGO_CO_MIN vẫn không vừa"""
-    mats = c.get("mats") or [(c["mat_day"] - 1, c["mat_day"])]; tren = max(H * LOGO_VUNG[0], max(b for _, b in mats) + LOGO_CACH_MAT)
+    mats = c.get("mats") or [(c["mat_day"] - 1, c["mat_day"])]; tren = max(H * vung[0], max(b for _, b in mats) + LOGO_CACH_MAT)
     for k in (1.0, 0.9, LOGO_CO_MIN):
-        if tren + cao * k <= H * LOGO_VUNG[1]: return int(tren + (H * LOGO_VUNG[1] - tren - cao * k) * 0.35), k   # lệch nhẹ về phía mặt, không dính đáy
+        if tren + cao * k <= H * vung[1]: return int(tren + (H * vung[1] - tren - cao * k) * 0.35), k   # lệch nhẹ về phía mặt, không dính đáy
     return None
 def dt_logo_chat_lieu(c): return None, _lop_logo(c)[0]
-def _lop_logo(c, them=0):
+def _lop_logo(c, them=0, cao=None, vung=LOGO_VUNG):
     """LOGO GỐC CỦA PHIM (anh 19/11/2026: "Logo phải giữ nguyên phong cách gốc") — lấy logo từ poster gốc của phim (logo-goc.py: cắt rời khi nền poster êm, không thì nguyên
     dải poster chứa logo mép mờ dần), đưa về cỡ chuẩn, đặt dưới mọi mặt trong vùng chuẩn. Khung không đủ chỗ → lỗi (vòng dựng đã chọn khung đủ chỗ trước khi tới đây)."""
-    lg, kieu = logo_goc(c); cho = logo_cho(c, lg.height + them)   # them = khối đặt ngay dưới logo (nút CTA của mẫu ảnh động) — cùng phải nằm dưới mặt
+    lg, kieu = logo_goc(c, cao); cho = logo_cho(c, lg.height + them, vung)   # them = khối đặt ngay dưới logo (nút CTA của mẫu ảnh động) — cùng phải nằm dưới mặt
     if not cho: raise RuntimeError("khung không đủ chỗ dưới mặt cho logo ở cỡ chuẩn (chữ không che mặt) — cần khung khác")
     y, k = cho
     if k < 1: lg = lg.resize((round(lg.width * k), round(lg.height * k)), Image.LANCZOS)
@@ -314,7 +314,11 @@ def _lop_logo(c, them=0):
                                  al.filter(ImageFilter.GaussianBlur(30)).point(lambda v: min(140, int(v * 1.6))))
         nen = Image.new("RGBA", (W, H), (0, 0, 0, 0)); nen.putalpha(toi); lop = Image.alpha_composite(lop, nen)
     return Image.alpha_composite(lop, bg), y + lg.height
-NUT_DONG = 150   # chỗ cho nút CTA dưới logo của mẫu ảnh động (khoảng cách 24 + nút ~120)
+# MẪU ẢNH ĐỘNG: logo TO + nút cách xa logo (anh 25/11/2026 "Logo này bé quá, to lên ! Chữ Watch More ở dưới dính vào logo quá" — phim 179465: logo ~400px, nút cách 24px)
+NUT_CACH = 70    # mép dưới logo → mép trên nút (trước 24: nút dính vào logo + quầng tối của logo)
+NUT_DONG = NUT_CACH + 130   # chỗ cho nút CTA dưới logo (khoảng cách + nút ~110 + viền / bóng)
+LOGO_CAO_DONG = 0.34          # trần cao logo mẫu ảnh động (logo dọc kiểu chữ xếp tầng bị trần 26% ép còn ~37% bề ngang)
+LOGO_VUNG_DONG = (0.50, 0.94)  # dải logo + nút: cao hơn dải chung (mặt vẫn được giữ cách LOGO_CACH_MAT), nút xuống sát đáy
 def bang_mau_logo(lg):
     """BẢNG MÀU CỦA LOGO PHIM (anh 25/11/2026 "chữ all episode và watch more dùng layout và thiết kế cho hợp với logo"): đọc điểm ảnh đặc của logo gốc →
     (sáng, giữa, tối, viền): sắc độ chiếm nhiều nhất trong các điểm có màu (vàng kim, đỏ máu, xanh băng…), lấy điểm sáng / trung vị / tối của sắc đó;
@@ -373,13 +377,13 @@ def dt_anh_dong_logo(c):
     """ẢNH ĐỘNG LOGO GỐC + CTA (anh 24/11/2026, mẫu đối thủ KneDraQ - DE - 03: "dạng AT nhưng mở rộng thành kiểu ảnh động"): lớp phủ = logo gốc của phim
     (như dt_logo_chat_lieu) + nút CTA đỏ viền vàng ngay dưới. Nền KHÔNG đứng yên: bản dựng thật đưa khung sạch qua AI chuyển động (chuyen_dong) rồi dung_dong
     cho lớp phủ hiện ở giây 1,5. Xem trước = ảnh tĩnh này."""
-    lop, day = _lop_logo(c, NUT_DONG)
+    lop, day = _lop_logo(c, NUT_DONG, LOGO_CAO_DONG, LOGO_VUNG_DONG)
     pal = bang_mau_logo(logo_goc(c)[0])   # nhãn + nút lấy màu / kiểu chữ theo logo của phim (anh 25/11/2026 "dùng layout và thiết kế cho hợp với logo hoặc nội dung film")
-    c["_nut"] = (pal, cta(c, "WATCH MORE"), day + 24)   # nhip_nut dựng lại đúng nút này để nảy lúc giọng gọi CTA
+    c["_nut"] = (pal, cta(c, "WATCH MORE"), day + NUT_CACH)   # nhip_nut dựng lại đúng nút này để nảy lúc giọng gọi CTA
     nut_logo(lop, *c["_nut"][1:], pal)
     nhan_logo(lop, c, pal)   # nhãn trên cùng "All Episodes Released" như mọi AT (anh 25/11/2026 "thiếu dòng ở trên: all episodes... ở creative")
     return None, lop
-CAN_CHO = {"dt_logo_chat_lieu": lambda c: (logo_goc(c)[0].height, logo_cho), "dt_anh_dong_logo": lambda c: (logo_goc(c)[0].height + NUT_DONG, logo_cho)}   # mẫu cần KHUNG ĐỦ CHỖ: (chiều cao khối, hàm thử chỗ) — vòng dựng duyệt khung xếp hạng tới khi vừa
+CAN_CHO = {"dt_logo_chat_lieu": lambda c: (logo_goc(c)[0].height, logo_cho), "dt_anh_dong_logo": lambda c: (logo_goc(c, LOGO_CAO_DONG)[0].height + NUT_DONG, lambda c_, cao: logo_cho(c_, cao, LOGO_VUNG_DONG))}   # mẫu cần KHUNG ĐỦ CHỖ: (chiều cao khối, hàm thử chỗ) — vòng dựng duyệt khung xếp hạng tới khi vừa
 def _ten_hai_tang(c, y_min, them=130):
     """tên hai tầng: phần đầu trắng, TỪ CUỐI đỏ (kiểu UNDERCOVER PRISON KING) → (lớp, đáy)"""
     w = c["ten"].upper().split(); dau, cuoi = " ".join(w[:-1]) or w[0], w[-1] if len(w) > 1 else ""
@@ -836,6 +840,13 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
         k_ghim, k2_ghim = tim(o_.get("khung")), tim(o_.get("khung_phu"))
         if o_.get("khung") and not k_ghim: raise RuntimeError(f"khung anh ghim {o_['khung'].get('id')} không còn trong khung ứng viên của phim — ghim lại khung khác")
         g_ghim = next((int(x.split(":")[1]) for x in [str((o_.get("giong") or {}).get("id") or "")] if re.fullmatch(r"[a-z]{2}:\d+", x)), None)
+        # MỖI CREATIVE MỘT HÌNH (anh 25/11/2026 "chỉ đổi giọng mà ko đổi hình thì ko đc coi là khác nhau. Vi phạm nghiêm trọng"): khung đã có creative CHƯA BỊ LOẠI của (mẫu, phim)
+        # trong kho thư viện = cấm dựng lại — kể cả khung anh ghim, kể cả sổ mau_dung bị xoá (đọc thẳng thu_vien, không tin mỗi da_khung)
+        co_hinh = set() if xem else {x for x in (AT.sql(f"select coalesce(string_agg(distinct substring(t.ghi from 'khung ([^ ]+)'), ';'), '') from etp.thu_vien t left join etp.cham_duyet u on u.creative_id = t.creative_id "
+                                                         f"where t.content_id = {int(cid)} and t.creative_id is not null and t.ghi like {s_('mẫu:' + ma + ' %')} and u.ok is not false") or "").split(";") if x}
+        if k_ghim and khoa(k_ghim) in co_hinh: raise RuntimeError(f"khung anh ghim {khoa(k_ghim)} đã có creative cùng mẫu chưa bị loại — mỗi creative phải KHÁC HÌNH, ghim khung khác (hoặc loại creative cũ trước)")
+        uv = [u for u in uv if khoa(u) not in co_hinh]
+        if not uv and not k_ghim: raise RuntimeError(f"phim này không còn khung chưa có creative cho mẫu {ma} — mỗi creative phải khác hình, không lặp khung")
         if k_ghim: uv = [k_ghim]
         cta_ghim = str((o_.get("cta") or {}).get("id") or "")   # ô CTA: "en:WATCH MORE" (sổ › thu_vien.nut.chu)
         h_ghim = ((o_.get("hook") or {}).get("chu") or (o_.get("hook") or {}).get("ten") or "").strip()
@@ -853,6 +864,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
             nb = (300 if XT else 100) + b   # xem trước dùng tệp riêng — không đè tệp của lượt dựng thật đang chạy cùng thư mục phim
             for lan in range(min(len(uv), KHUNG_THU)):
                 k = uv[(b + lan) % len(uv)]; k["lang"] = lang   # uv đã bỏ khung các bản trước dùng
+                if khoa(k) in {x.split("|")[0] for x in da_khung} and not xem: continue   # vòng modulo quay về khung bản trước của chính lượt này → bỏ (một hình một creative)
                 tt("ve_mau", g=f"bản {b + 1}/{ban}: vẽ mẫu trên khung {k['tap']}#{k['so']}" + (f" (khung xếp hạng {lan + 1} — các khung trước chữ che mặt / không đủ chỗ)" if lan else ""))
                 AT.CO_FREE, cu = False, AT.CO_FREE   # nền sạch không lớp Free — mẫu tự quyết lớp CTA của nó
                 try: nen, _ = AT.anh(cid, ten, k, tm, nb)
@@ -891,7 +903,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
             tt("giong", g="giọng đọc (cổng giọng chung)")
             kg, ng = AT.giong_phim(p, _NHO[cid].get("giong"), str((o_.get("giong") or {}).get("kieu") or "") or None)   # giọng theo phim + chủ đề phim (anh 25/11/2026)
             out0 = out
-            for kg, ng in AT.giong_ban(kg, ng):   # 2 bản giọng: mặc định sổ luật (tốt nhất theo số) + theo chủ đề phim (anh 25/11/2026 "có 2 phiên bản chứ ko phải bỏ")
+            for kg, ng in AT.giong_ban(kg, ng, len(da_khung) + b):   # MỘT giọng mỗi khung — hai giọng xoay qua các bản / hình (anh 25/11/2026 "chỉ đổi giọng mà ko đổi hình thì ko đc coi là khác nhau")
                 out = out0 if kg == AT.GIONG_MAC_DINH else out0.replace(".mp4", f"-g{kg}.mp4")
                 print(f"giọng: {kg} · {AT.KIEU_GIONG[kg][0]} · {ng}" + (f" — {_NHO[cid]['giong_ly_do']}" if ng.startswith("AI") and _NHO[cid].get("giong_ly_do") else ""), flush=True)
                 so_cau = g_ghim % len(AT.CAU[lang]) if g_ghim is not None else (len(da_khung) + b) % len(AT.CAU[lang]); mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, so_cau); vnd += v   # câu đọc xoay theo số bản đã dựng

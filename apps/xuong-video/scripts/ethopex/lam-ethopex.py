@@ -111,13 +111,18 @@ def chan_sau_giam(cid):
     return None
 ROI_TANG_LAI = 50
 
+def bam_tay(ai):
+    """ANH TỰ BẤM NÚT (etp2 / Telegram) = lệnh trực tiếp: các chặn mềm của máy (tuổi < 7 ngày, tiêu < $10, camp đang lãi, camp cảm biến) KHÔNG chặn tắt.
+    Anh 25/11/2026 chửi vì bấm "Tắt camp" ở etp2 bị trả "camp mới 3.5 ngày — chưa tới kỳ review tắt". Các chặn đó gác MÁY / Claude tự tắt, không gác tay anh."""
+    a = (ai or "").strip().lower()
+    return a == "anh (etp2)" or "(nút telegram)" in a
+
 CAM_BIEN = BANG_LUAT["phanh_cho"]["cam_bien"]
 def giu_cam_bien(ids, ds, ai, bo=False, xep=None):
     """CAMP CẢM BIẾN GIÁ CHỢ (anh 17/11/2026 duyệt: hết camp chạy thì không còn số giá chợ để biết lúc nào bắt đầu lại — sổ luật phanh_cho.cam_bien):
     sau lượt tắt nhà còn < so camp ACTIVE và đội chi 6 giờ gần nhất < doi_chi_6h → giữ lại (so − còn) camp tốt nhất trong danh sách tắt (xep: khoá xếp, lớn = tốt).
     Ngân sách giữ nguyên, không tăng. Nút anh bấm (etp2 / Telegram) không giữ (không chặn thao tác tay); lệnh chat bỏ giữ bằng --bo-cam-bien. → {camp_id: lý do}"""
-    a = (ai or "").strip().lower()
-    if bo or a == "anh (etp2)" or "(nút telegram)" in a: return {}
+    if bo or bam_tay(ai): return {}
     dang = {c for c, x in ds.items() if x.get("state") == "ACTIVE"}; con = len(dang - set(ids)); thieu = CAM_BIEN["so"] - con
     if thieu <= 0: return {}
     doi = float(q("select coalesce(sum(chi), 0) from etp.so_gio_ngoai where ngay + make_interval(hours => gio::int) >= (now() at time zone 'utc') - interval '6 hours'") or 0)
@@ -153,7 +158,7 @@ def tat_loat(ids, luat, ai, t7=False, ep=False, bo=False):
               f"hôm nay ROI {roi(nay, c):+.0f}%" if (roi(nay, c) or -1e9) > ROI_GIU else
               f"2 ngày ROI {roi(hai, c):+.0f}%" if (roi(hai, c) or -1e9) > 0 else
               f"cộng dồn ROI {roi(tong, c):+.0f}%" if (roi(tong, c) or -1e9) > 0 else None)
-        if ly and not ep: kq["giu"][c] = ly   # ep: anh lệnh tắt cả danh sách (anh 26/10/2026 với luật T7: không giữ camp "hôm nay đang lãi")
+        if ly and not ep and not bam_tay(ai): kq["giu"][c] = ly   # ep: anh lệnh tắt cả danh sách (anh 26/10/2026 với luật T7: không giữ camp "hôm nay đang lãi")
         else: kq["gui"].append(c)
     cb = giu_cam_bien(kq["gui"], ds, ai, bo, xep=lambda c: (roi(nay, c) or -1e9, roi(hai, c) or -1e9))   # --ep không bỏ được cảm biến, chỉ --bo-cam-bien
     kq["giu"].update(cb); kq["gui"] = [c for c in kq["gui"] if c not in cb]
@@ -230,7 +235,7 @@ def main(a):
                 raise ValueError(f"camp đã {truoc['tt']}")
             # CHẶN TẮT CAMP LÃI (anh 22/10/2026: "luật vẫn là luật. Camp nào lãi hơn 20% thì bật lại" — con tắt nhầm #66052/#66055/#65714 vì phân loại
             # theo số chụp lúc 09:50, doanh thu về trễ). Đọc ROI cộng dồn MỚI NHẤT ngay lúc tắt; > 20% thì từ chối, trừ --ep (anh lệnh đích danh).
-            lai = None if ep else dang_lai(cid, t7=(luat or "").startswith("T7"))
+            lai = None if ep or bam_tay(ai) else dang_lai(cid, t7=(luat or "").startswith("T7"))
             if lai: raise ValueError(f"không tắt: {lai}")
             cb = giu_cam_bien([cid], {int(c["id"]): c for c in api("/api/v1/campaigns?page_size=2000")["data"]}, ai, bo_cb)
             if cb: raise ValueError(f"không tắt: {cb[cid]}")

@@ -30,7 +30,7 @@ def api(duong, body=None):
 api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung apps/etp/ethopex_api.py: danh sách đủ mọi trang + chỉ camp tài khoản nhà, lệnh ghi vào camp ngoài bị chặn (anh 28/10/2026)
 def doc(cid):
     c = api(f"/api/v1/campaigns/{cid}")["campaign"]
-    return {"ns": c.get("budget_daily"), "tt": c.get("state")}
+    return {"ns": c.get("budget_daily"), "tt": c.get("state"), "dong_bo": c.get("sync_status")}   # dong_bo: creating_adset / checking_video / checking_ads / done / synced / error
 
 ROI_GIU = 20
 def roi_ky(cid):
@@ -248,12 +248,19 @@ def main(a):
             if d0 and d0.get("ok") is False: raise ValueError(d0.get("error") or "Ethopex từ chối tắt")
             ok = lambda s: s["tt"] == "PAUSED"
         elif viec == "bat":   # bật lại camp đã tắt — chỉ khi anh lệnh (vd 22/10/2026 "camp nào lãi hơn 20% thì bật lại")
-            if truoc["tt"] == "ACTIVE": raise ValueError("camp đã ACTIVE")
+            # camp ĐÃ chạy = lệnh bật đã đạt, không phải lỗi (trước raise → nhat_ky ok=false → báo lỗi giả etp:lenh, 25/11/2026)
+            if truoc["tt"] == "ACTIVE":
+                kq.update(ok=True, sau=truoc, loi=None, lich="camp đã chạy sẵn — không gửi lệnh"); ghi_nhat_ky(kq, luat, ai); print(json.dumps(kq, ensure_ascii=False)); return
             # camp đang tạm dừng vì LỊCH GIỜ (etp.lich_tat): không bật giữa khung TẮT — apps/etp/lich-gio.py tự bật khi tới khung BẬT (≤ 10 phút sau mốc)
             tt_bat = tay or CONG.truc_tiep("bat", [cid])   # LỆNH TRỰC TIẾP của anh: miễn khung lịch giờ + luật tắt quá 24 giờ (anh 20/11/2026 09:35); phim cấm / camp đội vẫn chặn ở kiem
             if tt_bat and q(f"delete from etp.lich_tat where camp_id = {cid} returning camp_id"): kq["lich"] = "bỏ khỏi lịch giờ — lệnh trực tiếp của anh"
             elif q(f"select 1 from etp.lich_tat where camp_id = {cid}"):
                 kq.update(ok=True, sau=truoc, loi=None, lich="đang tạm dừng theo lịch giờ — lịch tự bật lại khi tới khung BẬT"); ghi_nhat_ky(kq, luat, ai); print(json.dumps(kq, ensure_ascii=False)); return
+            # CAMP CÒN ĐANG ĐỒNG BỘ (Ethopex đang tạo ad set / kiểm video / kiểm ad): Ethopex từ chối mọi lệnh bật ("sync_status must be 'done'")
+            # và TỰ chuyển camp sang ACTIVE khi kiểm xong (camp tạo ACTIVE — nhan-ban.py) → không gửi, trả ok kèm lời nhắn (5 lệnh lỗi 25/11/2026 camp 110583–110589)
+            if (truoc.get("dong_bo") or "done") not in ("done", "synced", "error"):
+                kq.update(ok=True, sau=truoc, loi=None, cho_dong_bo=truoc["dong_bo"], lich=f"Ethopex đang kiểm ad ({truoc['dong_bo']}) — kiểm xong Ethopex tự bật camp")
+                ghi_nhat_ky(kq, luat, ai); print(json.dumps(kq, ensure_ascii=False)); return
             # TẮT QUÁ 24 GIỜ THÌ KHÔNG BAO GIỜ BẬT LẠI (anh 26/10/2026) — mọi đường bật đi qua đây (nút anh, máy thay creative bị từ chối…)
             ly = ly_khong_bat(cid, truoc["ns"])
             if tt_bat and ly: ly = CONG.kiem("bat", cid, float(truoc["ns"] or 0), 0)   # lệnh trực tiếp: bỏ luật tắt quá 24 giờ, chỉ còn cổng kiem (phim cấm / camp đội)

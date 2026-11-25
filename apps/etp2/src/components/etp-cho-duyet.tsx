@@ -20,6 +20,8 @@ const kieu = (r: string | null) => { const [ro, ns] = (r ?? '').split('|'); retu
 
 /** TÓM TẮT CAMP DỰ KIẾN trên thẻ (anh 25/11/2026 "phải show 1 vài thông tin quan trọng để còn biết mà review… nhất là ngôn ngữ, targeting,... form text"):
  *  giá trị = docThietLap của camp dự kiến (khuôn + ô lệnh ▶ Lên đè) — cùng nguồn ngăn camp, không gõ tay */
+const ANH_W = 'clamp(104px, 30vw, 162px)';   // #1861: ảnh thẻ chờ duyệt 162px trên máy tính, co còn ~118px trên điện thoại 393px
+
 function TomTl({ x }: { x: ChoDuyet }) {
   if (x.tlLoi) return <div role="alert" style={{ color: '#fca5a5' }}>Không dựng được camp dự kiến: {x.tlLoi}</div>;
   const t = x.tl; if (!t) return null;
@@ -151,11 +153,12 @@ export function ChoDuyetCr() {
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {du.ds.map((x) => { const b = bao[x.creative_id] ?? {}, cho1 = x.duyet == null;
           return (
-            <div key={x.creative_id} style={{ display: 'flex', gap: 8, width: 460, border: '1px solid var(--line)', borderRadius: 6, padding: 6 }}>
-              <div style={{ flex: 'none', width: 162 }}>
-                {xem === x.creative_id && x.video ? <VideoXem src={x.video} controls style={{ width: 162, height: 288, objectFit: 'cover', borderRadius: 4 }} onEnded={() => setXem(null)} />
-                  : <button type="button" title={x.video ? 'bấm để xem video' : 'chưa có video'} onClick={() => x.video && setXem(x.creative_id)} style={{ padding: 0, border: 'none', background: 'none', cursor: x.video ? 'pointer' : 'default', position: 'relative' }}>
-                      {x.anh ? <img src={x.anh} alt="" style={{ width: 162, height: 288, objectFit: 'cover', borderRadius: 4, display: 'block' }} /> : <span style={{ display: 'block', width: 162, height: 288, background: 'var(--line)', borderRadius: 4 }} />}
+            // #1861 điện thoại 393px: thẻ co theo khung (không cứng 460 → tràn ngang), ảnh 9:16 co theo bề ngang màn
+            <div key={x.creative_id} style={{ display: 'flex', gap: 8, width: 'min(460px, 100%)', boxSizing: 'border-box', minWidth: 0, border: '1px solid var(--line)', borderRadius: 6, padding: 6 }}>
+              <div style={{ flex: 'none', width: ANH_W }}>
+                {xem === x.creative_id && x.video ? <VideoXem src={x.video} controls style={{ width: '100%', aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 4, display: 'block' }} onEnded={() => setXem(null)} />
+                  : <button type="button" title={x.video ? 'bấm để xem video' : 'chưa có video'} onClick={() => x.video && setXem(x.creative_id)} style={{ padding: 0, border: 'none', background: 'none', cursor: x.video ? 'pointer' : 'default', position: 'relative', width: '100%', display: 'block' }}>
+                      {x.anh ? <img src={x.anh} alt="" style={{ width: '100%', aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 4, display: 'block' }} /> : <span style={{ display: 'block', width: '100%', aspectRatio: '9 / 16', background: 'var(--line)', borderRadius: 4 }} />}
                       {x.video ? <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34, color: '#fff', textShadow: '0 0 6px #000' }}>▶</span> : null}
                     </button>}
               </div>

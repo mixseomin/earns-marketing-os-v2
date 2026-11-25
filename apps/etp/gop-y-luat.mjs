@@ -1733,7 +1733,7 @@ export const LUAT = [
   { card: 'nut-anh-truc-tiep-2511', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', cam: 'dang_lai(cid, t7=(luat or "").startswith("T7")) if', vi: 'không quay lại gọi dang_lai ngoài cờ ep' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp/lenh_cho.py', co: 'doi0, kcr = len_cr(st, chan, luc, xem, bao0)', vi: 'creative anh đã duyệt lúc phanh bật: máy tự lên camp ở nhịp đầu phanh nhả (anh 22/11 "thằng ngu !")' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', cam: 'Tắt dừng khẩn rồi bấm', vi: 'Duyệt lúc dừng khẩn không được bắt anh bấm lại Lên camp' },
-  { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: 'width: 162, height: 288', vi: 'ảnh / video creative chờ duyệt đủ to để xem (anh 22/11 "hình cũng phải to hơn")' },
+  { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "const ANH_W = 'clamp(104px, 30vw, 162px)'", vi: 'ảnh / video creative chờ duyệt đủ to để xem: 162px (9:16 = 162×288) trên máy tính, chỉ co trên điện thoại cho khỏi tràn (anh 22/11 "hình cũng phải to hơn"; #1861)' },
   { card: 'chu-qc-spy-2311', tep: 'apps/xuong-video/scripts/ethopex/chu-qc.py', cam: "You won't get tired of watching it", vi: 'không còn câu chung tự viết trong primary text (anh 23/11 "nội dung mày tự bịa")' },
   { card: 'chu-qc-spy-2311', tep: 'apps/xuong-video/scripts/ethopex/chu-qc.py', cam: '+ CHUNG[nn]', vi: 'primary text không ghép câu chung' },
   { card: 'chu-qc-spy-2311', tep: 'apps/xuong-video/scripts/ethopex/chu-qc.py', co: 'xep = sorted(nhom.items(), key=lambda z: (-z[1]["ngay"], -len(z[1]["page"])))', vi: 'hook = QC spy chạy lâu nhất (số ngày chạy) trước, rồi số Page' },

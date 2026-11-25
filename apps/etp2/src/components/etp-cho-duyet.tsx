@@ -50,7 +50,7 @@ function TomTl({ x }: { x: ChoDuyet }) {
 /** TRẠNG THÁI + BƯỚC KẾ của creative (anh 25/11/2026 "Hiện thêm trạng thái hiện tại của camp này !! Nếu duyệt sẽ sang trạng thái tiếp theo là gì ?") */
 function TrangThaiCr({ x, dk }: { x: ChoDuyet; dk: boolean }) {
   const lich = x.tl?.g_lich ?? null;
-  const hien = x.duyet == null ? { chu: '⏸ Chờ duyệt', mau: '#f59e0b' } : x.camp_id ? { chu: `✓ camp #${x.camp_id} (${x.trang_thai ?? '?'})`, mau: '#4ade80' } : { chu: '⏳ Chờ lên camp', mau: '#60a5fa' };
+  const hien = x.duyet == null ? { chu: '⏸ Chờ duyệt', mau: '#f59e0b' } : x.duyet === false ? { chu: '✕ Đã loại', mau: '#f87171' } : x.camp_id ? { chu: `✓ camp #${x.camp_id} (${x.trang_thai ?? '?'})`, mau: '#4ade80' } : { chu: '⏳ Chờ lên camp', mau: '#60a5fa' };
   return <div data-o="tt-cr" style={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: 11.5, borderTop: '1px solid var(--line)', paddingTop: 4 }}>
     <div><span style={{ color: 'var(--fg-3, #888)' }}>Hiện tại: </span><b style={{ color: hien.mau }}>{hien.chu}</b></div>
     {x.duyet == null ? <>
@@ -61,7 +61,12 @@ function TrangThaiCr({ x, dk }: { x: ChoDuyet; dk: boolean }) {
 }
 
 /** NÚT DUYỆT / LOẠI CÓ XÁC NHẬN (anh 25/11/2026 "Nếu bấm loại hoặc duyệt phải có confirm !"): bấm lần đầu chỉ mở ô hỏi ghi rõ trạng thái sẽ sang, bấm Xác nhận mới gọi máy chủ */
-type Bam = (cr: number, f: () => Promise<{ ok: true; chu: string } | { loi: string }>) => void;
+type Bam = (cr: number, f: () => Promise<{ ok: true; chu: string } | { loi: string }>, ok?: boolean) => void;   // ok = duyệt (true) / loại (false); không có = ▶ Lên lại
+/** ĐỔI TRẠNG THÁI NGAY LÚC BẤM (#1847 anh 25/11/2026 "Đã bấm, đang đợi thì phải đổi status ở đây"): đọc lại cả bảng mất vài giây → bấm Xác nhận là phát 'etp-duyet-cr',
+ *  etp-view gắn trạng thái mới (⏳ Chờ lên camp / ✕ Đã loại) lên dòng cây + ngăn camp ngay; máy chủ báo lỗi thì phát 'loi' → trả về ⏸ Chờ duyệt */
+export const SU_DUYET = 'etp-duyet-cr';
+export type SuDuyet = { cr: number; ok: boolean; pha: 'gui' | 'xong' | 'loi' };
+const phat = (d: SuDuyet) => window.dispatchEvent(new CustomEvent<SuDuyet>(SU_DUYET, { detail: d }));
 function NutDuyet({ cr, roas, lich, dk, dang, bam }: { cr: number; roas: string | null; lich: string | null; dk: boolean; dang: number | null; bam: Bam }) {
   const [hoi, setHoi] = useState<boolean | null>(null);   // true = hỏi duyệt, false = hỏi loại
   if (hoi != null) {
@@ -70,7 +75,7 @@ function NutDuyet({ cr, roas, lich, dk, dang, bam }: { cr: number; roas: string 
       <div>{hoi ? <>Duyệt cr #{cr}? → <b style={{ color: '#60a5fa' }}>⏳ Chờ lên camp</b>, máy tạo camp {kieu(roas)}{dk ? ' khi nhả dừng khẩn' : lich ? ` lúc ${lich}` : ''}.</>
         : <>Loại cr #{cr}? → <b style={{ color: '#f87171' }}>✕ Loại</b>, creative không lên camp.</>}</div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button type="button" disabled={dang != null} onClick={() => { setHoi(null); bam(cr, () => duyetChoAnh(cr, hoi)); }}
+        <button type="button" disabled={dang != null} onClick={() => { setHoi(null); bam(cr, () => duyetChoAnh(cr, hoi), hoi); }}
           style={{ ...nut, fontWeight: 600, borderColor: hoi ? '#22c55e' : '#ef4444', color: hoi ? '#4ade80' : '#f87171' }}>{hoi ? '✓ Xác nhận duyệt' : '✕ Xác nhận loại'}</button>
         <button type="button" onClick={() => setHoi(null)} style={nut}>Huỷ</button>
       </div>
@@ -86,9 +91,10 @@ function NutDuyet({ cr, roas, lich, dk, dang, bam }: { cr: number; roas: string 
  *  (anh 25/11/2026 "Chờ duyệt thì show luôn cái form Duyệt/Loại vào đây"). Xong thì đọc lại bảng + ô Lọc thêm Chờ lên camp như thẻ phía trên. */
 export function NutDuyetCr({ cr, roas, lich }: { cr: number; roas: string | null; lich: string | null }) {
   const router = useRouter(); const [dang, setDang] = useState<number | null>(null); const [bao, setBao] = useState<{ chu?: string; loi?: string }>({});
-  const bam: Bam = async (id, f) => { setDang(id); setBao({});
-    try { const r = await f(); if ('loi' in r) setBao({ loi: r.loi }); else { setBao({ chu: r.chu }); window.dispatchEvent(new CustomEvent('etp-loc-them', { detail: { k: 'duyet' } })); router.refresh(); } }
-    catch (e) { setBao({ loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` }); }
+  const bam: Bam = async (id, f, ok) => { setDang(id); setBao({}); if (ok != null) phat({ cr: id, ok, pha: 'gui' });
+    try { const r = await f(); if ('loi' in r) { setBao({ loi: r.loi }); if (ok != null) phat({ cr: id, ok, pha: 'loi' }); }
+      else { setBao({ chu: r.chu }); if (ok != null) phat({ cr: id, ok, pha: 'xong' }); if (ok !== false) window.dispatchEvent(new CustomEvent('etp-loc-them', { detail: { k: 'duyet' } })); router.refresh(); } }
+    catch (e) { setBao({ loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` }); if (ok != null) phat({ cr: id, ok, pha: 'loi' }); }
     setDang(null); };
   return <div data-o="duyet-ngan" style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
     <NutDuyet cr={cr} roas={roas} lich={lich} dk={false} dang={dang} bam={bam} />
@@ -110,12 +116,15 @@ export function ChoDuyetCr() {
   if (loiDs === 'chỉ admin') return null;
   if (loiDs) return <div role="alert" style={{ margin: '6px 0', padding: 8, border: '1px solid #ef4444', borderRadius: 6, color: '#fca5a5', fontSize: 12 }}>Lỗi đọc chờ duyệt: {loiDs}</div>;
   if (!du || !du.ds.length) return null;
-  const bam = async (cr: number, f: () => Promise<{ ok: true; chu: string } | { loi: string }>) => {
-    setDang(cr); setBao((b) => ({ ...b, [cr]: {} }));
+  // #1847: thẻ đổi "Hiện tại" ngay lúc bấm (duyet = ok), lỗi thì trả về chưa duyệt — không đợi đọc lại danh sách
+  const datDuyet = (cr: number, v: boolean | null) => setDu((d) => (d ? { ...d, ds: d.ds.map((x) => (x.creative_id === cr ? { ...x, duyet: v } : x)) } : d));
+  const bam: Bam = async (cr, f, ok) => {
+    setDang(cr); setBao((b) => ({ ...b, [cr]: {} })); if (ok != null) { datDuyet(cr, ok); phat({ cr, ok, pha: 'gui' }); }
+    const hong = () => { if (ok != null) { datDuyet(cr, null); phat({ cr, ok, pha: 'loi' }); } };
     try { const r = await f(); setBao((b) => ({ ...b, [cr]: 'loi' in r ? { loi: r.loi } : { chu: r.chu } }));
       // duyệt xong THẤY NGAY dòng ⏳ Chờ lên camp dưới phim (anh 25/11/2026): đọc lại bảng camp + ô Lọc thêm mục Chờ lên camp (etp-view nghe 'etp-loc-them')
-      if (!('loi' in r)) { window.dispatchEvent(new CustomEvent('etp-loc-them', { detail: { k: 'duyet' } })); router.refresh(); } }
-    catch (e) { setBao((b) => ({ ...b, [cr]: { loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` } })); }
+      if ('loi' in r) hong(); else { if (ok != null) phat({ cr, ok, pha: 'xong' }); if (ok !== false) window.dispatchEvent(new CustomEvent('etp-loc-them', { detail: { k: 'duyet' } })); router.refresh(); } }
+    catch (e) { setBao((b) => ({ ...b, [cr]: { loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` } })); hong(); }
     setDang(null); void tai();
   };
   const cho = du.ds.filter((x) => x.duyet == null).length;

@@ -28,7 +28,7 @@ S list · S show <id> · S claim <id> · S reply <id> "…" · S submit <id> "�
 - Chống quay về bản cũ: `scripts/check-etp-gop-y.mjs` là tệp dùng chung (hook pham-vi-app chặn khi anh không gọi tên) — điều kiện của etp2 ghi ở
   `apps/etp2/kiem-gop-y.mjs` (cùng khuôn mot / co / cam, tep tính từ gốc repo) nếu có; chạy nó trước khi submit.
 - Kiểm kiểu: `cd apps/etp2 && npx tsc --noEmit` (~5–15s). Deploy chỉ sửa etp2 ≈ 50s (GHA chỉ dựng etp2).
-- Đo / kiểm trang: phiên tạm `auth_sessions` 15 phút (CLAUDE.md "Phiên đo màn") rồi `curl -H "Cookie: mos2-session=<token>" "https://etp2.on.tc/?t=…"`;
+- Đo / kiểm trang: **Chụp / nhìn app nhà *.on.tc = `~/bin/br goto <link>` rồi `~/bin/br look` — HẾT.** br tự gắn hồ sơ riêng của dự án `/Users/htuan/br-du-an/<app>/br-profile` (iMac) và tự nạp phiên mos2 (`~/bin/phien-on-tc`, 12 giờ, nạp lại sau 50 phút) — không /login, không SSO Google, không đường hầm, không INSERT `auth_sessions` bằng tay (anh 25/11/2026). Đo màn bằng `do-man`: `--phien ~/bin/phien-on-tc`. Chụp xong `~/bin/br close /Users/htuan/br-du-an/<app>/br-profile`. Số liệu thì
   journal `journalctl -u mos2-etp2 | grep -E "etp-do|etp-cham"` (thời gian đọc dữ liệu, câu SQL > 400ms).
 
 ## Thứ tự

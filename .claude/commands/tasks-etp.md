@@ -36,8 +36,7 @@ Nhiều phiên cùng sửa `etp-view.tsx` / `luat-ethopex.py` → đọc lại t
 
 - **Cấm tự lên / bật / tăng ngân sách camp** khi góp ý không ra lệnh rõ; góp ý về luật máy = sửa luật, không tay bấm camp.
 - Không đụng camp ROAS ★ trừ khi card nói đích danh. Không chấm lại hàng loạt creative khi anh chưa cho.
-- Chụp kiểm giao diện: phiên tạm `auth_sessions` + đường hầm `ssh -f -N -L 13821:127.0.0.1:3821 root@167.233.241.16` + Playwright cục bộ
-  (`/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs`), mở `http://127.0.0.1:13821/etp?…`; lệnh ssh và script chụp tách hai lượt; xong `pkill -f "13821:127.0.0.1:3821"`.
+- Chụp kiểm giao diện: **Chụp / nhìn app nhà *.on.tc = `~/bin/br goto <link>` rồi `~/bin/br look` — HẾT.** br tự gắn hồ sơ riêng của dự án `/Users/htuan/br-du-an/<app>/br-profile` (iMac) và tự nạp phiên mos2 (`~/bin/phien-on-tc`, 12 giờ, nạp lại sau 50 phút) — không /login, không SSO Google, không đường hầm, không INSERT `auth_sessions` bằng tay (anh 25/11/2026). Đo màn bằng `do-man`: `--phien ~/bin/phien-on-tc`. Chụp xong `~/bin/br close /Users/htuan/br-du-an/<app>/br-profile`.
 
 ## Thứ tự
 

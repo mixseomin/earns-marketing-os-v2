@@ -167,6 +167,16 @@ def may_doc():
     import importlib.util
     s = importlib.util.spec_from_file_location("kt", os.path.join(D, "kiem-thoai.py")); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m.may_doc()
 
+def doc_mat(fs, han=900):
+    """máy đọc Vision --mat cho các ảnh → [{anh, chu, khung, mat}, …]. MỘT đường cho mọi chỗ gọi (anh-tinh, dung-mau): Neural Engine iMac lúc chạy lúc
+    lỗi (e5rtError, doc-chu đợi 3 phút rồi thoát mã 2, stdout rỗng) — trước 26/11/2026 bốn chỗ gọi chỉ đọc stdout nên lỗi máy thành "không khung nào đạt"
+    (Bugatti 134241). Nay: thoát khác 0 → thử lại tới 3 lượt (tiến trình mới ấm ANE lại), vẫn lỗi → kêu to đúng câu máy đọc nói."""
+    for lan in range(3):
+        r = subprocess.run([may_doc(), "--mat", *fs], capture_output=True, text=True, timeout=han)
+        if r.returncode == 0: return [json.loads(l) for l in r.stdout.splitlines() if l.startswith("{")]
+        print(f"máy đọc mặt lỗi (lượt {lan + 1}/3): {r.stderr.strip()[-200:]}", file=sys.stderr)
+    raise RuntimeError(f"máy đọc mặt (Vision) lỗi 3 lượt liền: {r.stderr.strip()[-300:]}")
+
 def goc_nho(k):
     """hộp chữ là logo nhỏ ở góc (chữ "R" ReelShort…) — xoá được, không loại khung"""
     return k[3] * k[4] < 0.006 and (k[1] < 0.2 or k[1] + k[3] > 0.8)
@@ -239,8 +249,8 @@ def khung(cid, url, tm):
     fs = sorted(os.path.join(kd, f) for f in os.listdir(kd) if f.endswith(".jpg"))
     ra = []
     for i in range(0, len(fs), 200):
-        for l in subprocess.run([may_doc(), "--mat", *fs[i:i + 200]], capture_output=True, text=True, timeout=900).stdout.splitlines():
-            j = json.loads(l); d, m, ch = diem(j["anh"], j.get("mat"), j.get("khung") or [])
+        for j in doc_mat(fs[i:i + 200]):
+            d, m, ch = diem(j["anh"], j.get("mat"), j.get("khung") or [])
             if d: tap, so = re.match(r".*/(tap\d+)_(\d+)\.jpg", j["anh"]).groups(); ra.append((d, tap, int(so), m, j["anh"], ch))
     if not ra: raise RuntimeError(f"không khung nào đạt (mặt to nét, chữ không đè mặt) trong {len(fs)} khung")
     # ỨNG VIÊN ĐA DẠNG (anh 08/11/2026 "chọn các góc, khung hình ấn tượng nhất, đẹp nhất"): điểm máy cao → thấp, cách nhau ≥ 4 khung (6 giây) trong cùng tập,
@@ -258,7 +268,7 @@ def khung_chi(tm):
     uv = []
     for i, f in enumerate(KHUNG_CHI):
         if not os.path.exists(f): raise RuntimeError(f"--anh: không có tệp {f}")
-        j = json.loads((subprocess.run([may_doc(), "--mat", f], capture_output=True, text=True, timeout=300).stdout.strip().splitlines() or ["{}"])[-1])
+        j = (doc_mat([f], 300) or [{}])[-1]
         mat = [m for m in j.get("mat") or [] if m[4] >= 0.3]
         if not mat: raise RuntimeError(f"--anh {os.path.basename(f)}: máy không thấy mặt nào — chọn ảnh có mặt nhân vật rõ")
         x, y, w, h, q = max(mat, key=lambda m: m[2] * m[3])

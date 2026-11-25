@@ -840,6 +840,13 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
         k_ghim, k2_ghim = tim(o_.get("khung")), tim(o_.get("khung_phu"))
         if o_.get("khung") and not k_ghim: raise RuntimeError(f"khung anh ghim {o_['khung'].get('id')} không còn trong khung ứng viên của phim — ghim lại khung khác")
         g_ghim = next((int(x.split(":")[1]) for x in [str((o_.get("giong") or {}).get("id") or "")] if re.fullmatch(r"[a-z]{2}:\d+", x)), None)
+        # MỖI CREATIVE MỘT HÌNH (anh 25/11/2026 "chỉ đổi giọng mà ko đổi hình thì ko đc coi là khác nhau. Vi phạm nghiêm trọng"): khung đã có creative CHƯA BỊ LOẠI của (mẫu, phim)
+        # trong kho thư viện = cấm dựng lại — kể cả khung anh ghim, kể cả sổ mau_dung bị xoá (đọc thẳng thu_vien, không tin mỗi da_khung)
+        co_hinh = set() if xem else {x for x in (AT.sql(f"select coalesce(string_agg(distinct substring(t.ghi from 'khung ([^ ]+)'), ';'), '') from etp.thu_vien t left join etp.cham_duyet u on u.creative_id = t.creative_id "
+                                                         f"where t.content_id = {int(cid)} and t.creative_id is not null and t.ghi like {s_('mẫu:' + ma + ' %')} and u.ok is not false") or "").split(";") if x}
+        if k_ghim and khoa(k_ghim) in co_hinh: raise RuntimeError(f"khung anh ghim {khoa(k_ghim)} đã có creative cùng mẫu chưa bị loại — mỗi creative phải KHÁC HÌNH, ghim khung khác (hoặc loại creative cũ trước)")
+        uv = [u for u in uv if khoa(u) not in co_hinh]
+        if not uv and not k_ghim: raise RuntimeError(f"phim này không còn khung chưa có creative cho mẫu {ma} — mỗi creative phải khác hình, không lặp khung")
         if k_ghim: uv = [k_ghim]
         cta_ghim = str((o_.get("cta") or {}).get("id") or "")   # ô CTA: "en:WATCH MORE" (sổ › thu_vien.nut.chu)
         h_ghim = ((o_.get("hook") or {}).get("chu") or (o_.get("hook") or {}).get("ten") or "").strip()
@@ -857,6 +864,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
             nb = (300 if XT else 100) + b   # xem trước dùng tệp riêng — không đè tệp của lượt dựng thật đang chạy cùng thư mục phim
             for lan in range(min(len(uv), KHUNG_THU)):
                 k = uv[(b + lan) % len(uv)]; k["lang"] = lang   # uv đã bỏ khung các bản trước dùng
+                if khoa(k) in {x.split("|")[0] for x in da_khung} and not xem: continue   # vòng modulo quay về khung bản trước của chính lượt này → bỏ (một hình một creative)
                 tt("ve_mau", g=f"bản {b + 1}/{ban}: vẽ mẫu trên khung {k['tap']}#{k['so']}" + (f" (khung xếp hạng {lan + 1} — các khung trước chữ che mặt / không đủ chỗ)" if lan else ""))
                 AT.CO_FREE, cu = False, AT.CO_FREE   # nền sạch không lớp Free — mẫu tự quyết lớp CTA của nó
                 try: nen, _ = AT.anh(cid, ten, k, tm, nb)
@@ -895,7 +903,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
             tt("giong", g="giọng đọc (cổng giọng chung)")
             kg, ng = AT.giong_phim(p, _NHO[cid].get("giong"), str((o_.get("giong") or {}).get("kieu") or "") or None)   # giọng theo phim + chủ đề phim (anh 25/11/2026)
             out0 = out
-            for kg, ng in AT.giong_ban(kg, ng):   # 2 bản giọng: mặc định sổ luật (tốt nhất theo số) + theo chủ đề phim (anh 25/11/2026 "có 2 phiên bản chứ ko phải bỏ")
+            for kg, ng in AT.giong_ban(kg, ng, len(da_khung) + b):   # MỘT giọng mỗi khung — hai giọng xoay qua các bản / hình (anh 25/11/2026 "chỉ đổi giọng mà ko đổi hình thì ko đc coi là khác nhau")
                 out = out0 if kg == AT.GIONG_MAC_DINH else out0.replace(".mp4", f"-g{kg}.mp4")
                 print(f"giọng: {kg} · {AT.KIEU_GIONG[kg][0]} · {ng}" + (f" — {_NHO[cid]['giong_ly_do']}" if ng.startswith("AI") and _NHO[cid].get("giong_ly_do") else ""), flush=True)
                 so_cau = g_ghim % len(AT.CAU[lang]) if g_ghim is not None else (len(da_khung) + b) % len(AT.CAU[lang]); mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, so_cau); vnd += v   # câu đọc xoay theo số bản đã dựng

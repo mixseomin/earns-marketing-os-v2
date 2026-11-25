@@ -14,12 +14,20 @@ import { getCurrentUser } from '@/lib/auth';
 import { duyetCham } from '@/lib/actions/etp-cham';
 import { lenCampCr } from '@/lib/actions/etp-dong';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
+import { KHUON_CR, keCr, tenCampCr } from '@/lib/etp-ke-cr';
+import { docThietLap, type KeTl } from '@/lib/actions/etp-thiet-lap';
 
 export type ChoDuyet = {
   creative_id: number; content_id: number | null; phim: string | null; lang: string | null; dang: string | null; video: string | null; anh: string | null;
   ghi: string; tao: string; duyet: boolean | null; diem_thap: string | null; camp_id: number | null; trang_thai: string | null; nhat_ky: string | null;
   /** '1|5' = máy lên ★ ROAS 1 · $5 thay camp $1 (etp.cau_hinh.len_cr_roas, apps/etp/lenh_cho.py — anh 22/11/2026) */ roas: string | null;
+  /** camp DỰ KIẾN (lib/etp-ke-cr keCr) — ngăn camp đọc lại bằng docThietLap([], [ke]) */ ke: KeTl | null;
+  /** tóm tắt camp dự kiến để REVIEW ngay trên thẻ (anh 25/11/2026 "nhất là các thông tin về ngôn ngữ, targeting,... form text rất quan trọng") — ô = mã docThietLap, giá trị đã mở khỏi `chung` */
+  tl: Record<string, string | null> | null; tlLoi: string | null;
 };
+/** ô thiết lập hiện trên thẻ duyệt (cùng mã trường ngăn camp etp-camp-cau-hinh) */
+const O_THE = ['c_ten', 'ke_khuon', 'ke_thieu', 'c_bo', 'c_tk', 'c_ns', 'g_roas', 'g_lich', 'g_nuoc', 'g_so_nuoc', 'g_loai_nuoc', 'g_so_loai', 'g_ngon_ngu', 'g_tuoi', 'g_gioi',
+  'g_nen', 'g_vi_tri', 'a_page_ten', 'a_mien', 'f_kieu', 'f_cta', 'f_link', 'f_chinh', 'f_tieu', 'f_mo_ta'];
 
 const run = async <T,>(s: ReturnType<typeof sql>) => (await getDb()!.execute(s)) as unknown as T[];
 
@@ -32,7 +40,7 @@ function nhatKy(cr: number): string | null {
 export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean } | { loi: string }> {
   const me = await getCurrentUser();
   if (me?.role !== 'admin') return { loi: 'chỉ admin' };
-  const ds = await run<Omit<ChoDuyet, 'nhat_ky'>>(sql`select h.creative_id, r.content_id, f.ten phim, r.lang, r.dang, r.video, r.anh, h.ghi, h.tao::text tao, u.ok duyet,
+  const ds = await run<Omit<ChoDuyet, 'nhat_ky' | 'ke' | 'tl' | 'tlLoi'>>(sql`select h.creative_id, r.content_id, f.ten phim, r.lang, r.dang, r.video, r.anh, h.ghi, h.tao::text tao, u.ok duyet,
       (select string_agg(e.k || ' ' || e.v, ', ' order by e.v::numeric) from etp.cham c, jsonb_each_text(c.diem) e(k, v)
         where c.creative_id = h.creative_id and (e.k like 'meta.%' or e.k like 'afs.%') and e.v::numeric <= 4) diem_thap,
       k.camp_id, k.trang_thai,
@@ -43,7 +51,17 @@ export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean 
     where u.ok is null   -- ô vàng CHỈ giữ creative chưa duyệt; đã duyệt thì xuống bảng cây camp (etp-doc hangCr — anh 22/11/2026 "duyệt rồi thì phải cho vào table bên dưới")
     order by h.tao, h.creative_id`);
   const [dk] = await run<{ v: boolean }>(sql`select coalesce((select gia_tri = 'true'::jsonb from etp.cau_hinh where khoa = 'dung_khan'), false) v`);
-  return { ds: ds.map((x) => ({ ...x, creative_id: Number(x.creative_id), camp_id: x.camp_id == null ? null : Number(x.camp_id), nhat_ky: x.duyet && !x.camp_id ? nhatKy(Number(x.creative_id)) : null })), dungKhan: !!dk?.v };
+  // camp DỰ KIẾN của từng creative (cùng lệnh ▶ Lên: khuôn theo tiếng, ★ ROAS, bộ phim mới) — một lượt docThietLap cho cả ô
+  const ke = new Map(ds.filter((x) => x.content_id != null && !x.camp_id).map((x) => [Number(x.creative_id),
+    keCr({ cr: Number(x.creative_id), cid: Number(x.content_id), lang: x.lang, phim: x.phim, roas: x.roas, bo: null /* null → docThietLap tính bộ cùng luật máy lên (SQL_BO_PHIM) */ })]));
+  const tl = ke.size ? await docThietLap([], [...ke.values()]).catch((e: unknown) => ({ loi: String((e as Error)?.message ?? e).slice(0, 200) })) : null;
+  const tom = (cr: number): Record<string, string | null> | null => {
+    if (!tl || 'loi' in tl) return null; const d = tl.dong.find((r) => r.ke_cha === -cr); if (!d) return null;
+    return Object.fromEntries(O_THE.map((k) => { const v = d[k]; return [k, v == null ? null : typeof v === 'number' && k !== 'ke_khuon' ? (tl.chung[v] ?? null) : String(v)]; }));
+  };
+  return { ds: ds.map((x) => { const cr = Number(x.creative_id);
+    return { ...x, creative_id: cr, camp_id: x.camp_id == null ? null : Number(x.camp_id), nhat_ky: x.duyet && !x.camp_id ? nhatKy(cr) : null,
+      ke: ke.get(cr) ?? null, tl: tom(cr), tlLoi: tl && 'loi' in tl ? tl.loi : null }; }), dungKhan: !!dk?.v };
 }
 
 /** ✓ Duyệt → ghi duyệt + lên ★ ROAS mặc định (hoi_cho, anh 24/11/2026); ✕ Loại → ghi loại. Phanh đang bật (dừng khẩn…): duyệt = XẾP HÀNG, máy tự lên camp ở nhịp đầu phanh nhả
@@ -85,7 +103,6 @@ export async function lenCamp(cr: number): Promise<{ ok: true; chu: string } | {
 // ▶ LÊN NGAY / 🕒 ĐỔI GIỜ (anh 22/11/2026 "nút bấm Lên ngay = Tao ra lệnh sao phải xin mày ?" · "tao có thể điều chỉnh ngày, giờ lên camp") — anh bấm = LỆNH TRỰC TIẾP:
 // vé cong.py --ve-truc-tiep (bỏ qua phanh: dừng khẩn, khung giờ, trần…; KHÔNG bỏ phim cấm / camp đội / giới hạn Ethopex). Phanh đang áp → lần bấm đầu trả { canh }
 // (cảnh báo MỘT lần), bấm lại trong 30 phút mới lên. Giờ = "YYYY-MM-DD HH:MM" giờ VN, rỗng = chạy ngay.
-const KHUON_CR: Record<string, number> = { en: 65110, es: 65734 };   // cùng sổ apps/etp/lenh_cho.py KHUON_CR
 const DIR_NB = () => `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/xuong-video/scripts/ethopex`;
 export type KqNut = { ok: true; chu: string; /** giờ máy chủ ghi dòng gửi (#1770: trình duyệt đánh dấu "đang lên" ngay) */ gui?: string | null } | { canh: string } | { loi: string };
 
@@ -128,7 +145,7 @@ async function lenhNb(cr: number, gio?: string | null, o?: { roas: number; ns: n
     : { roas: Number(BANG_LUAT.hoi_cho.roas), ns: Math.trunc(Number(BANG_LUAT.hoi_cho.ns)) };   // MẶC ĐỊNH ★ ROAS hoi_cho (anh 24/11/2026 "Từ giờ mặc định là roas") — hết camp $1
   const chu = lich ? `theo lịch: ${chayLuc(Date.now(), !!ro)}` : chuGio(g);
   const lenh = o ? `anh bấm nhân bản ★ ROAS ${o.roas} creative mới #${id} từ camp #${o.khuon} trên etp2 (${chu})` : `anh bấm ${lich ? '⏱ Lên theo lịch' : '▶ Lên ngay'} creative #${id} trên etp2 (${chu})`;
-  const ten = `duyet ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - cr moi #${id}`;   // spawn không qua shell — chỉ chữ ASCII
+  const ten = tenCampCr(x.ten, lang, id);   // cùng tên camp dự kiến của ô duyệt (lib/etp-ke-cr)
   return { lenh, ro, content: Number(x.content_id), g, lich, args: ['nhan-ban.py', String(o ? Math.trunc(Number(o.khuon)) : KHUON_CR[lang]), '--roas', String(ro.roas), '--ns', String(ro.ns), '--tay', ...(o ? [] : ['--bo', String(x.bo)]), '--creative', String(id),   // khuôn ★: không --bo → giữ bộ camp khuôn
     '--content', String(x.content_id), '--ten', ten, ...(g ? ['--gio', g] : [])] };
 }

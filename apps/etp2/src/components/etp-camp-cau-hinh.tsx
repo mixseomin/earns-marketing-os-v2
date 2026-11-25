@@ -6,7 +6,7 @@
 // Chỉ đọc. Dữ liệu = docThietLap (etp.bai_camp.du — GET /api/v1/campaigns/<id> trọn, cùng nguồn bảng ⚙ Thiết lập), không đọc riêng.
 // Trang "Số liệu nhà" giữ phần ngăn camp cũ (bậc, ROI, điều khiển, biểu đồ, luật, creative) để không mất gì.
 import { useEffect, useState, type ReactNode } from 'react';
-import { docThietLap, type DongTl, type OTl } from '@/lib/actions/etp-thiet-lap';
+import { docThietLap, type DongTl, type KeTl, type OTl } from '@/lib/actions/etp-thiet-lap';
 
 type Trang = 'camp' | 'nhom' | 'ad' | 'so';
 const KHOA = 'etp-ngan-camp-trang';
@@ -28,8 +28,10 @@ const gioVn = (iso: string) => {
   return `${p(d.getUTCHours())}:${p(d.getUTCMinutes())} ${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)} giờ VN`;
 };
 
-export function CamCauHinh({ campId, soLieu, xemTruoc, phim }: {
+export function CamCauHinh({ campId, soLieu, xemTruoc, phim, ke }: {
   campId: number;
+  /** camp DỰ KIẾN (chưa tạo — lib/etp-ke-cr keCr): đọc docThietLap([], [ke]) = khuôn + ô đè đúng lệnh ▶ Lên sẽ gửi (anh 25/11/2026 ô chờ duyệt bấm mở ngăn camp) */
+  ke?: KeTl | null;
   /** trang "Số liệu nhà" = nội dung ngăn camp cũ */
   soLieu: ReactNode;
   /** khối Ad preview (KhungBaiQc) — chỗ gọi dựng vì cần ảnh / video của creative */
@@ -43,9 +45,10 @@ export function CamCauHinh({ campId, soLieu, xemTruoc, phim }: {
   const [du, setDu] = useState<{ r: DongTl | null; chung: string[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
   useEffect(() => {
     let bo = false; setDu(null); setLoi(null);
-    docThietLap([campId]).then((x) => { if (bo) return; if ('loi' in x) setLoi(x.loi); else setDu({ r: x.dong[0] ?? null, chung: x.chung }); }, (e) => { if (!bo) setLoi(String(e?.message ?? e)); });
+    (ke ? docThietLap([], [ke]) : docThietLap([campId])).then((x) => { if (bo) return; if ('loi' in x) setLoi(x.loi);
+      else setDu({ r: (ke ? x.dong.find((d) => d.ke_cha === ke.id) : x.dong[0]) ?? null, chung: x.chung }); }, (e) => { if (!bo) setLoi(String(e?.message ?? e)); });
     return () => { bo = true; };
-  }, [campId]);
+  }, [campId, ke]);
   const [rong, setRong] = useState(true);
   useEffect(() => { const f = () => setRong(window.innerWidth >= 760); f(); window.addEventListener('resize', f); return () => window.removeEventListener('resize', f); }, []);
 
@@ -221,7 +224,9 @@ export function CamCauHinh({ campId, soLieu, xemTruoc, phim }: {
     : !du ? <div style={{ color: 'var(--fg-2)', fontSize: 12 }}>Đang đọc cấu hình…</div>
     : !r ? <div style={{ color: 'var(--fg-2)', fontSize: 12 }}>Không thấy camp #{campId} trong kho.</div>
     : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {!docDuoc ? <div title="apps/etp/bai-qc.py đọc ở lượt đồng bộ kế (~10 phút); các ô dưới chỉ có phần kho camp sẵn có" style={{ border: '1px solid #fbbf24', background: 'rgba(251,191,36,.08)', borderRadius: 8, padding: '8px 10px', fontSize: 12 }}>Kho chưa đọc cấu hình Ethopex · chờ lượt đồng bộ kế</div>
+        {ke ? <div title="chép camp khuôn theo tiếng + các ô lệnh ▶ Lên đè (★ ROAS, ngân sách, tên, bộ → tài khoản / Page, không nhắm ngôn ngữ); ô chữ lấy từ form-chu.json" style={{ border: '1px solid #60a5fa', background: 'rgba(96,165,250,.08)', borderRadius: 8, padding: '8px 10px', fontSize: 12 }}>
+            Camp DỰ KIẾN — chưa tạo · chép khuôn #{String(r.ke_khuon ?? '')} + ô máy đè lúc lên{r.ke_thieu ? <b style={{ color: '#f87171' }}> · {String(r.ke_thieu)}</b> : null}</div>
+          : !docDuoc ? <div title="apps/etp/bai-qc.py đọc ở lượt đồng bộ kế (~10 phút); các ô dưới chỉ có phần kho camp sẵn có" style={{ border: '1px solid #fbbf24', background: 'rgba(251,191,36,.08)', borderRadius: 8, padding: '8px 10px', fontSize: 12 }}>Kho chưa đọc cấu hình Ethopex · chờ lượt đồng bộ kế</div>
           : <div style={{ fontSize: 11, color: 'var(--fg-3, #777)' }}>Đọc từ Ethopex lúc {gioVn(String(r.du_luc)) ?? String(r.du_luc)} · chỉ xem</div>}
         {trang === 'camp' ? trangCamp : trang === 'nhom' ? trangNhom : trangAd}
       </div>;

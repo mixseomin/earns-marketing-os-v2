@@ -110,6 +110,10 @@ export async function docThietLap(ids: number[], ke: KeTl[] = []): Promise<Thiet
     const boR = (await db.execute(sql`select p.cid, coalesce((select thu_bo from etp.phim where content_id = p.cid and thu_vong = 'doi_bo' and coalesce(thu_bo, '') <> ''),
         (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi')) bo from unnest(${sql.raw(`array[${cids.join(',')}]::int[]`)}) p(cid)`)) as unknown as Record<string, unknown>[];
     const boPhim = new Map(boR.map((r) => [Number(r.cid), S(r.bo)]));
+    // tài khoản + Page theo BỘ: nhan-ban.py dựng trên khuôn của bộ khác thì đổi đúng tk / ext / page sang bộ đó (bo_tk — xv_khoa_ngoai.ethopex_bo_tk), nên camp dự kiến cũng đổi
+    const boTkR = (await db.execute(sql`select k.key bo, k.value->>'ext' ext, k.value->>'page' page, p.ten pten from xv_khoa_ngoai x, jsonb_each(x.gia_tri) k
+        left join etp.tai_nguyen p on p.loai = 'page' and p.id::text = k.value->>'page' where x.ten = 'ethopex_bo_tk'`)) as unknown as Record<string, unknown>[];
+    const boTk = new Map(boTkR.map((r) => [String(r.bo), { ext: S(r.ext), page: S(r.page), pten: S(r.pten) }]));
     const khuon = new Map(tatCa.map((d) => [d.camp_id, d]));
     // ô CHƯA CÓ khi camp chưa tạo: mã Meta, trạng thái, đồng bộ, lỗi, giờ tạo — để trống, không mượn của camp khuôn
     const CHUA = ['du_luc', 'tao', 'c_ext', 'c_tt', 'c_meta', 'c_giao', 'c_loi', 'c_build', 'g_ten', 'g_ext', 'g_meta', 'g_giao', 'g_tt', 'g_kich', 'g_loi', 'g_bat_dau', 'g_ket_thuc',
@@ -125,6 +129,8 @@ export async function docThietLap(ids: number[], ke: KeTl[] = []): Promise<Thiet
           f_kieu: form.creative_type, f_cta: form.call_to_action, f_link: form.link_url, f_chinh: gon(form.primaryTexts.join('\n')), f_tieu: gon(form.headlines.join('\n')), f_mo_ta: gon(form.descriptions.join('\n')),
           f_nguon: 'chữ form chuẩn — creative mới, máy chỉ lên khi creative đúng form (CamLechForm)',
         });
+        const bt = boTk.get(String(d.c_bo ?? ''));
+        if (bt && String(g?.c_bo ?? '') !== String(d.c_bo)) Object.assign(d, { c_tk: bt.ext, a_page: bt.page, a_page_ten: bt.pten });
         // ngân sách ad set chỉ đè khi khuôn dùng ngân sách ad set
         const de = { ...k.de }; if (g?.g_ns == null) delete de.g_ns;
         for (const [x, v] of Object.entries(de)) d[x] = gon(v ?? null);

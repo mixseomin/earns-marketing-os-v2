@@ -4,6 +4,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { VideoXem } from '@/components/ui/video-xem';
+import { Drawer } from '@/components/ui';
+import { CamCauHinh } from './etp-camp-cau-hinh';
+import { KhungBaiQc } from './etp-bai-qc';
 import { dsChoDuyet, duyetChoAnh, lenCamp, type ChoDuyet } from '@/lib/actions/etp-cho-duyet';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 
@@ -14,6 +17,31 @@ const GIAI_DK = 'đang DỪNG KHẨN (etp.cau_hinh.dung_khan): bấm Duyệt v�
 /** kiểu camp máy sẽ lên: ★ ROAS (sổ len_cr_roas, lệnh anh 22/11/2026 "roas kiểu Sơn") hoặc ★ ROAS mặc định hoi_cho (anh 24/11/2026 "Từ giờ mặc định là roas") */
 const kieu = (r: string | null) => { const [ro, ns] = (r ?? '').split('|'); return ro && ns ? `★ ROAS ${ro} · ${'$'}${ns}` : `★ ROAS ${BANG_LUAT.hoi_cho.roas} · ${'$'}${BANG_LUAT.hoi_cho.ns}`; };   // mặc định ★ ROAS hoi_cho (anh 24/11/2026)
 
+/** TÓM TẮT CAMP DỰ KIẾN trên thẻ (anh 25/11/2026 "phải show 1 vài thông tin quan trọng để còn biết mà review… nhất là ngôn ngữ, targeting,... form text"):
+ *  giá trị = docThietLap của camp dự kiến (khuôn + ô lệnh ▶ Lên đè) — cùng nguồn ngăn camp, không gõ tay */
+function TomTl({ x }: { x: ChoDuyet }) {
+  if (x.tlLoi) return <div role="alert" style={{ color: '#fca5a5' }}>Không dựng được camp dự kiến: {x.tlLoi}</div>;
+  const t = x.tl; if (!t) return null;
+  const dong = (nhan: string, gt: string | null | undefined, tieu?: string, mau?: string) => <div style={{ display: 'flex', gap: 6, minWidth: 0 }} title={tieu ?? gt ?? ''}>
+    <span style={{ flex: 'none', width: 62, color: 'var(--fg-3, #888)' }}>{nhan}</span>
+    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: mau ?? (gt ? 'inherit' : 'var(--fg-3, #888)') }}>{gt || '—'}</span></div>;
+  const nuoc = t.g_so_nuoc ? `${t.g_so_nuoc} nước${t.g_loai_nuoc ? ` · loại ${t.g_so_loai ?? ''}` : ''}` : (t.g_nuoc ?? null);
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: 11.5, borderTop: '1px solid var(--line)', paddingTop: 4, marginTop: 2 }}>
+    {dong('Ngôn ngữ', t.g_ngon_ngu || 'All languages', 'nhan-ban bỏ targeting.locales của mọi camp — không nhắm ngôn ngữ (luật cố định 24/11/2026)', t.g_ngon_ngu ? '#f87171' : '#4ade80')}
+    {dong('Nước', nuoc, [t.g_nuoc, t.g_loai_nuoc ? `loại: ${t.g_loai_nuoc}` : ''].filter(Boolean).join('\n'))}
+    {dong('Tuổi · GT', [t.g_tuoi, t.g_gioi].filter(Boolean).join(' · ') || null)}
+    {dong('Giá · NS', [t.g_roas ? `★ ROAS ${t.g_roas}` : null, t.c_ns ? `$${t.c_ns}/ngày` : null].filter(Boolean).join(' · ') || null)}
+    {dong('Bộ · Page', [t.c_bo ? `bộ ${t.c_bo}` : null, t.a_page_ten].filter(Boolean).join(' · ') || null, `tài khoản ${t.c_tk ?? '?'}`)}
+    {dong('Tên miền', t.a_mien)}
+    {dong('Lịch', t.g_lich)}
+    {dong('CTA · link', [t.f_cta, t.f_link].filter(Boolean).join(' · ') || null)}
+    {dong('Chữ chính', t.f_chinh)}
+    {dong('Tiêu đề', t.f_tieu)}
+    {dong('Mô tả', t.f_mo_ta)}
+    {t.ke_thieu ? <div style={{ color: '#f87171' }}>{t.ke_thieu}</div> : null}
+  </div>;
+}
+
 export function ChoDuyetCr() {
   const [du, setDu] = useState<{ ds: ChoDuyet[]; dungKhan: boolean } | null>(null);
   const [loiDs, setLoiDs] = useState<string | null>(null);
@@ -21,6 +49,7 @@ export function ChoDuyetCr() {
   const [dang, setDang] = useState<number | null>(null);
   const router = useRouter();
   const [xem, setXem] = useState<number | null>(null);
+  const [ngan, setNgan] = useState<number | null>(null);   // ngăn camp dự kiến của creative (bấm thẻ)
   const tai = useCallback(async () => { const r = await dsChoDuyet(); if ('loi' in r) setLoiDs(r.loi); else { setLoiDs(null); setDu(r); } }, []);
   useEffect(() => { void tai(); const t = setInterval(() => { void tai(); }, 20_000); return () => clearInterval(t); }, [tai]);
   if (loiDs === 'chỉ admin') return null;
@@ -35,6 +64,7 @@ export function ChoDuyetCr() {
     setDang(null); void tai();
   };
   const cho = du.ds.filter((x) => x.duyet == null).length;
+  const xn = ngan == null ? null : du.ds.find((x) => x.creative_id === ngan) ?? null;
   return (
     <div data-cho-duyet="" style={{ margin: '6px 0 10px', border: '1px solid #f59e0b', borderRadius: 8, padding: '8px 10px', background: 'rgba(245,158,11,.06)' }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap', marginBottom: 6 }}>
@@ -42,6 +72,20 @@ export function ChoDuyetCr() {
         <span style={{ fontSize: 12, color: 'var(--fg-2)', cursor: 'help' }} title={GIAI}>Duyệt → xuống bảng camp bên dưới</span>
         {du.dungKhan ? <span style={{ fontSize: 12, color: '#f87171', fontWeight: 600, cursor: 'help' }} title={GIAI_DK}>⏳ đang DỪNG KHẨN — đã duyệt thì máy tự lên khi nhả</span> : null}
       </div>
+      {xn ? <Drawer onClose={() => setNgan(null)} width={1080} padding={14}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap', marginBottom: 10 }}>
+          <b style={{ fontSize: 15 }}>{xn.phim ?? `phim #${xn.content_id}`}</b>
+          <span style={{ color: 'var(--fg-2)', fontSize: 12 }}>{(xn.lang ?? '?').toUpperCase()} · cr #{xn.creative_id} · {xn.dang ?? ''} · {kieu(xn.roas)}</span>
+          {xn.duyet == null ? <span style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+            <button type="button" disabled={dang != null} onClick={() => bam(xn.creative_id, () => duyetChoAnh(xn.creative_id, true))} style={{ ...nut, borderColor: '#22c55e', color: '#4ade80', fontWeight: 600 }}>{dang === xn.creative_id ? '…' : '✓ Duyệt'}</button>
+            <button type="button" disabled={dang != null} onClick={() => bam(xn.creative_id, () => duyetChoAnh(xn.creative_id, false))} style={{ ...nut, borderColor: '#ef4444', color: '#f87171' }}>✕ Loại</button>
+          </span> : null}
+        </div>
+        {bao[xn.creative_id]?.loi ? <div role="alert" style={{ marginBottom: 8, padding: 6, border: '1px solid #ef4444', borderRadius: 4, background: 'rgba(239,68,68,.12)', color: '#fca5a5', fontSize: 12 }}>{bao[xn.creative_id]!.loi}</div> : null}
+        {xn.camp_id ? <CamCauHinh campId={xn.camp_id} phim={xn.phim} xemTruoc={<KhungBaiQc cr={xn.creative_id} camp={xn.camp_id} anh={xn.anh} video={xn.video} caoMedia="46dvh" />} soLieu={<div style={{ fontSize: 12, color: 'var(--fg-2)' }}>Số liệu xem ở dòng camp #{xn.camp_id} trong bảng.</div>} />
+          : xn.ke ? <CamCauHinh campId={xn.ke.id} ke={xn.ke} phim={xn.phim} xemTruoc={<KhungBaiQc cr={xn.creative_id} anh={xn.anh} video={xn.video} caoMedia="46dvh" />} soLieu={<div style={{ fontSize: 12, color: 'var(--fg-2)' }}>Creative chưa có camp — chưa có số liệu.</div>} />
+          : <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>Creative chưa gắn phim (content_id) — chưa dựng được camp dự kiến.</div>}
+      </Drawer> : null}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {du.ds.map((x) => { const b = bao[x.creative_id] ?? {}, cho1 = x.duyet == null;
           return (
@@ -54,10 +98,14 @@ export function ChoDuyetCr() {
                     </button>}
               </div>
               <div style={{ flex: 1, minWidth: 0, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.phim ?? ''}>{x.phim ?? `phim #${x.content_id}`}</div>
+                <div role="button" tabIndex={0} title="bấm để mở ngăn camp dự kiến (đủ Campaign / Ad set / Ad như trang Ethopex)" onClick={() => setNgan(x.creative_id)} onKeyDown={(e) => { if (e.key === 'Enter') setNgan(x.creative_id); }}
+                  style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.phim ?? ''}>{x.phim ?? `phim #${x.content_id}`} <span style={{ color: '#60a5fa', fontWeight: 400 }}>↗ chi tiết</span></div>
                 <div style={{ color: 'var(--fg-2)' }}>{(x.lang ?? '?').toUpperCase()} · cr #{x.creative_id} · {x.dang ?? ''}</div>
                 <div style={{ color: 'var(--fg-3, #888)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.ghi}>{x.ghi}</div>
                 {x.diem_thap ? <div style={{ color: '#fbbf24' }} title={`tiêu chí chấm ≤ 4: ${x.diem_thap} — duyệt thì người duyệt thắng điểm (0443)`}>⚠ điểm thấp: {x.diem_thap.slice(0, 40)}</div> : null}
+                <TomTl x={x} />
+                </div>
                 {cho1 ? (
                   <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
                     <button type="button" disabled={dang != null} onClick={() => bam(x.creative_id, () => duyetChoAnh(x.creative_id, true))} style={{ ...nut, borderColor: '#22c55e', color: '#4ade80', fontWeight: 600 }}>{dang === x.creative_id ? '…' : '✓ Duyệt'}</button>

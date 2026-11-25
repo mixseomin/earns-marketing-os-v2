@@ -54,7 +54,7 @@ def ve_ai(P, bo, thu, tho):
 
 def ten_dung(P, tho):
     """AI đã vẽ tên phim đúng chính tả? — đọc chữ ảnh (máy đọc chữ của anh-tinh.py), ≥ 80% từ của tên có mặt"""
-    j = json.loads(subprocess.run([BC.AT.may_doc(), tho], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")
+    j = json.loads(subprocess.run([BC.AT.may_doc(), tho], capture_output=True, text=True, timeout=300).stdout.strip() or "{}")
     chu = " ".join(str(x[0]) for x in j.get("khung") or []).lower(); tu = [w for w in "".join(c if c.isalnum() else " " for c in P["ten"].lower()).split() if len(w) > 1]
     return bool(tu) and sum(w in chu for w in tu) / len(tu) >= 0.8
 

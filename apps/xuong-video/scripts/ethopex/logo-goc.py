@@ -64,7 +64,7 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
     """→ (đường dẫn PNG trong suốt, 'cat' | 'ai' | 'dai'), hoặc (None, None) kèm lý do qua ghi_ly_do(str). nen_sach(poster) → đường dẫn ảnh poster đã xoá chữ (tầng AI, tuỳ chọn)."""
     noi = ghi_ly_do or (lambda s: None)
     if not os.path.exists(poster): noi("thiếu poster"); return None, None
-    j = json.loads(subprocess.run([AT().may_doc(), poster], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")
+    j = json.loads(subprocess.run([AT().may_doc(), poster], capture_output=True, text=True, timeout=300).stdout.strip() or "{}")
     hop = AT().hop_ten(ten, j)
     if not hop: noi("máy đọc chữ không thấy tên phim trên poster"); return None, None
     # ĐỦ KHỐI LOGO: máy đọc chữ hay đọc trượt dòng chữ hoa văn (20/11/2026: "Rising", "INTERN", "MechGod" rụng khỏi logo) → dòng chữ to sát trên / dưới khối tên,

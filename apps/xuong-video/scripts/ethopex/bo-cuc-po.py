@@ -46,7 +46,7 @@ _sach, _cat, _rb = {}, {}, None
 def mo(p):
     """khung đã xoá phụ đề / chữ in cứng"""
     if p not in _sach:
-        j = json.loads(subprocess.run([AT.may_doc(), p], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")
+        j = json.loads(subprocess.run([AT.may_doc(), p], capture_output=True, text=True, timeout=300).stdout.strip() or "{}")
         hop = [[x - w / 2, y - h / 2, w * 2, h * 2] if AT.goc_nho([t, x, y, w, h]) else [x, y, w, h] for t, x, y, w, h in j.get("khung") or []]
         _sach[p] = AT.xoa(Image.open(p).convert("RGB"), hop) if hop else Image.open(p).convert("RGB")
     return _sach[p].copy()

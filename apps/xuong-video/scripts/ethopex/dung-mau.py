@@ -876,7 +876,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
                     k2 = k2_ghim or next(u for u in uv_du[(b + 1):] + uv_du if khoa(u) != khoa(k)); AT.sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k2["tap"] + ".mp4"), "-vf", f"{AT.LOC},select=eq(n\\,{k2['so'] - 1})", "-frames:v", "1", khac[0])
                 mats = []
                 try:   # mọi mặt trên khung gốc (máy đọc Vision của anh-tinh) — khung 9:16 cắt từ khung gốc nên quy toạ độ dọc theo cùng tỉ lệ
-                    jm = json.loads(subprocess.run([AT.may_doc(), "--mat", goc], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")
+                    jm = json.loads(subprocess.run([AT.may_doc(), "--mat", goc], capture_output=True, text=True, timeout=300).stdout.strip() or "{}")
                     mats = [((m[1]) * H, (m[1] + m[3]) * H) for m in jm.get("mat") or [] if m[4] >= 0.45 and m[3] >= 0.05]
                 except Exception as e: print("đọc mặt lỗi — chỉ né mặt chính:", e, file=sys.stderr)
                 c = {"ma": ma, "cid": cid, "p": p, "lang": lang, "ten": ten, "tm": tm, "nen": nen, "goc": goc, "goc_khac": [x for x in khac if os.path.exists(x)], "mats": mats,

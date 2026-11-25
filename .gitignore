@@ -34,3 +34,6 @@ apps/xuong-video/scripts/bo-set/tai-san/
 apps/xuong-video/scripts/thu-3d/tai-san/
 apps/xuong-video/scripts/thu-3d/ra/
 scripts/thanh-pho/ra/
+# rác Python — không theo dõi (25/11/2026 #1869: .pyc trong git làm hỏng tệp vá cây kỹ sư)
+__pycache__/
+*.pyc

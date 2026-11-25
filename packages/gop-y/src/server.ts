@@ -9,7 +9,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import fs from 'node:fs';
 import path from 'node:path';
-import { choToi, conTrongTran, nhanTreo, luotDangChay, viecTuNhatKy, KY_SU_HOM, DEM_RONG, type DemGopY } from './dem';
+import { choKySu, choToi, conTrongTran, nhanTreo, luotDangChay, viecTuNhatKy, KY_SU_HOM, DEM_RONG, type DemGopY } from './dem';
 
 export type Nguoi = { email: string; displayName?: string | null; role: string };
 export type TinTraoDoi = { nguoi: string; noiDung: string; xuLy: string | null; luc: string; anh: string[]; trang?: string; nguCanh?: string };
@@ -21,7 +21,7 @@ export type GopYCuaToi = {
 };
 export type Kq = { ok: boolean; error?: string };
 export type { DemGopY } from './dem';
-export { demTuDs, TRAN_DANG_LAM_MS } from './dem';
+export { demTuDs, choKySu, TRAN_DANG_LAM_MS } from './dem';
 /** Luật riêng của app (vd mos2: team ETP gửi được, lọc card theo nguồn etp, admin thấy card máy tạo, trạng thái qua setBacklinkSite). */
 export type TuyChon = {
   /** app đã tự xét quyền gửi (thay luật mặc định admin-only) */
@@ -153,6 +153,11 @@ export function kySuPhuTrach(nguoi: string | undefined | null): { ten: string; t
   try { tat = JSON.parse(fs.readFileSync(path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip-chinh.json'), 'utf8'))?.[nguoi]?.bat === false; } catch { /* không có tệp → coi là bật */ }
   return { ten, tat };
 }
+/** Card broken đang chờ kỹ sư (thẻ "chờ kỹ sư …") mà một người trong đó đang chạy lượt → tên người đó, không thì null. */
+export function nguoiDangLamCard(tinAiCuoi: string | null | undefined): string | null {
+  for (const n of choKySu(tinAiCuoi)) if (/^[a-z0-9-]+$/.test(n) && nhipDangChay(n)) return kySuPhuTrach(n)?.ten || n;
+  return null;
+}
 function nhipDangChay(nguoi: string): string | null {
   const thu = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip');
   try {
@@ -193,15 +198,20 @@ export function hangGiaoNguoi(nguoi: string): HangGiao { return docHangGiao(nguo
 export async function demGopY(duAn: string, me: Nguoi | null, o?: TuyChon): Promise<DemGopY> {
   const db = getDb();
   if (!me || !db) return DEM_RONG;
-  const r = await db.execute(sql`SELECT id, title, updated_at, COALESCE(prep_payload->'site_status'->>${duAn}, status) AS tt FROM human_tasks
+  const r = await db.execute(sql`SELECT id, title, updated_at, COALESCE(prep_payload->'site_status'->>${duAn}, status) AS tt,
+      (SELECT t->>'noiDung' FROM jsonb_array_elements(COALESCE(prep_payload->'trao_doi', '[]'::jsonb)) WITH ORDINALITY e(t, i) WHERE t->>'nguoi' = 'claude' ORDER BY i DESC LIMIT 1) AS ai_cuoi
+    FROM human_tasks
     WHERE project_id = ${duAn} AND prep_payload->>'source_platform' = 'feedback'
       AND COALESCE(prep_payload->'site_status'->>${duAn}, status) IN ('claimed', 'broken')
       ${o?.locNguon ? sql`AND (COALESCE(prep_payload->>'source_url', '') ~ ${o.locNguon.mau}) = ${o.locNguon.khop}` : sql``}
     ORDER BY updated_at DESC LIMIT 50`);
-  const tatCa = (r as unknown as Array<{ id: number; title: string; updated_at: string | Date; tt: string }>).map((x) => ({ ...x, cn: new Date(x.updated_at).toISOString() }));
+  const tatCa = (r as unknown as Array<{ id: number; title: string; updated_at: string | Date; tt: string; ai_cuoi: string | null }>).map((x) => ({ ...x, cn: new Date(x.updated_at).toISOString() }));
   const hang = tatCa.filter((x) => x.tt === 'claimed');
-  const hong = tatCa.filter((x) => x.tt === 'broken').map((x) => `#${x.id} ${String(x.title ?? '').slice(0, 60)}`);
-  const lam = hang.filter((x) => conTrongTran(x.cn)).map((x) => `#${x.id} ${String(x.title ?? '').slice(0, 60)}`);
+  // broken đã CHUYỂN cho kỹ sư đang chạy lượt = đang làm, không phải kẹt
+  const hongDs = tatCa.filter((x) => x.tt === 'broken').map((x) => ({ x, ai: nguoiDangLamCard(x.ai_cuoi) }));
+  const hong = hongDs.filter((h) => !h.ai).map(({ x }) => `#${x.id} ${String(x.title ?? '').slice(0, 60)}`);
+  const lam = [...hang.filter((x) => conTrongTran(x.cn)).map((x) => `#${x.id} ${String(x.title ?? '').slice(0, 60)}`),
+    ...hongDs.filter((h) => h.ai).map(({ x, ai }) => `#${x.id} ${String(x.title ?? '').slice(0, 60)} · ${ai} đang làm`)];
   const treo = hang.filter((x) => !conTrongTran(x.cn)).map((x) => nhanTreo(x.id, String(x.title ?? ''), x.cn));
   const luot = kySuDangChay(duAn, o);
   // lượt kỹ sư thường là chính card claimed → chỉ cộng thêm khi không có card, hoặc là việc giao thẳng (ngoài hòm)

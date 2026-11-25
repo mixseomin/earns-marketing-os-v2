@@ -6,17 +6,15 @@ import 'server-only';
 import { cache } from 'react';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { TRAN_DANG_LAM_MS } from '@mos2/gop-y/server';
+import { TRAN_DANG_LAM_MS, choKySu, nguoiDangLamCard } from '@mos2/gop-y/server';
 import type { CardKet } from './cty-agents-kieu';
 
-const CHO_KY_SU = /· chờ kỹ sư ([a-z, ]+)\]/;
 const TEN_TIN = /^\[([^\]·]+?) ·/;
 
 /** từ các tin AI (cũ → mới) → { cho: id kỹ sư đang được chờ, ten: tên kỹ sư nói cuối } */
 export function nguoiGiu(tin: string[]): { cho: string[]; ten: string | null } {
   const cuoi = tin[tin.length - 1] || '';
-  const m = cuoi.match(CHO_KY_SU);
-  const cho = m ? m[1]!.split(',').map((x) => x.trim()).filter(Boolean) : [];
+  const cho = choKySu(cuoi);
   let ten: string | null = null;
   for (let i = tin.length - 1; i >= 0 && !ten; i--) {
     const t = tin[i]!.match(TEN_TIN)?.[1]?.trim();
@@ -41,5 +39,6 @@ export const docCardKet = cache(async (): Promise<CardKet[]> => {
        AND (coalesce(h.prep_payload->'site_status'->>h.project_id, h.status) = 'broken'
             OR (coalesce(h.prep_payload->'site_status'->>h.project_id, h.status) = 'claimed' AND h.updated_at < now() - make_interval(mins => ${phut})))
      ORDER BY h.updated_at DESC LIMIT 200`)) as unknown as Array<{ id: number; hom: string; title: string | null; tt: string; ai: string[] }>;
-  return r.map((x) => ({ id: x.id, hom: x.hom, tieuDe: (x.title || '').slice(0, 80), treo: x.tt === 'claimed', ...nguoiGiu(x.ai || []) }));
+  // card đã CHUYỂN cho kỹ sư đang chạy lượt = đang làm, không đếm kẹt (cùng luật chấm đỏ nút góp ý, gop-y server.ts demGopY)
+  return r.filter((x) => !(x.tt === 'broken' && nguoiDangLamCard((x.ai || [])[(x.ai || []).length - 1]))).map((x) => ({ id: x.id, hom: x.hom, tieuDe: (x.title || '').slice(0, 80), treo: x.tt === 'claimed', ...nguoiGiu(x.ai || []) }));
 });

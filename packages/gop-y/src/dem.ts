@@ -75,6 +75,13 @@ export function viecTuNhatKy(dong: Array<{ luc?: string; ket?: string }>, bay = 
   return luot;
 }
 
+/** Thẻ máy "· chờ kỹ sư a, b]" trong tin AI cuối = việc đã CHUYỂN cho các kỹ sư đó (máy Hà giao bù).
+ *  Kỹ sư được chờ đang chạy lượt → card KHÔNG kẹt, mà là đang làm (anh 25/11/2026: #1842 đỏ suốt lúc Thắng đang sửa). */
+export function choKySu(tinAiCuoi: string | null | undefined): string[] {
+  const m = String(tinAiCuoi ?? '').match(/· chờ kỹ sư ([a-z0-9, -]+)\]/);
+  return m ? m[1]!.split(',').map((x) => x.trim()).filter(Boolean) : [];
+}
+
 /** Card claimed còn trong trần phiên (updated_at đổi lúc claim / reply). */
 export const conTrongTran = (capNhat: string, bay = Date.now()) => bay - Date.parse(capNhat) < TRAN_DANG_LAM_MS;
 /** Nhãn card claimed quá trần: "#id tiêu đề (2 giờ)". */

@@ -292,7 +292,7 @@ export async function lenCampCr(dongId: number, creativeId: number): Promise<{ o
       (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi')
     from etp.creative r left join etp.phim f using (content_id) left join etp.cham_cong g on g.creative_id = r.creative_id where ${id} < 0 and r.creative_id = ${cr} and r.content_id is not null`);
   if (!x) return { loi: 'creative không thuộc dòng đang chạy' };
-  if (!x.duoc) return { loi: 'cổng chấm đang chặn creative này' };
+  if (x.duoc === false) return { loi: 'cổng chấm đang chặn creative này' };   // chưa chấm (null — anh duyệt ngay khi creative vừa dựng xong) không chặn: anh duyệt = lệnh, nhan-ban tự bỏ qua cổng (anh 25/11/2026 "duyệt creative xong vẫn đéo thấy đẩy lên Etho ngay")
   if (!x.bo) return { loi: 'không đọc được bộ lên camp (etp.cau_hinh.bo_phim_moi)' };
   if (x.co_camp) return { loi: 'creative đã có camp' };
   if (docNhatKyLen(cr).gui) return { loi: 'đã gửi lệnh lên creative này, máy đang tạo camp — chờ xong, không gửi lần hai' };   // #1770

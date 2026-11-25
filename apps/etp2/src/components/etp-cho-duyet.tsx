@@ -89,22 +89,25 @@ export type SuDuyet = { cr: number; ok: ChonDuyet; pha: 'gui' | 'xong' | 'loi' }
 const phat = (d: SuDuyet) => window.dispatchEvent(new CustomEvent<SuDuyet>(SU_DUYET, { detail: d }));
 function NutDuyet({ cr, roas, lich, dk, dang, bam }: { cr: number; roas: string | null; lich: string | null; dk: boolean; dang: boolean; bam: Bam }) {
   const [hoi, setHoi] = useState<ChonDuyet | null>(null);   // true = hỏi duyệt, false = hỏi loại, 'sua' = hỏi sửa lại
+  const [day, setDay] = useState(true);   // 🚀 đẩy lên Ethopex luôn khi duyệt (anh 25/11/2026 "nút duyệt phải có thêm option đẩy lên etho luôn") — mặc định bật
   const [nx, setNx] = useState('');   // NHẬN XÉT (anh 25/11/2026 "phải cho tao comment vào đó để mày có hướng sửa") → etp.nhan_xet_cr
   if (hoi != null) {
     const sua = hoi === 'sua', vien = hoi === true ? '#22c55e' : sua ? '#f97316' : '#ef4444', chuMau = hoi === true ? '#4ade80' : sua ? SUA_MAU : '#f87171';
     const thieu = sua && !nx.trim();   // Sửa lại bắt buộc nhận xét — không có hướng thì con không biết dựng lại thế nào
     return <div data-o="xac-nhan-duyet" role="alertdialog" style={{ display: 'flex', flexDirection: 'column', gap: 5, padding: 6, borderRadius: 6, fontSize: 12,
       border: `1px solid ${vien}`, background: hoi === true ? 'rgba(34,197,94,.1)' : sua ? 'rgba(249,115,22,.1)' : 'rgba(239,68,68,.1)' }}>
-      <div>{hoi === true ? <>Duyệt cr #{cr}? → <b style={{ color: '#60a5fa' }}>⏳ Chờ lên camp</b>, máy tạo camp {kieu(roas)}{dk ? ' khi nhả dừng khẩn' : lich ? ` lúc ${lich}` : ''}.</>
+      <div>{hoi === true ? <>Duyệt cr #{cr}? → {day ? <><b style={{ color: '#60a5fa' }}>🚀 đẩy lên Ethopex ngay</b>, tạo camp {kieu(roas)}{dk ? ' khi nhả dừng khẩn' : lich ? `, chạy lúc ${lich}` : ''}.</> : <><b style={{ color: '#60a5fa' }}>chỉ ghi duyệt</b>, chưa tạo camp.</>}</>
         : sua ? <span title={GIAI_SUA}>Sửa lại cr #{cr}? → <b style={{ color: SUA_MAU }}>✎ Sửa lại</b>, không lên camp; con dựng lại creative theo nhận xét.</span>
         : <>Loại cr #{cr}? → <b style={{ color: '#f87171' }}>✕ Loại</b>, creative không lên camp.</>}</div>
+      {hoi === true ? <label data-o="day-etho" style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: day ? '#4ade80' : 'var(--fg-2)', cursor: 'pointer' }}>
+        <input type="checkbox" checked={day} onChange={(e) => setDay(e.target.checked)} /> 🚀 Đẩy lên Ethopex luôn (tạo camp ngay)</label> : null}
       <textarea data-o="nhan-xet-cr" value={nx} onChange={(e) => setNx(e.target.value)} rows={3} maxLength={4000} autoFocus
         placeholder={hoi === true ? 'Nhận xét (không bắt buộc): chỗ nào hay / cần sửa ở lượt dựng sau' : sua ? 'Cần sửa gì? (bắt buộc) — vd: đổi hook 3 giây đầu, chữ to hơn, bỏ logo góc…' : 'Vì sao loại? Con đọc làm hướng sửa (vd: chữ che mặt, hook yếu, logo mờ…)'}
         style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, padding: 6, borderRadius: 6, border: `1px solid ${thieu ? '#f97316' : 'var(--line)'}`, background: 'var(--bg-2)', color: 'inherit', resize: 'vertical' }} />
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         <button type="button" disabled={dang || thieu} title={thieu ? 'Gõ cần sửa gì trước — Sửa lại bắt buộc có nhận xét' : undefined}
-          onClick={() => { const chu = nx; setHoi(null); setNx(''); if (hoi === 'sua') bam(cr, () => duyetChoAnh(cr, false, chu, true), 'sua'); else if (hoi != null) bam(cr, () => duyetChoAnh(cr, hoi, chu), hoi); }}
-          style={{ ...nut, fontWeight: 600, borderColor: vien, color: chuMau, opacity: thieu ? 0.5 : 1, cursor: thieu ? 'not-allowed' : 'pointer' }}>{hoi === true ? '✓ Xác nhận duyệt' : sua ? '✎ Xác nhận sửa lại' : '✕ Xác nhận loại'}</button>
+          onClick={() => { const chu = nx; setHoi(null); setNx(''); if (hoi === 'sua') bam(cr, () => duyetChoAnh(cr, false, chu, true), 'sua'); else if (hoi != null) { const d = day; bam(cr, () => duyetChoAnh(cr, hoi, chu, false, d), hoi); } }}
+          style={{ ...nut, fontWeight: 600, borderColor: vien, color: chuMau, opacity: thieu ? 0.5 : 1, cursor: thieu ? 'not-allowed' : 'pointer' }}>{hoi === true ? (day ? '✓ Duyệt + 🚀 đẩy Etho' : '✓ Chỉ duyệt') : sua ? '✎ Xác nhận sửa lại' : '✕ Xác nhận loại'}</button>
         <button type="button" onClick={() => { setHoi(null); setNx(''); }} style={nut}>Huỷ</button>
         {thieu ? <span style={{ fontSize: 11.5, color: SUA_MAU }}>gõ cần sửa gì để bấm được</span> : null}
       </div>

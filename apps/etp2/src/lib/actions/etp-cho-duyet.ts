@@ -78,7 +78,7 @@ export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean 
 /** ✓ Duyệt → ghi duyệt + lên ★ ROAS mặc định (hoi_cho, anh 24/11/2026); ✕ Loại → ghi loại. Phanh đang bật (dừng khẩn…): duyệt = XẾP HÀNG, máy tự lên camp ở nhịp đầu phanh nhả
  *  (apps/etp/lenh_cho.py len_cr — anh 22/11/2026 "thằng ngu !": không bắt anh bấm lại) */
 /** sua = ✎ Sửa lại (#1863): không lên camp, nhận xét bắt buộc, dòng còn ở bảng cây với trạng thái ✎ Sửa lại */
-export async function duyetChoAnh(cr: number, ok: boolean, chu?: string | null, sua = false): Promise<{ ok: true; chu: string } | { loi: string }> {
+export async function duyetChoAnh(cr: number, ok: boolean, chu?: string | null, sua = false, day = true): Promise<{ ok: true; chu: string } | { loi: string }> {
   const id = Math.trunc(Number(cr));
   const [h] = await run<{ x: number }>(sql`select 1 x from etp.cho_anh_duyet_cr where creative_id = ${id}`);
   if (!h) return { loi: `creative #${id} không nằm trong danh sách chờ anh duyệt` };
@@ -86,6 +86,7 @@ export async function duyetChoAnh(cr: number, ok: boolean, chu?: string | null, 
   if ('loi' in d) return d;
   if (sua) return { ok: true, chu: `đã đánh dấu ✎ Sửa lại creative #${id} — không lên camp, con dựng lại theo nhận xét` };
   if (!ok) return { ok: true, chu: `đã loại creative #${id} — không lên camp` };
+  if (!day) return { ok: true, chu: `đã duyệt creative #${id} — chưa đẩy lên Ethopex (anh bỏ chọn 🚀); lên sau ở ngăn phim › 🚀 Lên camp` };   // option đẩy Etho (anh 25/11/2026)
   return lenCamp(id);
 }
 
@@ -105,9 +106,7 @@ export async function lenCamp(cr: number): Promise<{ ok: true; chu: string } | {
   const id = Math.trunc(Number(cr));
   const [dk] = await run<{ v: boolean }>(sql`select coalesce((select gia_tri = 'true'::jsonb from etp.cau_hinh where khoa = 'dung_khan'), false) v`);
   if (dk?.v) return { ok: true, chu: `đã duyệt #${id} — xếp hàng: máy tự lên camp ở nhịp đầu nhả dừng khẩn, giờ chạy theo lịch` };
-  // creative trong sổ ★ ROAS (len_cr_roas): ROAS riêng của sổ — lenh_cho.py lên ★ ROAS ở nhịp worker kế (một creative một camp)
-  const [ro] = await run<{ x: number }>(sql`select 1 x from etp.ke_cr where creative_id = ${id} and nguon = 'sổ len_cr_roas'`);   // chỉ lệnh tay 22/11 chờ ▶ Lên · khối + mục "tu" (anh sửa mức, #1857) → lên tự động
-  if (ro) return { ok: true, chu: `đã ghi duyệt #${id} — dòng ★ ROAS hiện ở bảng Camp, lọc ⏳ Chờ duyệt: rê xem camp sẽ tạo, anh bấm ▶ Lên mới lên (máy không tự lên — anh 22/11/2026)` };
+  // duyệt = LÊN CAMP NGAY cho MỌI creative, kể cả sổ len_cr_roas (anh 25/11/2026 "tất cả chờ ID phải tự đẩy lên Etho luôn" — bỏ đường chờ ▶ Lên)
   const r = await lenCampCr(-1, id);
   if ('loi' in r) return { loi: `Đã ghi DUYỆT #${id}, nhưng chưa lên camp: ${r.loi}` };
   return { ok: true, chu: `đã gửi lệnh lên ★ ROAS ${r.roas} · $${r.ns} (${r.nguon}) cho creative #${id} — giờ chạy theo lịch lên; dòng này tự hiện số camp khi xong` };

@@ -339,19 +339,19 @@ def bang_mau_logo(lg):
     return sang, lay(0.6), lay(0.15), vien_
 def nhan_logo(lop, c, pal):
     """nhãn trên cùng hợp logo: chữ hoa nét chân (Copperplate) tô dải màu của logo, viền màu nét viền logo, hai vạch trang trí cùng màu hai bên — không dải trắng"""
-    sang, giua, toi, vien_ = pal; chu = AT.FREE.get(c["lang"], AT.FREE["en"])[0].upper(); f = ph("copper", 76)
-    while f.getlength(chu) > W - 260 and f.size > 36: f = f.font_variant(size=f.size - 4)
+    sang, giua, toi, vien_ = pal; chu = AT.FREE.get(c["lang"], AT.FREE["en"])[0].upper(); f = ph("copper", 104)   # to + sáng (anh 25/11/2026 "chữ episodes... khó nhìn quá": 76px đỏ thẫm trên nền gạch không đọc được)
+    while f.getlength(chu) > W - 200 and f.size > 60: f = f.font_variant(size=f.size - 4)
     m, hop = mat_chu([chu], f, int(H * 0.06))
     # TÁCH KHỎI NỀN (anh 25/11/2026 "nổi hơn, tách ra khỏi nền chung một chút"): tấm tối mép mờ sau cả dải nhãn + quầng tối ôm chữ, rồi viền dày + vát sáng
-    t0, t1 = hop[1] - 30, hop[3] + 30; tam = Image.new("L", (W, H)); ImageDraw.Draw(tam).rectangle((0, t0, W, t1), fill=215)
+    t0, t1 = hop[1] - 34, hop[3] + 34; tam = Image.new("L", (W, H)); ImageDraw.Draw(tam).rectangle((0, t0, W, t1), fill=235)
     for k in range(W // 2):   # dải mờ dần về hai mép (dải băng, không phải khối vuông)
-        a_ = max(0, min(255, int((k / (W * 0.18)) * 255))); ImageDraw.Draw(tam).line((k, t0, k, t1), fill=a_ * 215 // 255); ImageDraw.Draw(tam).line((W - 1 - k, t0, W - 1 - k, t1), fill=a_ * 215 // 255)
-    toi_nen = Image.new("RGBA", (W, H), tuple(v // 3 for v in vien_) + (0,)); toi_nen.putalpha(tam.filter(ImageFilter.GaussianBlur(3))); lop.alpha_composite(toi_nen)
+        a_ = max(0, min(255, int((k / (W * 0.18)) * 255))); ImageDraw.Draw(tam).line((k, t0, k, t1), fill=a_ * 235 // 255); ImageDraw.Draw(tam).line((W - 1 - k, t0, W - 1 - k, t1), fill=a_ * 235 // 255)
+    toi_nen = Image.new("RGBA", (W, H), tuple(v // 6 for v in vien_) + (0,)); toi_nen.putalpha(tam.filter(ImageFilter.GaussianBlur(3))); lop.alpha_composite(toi_nen)   # dải gần đen: chữ sáng nổi trên mọi nền
     chi = Image.new("L", (W, H)); dc = ImageDraw.Draw(chi)   # hai chỉ màu logo viền trên / dưới dải
     for yy in (t0, t1): dc.rectangle((0, yy - 2, W, yy + 2), fill=255)
-    chi = ImageChops.multiply(chi, tam.point(lambda v: min(255, v * 255 // 215))); to(lop, chi, giua)
+    chi = ImageChops.multiply(chi, tam.point(lambda v: min(255, v * 255 // 235))); to(lop, chi, giua)
     bong(lop, m.filter(ImageFilter.MaxFilter(15)), (0, 0), 14, 220); bong(lop, m, (4, 8), 6, 255)
-    vien(lop, m, 6, vien_); to(lop, m, doc_trong(sang, giua, toi, hop)); sang_khoi(lop, m, sang, vien_)
+    vien(lop, m, 8, tuple(v // 4 for v in vien_)); to(lop, m, doc_trong((255, 255, 255), (255, 246, 222), (244, 222, 172), hop))   # ruột trắng ngà, viền tối dày — dải màu logo tối quá trên nền tối
     d = ImageDraw.Draw(lop); ym = (hop[1] + hop[3]) // 2
     for a_, b_ in ((70, hop[0] - 30), (hop[2] + 30, W - 70)):
         if b_ - a_ > 40:

@@ -4,7 +4,7 @@
 // ô VÀNG cảnh báo một lần, bấm lại là lên. Lỗi = ô ĐỎ ngay dưới nút. Camp đã đẩy lên Ethopex không sửa được giờ → camp mới đúng giờ, camp cũ tạm dừng.
 import { useEffect, useRef, useState } from 'react';
 import { THEO_LICH, bayGioVn, chayLuc } from '@/lib/etp-nb';
-import { chuLich } from '@/lib/etp-khung';
+import { chuLich, haiKhung, laKhung } from '@/lib/etp-khung';
 import { danhDauDangLen } from '@/lib/etp-dang-len-tam';
 import { useRouter } from 'next/navigation';
 import { AnchoredPopover } from '@/components/ui';
@@ -21,6 +21,7 @@ export function OGioVn({ gio, setGio, style }: { gio: string; setGio: (g: string
   const nay = bayGioVn(), homNay = nay.slice(0, 10), g = gio || nay;
   const [chiNay, setChiNay] = useState(() => g.slice(0, 10) <= homNay);
   useEffect(() => { if (!gio) setGio(bayGioVn()); }, [gio, setGio]);
+  useEffect(() => { if (gio && gio.slice(0, 10) > homNay && chiNay) setChiNay(false); }, [gio, homNay, chiNay]);   // #1869: chọn khung chính sáng mai / tối mai → bỏ tick "hôm nay", ô hiện cả ngày
   const s: React.CSSProperties = { ...o, ...style, width: 'auto', colorScheme: 'dark' };
   return <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
     {chiNay
@@ -81,7 +82,9 @@ function XemTruocLen({ cr, gio, anh, video }: { cr: number; gio: string | null; 
 }
 
 /** cr = dòng xếp hàng (creative đã duyệt chưa camp) · camp + lich = camp đã đẩy lên Ethopex, chờ giờ chạy */
-export function NutLenGio({ cr, camp, lich, nhan, anh, video }: { cr?: number | null; camp?: number; lich?: string | null; nhan?: React.ReactNode; anh?: string | null; video?: string | null }) {
+/** chiGio = bấm vào chữ GIỜ ở cột TT (anh 25/11/2026 #1869 "Bấm vào giờ sẽ cho set lại Ngày, giờ. Trong đó default hiện sẵn 2 khung giờ chính. Vẫn cho edit tự do
+ *  nhưng sẽ cảnh báo"): khung gọn chỉ đặt ngày giờ — ô ngày giờ sẵn giờ đang hẹn (hoặc khung chính kế), 2 nút khung chính 07:00 / 22:00, gõ giờ ngoài khung = ô VÀNG cảnh báo. */
+export function NutLenGio({ cr, camp, lich, nhan, anh, video, chiGio }: { cr?: number | null; camp?: number; lich?: string | null; nhan?: React.ReactNode; anh?: string | null; video?: string | null; chiGio?: boolean }) {
   const router = useRouter();
   const neo = useRef<HTMLButtonElement>(null);
   const [mo, setMo] = useState(false), [gio, setGio] = useState(''), [dang, setDang] = useState<'ngay' | 'lich' | 'gio' | 'khong' | null>(null)   /* MỖI NÚT MỘT CỜ (anh 22/11/2026 "sao lại 2 chữ đang gửi"): chỉ nút vừa bấm hiện đang gửi */, [kq, setKq] = useState<KqNut | null>(null);
@@ -99,26 +102,36 @@ export function NutLenGio({ cr, camp, lich, nhan, anh, video }: { cr?: number | 
   const daGui = useRef(false);
   const dong = () => { setMo(false); if (daGui.current) { daGui.current = false; router.refresh(); } };
   const nutXanh: React.CSSProperties = { ...nut, borderColor: '#22c55e', color: '#4ade80', fontWeight: 600, cursor: dang ? 'wait' : 'pointer', flex: 1 };
+  const gon = doiGio || !!chiGio, khung = mo ? haiKhung() : [], ngoai = !!gio && !laKhung(gio);   // gon = khung chỉ đặt giờ (🕒 / bấm chữ giờ)
+  const gioMo = () => { const g = vnInput(lich); return g && g > bayGioVn() ? g : chiGio ? haiKhung()[0]?.gio ?? bayGioVn() : bayGioVn(); };   // #1869: mở ra = giờ đang hẹn, đã qua thì khung chính kế
   return <>
-    <button ref={neo} data-nut-len-gio="" onClick={(e) => { e.stopPropagation(); setMo((v) => !v); setKq(null); setGio((doiGio ? vnInput(lich) : '') || bayGioVn()); }}
-      title={doiGio ? 'đổi giờ chạy camp đang chờ' : 'lên camp ngay hoặc đặt giờ chạy'}
-      style={doiGio ? { border: 'none', background: 'transparent', color: '#f59e0b', cursor: 'pointer', padding: '0 2px', fontSize: 11 } : { ...nut, padding: '1px 8px', fontSize: 11, borderColor: '#22c55e', color: '#4ade80', fontWeight: 600 }}>
+    <button ref={neo} data-nut-len-gio="" {...(chiGio ? { 'data-bam-gio': '' } : {})} onClick={(e) => { e.stopPropagation(); setMo((v) => !v); setKq(null); setGio(doiGio || chiGio ? gioMo() : bayGioVn()); }}
+      title={chiGio ? 'bấm để đặt lại ngày giờ chạy (2 khung chính 07:00 / 22:00, hoặc giờ tự chọn)' : doiGio ? 'đổi giờ chạy camp đang chờ' : 'lên camp ngay hoặc đặt giờ chạy'}
+      style={chiGio ? { border: 'none', background: 'transparent', color: 'inherit', font: 'inherit', cursor: 'pointer', padding: 0, textAlign: 'left', textDecoration: 'underline dotted', textUnderlineOffset: 2,
+          display: 'block', flex: 1, minWidth: 0, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'inherit' }
+        : doiGio ? { border: 'none', background: 'transparent', color: '#f59e0b', cursor: 'pointer', padding: '0 2px', fontSize: 11 } : { ...nut, padding: '1px 8px', fontSize: 11, borderColor: '#22c55e', color: '#4ade80', fontWeight: 600 }}>
       {nhan ?? (doiGio ? '🕒' : '▶ Lên')}</button>
     <AnchoredPopover anchorRef={neo} open={mo} onClose={dong}>
-      <div onClick={(e) => e.stopPropagation()} style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8, width: doiGio ? 300 : 'min(560px, 92vw)', maxHeight: doiGio ? undefined : '78vh', overflowY: doiGio ? undefined : 'auto', fontSize: 12, lineHeight: 1.45,
+      <div data-khung-dat-gio="" onClick={(e) => e.stopPropagation()} style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8, width: gon ? 320 : 'min(560px, 92vw)', maxHeight: gon ? undefined : '78vh', overflowY: gon ? undefined : 'auto', fontSize: 12, lineHeight: 1.45,
         background: 'var(--bg-1)', border: '1px solid var(--accent-line, var(--line))', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>
-        <b>{doiGio ? `Đổi giờ chạy camp #${camp}` : `Lên camp creative #${cr}`}</b>
+        <b>{doiGio ? `Đổi ngày giờ chạy camp #${camp}` : chiGio ? `Đặt lại ngày giờ lên camp creative #${cr}` : `Lên camp creative #${cr}`}</b>
         <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>Giờ VN
           <OGioVn gio={gio} setGio={setGio} /></label>
+        <div data-khung-chinh="" style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}><span style={{ color: 'var(--fg-2)' }}>Khung chính:</span>
+          {khung.map((k) => <button key={k.gio} type="button" onClick={() => setGio(k.gio)} title={`đặt ${k.gio.replace('T', ' ')} giờ VN`}
+            style={{ ...nut, padding: '2px 8px', fontSize: 11.5, ...(gio === k.gio ? { borderColor: '#22c55e', color: '#4ade80', fontWeight: 600, background: 'rgba(34,197,94,.12)' } : {}) }}>{gio === k.gio ? '✓ ' : ''}{k.chu}</button>)}</div>
+        {ngoai ? <div role="alert" data-canh-ngoai-khung="" style={{ padding: 6, border: '1px solid #f59e0b', borderRadius: 4, background: 'rgba(245,158,11,.12)', color: '#fde68a' }}>
+          ⚠ Giờ {gio.slice(11, 16)} nằm ngoài 2 khung chính 07:00 / 22:00. Camp sẽ chạy đúng giờ này, không theo khung chung của máy. Chắc thì bấm nút vàng bên dưới.</div> : null}
         {doiGio ? <span style={{ color: 'var(--fg-2)' }}>Ethopex không sửa giờ được: lên camp mới đúng giờ, tạm dừng camp cũ.</span>
-          : <span data-theo-lich-chu="" style={{ color: 'var(--fg-2)' }}>⏱ Theo lịch: {chayLuc()}.</span>}
-        {doiGio ? null : <textarea data-o="nhan-xet-cr" value={nx} onChange={(e) => setNx(e.target.value)} rows={2} maxLength={4000}
+          : chiGio ? null : <span data-theo-lich-chu="" style={{ color: 'var(--fg-2)' }}>⏱ Theo lịch: {chayLuc()}.</span>}
+        {gon ? null : <textarea data-o="nhan-xet-cr" value={nx} onChange={(e) => setNx(e.target.value)} rows={2} maxLength={4000}
           placeholder="Nhận xét khi ✕ Không duyệt: vì sao, cần sửa gì (con đọc làm hướng sửa)" style={{ ...o, width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />}
         <div style={{ display: 'flex', gap: 6 }}>
-          {doiGio ? null : <button disabled={!!dang} onClick={() => bam(null)} title="bỏ qua ô giờ — camp lên vào khung cố định 22h VN gần nhất, không còn chạy ngay (anh 24/11/2026)" style={nutXanh}>{dang === 'ngay' ? 'đang gửi…' : `▶ Lên · ${chuLich()}`}</button>}
-          {doiGio ? null : <button data-len-theo-lich="" disabled={!!dang} onClick={() => bam(THEO_LICH)} title="bỏ qua ô giờ, máy lên camp theo khung giờ lên trong sổ luật (#1772)" style={nutXanh}>{dang === 'lich' ? 'đang gửi…' : '⏱ Lên theo lịch'}</button>}
-          <button disabled={!!dang || !gio} onClick={() => bam(gio)} title="camp chạy đúng giờ VN trong ô" style={nutXanh}>{dang === 'gio' ? 'đang gửi…' : doiGio ? '🕒 Đặt giờ mới' : '🕒 Lên theo giờ này'}</button>
-          {doiGio ? null : <button data-khong-duyet="" disabled={!!dang} onClick={() => bam(null, true)}
+          {gon ? null : <button disabled={!!dang} onClick={() => bam(null)} title="bỏ qua ô giờ — camp lên vào khung cố định 22h VN gần nhất, không còn chạy ngay (anh 24/11/2026)" style={nutXanh}>{dang === 'ngay' ? 'đang gửi…' : `▶ Lên · ${chuLich()}`}</button>}
+          {gon ? null : <button data-len-theo-lich="" disabled={!!dang} onClick={() => bam(THEO_LICH)} title="bỏ qua ô giờ, máy lên camp theo khung giờ lên trong sổ luật (#1772)" style={nutXanh}>{dang === 'lich' ? 'đang gửi…' : '⏱ Lên theo lịch'}</button>}
+          <button disabled={!!dang || !gio} onClick={() => bam(gio)} title="camp chạy đúng giờ VN trong ô"
+            style={ngoai ? { ...nutXanh, borderColor: '#f59e0b', color: '#fbbf24' } : nutXanh}>{dang === 'gio' ? 'đang gửi…' : ngoai ? (doiGio ? '⚠ Vẫn đặt giờ này' : '⚠ Vẫn lên giờ này') : doiGio ? '🕒 Đặt giờ mới' : '🕒 Lên theo giờ này'}</button>
+          {gon ? null : <button data-khong-duyet="" disabled={!!dang} onClick={() => bam(null, true)}
             title="ghi LOẠI creative + bỏ khỏi sổ ★ ROAS: không tạo camp, không gửi Ethopex, dòng biến mất khỏi bảng (anh 22/11/2026)"
             style={{ ...nut, borderColor: '#ef4444', color: '#fca5a5', fontWeight: 600, cursor: dang ? 'wait' : 'pointer' }}>{dang === 'khong' ? 'đang gửi…' : '✕ Không duyệt'}</button>}
         </div>
@@ -126,7 +139,7 @@ export function NutLenGio({ cr, camp, lich, nhan, anh, video }: { cr?: number | 
           ⚠ Phanh đang áp: {kq.canh}<br />Bấm lại trong 30 phút là máy bỏ qua phanh và lên.</div> : null}
         {kq && 'loi' in kq ? <div role="alert" style={{ padding: 6, border: '1px solid #ef4444', borderRadius: 4, background: 'rgba(239,68,68,.12)', color: '#fca5a5' }}>{kq.loi}</div> : null}
         {kq && 'ok' in kq ? <div role="status" style={{ padding: 6, border: '1px solid #22c55e', borderRadius: 4, background: 'rgba(34,197,94,.12)', color: '#86efac' }}>✓ {kq.chu}</div> : null}
-        {!doiGio && cr ? <XemTruocLen cr={Number(cr)} gio={null} anh={anh} video={video} /> : null}
+        {!gon && cr ? <XemTruocLen cr={Number(cr)} gio={null} anh={anh} video={video} /> : null}
       </div>
     </AnchoredPopover>
   </>;

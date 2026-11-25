@@ -16,7 +16,7 @@ export const gioVn = (g: string | null | undefined) => { const t = (g ?? '').tri
 /** "YYYY-MM-DDTHH:MM" giờ VN lúc này, làm tròn lên phút kế — giá trị sẵn của mọi ô đặt giờ, không để trống (anh 22/11/2026 #1762) */
 export const bayGioVn = () => new Date(Math.ceil((Date.now() + 7 * 3600_000) / 60_000) * 60_000).toISOString().slice(0, 16);
 export const daQua =(g: string) => Date.parse(`${g.replace(' ', 'T')}:00+07:00`) < Date.now() - 60_000;
-export const chuGio = (g: string | null) => g ? `hẹn ${g.slice(11)} ${g.slice(8, 10)}/${g.slice(5, 7)} giờ VN (dời lên khung 22h / 07h gần nhất từ giờ đó)` : chayLuc();   // không còn 'chạy ngay' (anh 24/11/2026)
+export const chuGio = (g: string | null, tuDo = false) => g ? `hẹn ${g.slice(11)} ${g.slice(8, 10)}/${g.slice(5, 7)} giờ VN (${tuDo ? 'đúng giờ anh đặt — ngoài 2 khung chính 07:00 / 22:00' : 'dời lên khung 22h / 07h gần nhất từ giờ đó'})` : chayLuc();   // không còn 'chạy ngay' (anh 24/11/2026)
 /** giá trị `gio` của nút "⏱ Lên theo lịch" (anh 23/11/2026 #1772 "Cần option lên theo lịch"): KHÔNG vé trực tiếp, KHÔNG --gio → nhan-ban lich_len / gio_roas quyết giờ */
 export const THEO_LICH = 'lich';
 /** LÚC CAMP NHÂN BẢN THỰC SỰ CHẠY — cùng luật nhan-ban.gio_len: khung cố định 22h / 07h VN gần nhất, cả camp thường lẫn ★ ROAS (anh 24/11/2026 "Cấm tự lên ngay !!") */

@@ -102,6 +102,7 @@ def gio_len(tu=None, luc=None):
     Cấm tự lên ngay !!" — khuôn giờ lên của Kiên: start_time Ad Set 15:00 UTC = 22:00 VN, đọc API 40 camp Kiên 24/11; anh chốt "chuyển về khung 22h đêm" 24/11/2026; anh 25/11/2026 thêm khung 07h sáng: "2 khung gần nhất là 22h tối và 7h sáng hôm sau"): trả "YYYY-MM-DD HH:MM" giờ VN của khung khung_doi.len_gio GẦN NHẤT, không sớm hơn
     bây giờ + len_gio_cach_phut và không sớm hơn `tu` (giờ anh đặt, giờ VN). MỌI đường lên (thường · ★ ROAS · vé trực tiếp · đổi giờ · bản nhân · A/B) đi qua đây
     rồi dat_gio → Ad Set lịch Custom; không đường nào trả "chạy ngay"."""
+    if isinstance(tu, GioTuDo): return tu   # #1869 giờ anh tự đặt ngoài khung (vé trực tiếp, đã cảnh báo ở nút) — giữ đúng giờ
     kd = BANG_LUAT["khung_doi"]; ds = sorted(int(x) for x in kd["len_gio"])
     som = (luc or dt.datetime.now(dt.timezone.utc)).replace(tzinfo=None) + dt.timedelta(hours=7, minutes=int(kd.get("len_gio_cach_phut", 10)))
     if tu: som = max(som, dt.datetime.strptime(tu.strip().replace("T", " ")[:16], "%Y-%m-%d %H:%M"))
@@ -110,7 +111,14 @@ def gio_len(tu=None, luc=None):
             k = dt.datetime.combine(som.date() + dt.timedelta(days=n), dt.time(h))
             if k >= som: return f"{k:%Y-%m-%d %H:%M}"
     raise ValueError("khung_doi.len_gio rỗng")
-NGOAI = EA.SUA or EA.XEM   # camp của người trong team (xem docstring) — 0 = nhà; ETP_XEM_NGUOI = chạy khô trên camp thật của người đó (cổng chặn mọi lệnh ghi)
+def gio_chay(gio=None, ngay=False, tu_do=False, luc=None):
+    """GIỜ CHẠY CỦA MỘT LỆNH: --ngay → None (chạy ngay) · --gio-tu-do (etp2 #1869, anh 25/11/2026 "Vẫn cho edit tự do nhưng sẽ cảnh báo !!": anh gõ giờ ngoài
+    hai khung, nút đã cảnh báo) → GIỮ ĐÚNG giờ anh đặt · còn lại → khung cố định gio_len. Tự do chỉ đến từ vé TRỰC TIẾP (main kiểm) — máy tự lên vẫn hai khung."""
+    if ngay: return None
+    return gio_len(GioTuDo(gio.strip().replace("T", " ")[:16]) if tu_do and gio else gio, luc)
+class GioTuDo(str):
+    """chuỗi "YYYY-MM-DD HH:MM" giờ VN anh tự đặt (--gio-tu-do) — mang theo ý "đừng dời về khung" qua mọi lần gọi gio_len (main → roas_main)."""
+NGOAI =EA.SUA or EA.XEM   # camp của người trong team (xem docstring) — 0 = nhà; ETP_XEM_NGUOI = chạy khô trên camp thật của người đó (cổng chặn mọi lệnh ghi)
 _TK_SQL = ",".join(str(int(x)) for x in sorted(EA.TK)) or "0"
 def _ap_nuoc(pl, nh):   # A/B kieu 'nuoc': danh sách nước của nhánh vào Ad Set
     sp = pl["campaign"]["ad_groups"][0]["source_payload"]; tg = dict(sp.get("targeting") or {})
@@ -616,7 +624,9 @@ def main(a):
     ngay = "--ngay" in a
     if ngay and not truc: raise SystemExit("--ngay chỉ đi cùng vé TRỰC TIẾP (cong.py --ve-truc-tiep theo câu anh)")
     # HAI KHUNG CỐ ĐỊNH (gio_len, anh 24/11/2026 "Cấm tự lên ngay"): giờ chạy = khung 22h VN gần nhất (từ giờ anh đặt nếu có) — cả vé trực tiếp, không còn "chạy ngay"
-    gio = None if ngay else gio_len(gio)
+    tu_do = "--gio-tu-do" in a   # #1869: giờ anh gõ ngoài hai khung (đã cảnh báo ở nút) → giữ đúng giờ đó; chỉ vé trực tiếp + có --gio
+    if tu_do and not (truc and gio): raise SystemExit("--gio-tu-do chỉ đi cùng --gio và vé TRỰC TIẾP (nút etp2)")
+    gio = gio_chay(gio, ngay, tu_do)
     lich = "today" if ngay or (dt.datetime.strptime(gio, "%Y-%m-%d %H:%M") - dt.timedelta(hours=7)).date() == dt.datetime.now(dt.timezone.utc).date() else "tomorrow"
     ep = "--ep" in a and bool(lay("--bo")); mien_cham = "--mien-cham" in a   # clone sang bộ khác theo lệnh anh — xem docstring
     # ANH NHÂN BẢN TAY (--anh, nút etp2 — anh 10/11/2026 "nếu tao nhân bản bằng tay thì mày không được phép chặn. Đánh dấu camp đó lại, tao chịu trách nhiệm"):
@@ -815,6 +825,10 @@ assert gio_len(luc=_u("2026-11-23T23:00:00")) == "2026-11-24 07:00", "06:00 VN �
 assert gio_len(luc=_u("2026-11-24T14:55:00")) == "2026-11-25 07:00", "21:55 VN (còn < 10 phút) → khung 07:00 sáng mai"
 assert gio_len(luc=_u("2026-11-24T15:30:00")) == "2026-11-25 07:00", "22:30 VN → 07:00 sáng mai"
 assert gio_len("2026-11-24 15:00", luc=_u("2026-11-24T01:00:00")) == "2026-11-24 22:00" and gio_len("2026-11-24 23:00", luc=_u("2026-11-24T05:58:00")) == "2026-11-25 07:00", "giờ anh đặt → khung đầu tiên từ giờ đó"
+assert gio_chay("2026-11-24 15:30", tu_do=True) == "2026-11-24 15:30" and gio_chay("2026-11-24T09:05", tu_do=True) == "2026-11-24 09:05", "#1869 giờ tự do anh đặt → giữ nguyên"
+assert gio_chay("2026-11-24 15:30", luc=_u("2026-11-24T01:00:00")) == "2026-11-24 22:00" and gio_chay(None, luc=_u("2026-11-24T05:58:00")) == "2026-11-24 22:00", "không cờ tự do → vẫn hai khung"
+assert gio_chay("2026-11-24 15:30", ngay=True, tu_do=True) is None and gio_chay(None, tu_do=True, luc=_u("2026-11-24T05:58:00")) == "2026-11-24 22:00", "--ngay chạy ngay; tự do thiếu giờ → khung"
+assert gio_len(gio_chay("2026-11-24 15:30", tu_do=True), luc=_u("2026-11-24T01:00:00")) == "2026-11-24 15:30", "#1869 roas_main gọi lại gio_len trên giờ tự do → vẫn giữ"
 
 def bao_hay_chan(truc, kq, *cua):
     """cổng → lý do chặn đầu tiên (máy tự lên). Vé TRỰC TIẾP của anh (truc): chạy HẾT các cổng, gom lý do vào kq["canh"] + stderr, trả None — không bao giờ chặn
@@ -838,6 +852,7 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
     # GIỜ LÊN ★ ROAS BAN TỐI (gio_roas, sổ khung_doi.len_roas): trong khung chạy ngay, ngoài khung hẹn lần mở khung kế — thay khung sáng lich_len cho ★ ROAS
     # HAI KHUNG CỐ ĐỊNH (anh 24/11/2026 "Cấm tự lên ngay"): ★ ROAS cũng hẹn khung 22h VN gần nhất (gio_len) — bỏ khung tối 23h (gio_roas) và lối chạy liền của vé trực tiếp
     if ngay and not truc: raise ValueError("--ngay chỉ đi cùng vé TRỰC TIẾP")
+    if isinstance(gio, GioTuDo) and not truc: raise ValueError("--gio-tu-do chỉ đi cùng --gio và vé TRỰC TIẾP")   # #1869
     gio = None if ngay else gio_len(gio); ro = None   # --ngay: lệnh trực tiếp của anh "lên luôn bây giờ" (24/11/2026) — chạy ngay, không hẹn khung
     lich = "today" if ngay or (dt.datetime.strptime(gio, "%Y-%m-%d %H:%M") - dt.timedelta(hours=7)).date() == dt.datetime.now(dt.timezone.utc).date() else "tomorrow"
     kq = {"ok": False, "viec": "roas", "goc": goc, "moi": None, "ten": None, "roas": roas, "loi": None, "chay": lich}

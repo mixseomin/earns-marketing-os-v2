@@ -839,6 +839,12 @@ const LUAT = [
   { card: '1863', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "return sl ? { ...o, dong_bo: 'sua_lai' } : o;", vi: 'creative Sửa lại vẫn hiện ở bảng cây camp với trạng thái ✎ Sửa lại' },
   { card: '1863', tep: 'apps/etp2/src/lib/etp-chay.ts', co: "export const suaLaiCr", vi: 'dòng Sửa lại không bị đếm là đang chạy / đã tắt' },
   { card: '1863', tep: 'apps/etp2/src/components/etp-view.tsx', co: "m('sualai', 'Sửa lại'", vi: 'ô Lọc có mục Sửa lại' },
+  { card: '1869', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'lich={c.lich} nhan={s} chiGio', vi: 'bấm chữ giờ ở cột TT dòng chờ ID = mở khung đặt lại ngày giờ (anh 25/11/2026)' },
+  { card: '1869', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'nhan={x.chu} chiGio', vi: 'bấm chữ giờ của camp đã đẩy chờ chạy cũng đặt lại ngày giờ' },
+  { card: '1869', tep: 'apps/etp2/src/components/etp-len-gio.tsx', co: 'data-khung-chinh', vi: 'khung đặt giờ hiện sẵn 2 nút khung chính 07:00 / 22:00' },
+  { card: '1869', tep: 'apps/etp2/src/components/etp-len-gio.tsx', co: 'haiKhung()[0]?.gio', vi: 'mở khung: giờ đang hẹn đã qua thì ô sẵn khung chính kế' },
+  { card: '1869', tep: 'apps/etp2/src/components/etp-len-gio.tsx', co: 'data-canh-ngoai-khung', vi: 'gõ giờ ngoài 2 khung chính vẫn cho, nhưng hiện ô vàng cảnh báo' },
+  { card: '1869', tep: 'apps/etp2/src/lib/etp-khung.ts', co: 'export function laKhung(', vi: 'một chỗ quyết giờ nào là khung chính' },
 ];
 
 const loi = [];

@@ -70,6 +70,22 @@ export function gioLen(now = Date.now(), tu?: number | null): number {
   for (let n = 0; n < 3; n++) for (const h of ds) { const t = ngay0 + n * 864e5 + h * 3600_000; if (t >= som) return t; }
   throw new Error('khung_doi.len_gio rỗng');
 }
+/** HAI KHUNG CHÍNH chọn sẵn ở ô đặt giờ (#1869, anh 25/11/2026 "default hiện sẵn 2 khung giờ chính"): lần kế tiếp của MỖI khung len_gio (07h · 22h VN), không sớm hơn
+ *  now + cách phút, sắp theo thời gian → [{ gio: 'YYYY-MM-DDTHH:MM' giờ VN, chu: '22:00 tối nay' }]. Khung đầu = khung gần nhất = gioLen(now). */
+export function haiKhung(now = Date.now()): { gio: string; chu: string }[] {
+  const k = BANG_LUAT.khung_doi as unknown as { len_gio: number[]; len_gio_cach_phut?: number };
+  const som = now + (k.len_gio_cach_phut ?? 10) * 60_000, ngay0 = Math.floor((som + 7 * 3600_000) / 864e5) * 864e5 - 7 * 3600_000;
+  const nay = new Date(now + 7 * 3600_000).toISOString().slice(0, 10);
+  return [...new Set(k.len_gio)].map((h) => { let t = ngay0 + h * 3600_000; while (t < som) t += 864e5; return t; }).sort((a, b) => a - b).map((t) => {
+    const v = new Date(t + 7 * 3600_000).toISOString(), sang = Number(v.slice(11, 13)) < 12;
+    return { gio: v.slice(0, 16), chu: `${v.slice(11, 16)} ${v.slice(0, 10) === nay ? (sang ? 'sáng nay' : 'tối nay') : sang ? 'sáng mai' : 'tối mai'}` };
+  });
+}
+/** giờ VN 'YYYY-MM-DD[T ]HH:MM' rơi ĐÚNG một khung chính (giờ trong len_gio, phút 00) — ngoài khung = giờ tự do của anh: nút cảnh báo, nhan-ban --gio-tu-do giữ nguyên (#1869) */
+export function laKhung(g: string | null | undefined): boolean {
+  const m = /(\d{2}):(\d{2})$/.exec((g ?? '').trim().slice(0, 16)); if (!m) return false;
+  return m[2] === '00' && (BANG_LUAT.khung_doi as unknown as { len_gio: number[] }).len_gio.map(Number).includes(Number(m[1]));
+}
 /** chữ giờ chạy của camp TẠO lúc `now` — khung gần nhất (gioLen), không bao giờ "chạy ngay". Chữ cho nút / ô "bấm rồi ra sao" (anh 05/11/2026) */
 export function chuLich(now = Date.now()): string {
   const t = gioLen(now), vn = new Date(t + 7 * 3600_000), nay = new Date(now + 7 * 3600_000), p = (n: number) => String(n).padStart(2, '0');

@@ -14,6 +14,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { duyetCham } from '@/lib/actions/etp-cham';
 import { lenCampCr } from '@/lib/actions/etp-dong';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
+import { laKhung } from '@/lib/etp-khung';
 import { giongCr } from '@/lib/etp-ban';
 import { KHUON_CR, keCr, tenCampCr } from '@/lib/etp-ke-cr';
 import { docThietLap, type KeTl } from '@/lib/actions/etp-thiet-lap';
@@ -130,6 +131,10 @@ export async function dsCrMoiCamp(campId: number): Promise<{ cr: number; lang: s
 }
 
 /** o.khuon = camp ★ đang chạy làm KHUÔN (cùng bộ, cùng phim): ★ ROAS creative mới mức o.roas · $o.ns — từ nút nhân bản ★ ROAS "creative mới" */
+/** GIỜ TỰ DO (#1869, anh 25/11/2026 "Vẫn cho edit tự do nhưng sẽ cảnh báo !!"): giờ anh đặt ngoài 2 khung chính (nút đã cảnh báo vàng) → nhan-ban --gio-tu-do giữ
+ *  ĐÚNG giờ đó; giờ đúng khung → như cũ (gio_len). Mọi đường anh đặt giờ (▶ Lên theo giờ, 🕒 đổi giờ, ✎ đổi ROAS giữ giờ) qua MỘT chỗ này. */
+const tuDo = (g: string | null) => !!g && !laKhung(g);
+const lenhGio = (g: string | null) => (g ? ['--gio', g, ...(tuDo(g) ? ['--gio-tu-do'] : [])] : []);
 type LenhNb = { args: string[]; lenh: string; ro: { roas: number; ns: number }; content: number; g: string | null; lich: boolean };
 /** MỘT chỗ dựng lệnh nhan-ban cho ▶ Lên — nút lên thật (lenNgayCr, thêm --that) và 👁 xem trước (xemTruocLen, thêm --xem-truoc) đi CÙNG lệnh này,
  *  nên cái anh xem trước đúng là cái sẽ gửi Ethopex (anh 22/11/2026 "tao cần xem mọi thứ mày sẽ submit thì mới gọi là review") */
@@ -156,11 +161,11 @@ async function lenhNb(cr: number, gio?: string | null, o?: { roas: number; ns: n
   }
   const lang = x.lang === 'es' ? 'es' : 'en', ro = o ? { roas: o.roas, ns: o.ns } : x.roas && x.ns ? { roas: Number(x.roas), ns: Math.trunc(Number(x.ns)) }
     : { roas: Number(BANG_LUAT.hoi_cho.roas), ns: Math.trunc(Number(BANG_LUAT.hoi_cho.ns)) };   // MẶC ĐỊNH ★ ROAS hoi_cho (anh 24/11/2026 "Từ giờ mặc định là roas") — hết camp $1
-  const chu = lich ? `theo lịch: ${chayLuc(Date.now(), !!ro)}` : chuGio(g);
+  const chu = lich ? `theo lịch: ${chayLuc(Date.now(), !!ro)}` : chuGio(g, tuDo(g));
   const lenh = o ? `anh bấm nhân bản ★ ROAS ${o.roas} creative mới #${id} từ camp #${o.khuon} trên etp2 (${chu})` : `anh bấm ${lich ? '⏱ Lên theo lịch' : '▶ Lên ngay'} creative #${id} trên etp2 (${chu})`;
   const ten = tenCampCr(x.ten, lang, id);   // cùng tên camp dự kiến của ô duyệt (lib/etp-ke-cr)
   return { lenh, ro, content: Number(x.content_id), g, lich, args: ['nhan-ban.py', String(o ? Math.trunc(Number(o.khuon)) : x.khuon ? Math.trunc(Number(x.khuon)) : KHUON_CR[lang]), '--roas', String(ro.roas), '--ns', String(ro.ns), '--tay', ...(o ? [] : ['--bo', String(x.bo)]), '--creative', String(id),   // khuôn ★: không --bo → giữ bộ camp khuôn
-    '--content', String(x.content_id), '--ten', ten, ...(g ? ['--gio', g] : [])] };
+    '--content', String(x.content_id), '--ten', ten, ...lenhGio(g)] };
 }
 
 /** ⏸ TẠM DỪNG creative đã duyệt chờ lên camp (anh 25/11/2026 "Vẫn có nút pause nếu cần thủ công"): khoá etp.cau_hinh.hoan_cr = {"<cr>": {luc, ai}}
@@ -210,7 +215,7 @@ export async function lenNgayCr(cr: number, gio?: string | null, o?: { roas: num
   if (!('ma' in v)) return v;
   const log = moNhatKyLen(id, `anh (etp2 ${me.email})`);   // #1770: dòng gửi → bảng hiện "đang lên" ngay
   spawn('python3', [...L.args, '--that', '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
-  return { ok: true, chu: `đã gửi lệnh lên ★ ROAS ${ro.roas} · $${ro.ns} — ${L.lich ? `theo lịch: ${chayLuc(Date.now(), true)}` : chuGio(g)}`, gui: docNhatKyLen(id).gui };
+  return { ok: true, chu: `đã gửi lệnh lên ★ ROAS ${ro.roas} · $${ro.ns} — ${L.lich ? `theo lịch: ${chayLuc(Date.now(), true)}` : chuGio(g, tuDo(g))}`, gui: docNhatKyLen(id).gui };
 }
 
 export type XemTruoc = { ten: string | null; chay: string | null; canh: string[]; payload: Record<string, unknown> } | { loi: string };
@@ -239,13 +244,13 @@ export async function doiGioCamp(campId: number, gio: string): Promise<KqNut> {
   if (!c) return { loi: `không thấy camp #${id} trong sổ nhà` };
   if (!c.cho) return { loi: `camp #${id} không còn chờ giờ chạy — đổi giờ chỉ cho camp chưa chạy` };
   const ro = c.la_roas && c.roas ? { roas: Number(c.roas), ns: Math.trunc(Number(c.ngan_sach ?? 0)) } : null;
-  const lenh = `anh bấm 🕒 đổi giờ camp #${id} trên etp2 → ${chuGio(g)} (camp mới đúng giờ, tạm dừng #${id})`;
+  const lenh = `anh bấm 🕒 đổi giờ camp #${id} trên etp2 → ${chuGio(g, tuDo(g))} (camp mới đúng giờ, tạm dừng #${id})`;
   const v = await xinVeTrucTiep('nhan_ban', { camp: id, lenh, ns: ro?.ns ?? Number(c.ngan_sach ?? 1) });
   if (!('ma' in v)) return v;
   const log = openSync(`/tmp/etp-doi-gio-${id}.log`, 'a');
-  spawn('python3', ['nhan-ban.py', String(id), ...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), '--gio', g, '--thay-cho', String(id), '--that',
+  spawn('python3', ['nhan-ban.py', String(id), ...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), ...lenhGio(g), '--thay-cho', String(id), '--that',
     '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
-  return { ok: true, chu: `đã gửi lệnh: camp mới ${chuGio(g)}, xong thì tạm dừng #${id}` };
+  return { ok: true, chu: `đã gửi lệnh: camp mới ${chuGio(g, tuDo(g))}, xong thì tạm dừng #${id}` };
 }
 
 /** ✎ ĐỔI ROAS LEVEL camp ★ ROAS đã đẩy Ethopex nhưng CHƯA CHẠY (lich > now) — anh 25/11/2026 #1857 "…hoặc chưa active (nếu đc)". Ethopex không sửa Ad Set được,
@@ -261,13 +266,13 @@ export async function doiRoasCamp(campId: number, roas: number): Promise<KqNut> 
   if (!c.la_roas) return { loi: `camp #${id} không phải camp ★ ROAS — không có ROAS level để đổi` };
   if (c.roas != null && Math.abs(Number(c.roas) - r) < 1e-6) return { loi: `camp #${id} đang là ROAS ${r} rồi` };
   const g = c.lich, ns = Math.trunc(Number(c.ngan_sach ?? 0));
-  const lenh = `anh bấm ✎ đổi ROAS camp #${id} trên etp2 → ★ ROAS ${r} (camp mới giữ giờ ${chuGio(g)}, tạm dừng #${id})`;
+  const lenh = `anh bấm ✎ đổi ROAS camp #${id} trên etp2 → ★ ROAS ${r} (camp mới giữ giờ ${chuGio(g, tuDo(g))}, tạm dừng #${id})`;
   const v = await xinVeTrucTiep('nhan_ban', { camp: id, lenh, ns });
   if (!('ma' in v)) return v;
   const log = openSync(`/tmp/etp-doi-gio-${id}.log`, 'a');   // cùng nhật ký đổi giờ → nhatKyDoiGio đọc lỗi KÊU TO dưới nút
-  spawn('python3', ['nhan-ban.py', String(id), '--roas', String(r), '--ns', String(ns), '--gio', g, '--thay-cho', String(id), '--that',
+  spawn('python3', ['nhan-ban.py', String(id), '--roas', String(r), '--ns', String(ns), ...lenhGio(g), '--thay-cho', String(id), '--that',
     '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
-  return { ok: true, chu: `đã gửi lệnh: camp mới ★ ROAS ${r} · $${ns} giữ giờ ${chuGio(g)}, xong thì tạm dừng #${id}` };
+  return { ok: true, chu: `đã gửi lệnh: camp mới ★ ROAS ${r} · $${ns} giữ giờ ${chuGio(g, tuDo(g))}, xong thì tạm dừng #${id}` };
 }
 
 /** tail nhật ký đổi giờ (box3 /tmp/etp-doi-gio-<id>.log) — lỗi KÊU TO dưới nút */

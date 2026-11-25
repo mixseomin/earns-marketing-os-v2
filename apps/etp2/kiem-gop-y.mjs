@@ -13,6 +13,8 @@ const LUAT = [
   { card: 1856, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{ key: 'lai_nay', group: 'lai',", vi: 'Lãi nay đứng trong nhóm Lãi, cạnh Lãi kỳ' },
   { card: 1856, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "{ key: 'tong_chi', header: 'Tổng đã chi'", vi: 'không quay lại cột chi chen giữa Lãi nay và Lãi kỳ' },
   { card: 1826, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<span data-o="loai-truoc-cr"', vi: 'cây camp: huy hiệu loại creative (CT / CC / PO…) đứng ngay trước ô creative (anh 24/11/2026 "chuyển badge thể loại creative ra trước creative")' },
+  { card: 1858, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const [w, h] = [40, 60];   // #1858', vi: 'cây camp: mọi ô creative cùng một cỡ ảnh 40×60 (anh 25/11/2026 "các creative cùng kích thước")' },
+  { card: 1858, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'c.camp_id < 0 ? [40, 60] : [14, 24]', vi: 'không quay lại ảnh 14×24 cho camp đã chạy cạnh ảnh 40×60 của dòng chờ duyệt' },
   { card: 1831, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'setNganCamp(id); })} trangThai={ttCamp}', vi: 'Thiết lập hiện trạng thái camp dưới số camp, đọc CHUNG ttCamp của cây / bảng camp (anh 24/11/2026 "Show trạng thái của camp")' },
   { card: 1831, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: '<span data-tt-camp title={x.t}', vi: 'ô Camp của Thiết lập vẽ chữ trạng thái (rê xem chi tiết), không chỉ số camp trơn' },
   { card: 1829, tep: 'apps/etp2/src/components/etp-camp-cau-hinh.tsx', mot: "gridTemplateColumns: rong ? 'fit-content(180px) minmax(0, 1fr)'", vi: 'ngăn cấu hình camp: cột nhãn co theo chữ dài nhất của khối (tối đa 180px), giá trị sát nhãn, không còn khoảng trống giữa (anh 24/11/2026 "tối ưu chỗ này")' },

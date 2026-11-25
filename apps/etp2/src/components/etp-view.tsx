@@ -2564,7 +2564,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
     return (
           <span data-cot="creative" onMouseEnter={c.creative_id && moCr ? chiRe((e: React.MouseEvent) => moCr(c.creative_id!, e, c.camp_id)) : undefined} onMouseLeave={dongCr}
             onClick={c.creative_id && moCr ? (e) => { e.stopPropagation(); e.preventDefault(); moCr(c.creative_id!, e, c.camp_id); } : undefined} title={`cr #${c.creative_id ?? '?'}${c.doan ? ` · đoạn ${c.doan.split(':')[1] ?? ''}s` : ''}`} style={{ cursor: c.creative_id ? 'zoom-in' : undefined,  display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-            {(() => { const [w, h] = c.camp_id < 0 ? [40, 60] : [14, 24];   // dòng CHỜ ANH DUYỆT: ảnh creative to để duyệt bằng mắt, rê / bấm xem video (anh 22/11/2026 "cần xem cả creative")
+            {(() => { const [w, h] = [40, 60];   // #1858 (anh 25/11/2026 "các creative cùng kích thước"): MỌI dòng cây một cỡ ảnh 40×60 — trước dòng chờ duyệt 40×60 (anh 22/11 "cần xem cả creative") còn camp đã chạy 14×24 nên lệch nhau
               return cr?.anh ? <img src={cr.anh} alt="" style={{ width: w, height: h, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: w, height: h, background: 'var(--line)' }} />; })()}
             {/* chỉ mã + điểm chấm (anh 28/10/2026 #1465 "chỉ cần ID đủ… show thêm điểm số"); đoạn giây ở hover */}
             {/* #1555 (anh 10/11/2026 "ẩn thông tin này, cần thì hover"): mã creative không in ra ô — rê ô mới thấy */}

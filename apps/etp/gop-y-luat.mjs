@@ -1644,7 +1644,7 @@ export const LUAT = [
   { card: 'xem-truoc-len-2211', tep: 'apps/etp2/src/lib/etp-doc.ts', co: '...hangCr.map((c) => c.creative_id!)', vi: 'dòng chờ duyệt có ảnh creative — anh 22/11/2026 "Tao cần xem cả creative !!"' },
   { card: 'cho-duyet-ro-2211', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'title={chuChoDuyet(c)}', cam: 'máy lên ở nhịp worker kế (apps/etp/lenh_cho.py), dừng khẩn thì chờ nhả', vi: 'rê dòng chờ duyệt thấy ▶ Lên sẽ tạo gì: khuôn, ★ ROAS, ngân sách, bộ, giờ chạy, cổng sẽ bỏ qua (anh 22/11/2026 "phải xem được đang làm gì mới duyệt được")' },
   { card: 'cho-duyet-ro-2211', tep: 'apps/etp2/src/lib/etp-doc.ts', co: '...(d.hangCr ?? []).map((c) => c.creative_id)', vi: 'bản nhẹ nạp cả creative dòng chờ duyệt — có ảnh + rê xem video (anh 22/11/2026 "cần xem cả creative")' },
-  { card: 'cho-duyet-ro-2211', tep: 'apps/etp2/src/components/etp-view.tsx', co: "const [w, h] = c.camp_id < 0 ? [40, 60] : [14, 24]", vi: 'dòng chờ duyệt ảnh creative to' },
+  { card: 'cho-duyet-ro-2211', tep: 'apps/etp2/src/components/etp-view.tsx', co: "const [w, h] = [40, 60];   // #1858", vi: 'dòng chờ duyệt ảnh creative to — từ #1858 (anh 25/11/2026 "các creative cùng kích thước") mọi dòng cây cùng cỡ 40×60' },
   { card: 'cho-duyet-ro-2211', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'xep: { khuon: lang === \'es\' ? 65734 : 65110, lang, cta:', vi: 'dòng chờ duyệt mang khuôn + CTA + lỗi lần thử trước' },
   { card: 'khung-gio-2411', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'lich: gioKhung,', vi: 'giờ chạy dòng chờ lên = khung 22h gần nhất (gioLen)' },
   { card: 'cho-duyet-ro-2211', tep: 'apps/etp/lenh_cho.py', co: 'if h.get("ly") != TAY_LY: h.update(tt="cho", ly=TAY_LY); doi = True', vi: 'máy không tự lên ★ ROAS len_cr_roas — chờ anh bấm ▶ Lên' },

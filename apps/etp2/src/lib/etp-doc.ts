@@ -502,18 +502,18 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   }
   // CREATIVE ĐÃ DUYỆT CHỜ LÊN CAMP (anh 22/11/2026 "duyệt rồi thì phải cho vào table bên dưới"): ô vàng chỉ giữ creative CHƯA duyệt; creative đã duyệt chưa camp
   // thành dòng "xếp hàng" trong nhóm phim của nó ở bảng cây — camp_id = −creative_id; kiểu lên theo sổ len_cr_roas (★ ROAS riêng) hay ★ ROAS mặc định hoi_cho (apps/etp/lenh_cho.py, anh 24/11/2026) — chỉ Nhà
-  const hangRs = await runNha<Record<string, unknown>>(sql`select h.creative_id, r.content_id, f.ten phim, f.the_loai, r.dang, h.tao::text tao, coalesce(r.lang, 'en') lang, r.cta_dat cta,
+  const hangRs = await runNha<Record<string, unknown>>(sql`select h.creative_id, r.content_id, f.ten phim, f.the_loai, r.dang, h.tao::text tao, coalesce(r.lang, 'en') lang, r.cta_dat cta, u.ok duyet,
       x.gia_tri -> h.creative_id::text ->> 'roas' ro, x.gia_tri -> h.creative_id::text ->> 'ns' ns, (select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo   -- bộ máy sẽ lên (lenh_cho.py đọc cùng khoá)
-    from etp.cho_anh_duyet_cr h join etp.cham_duyet u on u.creative_id = h.creative_id and u.ok join etp.creative r on r.creative_id = h.creative_id
+    from etp.cho_anh_duyet_cr h left join etp.cham_duyet u on u.creative_id = h.creative_id join etp.creative r on r.creative_id = h.creative_id
       left join etp.phim f on f.content_id = r.content_id left join etp.cau_hinh x on x.khoa = 'len_cr_roas'
-    where not exists (select 1 from etp.camp c where c.creative_id = h.creative_id) order by h.creative_id`).catch((e) => { console.error('etp hangCr', e); return []; });
+    where u.ok is not false and not exists (select 1 from etp.camp c where c.creative_id = h.creative_id) order by h.creative_id`).catch((e) => { console.error('etp hangCr', e); return []; });
   // giờ chạy THẬT của ▶ Lên: khung cố định 22h VN gần nhất (nhan-ban.gio_len, anh 24/11/2026) — cả ★ ROAS lẫn camp $1
   const gioKhung = new Date(gioLen()).toISOString();
   const hangCr: CampEtpKho[] = hangRs.map((r) => { const ro = r.ro == null ? Number(BANG_LUAT.hoi_cho.roas) : Number(r.ro), ns = r.ns == null ? Number(BANG_LUAT.hoi_cho.ns) : Number(r.ns), cr = n(r.creative_id);   // ngoài sổ len_cr_roas = ★ ROAS mặc định hoi_cho (anh 24/11/2026)
-    const lang = r.lang === 'es' ? 'es' : 'en', nk = docNhatKyLen(cr);   // #1770: đã bấm lên mà camp chưa vào sổ = đang lên
+    const lang = r.lang === 'es' ? 'es' : 'en', nk = docNhatKyLen(cr), da = r.duyet === true || r.duyet === 't';   // da = anh đã duyệt (cham_duyet ok) · chưa có dòng = ⏸ Chờ duyệt   // #1770: đã bấm lên mà camp chưa vào sổ = đang lên
     return { camp_id: -cr, xep: { khuon: lang === 'es' ? 65734 : 65110, lang, cta: r.cta === true || r.cta === 't', truoc: nk.truoc, gui: nk.gui },   // khuôn cùng KHUON_CR của lenNgayCr
-      ten: `⏳ Chờ lên camp · ${ro != null ? `★ ROAS ${ro} · $${ns}` : 'camp $1'} · cr #${cr}`.replace(/^⏳ Chờ lên camp/, nk.gui ? '🚀 đang lên' : '$&'), bo: (r.bo as string) || null, trang_thai: 'ACTIVE', giao: null, ngan_sach: ns,
-      creative_id: cr, content_id: r.content_id == null ? null : n(r.content_id), goc: null, lich: gioKhung, tao: (r.tao as string) ?? null, loi: null, dong_bo: 'xep_hang',
+      ten: `⏳ Chờ lên camp · ${ro != null ? `★ ROAS ${ro} · $${ns}` : 'camp $1'} · cr #${cr}`.replace(/^⏳ Chờ lên camp/, !da ? '⏸ Chờ duyệt' : nk.gui ? '🚀 đang lên' : '$&'), bo: (r.bo as string) || null, trang_thai: 'ACTIVE', giao: null, ngan_sach: ns,
+      creative_id: cr, content_id: r.content_id == null ? null : n(r.content_id), goc: null, lich: gioKhung, tao: (r.tao as string) ?? null, loi: null, dong_bo: da ? 'xep_hang' : 'cho_duyet',
       phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, ban: null, giong: null, doan: null, cung_doan: 0,
       thang: st(0, 0), qua: st(0, 0), nay: st(0, 0), lich_tat: false, nuoc: [], ab: null, dong: null, roas: ro, chien_luoc: ro != null ? 'LOWEST_COST_WITH_MIN_ROAS' : null }; });
   // #1832 CAMP ĐANG SẢN XUẤT CREATIVE (anh 25/11/2026 "Đang sản xuất: hiện dòng các camp đang sx creative — mọi thông tin phải có sẵn, chỉ thiếu creative, camp ID, điểm creative… nhưng dạng creative thì phải có"):

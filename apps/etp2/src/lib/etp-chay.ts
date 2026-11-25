@@ -13,14 +13,17 @@ const gio = (o: Luc) => (typeof o === 'object' ? o.now ?? Date.now() : Date.now(
 export const choDuyet = (c: Pick<CampTt, 'dong_bo'>) => c.dong_bo === 'xep_hang';
 /** ĐANG SẢN XUẤT = dòng 🏭 (etp-doc hangCr, dong_bo 'dang_sx'): dòng phim đang làm creative cho camp sắp lên — chưa creative, chưa camp ID (#1832 anh 25/11/2026) */
 export const dangSxCr = (c: Pick<CampTt, 'dong_bo'>) => c.dong_bo === 'dang_sx';
+/** CHỜ ANH DUYỆT = dòng ⏸ (etp-doc hangCr, dong_bo 'cho_duyet'): creative chưa được anh duyệt (cham_duyet chưa có), chưa có camp — KHÁC ⏳ Chờ lên camp (đã duyệt)
+ *  (anh 25/11/2026 "Chờ lên camp tức là phải được duyệt rồi chứ? Còn nếu chờ Duyệt thì phải để 1 status riêng") */
+export const choAnhDuyet = (c: Pick<CampTt, 'dong_bo'>) => c.dong_bo === 'cho_duyet';
 /** dòng CHƯA CÓ CAMP thật (chờ duyệt / đang sản xuất): không phải chạy, chờ giờ hay tắt — một chỗ cho mọi trạng thái bên dưới */
-export const chuaCoCamp = (c: Pick<CampTt, 'dong_bo'>) => choDuyet(c) || dangSxCr(c);
+export const chuaCoCamp = (c: Pick<CampTt, 'dong_bo'>) => choDuyet(c) || dangSxCr(c) || choAnhDuyet(c);
 export const choGio = (c: CampTt, o: Luc = {}) => { const now = gio(o); return !chuaCoCamp(c) &&!!c.lich && Date.parse(c.lich) > now && (c.trang_thai === 'ACTIVE' || dangTao(c)); };
 /** CHỜ CHẠY = chờ giờ hẹn, HOẶC vừa bấm Lên mà Ethopex còn đang tạo / kiểm ad (camp "chạy ngay" có lich đã qua, PAUSED tới khi kiểm xong).
  *  #1770 (anh 22/11/2026 "đã gửi thì status này phải update ngay lập tức chứ ?"): camp vừa lên chạy ngay không khớp choGio → bị đếm vào Đã tắt, rời khỏi lọc Chạy + Chờ + Duyệt */
 export const choChay = (c: CampTt, o: Luc = {}) => choGio(c, o) || (!chuaCoCamp(c) &&c.trang_thai !== 'ACTIVE' && dangTao(c));
 /** đang chạy thật = ACTIVE và đã tới giờ chạy */
-export const dangChay = (c: CampTt, o: Luc = {}) => c.trang_thai === 'ACTIVE' && !dangSxCr(c) && !choDuyet(c) && !choGio(c, { now: gio(o) });
+export const dangChay = (c: CampTt, o: Luc = {}) => c.trang_thai === 'ACTIVE' && !dangSxCr(c) && !choAnhDuyet(c) && !choDuyet(c) && !choGio(c, { now: gio(o) });
 /** "hẹn 07:00" (trong 24 giờ tới) / "hẹn 07:00 08/11" cho camp chờ giờ */
 export const chuHen = (lich: string, o: Luc = {}) => { const now = gio(o); const t = Date.parse(lich), d = new Date(t + 7 * 3600_000); const p = (n: number) => String(n).padStart(2, '0');
   return `hẹn ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}${t - now < 86_400_000 ? '' : ` ${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}`}`; };   // trong 24 giờ tới chỉ ghi giờ (ô hẹp)

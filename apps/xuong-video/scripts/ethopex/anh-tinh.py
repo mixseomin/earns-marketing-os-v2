@@ -40,7 +40,16 @@ KIEU_GIONG = {
     "cam_xuc":  ("Jessica", "[crying] {a} {b} [shouting] {c}"),
     "hao_hung": ("Laura",   "[excited] {a} {b} [screams] {c}"),
     "thuong":   ("George",  "{a} {b} {c}"),
+    "tinh_nghich": ("Charlotte", "[mischievously] {a}... [laughs] {b} [excited] {c}"),   # phép thuật / hài / tình cảm vui (anh 25/11/2026 giọng theo chủ đề phim)
 }
+# MÔ TẢ KIỂU GIỌNG cho mô hình chọn theo chủ đề phim (xep-khung.py, cùng lượt xếp khung) — thêm kiểu mới vào KIEU_GIONG thì thêm mô tả ở đây
+MO_TA_GIONG = {"ky_di": "male, whispering then sinister laugh then shouting — supernatural, dark fantasy, system / cultivation, mystery",
+               "gao": "male, shouting and screaming — revenge, hidden billionaire / underdog, mafia, power reversal, action",
+               "cam_xuc": "female, crying then shouting — regret, betrayal, mother and child, tragic family drama",
+               "hao_hung": "female, excited and screaming — passionate romance, school love, period drama",
+               "thuong": "male, plain calm narration — serious drama, biography, war, when no strong mood fits",
+               "tinh_nghich": "female, mischievous with laughs then excited — magic / wishes, comedy, light-hearted or sweet romance"}
+assert set(MO_TA_GIONG) == set(KIEU_GIONG), "MO_TA_GIONG phải mô tả đủ mọi kiểu trong KIEU_GIONG"
 THE_LOAI_GIONG = {"fantasy": "ky_di", "soi": "ky_di", "vien_tuong": "ky_di", "he_thong": "ky_di",
                   "vo_danh": "gao", "ty_phu": "gao", "mafia": "gao", "doi_thuong": "gao",
                   "hoi_han": "cam_xuc", "me_con": "cam_xuc", "tinh_cam": "hao_hung", "hoc_duong": "hao_hung", "co_trang": "hao_hung"}
@@ -263,10 +272,11 @@ def _mo_ta(url):
         import importlib.util
         s = importlib.util.spec_from_file_location("tt_mo_ta", os.path.join(D, "tai-tap.py")); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m.mo_ta(url)
     except Exception as e: print("không đọc được tóm tắt phim:", e, file=sys.stderr); return ""
-def xep_ai(ten, uv, mo_ta="", the_loai="", poster=None):
+def xep_ai(ten, uv, mo_ta="", the_loai="", poster=None, chon_giong=None):
     """AI xếp hạng ứng viên theo độ ấn tượng / đẹp (box3 xep-khung.py, ckey) → (danh sách theo thứ tự, lý do, ₫). Lỗi → giữ thứ tự điểm máy.
     poster: POSTER GỐC của phim làm ảnh đối chiếu (anh 20/11/2026 "Sao nó ko liên quan gì đến poster gốc?" — Undercover Prison King ra khung người lính quân phục trong khi
-    poster + mọi ad đối thủ là nhân vật chính áo tù cam) → AI ưu tiên khung đúng nhân vật chính, đúng tạo hình như trên poster. Không truyền thì tự tìm poster.jpg cạnh thư mục khung."""
+    poster + mọi ad đối thủ là nhân vật chính áo tù cam) → AI ưu tiên khung đúng nhân vật chính, đúng tạo hình như trên poster. Không truyền thì tự tìm poster.jpg cạnh thư mục khung.
+    chon_giong: dict rỗng truyền vào → cùng lượt gọi, AI chọn KIỂU GIỌNG theo chủ đề phim (MO_TA_GIONG), ghi vào {"giong", "giong_ly_do"} (anh 25/11/2026)."""
     import base64, io
     def du(p_, q=80, cao=None):
         im = Image.open(p_).convert("RGB")
@@ -275,10 +285,11 @@ def xep_ai(ten, uv, mo_ta="", the_loai="", poster=None):
     anh = [du(u["nho"]) for u in uv]
     poster = poster or (os.path.join(os.path.dirname(os.path.dirname(uv[0]["nho"])), "poster.jpg") if uv else None)
     pa = du(poster, 82, 640) if poster and os.path.exists(poster) else None
-    r = subprocess.run(["ssh", B, f"{ENV}; python3 apps/xuong-video/scripts/ethopex/xep-khung.py"], input=json.dumps({"ten": ten, "anh": anh, "mo_ta": mo_ta, "the_loai": the_loai, **({"poster": pa} if pa else {})}), capture_output=True, text=True, timeout=300)
+    r = subprocess.run(["ssh", B, f"{ENV}; python3 apps/xuong-video/scripts/ethopex/xep-khung.py"], input=json.dumps({"ten": ten, "anh": anh, "mo_ta": mo_ta, "the_loai": the_loai, **({"poster": pa} if pa else {}), **({"giong_chon": MO_TA_GIONG} if chon_giong is not None else {})}), capture_output=True, text=True, timeout=300)
     try: j = json.loads(r.stdout.strip().splitlines()[-1])
     except Exception: j = {"thu_tu": [], "ly_do": (r.stderr or r.stdout)[-200:], "vnd": 0}
     tt = j.get("thu_tu") or list(range(len(uv)))
+    if chon_giong is not None and j.get("giong") in KIEU_GIONG: chon_giong.update(giong=j["giong"], giong_ly_do=j.get("giong_ly_do") or "")
     for x in j.get("khung") or []:   # nhãn cảm xúc + nhân vật từng khung (có khi gửi tóm tắt phim) — bản dựng lần sau cho cùng phim chọn khung khác cảm xúc
         if 0 <= x.get("i", -1) < len(uv): uv[x["i"]]["cam_xuc"] = x.get("cam_xuc") or ""; uv[x["i"]]["nhan_vat"] = x.get("nhan_vat") or ""
     return [uv[i] for i in tt], j.get("ly_do", ""), int(j.get("vnd") or 0)
@@ -471,6 +482,15 @@ def xoay_giong(ds, yeu_cau):
         cid = int(p["content_id"]); co = {x["giong"] for x in da if x["content_id"] == cid}
         k = min(KIEU_GIONG, key=lambda k: (k in co, dem[k], list(KIEU_GIONG).index(k))); ra[cid] = k; dem[k] += 1
     return ra
+
+def giong_phim(p, ai=None, ghim=None):
+    """KIỂU GIỌNG CỦA MỘT PHIM (anh 25/11/2026 "giọng cần phiên bản theo film và theme film") — thứ tự: anh ghim (ô Giọng) → AI chọn theo chủ đề câu chuyện
+    (xep_ai chon_giong) → thể loại trong sổ (THE_LOAI_GIONG) → giọng mặc định sổ luật. → (kiểu, nguồn)"""
+    if ghim in KIEU_GIONG: return ghim, "anh ghim"
+    if ai in KIEU_GIONG: return ai, "AI theo chủ đề phim"
+    tl = THE_LOAI_GIONG.get(p.get("the_loai") or "")
+    return (tl, f"thể loại {p.get('the_loai')}") if tl else (GIONG_MAC_DINH, "mặc định sổ luật")
+assert giong_phim({"the_loai": "mafia"}) == ("gao", "thể loại mafia") and giong_phim({}, "tinh_nghich")[0] == "tinh_nghich" and giong_phim({}, "x", "cam_xuc")[0] == "cam_xuc" and giong_phim({})[0] == GIONG_MAC_DINH
 
 def cau_doc(lang, so_mau, kieu, ten):
     """câu đọc của một mẫu — MỘT chỗ cho giọng đọc lẫn dấu sổ. Gộp mạo từ lặp khi tên phim đã mở bằng nó ("Watch the The Great…" — Genie 21/11/2026)"""

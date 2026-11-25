@@ -375,7 +375,8 @@ def dt_anh_dong_logo(c):
     cho lớp phủ hiện ở giây 1,5. Xem trước = ảnh tĩnh này."""
     lop, day = _lop_logo(c, NUT_DONG)
     pal = bang_mau_logo(logo_goc(c)[0])   # nhãn + nút lấy màu / kiểu chữ theo logo của phim (anh 25/11/2026 "dùng layout và thiết kế cho hợp với logo hoặc nội dung film")
-    nut_logo(lop, cta(c, "WATCH MORE"), day + 24, pal)
+    c["_nut"] = (pal, cta(c, "WATCH MORE"), day + 24)   # nhip_nut dựng lại đúng nút này để nảy lúc giọng gọi CTA
+    nut_logo(lop, *c["_nut"][1:], pal)
     nhan_logo(lop, c, pal)   # nhãn trên cùng "All Episodes Released" như mọi AT (anh 25/11/2026 "thiếu dòng ở trên: all episodes... ở creative")
     return None, lop
 CAN_CHO = {"dt_logo_chat_lieu": lambda c: (logo_goc(c)[0].height, logo_cho), "dt_anh_dong_logo": lambda c: (logo_goc(c)[0].height + NUT_DONG, logo_cho)}   # mẫu cần KHUNG ĐỦ CHỖ: (chiều cao khối, hàm thử chỗ) — vòng dựng duyệt khung xếp hạng tới khi vừa
@@ -699,12 +700,48 @@ def chuyen_dong(nen, tm, cid, ma, b):
     except Exception as e: print("xoá clip trên cổng lỗi (bỏ qua):", e, file=sys.stderr)
     os.remove(so)
     return ra, vnd
-def dung_dong(clip, chu, mp3, ra):
-    """clip AI + lớp phủ hiện mờ ở giây DONG_HIEN + giọng → mp4 1080×1920; clip ngắn hơn giọng thì giữ khung cuối. Bỏ tiếng của clip AI."""
+GIONG_TRE = 0.4   # giọng vào sau 0,4s (adelay của dung_dong)
+NHIP_GIAY, NHIP_NAY = 1.8, 0.5   # độ dài hiệu ứng nút · giây mỗi nhịp nảy
+def moc_cta(mp3, cau_cta):
+    """GIÂY GIỌNG BẮT ĐẦU ĐỌC CÂU CTA trong mp3 (câu CTA luôn là vế cuối {c} của mẫu câu giọng — "Watch More Now!", "“See more” to continue watching!"):
+    khoảng lặng gần nhất với (độ dài giọng − giây ước đọc câu CTA). Cổng giọng không trả mốc từng từ → đo bằng silencedetect, 0₫."""
+    dai = float(AT.sh("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", mp3).stdout)
+    r = AT.sh("ffmpeg", "-hide_banner", "-i", mp3, "-af", "silencedetect=noise=-35dB:d=0.12", "-f", "null", "-")
+    het = [float(x) for x in re.findall(r"silence_end: ([\d.]+)", r.stderr) if float(x) < dai - 0.6]
+    dich = dai - (len(re.sub(r"\W", "", cau_cta)) * 0.075 + 0.35)
+    return min(het, key=lambda e: abs(e - dich)) if het else max(0.0, dich)
+def nhip_nut(c, tm, b):
+    """NÚT CTA NẢY ĐÚNG LÚC GIỌNG GỌI (anh 25/11/2026 "thêm hiệu ứng nút cta ở đoạn voice nhắc đến"): dựng lại đúng nút của mẫu trên lớp trống, cắt sát →
+    chuỗi khung PNG NHIP_GIAY giây: nảy 3 nhịp (phóng 1 → 1,12 → 1) + quầng sáng màu logo bùng theo nhịp + vệt sáng lướt ngang thân nút → (thư mục, x, y)."""
+    import shutil
+    pal, chu, y = c["_nut"]; lo = Image.new("RGBA", (W, H)); nut_logo(lo, chu, y, pal)
+    x0, y0, x1, y1 = lo.split()[3].point(lambda v: 255 if v > 8 else 0).getbbox(); pad = 80
+    box = (max(0, x0 - pad), max(0, y0 - pad), min(W, x1 + pad), min(H, y1 + pad)); nut = lo.crop(box); bw, bh = nut.size
+    dac = nut.split()[3].point(lambda v: 255 if v > 200 else 0)   # thân nút (phần đặc, không gồm quầng tối)
+    qs = dac.filter(ImageFilter.MaxFilter(31)).filter(ImageFilter.GaussianBlur(22))
+    d = os.path.join(tm, f"nhip-nut-{b}"); shutil.rmtree(d, True); os.makedirs(d)
+    for i in range(int(NHIP_GIAY * 30)):
+        t = i / 30; nay = math.sin(math.pi * (t % NHIP_NAY) / NHIP_NAY) if t < 3 * NHIP_NAY else 0.0; s = 1 + 0.12 * nay
+        f = Image.new("RGBA", (bw, bh))
+        def phong(im): w2, h2 = round(bw * s), round(bh * s); im = im.resize((w2, h2), Image.LANCZOS); o = Image.new(im.mode, (bw, bh)); o.paste(im, ((bw - w2) // 2, (bh - h2) // 2)); return o
+        if nay > 0.02: q = Image.new("RGBA", (bw, bh), pal[0] + (0,)); q.putalpha(phong(qs).point(lambda v: min(255, int(v * 1.7 * nay)))); f.alpha_composite(q)
+        f.alpha_composite(phong(nut))
+        if 0.15 <= t <= 0.85:   # vệt sáng chéo lướt trái → phải một lần, chỉ trên thân nút
+            xv = int(-0.25 * bw + (t - 0.15) / 0.7 * 1.5 * bw); v = Image.new("L", (bw, bh)); ImageDraw.Draw(v).polygon([(xv, 0), (xv + 70, 0), (xv + 10, bh), (xv - 60, bh)], fill=210)
+            v = ImageChops.multiply(v.filter(ImageFilter.GaussianBlur(10)), phong(dac)); w_ = Image.new("RGBA", (bw, bh), (255, 255, 255, 0)); w_.putalpha(v); f.alpha_composite(w_)
+        f.save(os.path.join(d, f"{i:03d}.png"))
+    return d, box[0], box[1]
+def dung_dong(clip, chu, mp3, ra, nhip=None):
+    """clip AI + lớp phủ hiện mờ ở giây DONG_HIEN + giọng → mp4 1080×1920; clip ngắn hơn giọng thì giữ khung cuối. Bỏ tiếng của clip AI.
+    nhip = (thư mục khung nhip_nut, x, y, giây bắt đầu) → nút nảy chồng đúng chỗ nút tĩnh lúc giọng đọc câu CTA."""
     L = max(AT.GIAY_MIN + 1, float(AT.sh("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", mp3).stdout) + 1.4)
-    r = AT.sh("ffmpeg", "-v", "error", "-y", "-i", clip, "-loop", "1", "-i", chu, "-i", mp3, "-filter_complex",
+    vao, loc = [], "[n][c]overlay=0:0[v]"
+    if nhip:
+        vao = ["-framerate", "30", "-i", os.path.join(nhip[0], "%03d.png")]
+        loc = f"[n][c]overlay=0:0[v0];[3:v]format=rgba,setpts=PTS+{nhip[3]:.2f}/TB[nn];[v0][nn]overlay={nhip[1]}:{nhip[2]}:eof_action=pass[v]"
+    r = AT.sh("ffmpeg", "-v", "error", "-y", "-i", clip, "-loop", "1", "-i", chu, "-i", mp3, *vao, "-filter_complex",
               f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H},fps=30,setsar=1,tpad=stop_mode=clone:stop_duration={L:.2f}[n];"
-              f"[1:v]format=rgba,fade=in:st={DONG_HIEN}:d=0.4:alpha=1[c];[n][c]overlay=0:0[v];[2:a]adelay=400|400,apad[a]",
+              f"[1:v]format=rgba,fade=in:st={DONG_HIEN}:d=0.4:alpha=1[c];{loc};[2:a]adelay=400|400,apad[a]",
               "-map", "[v]", "-map", "[a]", "-t", f"{L:.2f}", *AT.MA_HOA, ra)
     if r.returncode != 0: raise RuntimeError(f"ffmpeg: {r.stderr[-300:]}")
     return round(L, 1)
@@ -772,9 +809,9 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
             if not xem: ghi_poster(cid, p["url"], tm)
             tt("chon_khung", g=f"{len(uv)} khung ứng viên → AI xếp hạng")
             mt = TB.mo_ta(p["url"])
-            uv, ly_xep, v = AT.xep_ai(ten, uv, mt, p.get("the_loai") or "") if len(uv) > 1 else (uv, "", 0); vnd += v
+            gp = {}; uv, ly_xep, v = AT.xep_ai(ten, uv, mt, p.get("the_loai") or "", chon_giong=gp) if len(uv) > 1 else (uv, "", 0); vnd += v   # cùng lượt: AI chọn kiểu giọng theo chủ đề phim
             if ly_xep: print(f"xếp khung: {ly_xep[:300]}", flush=True)
-            _NHO[cid] = {"uv": uv, "mo_ta": mt}; ghi_uv(tm, _NHO[cid])
+            _NHO[cid] = {"uv": uv, "mo_ta": mt, **({"giong": gp["giong"], "giong_ly_do": gp.get("giong_ly_do") or ""} if gp.get("giong") else {})}; ghi_uv(tm, _NHO[cid])
         uv_du = copy.deepcopy(_NHO[cid]["uv"]); uv = copy.deepcopy(uv_du)   # bản sao: AT.anh cộng dồn k["xoa"] — không để lượt sau mang vệt xoá của lượt trước
         # BẢN SAU KHÁC BẢN TRƯỚC (anh 20/11/2026 "khi chọn cắt tiếp creative 1 lần nữa cho cùng phim thì làm sao để mẫu có sự khác đi ?"): trước đây lần nào cũng lấy khung xếp hạng 1,
         # cùng câu nhử, cùng câu đọc → ra bản y hệt. Giờ sổ etp.mau_dung nhớ khung + câu nhử đã dùng của (mẫu, phim): lần sau bỏ khung đã dùng, ưu tiên khung KHÁC CẢM XÚC,
@@ -852,16 +889,21 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
             if xem and not thu:   # xem: ảnh ghép tĩnh, không giọng
                 Image.alpha_composite(Image.open(nen).convert("RGBA"), lop).convert("RGB").save(out.replace(".mp4", ".jpg"), quality=88); cr.append(out.replace(".mp4", ".jpg")); continue
             tt("giong", g="giọng đọc (cổng giọng chung)")
-            kg = AT.xoay_giong([p], None)[cid]; mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, g_ghim % len(AT.CAU[lang]) if g_ghim is not None else (len(da_khung) + b) % len(AT.CAU[lang])); vnd += v   # câu đọc xoay theo số bản đã dựng
+            kg, ng = AT.giong_phim(p, _NHO[cid].get("giong"), str((o_.get("giong") or {}).get("kieu") or "") or None)   # giọng theo phim + chủ đề phim (anh 25/11/2026)
+            print(f"giọng: {kg} · {AT.KIEU_GIONG[kg][0]} · {ng}" + (f" — {_NHO[cid]['giong_ly_do']}" if ng.startswith("AI") and _NHO[cid].get("giong_ly_do") else ""), flush=True)
+            so_cau = g_ghim % len(AT.CAU[lang]) if g_ghim is not None else (len(da_khung) + b) % len(AT.CAU[lang]); mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, so_cau); vnd += v   # câu đọc xoay theo số bản đã dựng
             if ma in DONG:
                 tt("video", g=f"AI làm khung chuyển động {DONG_GIAY}s + dựng video 1080×1920 (lớp phủ hiện ở giây {DONG_HIEN})")
-                clip, v = chuyen_dong(nen, tm, cid, ma, b); vnd += v; giay = dung_dong(clip, chu, mp3, out)
+                clip, v = chuyen_dong(nen, tm, cid, ma, b); vnd += v; nhip = None
+                if c.get("_nut"):   # nút CTA nảy đúng lúc giọng đọc câu CTA (vế cuối mẫu câu giọng)
+                    t_cta = max(DONG_HIEN + 0.5, GIONG_TRE + moc_cta(mp3, AT.CAU[lang][so_cau][2])); nhip = (*nhip_nut(c, tm, b), t_cta); print(f"nút CTA nảy ở giây {t_cta:.2f}", flush=True)
+                giay = dung_dong(clip, chu, mp3, out, nhip)
             else:
                 tt("video", g="dựng video 1080×1920")
                 giay = AT.dung(nen, chu, mp3, out)
             if thu: print(f"[thử] {out} · {giay}s · {vnd}₫", flush=True); cr.append(out); continue
             tt("thu_vien", g=f"nạp thư viện ({giay}s)")
-            tv = TB.nap(cid, lang, out, dang, f"mẫu:{ma} · {muc['ten']} · bản {len(da_khung) + 1} · khung {k['tap']}#{k['so']}" + (f" · {k['cam_xuc']} · {k.get('nhan_vat') or ''}" if k.get("cam_xuc") else "") + (f" · bản soạn #{soan}" if soan else ""), v, (tc.get("chu_dau") or "").strip() or None)
+            tv = TB.nap(cid, lang, out, dang, f"mẫu:{ma} · {muc['ten']} · bản {len(da_khung) + 1} · khung {k['tap']}#{k['so']}" + (f" · {k['cam_xuc']} · {k.get('nhan_vat') or ''}" if k.get("cam_xuc") else "") + (f" · bản soạn #{soan}" if soan else "") + f" · giọng {kg}", v, (tc.get("chu_dau") or "").strip() or None)
             if not tv: raise RuntimeError("nạp thư viện không ra mã")
             soan_tt("dung", "đã vào thư viện — đang tải creative lên Ethopex", tv_id=tv)
             AT.sql(f"update etp.mau_dung set tv_ids = array_append(tv_ids, {int(tv)}), khung_dung = array_append(khung_dung, {s_(khoa(k) + '|' + (k.get('cam_xuc') or ''))})"
@@ -888,14 +930,14 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
 CANH = []   # cảnh báo của lượt xem trước (chữ che mặt…) — bản xem vẫn ra để anh thấy, bản thật sẽ bị chặn
 XEM_BOX = "/var/lib/etp-xem"   # box3: ảnh xem trước + ảnh nhỏ khung ứng viên, trang etp2 đọc qua /etp/xem?f=<cid>/…
 def ghi_uv(tm, nho):
-    try: json.dump({"uv": nho["uv"], "mo_ta": nho.get("mo_ta") or "", **({"cau": list(nho["cau"])} if nho.get("cau") else {})}, open(os.path.join(tm, "xem-uv.json"), "w"), ensure_ascii=False)
+    try: json.dump({"uv": nho["uv"], "mo_ta": nho.get("mo_ta") or "", **{k: nho[k] for k in ("giong", "giong_ly_do") if nho.get(k)}, **({"cau": list(nho["cau"])} if nho.get("cau") else {})}, open(os.path.join(tm, "xem-uv.json"), "w"), ensure_ascii=False)
     except Exception as e: print("không ghi được khung đã xếp ra đĩa:", e, file=sys.stderr)
 def doc_uv(tm):
     """khung đã xếp hạng của lượt dựng trước — chỉ dùng khi tập + ảnh nhỏ còn trên đĩa (máy dọn bộ nhớ đệm thì trích lại)"""
     try:
         j = json.load(open(os.path.join(tm, "xem-uv.json")))
         if j.get("uv") and all(os.path.exists(os.path.join(tm, u["tap"] + ".mp4")) and os.path.exists(u["nho"]) for u in j["uv"]):
-            return {"uv": j["uv"], "mo_ta": j.get("mo_ta") or "", **({"cau": tuple(j["cau"])} if j.get("cau") else {})}
+            return {"uv": j["uv"], "mo_ta": j.get("mo_ta") or "", **{k: j[k] for k in ("giong", "giong_ly_do") if j.get(k)}, **({"cau": tuple(j["cau"])} if j.get("cau") else {})}
     except Exception: pass
     return None
 

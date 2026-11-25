@@ -766,6 +766,12 @@ const LUAT = [
   { card: 'nut-tay-2511', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: "const vt = await xinVeTrucTiep('tao_camp', { content: x.content_id,", vi: 'nút lên camp creative (Sản xuất) = vé trực tiếp, cấp trước khi ghi dòng đang lên' },
   { card: 'nut-tay-2511', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', cam: "xinVeTay(", vi: 'etp-dong không còn vé tay' },
   { card: 'nut-tay-2511', tep: 'apps/etp/cong.py', co: 'truc_tiep(viec, [x for x in (camp_id, goc) if x], ct): return None', vi: 'vé trực tiếp nhân bản (gắn camp gốc) miễn phanh trong kiem (goc=)' },
+  { card: '1847', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', mot: "export const SU_DUYET = 'etp-duyet-cr'", vi: 'bấm Duyệt / Loại phát tín hiệu đổi trạng thái ngay, không đợi tải lại bảng' },
+  { card: '1847', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: 'bam(cr, () => duyetChoAnh(cr, hoi), hoi)', vi: 'form Duyệt / Loại báo kèm duyệt hay loại cho tín hiệu' },
+  { card: '1847', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "x.duyet === false ? { chu: '✕ Đã loại'", vi: 'thẻ chờ duyệt: creative bị loại ghi Đã loại, không ghi Chờ lên camp' },
+  { card: '1847', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'window.addEventListener(SU_DUYET, f)', vi: 'trang camp nghe tín hiệu và đổi dòng ⏸ ngay lúc bấm' },
+  { card: '1847', tep: 'apps/etp2/src/components/etp-view.tsx', co: "daLoaiCr(c) ? { chu: '✕ Đã loại'", vi: 'ô trạng thái có trạng thái Đã loại' },
+  { card: '1847', tep: 'apps/etp2/src/lib/etp-chay.ts', mot: "c.dong_bo === 'da_loai'", vi: 'một định nghĩa Đã loại, tính là chưa có camp' },
 ];
 
 const loi = [];

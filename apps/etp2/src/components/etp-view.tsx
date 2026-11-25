@@ -2085,6 +2085,9 @@ const O0 = ({ v, t, cot, s }: { v: number | null; t: string; cot: string; s?: So
 // VẠCH % NGÂN SÁCH ĐÃ TIÊU (góp ý #1550 anh 09/11/2026 "thêm 1 đường xanh giống trong hover thể hiện % tiêu thụ ngân sách"): ô hôm nay có thêm vạch xanh
 // cùng màu đường 'chi cộng dồn / NS' của biểu đồ giờ (#60a5fa) ở đáy ô — dài = chi hôm nay / ngân sách ngày (đầy = tiêu hết, FB gần như ngừng phân phối)
 const MAU_CHI_NS = '#60a5fa';
+// CHI TRUNG BÌNH MỖI CAMP (góp ý #1874 anh 26/11/2026 "Show thêm mức chi trung bình vào đây"): ô ngày của dòng phim / dòng tổng có thêm dòng "TB $x" dưới "n camp"
+// = chi ngày ÷ số camp có chi; gọn chữ để vừa ô 38px ($0.69 · $12.3 · $123); số đủ + phép chia nằm ở chữ rê
+const tienGon = (x: number) => `$${x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2)}`;
 const O = ({ v, t, cot, s, max, mo, nhom, n, bac, gio, ns }: { v: number | null; t: string; cot: string; s?: SoTien; max?: { p: number; n: number }; mo?: boolean; nhom?: boolean; n?: number; bac?: DuLieuEtp['lsBac'][number]; gio?: GioO; ns?: number }) => {
   if (s == null || max == null) return <O0 v={v} t={t} cot={cot} s={s} />;
   // cột camp NHỎ hơn cột phim (góp ý #1485 anh 29/10/2026 "cột ROI của camp bé hơn cột ROI của phim"): phim cao 22 · rộng đủ ô, camp cao 15 · hẹp hơn
@@ -2101,6 +2104,7 @@ const O = ({ v, t, cot, s, max, mo, nhom, n, bac, gio, ns }: { v: number | null;
     </span>
     <span data-cot={`${cot}-so`} style={{ fontSize: 10.5, lineHeight: '12px', marginTop: 2, color: mau, fontVariantNumeric: 'tabular-nums', fontWeight: nhom ? 700 : undefined }}>{soO(v, s, '')}</span>
     {n != null ? <span data-cot={`${cot}-camp`} title={`${n} camp có chi trong ngày`} style={{ fontSize: 9.5, lineHeight: '11px', color: n ? 'var(--fg-2)' : 'var(--fg-3)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{n} camp</span> : null}
+    {n && s.chi > 0 ? <span data-cot={`${cot}-tb`} title={`chi trung bình mỗi camp: ${usd(s.chi / n)} (chi ${usd(s.chi)} ÷ ${n} camp có chi)`} style={{ fontSize: 9, lineHeight: '11px', color: 'var(--fg-2)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>TB {tienGon(s.chi / n)}</span> : null}
     {pNs != null ? <span data-cot={`${cot}-ns`} title={`đã tiêu ${pNs}% ngân sách ngày ${usd(ns!)}`} style={{ position: 'relative', width: 30, height: 2, marginTop: 2, borderRadius: 1, background: `${MAU_CHI_NS}33` }}>
       <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.min(100, pNs)}%`, borderRadius: 1, background: MAU_CHI_NS }} /></span> : null}</span>;
   return bac?.length || (gio && s.chi > 0) ? <ONgay bac={bac} d={{ t, v, s, ns, n }} gio={s.chi > 0 ? gio : undefined}>{o}</ONgay> : o;
@@ -2116,7 +2120,7 @@ function DauNgay({ d }: { d: DuNgay }) {
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
       <span style={{ fontSize: 13, color: 'var(--fg-1)' }}>{d.t.replace(/^ROI\s*/, '')}</span>
       <span style={{ fontSize: 11, color: 'var(--fg-3, #777)' }}>ROI</span><b style={{ fontSize: 18, color: mau, fontVariantNumeric: 'tabular-nums' }}>{d.v == null ? '—' : `${d.v > 0 ? '+' : ''}${d.v}%`}</b>
-      {d.n != null ? <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--fg-2)' }}>{d.n} camp có chi</span> : null}
+      {d.n != null ? <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--fg-2)' }}>{d.n} camp có chi{d.n && d.s.chi > 0 ? <> · TB <b style={{ color: 'var(--fg-1)' }}>{usd(d.s.chi / d.n)}</b>/camp</> : null}</span> : null}
     </div>
     <div style={{ display: 'flex', gap: 22, marginTop: 6 }}>{so('Chi', usd(d.s.chi))}{so('Thu', usd(d.s.thu))}{so('Lãi', usd(lai), lai >= 0 ? '#4ade80' : '#f87171')}</div>
     {pNs != null ? <div style={{ marginTop: 8 }}>

@@ -492,6 +492,8 @@ const LUAT = [
   { card: 1850, tep: 'apps/etp2/src/components/ui/video-xem.tsx', co: 'export function NutTieng()', vi: 'có nút tắt / bật tiếng toàn trang (anh "Thêm 1 nút tắt/bật sound toàn site")' },
   { card: 1850, tep: 'apps/etp2/src/components/ui/video-xem.tsx', co: 'window.dispatchEvent(new Event(SU_KIEN))', vi: 'đổi tiếng phát sự kiện → mọi video đang mở + nút đổi theo ngay' },
   { card: 1850, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'kySel() : null}<NutTieng />', vi: 'nút tiếng đứng cạnh ô kỳ ở hàng tiêu đề, đúng chỗ anh khoanh' },
+  { card: 1874, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'TB {tienGon(s.chi / n)}</span>', vi: 'ô ngày dòng phim / dòng tổng hiện chi trung bình mỗi camp (TB $x) dưới số camp (anh 26/11/2026)' },
+  { card: 1874, tep: 'apps/etp2/src/components/etp-view.tsx', co: '/camp</> : null}', vi: 'thẻ rê ô ngày ghi chi trung bình mỗi camp cạnh số camp có chi' },
   { card: 1753, tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: '<VideoXem src={video}', cam: 'autoPlay muted loop playsInline controls', vi: 'khung bài QC dùng VideoXem (bật tiếng), không còn video tắt tiếng cứng' },
   { card: 1753, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'autoPlay muted loop playsInline controls', vi: 'video xem creative trong etp-view dùng VideoXem (bật tiếng)' },
   { card: 1753, tep: 'apps/etp2/src/components/etp-mau-cr.tsx', cam: 'controls muted', vi: 'video mẫu creative có nút điều khiển không tắt tiếng cứng' },

@@ -94,7 +94,7 @@ export async function duyetChoAnh(cr: number, ok: boolean, chu?: string | null, 
  *  + bỏ creative khỏi sổ ★ ROAS len_cr_roas → dòng biến mất, lenh_cho.py / ▶ Lên không bao giờ lên. Không tạo camp, không gọi Ethopex, không tốn tiền. */
 export async function khongDuyetCr(cr: number, chu?: string | null): Promise<{ ok: true; chu: string } | { loi: string }> {
   const id = Math.trunc(Number(cr));
-  const [c] = await run<{ x: number }>(sql`select 1 x from etp.camp where creative_id = ${id} limit 1`);
+  const [c] = await run<{ x: number }>(sql`select 1 x from etp.cr_co_camp where creative_id = ${id} limit 1`);
   if (c) return { loi: `creative #${id} đã có camp — không còn ở hàng chờ duyệt (muốn dừng thì tắt camp)` };
   const d = await duyetCham(id, false, chu, 'khong-duyet'); if ('loi' in d) return d;
   await getDb()!.execute(sql`update etp.cau_hinh set gia_tri = gia_tri - ${String(id)} where khoa = 'len_cr_roas' and gia_tri ? ${String(id)}`);
@@ -126,7 +126,7 @@ export async function dsCrMoiCamp(campId: number): Promise<{ cr: number; lang: s
   return run<{ cr: number; lang: string | null; dang: string | null }>(sql`select r.creative_id cr, r.lang, r.dang from etp.creative r
       join etp.cham_duyet u on u.creative_id = r.creative_id and u.ok
     where r.content_id = (select content_id from etp.camp where camp_id = ${Math.trunc(Number(campId))})
-      and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id) order by r.creative_id desc limit 30`);
+      and not exists (select 1 from etp.cr_co_camp c where c.creative_id = r.creative_id) order by r.creative_id desc limit 30`);
 }
 
 /** o.khuon = camp ★ đang chạy làm KHUÔN (cùng bộ, cùng phim): ★ ROAS creative mới mức o.roas · $o.ns — từ nút nhân bản ★ ROAS "creative mới" */
@@ -142,14 +142,14 @@ async function lenhNb(cr: number, gio?: string | null, o?: { roas: number; ns: n
   const id = Math.trunc(Number(cr)), g = gioVn(gio);
   if (gio && !g) return { loi: `giờ không đọc được: "${gio}" — dạng YYYY-MM-DD HH:MM giờ VN` };
   if (g && daQua(g)) return { loi: `giờ ${g} VN đã qua — chọn giờ sau bây giờ` };
-  const [x] = await run<{ content_id: number | null; ten: string | null; lang: string | null; ok: boolean | null; co_camp: boolean; bo: string | null; roas: string | null; ns: string | null; khuon: number | null }>(sql`select r.content_id, f.ten, r.lang, u.ok,
-      exists (select 1 from etp.camp c where c.creative_id = r.creative_id) co_camp, (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo,
+  const [x] = await run<{ content_id: number | null; ten: string | null; lang: string | null; ok: boolean | null; co_camp: string | null; bo: string | null; roas: string | null; ns: string | null; khuon: number | null }>(sql`select r.content_id, f.ten, r.lang, u.ok,
+      (select string_agg('#' || c.camp_id || case when c.doi then ' (team)' else '' end, ', ') from etp.cr_co_camp c where c.creative_id = r.creative_id) co_camp, (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo,
       e.roas::text roas, e.ns::text ns, e.khuon   -- kế camp MỘT nguồn: view etp.ke_cr (0476)
     from etp.creative r left join etp.phim f using (content_id) left join etp.cham_duyet u on u.creative_id = r.creative_id
       left join lateral (select * from etp.ke_cr k where k.creative_id = r.creative_id limit 1) e on true where r.creative_id = ${id}`);
   if (!x) return { loi: `không thấy creative #${id}` };
   if (!x.ok) return { loi: `creative #${id} chưa duyệt — duyệt trước rồi mới lên` };
-  if (x.co_camp) return { loi: `creative #${id} đã có camp` };
+  if (x.co_camp) return { loi: `creative #${id} đã có camp ${x.co_camp} — Ethopex chỉ lên creative chưa từng có camp (nhà lẫn team), không gửi được` };   // etp.cr_co_camp: cùng luật nhan-ban creative_cu
   if (!x.content_id || (!o && !x.bo)) return { loi: 'thiếu bộ lên camp (bo_phim_moi) hoặc phim của creative' };
   if (o) {
     if (!(o.roas >= ROAS_CR[0] && o.roas <= ROAS_CR[1])) return { loi: `ROAS goal phải trong ${ROAS_CR[0]}–${ROAS_CR[1]}` };
@@ -172,7 +172,7 @@ async function lenhNb(cr: number, gio?: string | null, o?: { roas: number; ns: n
 export async function hoanCr(cr: number, bat: boolean): Promise<{ ok: true; chu: string } | { loi: string }> {
   const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được tạm dừng' };
   const id = Math.trunc(Number(cr)); if (!(id > 0)) return { loi: 'mã creative không hợp lệ' };
-  const [c] = await run<{ x: number }>(sql`select 1 x from etp.camp where creative_id = ${id} limit 1`);
+  const [c] = await run<{ x: number }>(sql`select 1 x from etp.cr_co_camp where creative_id = ${id} limit 1`);
   if (c) return { loi: `creative #${id} đã có camp — muốn dừng thì tắt camp đó` };
   if (bat) { if (docNhatKyLen(id).gui) return { loi: `creative #${id} đã gửi lệnh lên camp, máy đang tạo — không tạm dừng được nữa (xong thì tắt camp)` };
     const v = JSON.stringify({ [String(id)]: { luc: new Date().toISOString(), ai: me.email } });
@@ -191,7 +191,7 @@ export async function suaRoasCr(cr: number, roas: number): Promise<{ ok: true; c
   const id = Math.trunc(Number(cr)); if (!(id > 0)) return { loi: 'mã creative không hợp lệ' };
   const r = Math.round(Number(roas) * 100) / 100;
   if (!(r >= ROAS_CR[0] && r <= ROAS_CR[1])) return { loi: `ROAS level phải trong ${ROAS_CR[0]}–${ROAS_CR[1]} (cùng mức nhan-ban.py chấp nhận)` };
-  const [c] = await run<{ x: number }>(sql`select 1 x from etp.camp where creative_id = ${id} limit 1`);
+  const [c] = await run<{ x: number }>(sql`select 1 x from etp.cr_co_camp where creative_id = ${id} limit 1`);
   if (c) return { loi: `creative #${id} đã có camp — camp đã lên thì không sửa ROAS ở đây được` };
   if (docNhatKyLen(id).gui) return { loi: `creative #${id} đã gửi lệnh lên camp, máy đang tạo — không sửa ROAS được nữa` };
   const [cu] = await run<{ ns: string | null; tu: string | null; co: boolean }>(sql`select x.gia_tri -> ${String(id)} ->> 'ns' ns, x.gia_tri -> ${String(id)} ->> 'tu' tu, x.gia_tri ? ${String(id)} co

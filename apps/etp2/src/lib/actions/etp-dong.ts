@@ -284,11 +284,11 @@ export async function lenCampCr(dongId: number, creativeId: number): Promise<{ o
   const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được lên camp' };
   const id = Math.trunc(Number(dongId)), cr = Math.trunc(Number(creativeId));
   const [x] = await run<{ content_id: number; ten: string | null; lang: string | null; duoc: boolean | null; co_camp: boolean; bo: string | null }>(sql`select p.content_id, p.ten, r.lang, g.duoc_len duoc,
-      exists (select 1 from etp.camp c where c.creative_id = r.creative_id) co_camp, (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo
+      exists (select 1 from etp.cr_co_camp c where c.creative_id = r.creative_id) co_camp, (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo
     from etp.dong_phim p join etp.creative r on r.content_id = p.content_id and r.creative_id = ${cr} left join etp.cham_cong g on g.creative_id = r.creative_id
     where p.id = ${id} and p.trang_thai in ('chay', 'dung', 'loi')
     union all   -- dòng NGOÀI máy dòng phim (id âm: thư viện / thay thế) — nút "Lên camp" hiện ở đó thì phải bấm được (anh 05/11/2026)
-    select r.content_id, coalesce(f.ten, r.content_id::text), r.lang, g.duoc_len, exists (select 1 from etp.camp c where c.creative_id = r.creative_id),
+    select r.content_id, coalesce(f.ten, r.content_id::text), r.lang, g.duoc_len, exists (select 1 from etp.cr_co_camp c where c.creative_id = r.creative_id),
       (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi')
     from etp.creative r left join etp.phim f using (content_id) left join etp.cham_cong g on g.creative_id = r.creative_id where ${id} < 0 and r.creative_id = ${cr} and r.content_id is not null`);
   if (!x) return { loi: 'creative không thuộc dòng đang chạy' };

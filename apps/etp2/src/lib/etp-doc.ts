@@ -334,14 +334,14 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     // (4) camp lỗi đồng bộ / Meta từ chối (etp.camp.dong_bo = 'error' · giao = 'DISAPPROVED'). Chữ cắt 200 ký tự, thẻ nổi hiện đủ dòng.
     runNha<Ket>(sql`select * from (
         select r.content_id, 'creative' loai, r.creative_id id, left(case when h.trang_thai = 'loi' then 'chấm lỗi: ' || coalesce(h.loi, '?') else 'chờ chấm (' || coalesce(h.trang_thai, '') || ')' end, 200) chu, h.luc::text luc
-          from etp.cham_hang h join etp.creative r using (creative_id) where h.trang_thai in ('cho', 'dang', 'loi') and h.nguon is distinct from 'giong' and r.content_id is not null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
+          from etp.cham_hang h join etp.creative r using (creative_id) where h.trang_thai in ('cho', 'dang', 'loi') and h.nguon is distinct from 'giong' and r.content_id is not null and not exists (select 1 from etp.cr_co_camp c where c.creative_id = r.creative_id)
         union all
         select r.content_id, 'creative', r.creative_id, left(case when coalesce(g.cho_duyet, '') <> '' then 'cổng chấm: chờ người duyệt (' || g.cho_duyet || ') — '
             when u.trang_thai = 'dang' then 'đang cắt bỏ khung vi phạm (máy cứu) — ' when u.trang_thai = 'loi' then 'máy cứu lỗi lần ' || u.lan || ': ' || coalesce(u.ly_do, '') || ' — '
             else 'cổng chấm chặn: ' end || coalesce(g.chan_boi, ''), 200), r.cap_nhat::text
           -- máy cứu (apps/etp/cuu_cham.py, anh 07/11/2026): đã có bản cắt bỏ khung ('xong' — bản mới tự vào hàng chấm) hoặc không cứu được ('bo') = đã kết, không còn kẹt
           from etp.cham_cong g join etp.creative r using (creative_id) left join etp.cuu_cham u using (creative_id)
-          where not g.duoc_len and r.tu_choi is null and r.content_id is not null and coalesce(u.trang_thai, '') not in ('xong', 'bo') and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
+          where not g.duoc_len and r.tu_choi is null and r.content_id is not null and coalesce(u.trang_thai, '') not in ('xong', 'bo') and not exists (select 1 from etp.cr_co_camp c where c.creative_id = r.creative_id)
         union all
         select v.content_id, 'creative', v.creative_id, left('không tự lên: ' || v.ly_do, 200), v.cham_luc::text from etp.cho_len_v v
           where v.ly_do is not null and v.ly_do not like 'phim %' and v.ly_do not like 'creative đã bị từ chối%'   -- 'phim …' = điều hướng (đi dòng sản xuất / phim đã có camp / đội nhận), không phải kẹt; từ chối = đã kết
@@ -508,7 +508,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       coalesce((select y.gia_tri ? h.creative_id::text from etp.cau_hinh y where y.khoa = 'hoan_cr'), false) hoan   -- ⏸ anh tạm dừng (lenh_cho.py SQL_CR_DUYET bỏ qua)
     from etp.cho_anh_duyet_cr h left join etp.cham_duyet u on u.creative_id = h.creative_id join etp.creative r on r.creative_id = h.creative_id
       left join etp.phim f on f.content_id = r.content_id left join lateral (select * from etp.ke_cr k where k.creative_id = h.creative_id limit 1) e on true   -- kế camp MỘT nguồn (0476): khối dàn ROAS theo creative
-    where (u.ok is not false or u.sua_lai) and not exists (select 1 from etp.camp c where c.creative_id = h.creative_id) order by h.creative_id`).catch((e) => { console.error('etp hangCr', e); return []; });
+    where (u.ok is not false or u.sua_lai) and not exists (select 1 from etp.cr_co_camp c where c.creative_id = h.creative_id) order by h.creative_id`).catch((e) => { console.error('etp hangCr', e); return []; });
   // giờ chạy THẬT của ▶ Lên: khung cố định 22h VN gần nhất (nhan-ban.gio_len, anh 24/11/2026) — cả ★ ROAS lẫn camp $1
   const gioKhung = new Date(gioLen()).toISOString();
   const hangCr: CampEtpKho[] = hangRs.map((r) => { const ro = r.ro == null ? Number(BANG_LUAT.hoi_cho.roas) : Number(r.ro), ns = r.ns == null ? Number(BANG_LUAT.hoi_cho.ns) : Number(r.ns), cr = n(r.creative_id);   // ngoài sổ len_cr_roas = ★ ROAS mặc định hoi_cho (anh 24/11/2026)

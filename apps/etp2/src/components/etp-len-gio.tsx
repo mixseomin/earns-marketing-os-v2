@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { THEO_LICH, bayGioVn, chayLuc } from '@/lib/etp-nb';
 import { chuLich, haiKhung, laKhung } from '@/lib/etp-khung';
-import { danhDauDangLen } from '@/lib/etp-dang-len-tam';
+import { danhDauDangLen, useDangLenTam } from '@/lib/etp-dang-len-tam';
 import { useRouter } from 'next/navigation';
 import { AnchoredPopover } from '@/components/ui';
 import { doiGioCamp, khongDuyetCr, lenNgayCr, xemTruocLen, type KqNut, type XemTruoc } from '@/lib/actions/etp-cho-duyet';
@@ -90,7 +90,11 @@ export function NutLenGio({ cr, camp, lich, nhan, anh, video, chiGio }: { cr?: n
   const [mo, setMo] = useState(false), [gio, setGio] = useState(''), [dang, setDang] = useState<'ngay' | 'lich' | 'gio' | 'khong' | null>(null)   /* MỖI NÚT MỘT CỜ (anh 22/11/2026 "sao lại 2 chữ đang gửi"): chỉ nút vừa bấm hiện đang gửi */, [kq, setKq] = useState<KqNut | null>(null);
   const [nx, setNx] = useState('');   // nhận xét khi ✕ Không duyệt (anh 25/11/2026) → etp.nhan_xet_cr
   const doiGio = camp != null && camp > 0;
+  // BẤM XONG LÀ KHOÁ (anh 25/11/2026 bấm ▶ Lên #113286 hai lần: "Bấm xong thì phải khoá ngay lại và báo ra bên ngoài"): lệnh lên đã gửi → mọi nút lên khoá,
+  // nút ngoài dòng đổi thành "✓ đã gửi" (dấu đang-lên ở trình duyệt, dùng chung ô trạng thái dòng) — không còn đường gửi lần hai
+  const tam = useDangLenTam(Number(cr ?? 0), null), khoa = !doiGio && !chiGio && !!tam;
   const bam = async (g: string | null, khong?: boolean) => {
+    if (khoa && !khong) return;
     setDang(khong ? 'khong' : g === THEO_LICH ? 'lich' : g ? 'gio' : 'ngay'); setKq(null);
     let r: KqNut;
     try { r = khong ? await khongDuyetCr(Number(cr), nx) : doiGio ? await doiGioCamp(camp, g ?? '') : await lenNgayCr(Number(cr), g); }
@@ -110,7 +114,7 @@ export function NutLenGio({ cr, camp, lich, nhan, anh, video, chiGio }: { cr?: n
       style={chiGio ? { border: 'none', background: 'transparent', color: 'inherit', font: 'inherit', cursor: 'pointer', padding: 0, textAlign: 'left', textDecoration: 'underline dotted', textUnderlineOffset: 2,
           display: 'block', flex: 1, minWidth: 0, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'inherit' }
         : doiGio ? { border: 'none', background: 'transparent', color: '#f59e0b', cursor: 'pointer', padding: '0 2px', fontSize: 11 } : { ...nut, padding: '1px 8px', fontSize: 11, borderColor: '#22c55e', color: '#4ade80', fontWeight: 600 }}>
-      {nhan ?? (doiGio ? '🕒' : '▶ Lên')}</button>
+      {khoa ? <span data-da-gui-len="" title={`đã gửi lệnh lên lúc ${new Date(Date.parse(tam!) + 7 * 3600_000).toISOString().slice(11, 16)} giờ VN — máy đang tạo camp, không gửi lần hai`}>✓ đã gửi</span> : nhan ?? (doiGio ? '🕒' : '▶ Lên')}</button>
     <AnchoredPopover anchorRef={neo} open={mo} onClose={dong}>
       <div data-khung-dat-gio="" onClick={(e) => e.stopPropagation()} style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8, width: gon ? 320 : 'min(560px, 92vw)', maxHeight: gon ? undefined : '78vh', overflowY: gon ? undefined : 'auto', fontSize: 12, lineHeight: 1.45,
         background: 'var(--bg-1)', border: '1px solid var(--accent-line, var(--line))', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>
@@ -127,19 +131,20 @@ export function NutLenGio({ cr, camp, lich, nhan, anh, video, chiGio }: { cr?: n
         {gon ? null : <textarea data-o="nhan-xet-cr" value={nx} onChange={(e) => setNx(e.target.value)} rows={2} maxLength={4000}
           placeholder="Nhận xét khi ✕ Không duyệt: vì sao, cần sửa gì (con đọc làm hướng sửa)" style={{ ...o, width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />}
         <div style={{ display: 'flex', gap: 6 }}>
-          {gon ? null : <button disabled={!!dang} onClick={() => bam(null)} title="bỏ qua ô giờ — camp lên vào khung cố định 22h VN gần nhất, không còn chạy ngay (anh 24/11/2026)" style={nutXanh}>{dang === 'ngay' ? 'đang gửi…' : `▶ Lên · ${chuLich()}`}</button>}
-          {gon ? null : <button data-len-theo-lich="" disabled={!!dang} onClick={() => bam(THEO_LICH)} title="bỏ qua ô giờ, máy lên camp theo khung giờ lên trong sổ luật (#1772)" style={nutXanh}>{dang === 'lich' ? 'đang gửi…' : '⏱ Lên theo lịch'}</button>}
-          <button disabled={!!dang || !gio} onClick={() => bam(gio)} title="camp chạy đúng giờ VN trong ô"
+          {gon ? null : <button disabled={!!dang || khoa} onClick={() => bam(null)} title="bỏ qua ô giờ — camp lên vào khung cố định 22h VN gần nhất, không còn chạy ngay (anh 24/11/2026)" style={nutXanh}>{dang === 'ngay' ? 'đang gửi…' : `▶ Lên · ${chuLich()}`}</button>}
+          {gon ? null : <button data-len-theo-lich="" disabled={!!dang || khoa} onClick={() => bam(THEO_LICH)} title="bỏ qua ô giờ, máy lên camp theo khung giờ lên trong sổ luật (#1772)" style={nutXanh}>{dang === 'lich' ? 'đang gửi…' : '⏱ Lên theo lịch'}</button>}
+          <button disabled={!!dang || !gio || khoa} onClick={() => bam(gio)} title="camp chạy đúng giờ VN trong ô"
             style={ngoai ? { ...nutXanh, borderColor: '#f59e0b', color: '#fbbf24' } : nutXanh}>{dang === 'gio' ? 'đang gửi…' : ngoai ? (doiGio ? '⚠ Vẫn đặt giờ này' : '⚠ Vẫn lên giờ này') : doiGio ? '🕒 Đặt giờ mới' : '🕒 Lên theo giờ này'}</button>
           {gon ? null : <button data-khong-duyet="" disabled={!!dang} onClick={() => bam(null, true)}
             title="ghi LOẠI creative + bỏ khỏi sổ ★ ROAS: không tạo camp, không gửi Ethopex, dòng biến mất khỏi bảng (anh 22/11/2026)"
             style={{ ...nut, borderColor: '#ef4444', color: '#fca5a5', fontWeight: 600, cursor: dang ? 'wait' : 'pointer' }}>{dang === 'khong' ? 'đang gửi…' : '✕ Không duyệt'}</button>}
         </div>
+        {khoa && !(kq && 'ok' in kq) ? <div role="status" data-khoa-len="" style={{ padding: 6, border: '1px solid #22c55e', borderRadius: 4, background: 'rgba(34,197,94,.12)', color: '#86efac' }}>🔒 Đã gửi lệnh lên — nút khoá, máy đang tạo camp. Kết quả hiện ở ô trạng thái dòng.</div> : null}
         {kq && 'canh' in kq ? <div role="alert" style={{ padding: 6, border: '1px solid #f59e0b', borderRadius: 4, background: 'rgba(245,158,11,.12)', color: '#fde68a' }}>
           ⚠ Phanh đang áp: {kq.canh}<br />Bấm lại trong 30 phút là máy bỏ qua phanh và lên.</div> : null}
         {kq && 'loi' in kq ? <div role="alert" style={{ padding: 6, border: '1px solid #ef4444', borderRadius: 4, background: 'rgba(239,68,68,.12)', color: '#fca5a5' }}>{kq.loi}</div> : null}
         {kq && 'ok' in kq ? <div role="status" style={{ padding: 6, border: '1px solid #22c55e', borderRadius: 4, background: 'rgba(34,197,94,.12)', color: '#86efac' }}>✓ {kq.chu}</div> : null}
-        {!gon && cr ? <XemTruocLen cr={Number(cr)} gio={null} anh={anh} video={video} /> : null}
+        {!gon && cr && !khoa ? <XemTruocLen cr={Number(cr)} gio={null} anh={anh} video={video} /> : null}
       </div>
     </AnchoredPopover>
   </>;

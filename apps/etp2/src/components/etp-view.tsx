@@ -182,12 +182,13 @@ const kieuDung = (c: { dong?: CampEtpKho['dong']; loi?: string | null; dong_bo?:
   return ra('✋', 'tắt ngoài máy', 'Tắt ngoài máy luật', '#94a3b8', [{ ten: 'Không có ghi chép máy luật', mau: '#94a3b8', chu: `tắt bằng tay trên Ethopex, hoặc camp tạo sẵn ở trạng thái dừng${c.giao ? ` · Ethopex: ${c.giao}` : ''}` }]);
 };
 // MỘT chuỗi trạng thái cho chữ (cột TT) và đèn (TT): loai = khoá màu đèn MAU_DEN
-const ttCamp = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat?: boolean; dong?: CampEtpKho['dong']; loi?: string | null; dong_bo?: string | null; sx?: CampEtpKho['sx'] }): { chu: string; mau: string; t: string; loai: 'loi' | 'phong' | 'cho' | 'chay' | 'tat' } =>
+const ttCamp = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat?: boolean; dong?: CampEtpKho['dong']; loi?: string | null; dong_bo?: string | null; sx?: CampEtpKho['sx']; xep?: CampEtpKho['xep'] }): { chu: string; mau: string; t: string; loai: 'loi' | 'phong' | 'cho' | 'chay' | 'tat' } =>
   c.giao === 'DISAPPROVED' ? { chu: '⛔ Meta từ chối', mau: '#f87171', t: 'Meta từ chối', loai: 'loi' }
   : c.lich_tat ? { chu: 'dừng theo giờ', mau: '#f59e0b', t: 'tạm dừng theo lịch giờ — máy tự bật lại khi tới khung BẬT', loai: 'phong' }
   : c.sx?.ke ? { chu: '📝 Đang lên kế hoạch', mau: '#38bdf8', t: 'khối camp đã lập kế hoạch (phim · creative mẫu · cấu hình camp) — chưa sinh creative, chưa tạo camp, chưa tốn tiền; bấm ▶ Bắt đầu sản xuất trên đầu khối mới làm', loai: 'cho' }   // anh 25/11/2026
   : dangSxCr(c) ? { chu: '🏭 đang sản xuất', mau: '#a78bfa', t: 'dòng phim đang làm creative — xong creative máy mới tạo camp (lúc đó mới có ID camp, điểm chấm)', loai: 'cho' }   // #1832
-  : choDuyet(c) ? { chu: '⏳ chờ duyệt', mau: '#f59e0b', t: 'creative đã chấm Đạt, chưa có camp — bấm ▶ Lên hoặc máy lên ở nhịp kế', loai: 'cho' }   // #1767: dòng xếp hàng không phải "chờ giờ chạy"
+  : choDuyet(c) && c.xep?.gui ? { chu: '🚀 đang lên', mau: '#60a5fa', t: 'anh đã duyệt, máy đã gửi lệnh tạo camp lên Ethopex — xong thì dòng này thành camp thật', loai: 'cho' }
+  : choDuyet(c) ? { chu: '⏳ Chờ lên camp', mau: '#f59e0b', t: 'creative anh đã duyệt, chưa có camp — máy lên theo lịch (★ ROAS riêng thì bấm ▶ Lên); tạo xong thành camp thật', loai: 'cho' }   // anh 25/11/2026 "Sau khi duyệt thì phải có ngay camp chờ ở danh sách… Trạng thái sẽ là Chờ lên camp"   // #1767: dòng xếp hàng không phải "chờ giờ chạy"
   : choGio(c) ? { chu: `chờ ${conLai(c.lich!)} nữa`, mau: '#f59e0b', t: `hẹn chạy từ ${vn(c.lich)}`, loai: 'cho' }
   : choChay(c) ? { chu: '🚀 đang lên', mau: '#60a5fa', t: 'đã gửi lên Ethopex — Ethopex / Meta còn đang tạo và kiểm quảng cáo, xong tự chạy', loai: 'cho' }   // #1770
   : c.trang_thai === 'ACTIVE' ? { chu: 'chạy', mau: '#4ade80', t: 'đang chạy', loai: 'chay' } : (() => { const k = kieuDung(c); return { loai: 'tat' as const, chu: `${k.ky} dừng`, mau: k.ky === '⚠' ? '#f87171' : k.ky === '⏳' ? '#60a5fa' : 'var(--fg-2)', t: k.t }; })();
@@ -2613,7 +2614,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
       <span>★{c.roas} · ${c.ngan_sach} · {g ? `${String(g.getUTCHours()).padStart(2, '0')}:${String(g.getUTCMinutes()).padStart(2, '0')} VN` : 'chưa hẹn'}</span></>}</span>;
     return <span data-o="cho-duyet-ngan" title={chuChoDuyet({ ...c, xep: x })} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, fontSize: 10.5, lineHeight: 1.25, cursor: 'help' }}>
       {x?.gui ? <span data-o="dang-len" data-tam={tam ? '1' : undefined} style={{ color: 'var(--good, #17c964)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}><Den mau={MAU_DEN.cho} song t="đã gửi lệnh lên, chờ Ethopex tạo camp" />đang lên · {gioVn(x.gui)}</span>
-        : <span style={{ color: 'var(--warn, #f5a524)', fontWeight: 600 }}>chờ anh duyệt</span>}
+        : <span style={{ color: 'var(--warn, #f5a524)', fontWeight: 600 }}>Chờ lên camp</span>}
       <span>{c.roas != null ? `★${c.roas}` : '$1'} · ${c.ngan_sach} · {ngay ? 'chạy ngay' : `${String(g!.getUTCHours()).padStart(2, '0')}:${String(g!.getUTCMinutes()).padStart(2, '0')} VN`}</span>
       {x && !x.cta ? <span style={{ color: 'var(--bad, #f31260)' }}>⚠ chưa đạt CTA</span> : x ? <span style={{ color: 'var(--good, #17c964)' }}>✓ CTA</span> : null}
     </span>; };
@@ -3115,6 +3116,10 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const [tuoiChon, setTuoiChon] = useState(dauVao?.tu ?? '');   // lọc tuổi camp (anh 29/10/2026 "cần thêm bộ lọc theo tuổi") — mã 'a-b' ngày, b rỗng = trở lên
   const [moLoc, setMoLoc] = useState(false);   // điện thoại: bảng lọc gập sau nút Lọc (anh 27/10/2026 "trên mobile không thể cứ xuống dòng liên tục — tổ chức lại")   // ?b= lọc theo bộ tài khoản QC (anh 27/10/2026 "thêm bộ lọc theo tk")   // lọc theo loại creative (KT/CC/CT…) — anh 27/10/2026 "thêm bộ lọc chi tiết như danh sách camp KT"   // lọc theo MỘT luật (cột Luật bảng Camp)
   const [loc, setLoc] = useState<string>(() => locHop(dauVao?.l ?? 'chay'));   // ?l= lọc camp — mặc định luôn Đang chạy (anh 01/11/2026 "default luôn chọn Đang chạy cho gọn") · CHỌN NHIỀU (anh 05/11/2026): 'chay,cho' = camp khớp MỘT trong các mục
+  // DUYỆT XONG THẤY NGAY (anh 25/11/2026): ô ⏸ Chờ anh duyệt bấm ✓ → phát 'etp-loc-them' {k:'duyet'} — ô Lọc chưa gồm Chờ lên camp thì thêm vào (không bớt mục anh đang chọn), dòng mới hiện ngay dưới phim
+  useEffect(() => { const f = (e: Event) => { const k = (e as CustomEvent<{ k?: string }>).detail?.k; if (!k) return;
+    setLoc((l) => { const ds = locDs(l); return !ds.length || ds.includes(k) ? l : locHop([...ds, k].join(',')); }); };
+    window.addEventListener('etp-loc-them', f); return () => window.removeEventListener('etp-loc-them', f); }, []);
   // tab Creative: Hiệu quả | 🛡 Quét nội dung (?v=soat) | 🏭 Đang sx (?v=sx — anh 26/10/2026 "Thêm 1 tab là Đang sx")
   const [xemCr, setXemCr] = useState<'hq' | 'soat' | 'sx' | 'dc'>(dauVao?.v === 'soat' || dauVao?.v === 'sx' || dauVao?.v === 'dc' ? dauVao.v : 'hq'); const xemSoat = xemCr === 'soat';
   const [xemCamp, setXemCamp] = useState<XemCamp>(laXemCamp(dauVao?.v) && dauVao?.v !== 'cay' ? dauVao.v : 'cay');   // + Lịch giờ (anh 25/10/2026)   // tab Camp: MẶC ĐỊNH cây phim → camp gốc → bản nhân (anh 25/10/2026 "đéo thấy" — nút 🌳 nhỏ bị bỏ qua); nhớ lựa chọn + ?v=cay|bang
@@ -3543,7 +3548,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         const m = (value: keyof typeof LOC_NHOM, label: string, title?: string): Chon2Muc => ({ value, label, nhom: LOC_NHOM[value], dem: dem[value], title });
         return <Chon2 chan={chanLoc.loc} to={toCua('loc')} value={loc} onChange={doiLoc} nhieu tatCa="all" nhan="Lọc" anRong title="lọc camp theo trạng thái / luật / ngưỡng — chọn được nhiều mục: cùng nhóm = khớp một trong các mục, khác nhóm = phải thoả mọi nhóm" options={[
           { value: 'all', label: 'Tất cả', dem: dem.all },   // "Tất cả" luôn đứng ĐẦU, cùng chữ với mọi ô lọc (anh 27/10/2026)
-          m('chay', 'Đang chạy'), m('cho', 'Chờ giờ chạy'), m('duyet', 'Chờ duyệt', 'creative đã chấm Đạt, chưa có camp — chờ ▶ Lên'), m('kehoach', '📝 Đang lên kế hoạch', 'khối camp đã lập kế hoạch, chưa bắt đầu sinh creative — xem từng camp dự kiến ở ⚙ Thiết lập'), m('sxcr', 'Đang sản xuất', 'camp sắp lên mà creative còn đang làm (gồm cả dòng 📝 Đang lên kế hoạch) — đủ phim, dạng, ROAS, ngân sách, giờ; chưa có creative, ID camp, điểm chấm'), m('tat', 'Đã tắt'),
+          m('chay', 'Đang chạy'), m('cho', 'Chờ giờ chạy'), m('duyet', 'Chờ lên camp', 'creative anh đã duyệt, chưa có camp — máy lên theo lịch / chờ ▶ Lên'), m('kehoach', '📝 Đang lên kế hoạch', 'khối camp đã lập kế hoạch, chưa bắt đầu sinh creative — xem từng camp dự kiến ở ⚙ Thiết lập'), m('sxcr', 'Đang sản xuất', 'camp sắp lên mà creative còn đang làm (gồm cả dòng 📝 Đang lên kế hoạch) — đủ phim, dạng, ROAS, ngân sách, giờ; chưa có creative, ID camp, điểm chấm'), m('tat', 'Đã tắt'),
           m('luat', '⚑ Chạm luật', 'luật đang xếp làm ở nhịp này'), m('ganluat', '◌ Sắp chạm luật'),
           m('gtang', '⇡ Gần tăng'), m('gtat', '✕ Gần tắt'),
           m('mlai', '▲ Mới lãi', 'camp đang chạy < 7 ngày, ≥ 2 trong 3 ngày đã khép gần nhất có chi và ngày nào có chi cũng lãi — ứng viên dồn tiền'), m('mlo', '▼ Mới lỗ', 'camp đang chạy < 7 ngày, ≥ 2 trong 3 ngày đã khép gần nhất có chi và ngày nào có chi cũng lỗ'),

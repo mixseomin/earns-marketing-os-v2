@@ -2,6 +2,7 @@
 // Ô "CHỜ ANH DUYỆT" ở etp2 › Camp (anh 22/11/2026 "Tao cần duyệt trên page này cơ mà !"): creative máy giữ (etp.cho_anh_duyet, 0460) — chưa duyệt thì không đường nào lên camp.
 // ✓ Duyệt = lên ★ ROAS mặc định hoi_cho (giờ theo lịch lên) · ✕ Loại. Lỗi hiện thành ô đỏ ngay dưới nút. Không có gì chờ → không vẽ gì.
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { VideoXem } from '@/components/ui/video-xem';
 import { dsChoDuyet, duyetChoAnh, lenCamp, type ChoDuyet } from '@/lib/actions/etp-cho-duyet';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
@@ -18,6 +19,7 @@ export function ChoDuyetCr() {
   const [loiDs, setLoiDs] = useState<string | null>(null);
   const [bao, setBao] = useState<Record<number, { loi?: string; chu?: string }>>({});
   const [dang, setDang] = useState<number | null>(null);
+  const router = useRouter();
   const [xem, setXem] = useState<number | null>(null);
   const tai = useCallback(async () => { const r = await dsChoDuyet(); if ('loi' in r) setLoiDs(r.loi); else { setLoiDs(null); setDu(r); } }, []);
   useEffect(() => { void tai(); const t = setInterval(() => { void tai(); }, 20_000); return () => clearInterval(t); }, [tai]);
@@ -26,7 +28,9 @@ export function ChoDuyetCr() {
   if (!du || !du.ds.length) return null;
   const bam = async (cr: number, f: () => Promise<{ ok: true; chu: string } | { loi: string }>) => {
     setDang(cr); setBao((b) => ({ ...b, [cr]: {} }));
-    try { const r = await f(); setBao((b) => ({ ...b, [cr]: 'loi' in r ? { loi: r.loi } : { chu: r.chu } })); }
+    try { const r = await f(); setBao((b) => ({ ...b, [cr]: 'loi' in r ? { loi: r.loi } : { chu: r.chu } }));
+      // duyệt xong THẤY NGAY dòng ⏳ Chờ lên camp dưới phim (anh 25/11/2026): đọc lại bảng camp + ô Lọc thêm mục Chờ lên camp (etp-view nghe 'etp-loc-them')
+      if (!('loi' in r)) { window.dispatchEvent(new CustomEvent('etp-loc-them', { detail: { k: 'duyet' } })); router.refresh(); } }
     catch (e) { setBao((b) => ({ ...b, [cr]: { loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` } })); }
     setDang(null); void tai();
   };

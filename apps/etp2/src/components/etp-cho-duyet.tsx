@@ -61,24 +61,39 @@ function TrangThaiCr({ x, dk }: { x: ChoDuyet; dk: boolean }) {
 }
 
 /** NÚT DUYỆT / LOẠI CÓ XÁC NHẬN (anh 25/11/2026 "Nếu bấm loại hoặc duyệt phải có confirm !"): bấm lần đầu chỉ mở ô hỏi ghi rõ trạng thái sẽ sang, bấm Xác nhận mới gọi máy chủ */
-function NutDuyet({ x, dk, dang, bam }: { x: ChoDuyet; dk: boolean; dang: number | null; bam: (cr: number, f: () => Promise<{ ok: true; chu: string } | { loi: string }>) => void }) {
+type Bam = (cr: number, f: () => Promise<{ ok: true; chu: string } | { loi: string }>) => void;
+function NutDuyet({ cr, roas, lich, dk, dang, bam }: { cr: number; roas: string | null; lich: string | null; dk: boolean; dang: number | null; bam: Bam }) {
   const [hoi, setHoi] = useState<boolean | null>(null);   // true = hỏi duyệt, false = hỏi loại
   if (hoi != null) {
-    const lich = x.tl?.g_lich ?? null;
     return <div data-o="xac-nhan-duyet" role="alertdialog" style={{ display: 'flex', flexDirection: 'column', gap: 5, padding: 6, borderRadius: 6, fontSize: 12,
       border: `1px solid ${hoi ? '#22c55e' : '#ef4444'}`, background: hoi ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)' }}>
-      <div>{hoi ? <>Duyệt cr #{x.creative_id}? → <b style={{ color: '#60a5fa' }}>⏳ Chờ lên camp</b>, máy tạo camp {kieu(x.roas)}{dk ? ' khi nhả dừng khẩn' : lich ? ` lúc ${lich}` : ''}.</>
-        : <>Loại cr #{x.creative_id}? → <b style={{ color: '#f87171' }}>✕ Loại</b>, creative không lên camp.</>}</div>
+      <div>{hoi ? <>Duyệt cr #{cr}? → <b style={{ color: '#60a5fa' }}>⏳ Chờ lên camp</b>, máy tạo camp {kieu(roas)}{dk ? ' khi nhả dừng khẩn' : lich ? ` lúc ${lich}` : ''}.</>
+        : <>Loại cr #{cr}? → <b style={{ color: '#f87171' }}>✕ Loại</b>, creative không lên camp.</>}</div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button type="button" disabled={dang != null} onClick={() => { setHoi(null); bam(x.creative_id, () => duyetChoAnh(x.creative_id, hoi)); }}
+        <button type="button" disabled={dang != null} onClick={() => { setHoi(null); bam(cr, () => duyetChoAnh(cr, hoi)); }}
           style={{ ...nut, fontWeight: 600, borderColor: hoi ? '#22c55e' : '#ef4444', color: hoi ? '#4ade80' : '#f87171' }}>{hoi ? '✓ Xác nhận duyệt' : '✕ Xác nhận loại'}</button>
         <button type="button" onClick={() => setHoi(null)} style={nut}>Huỷ</button>
       </div>
     </div>;
   }
   return <div style={{ display: 'flex', gap: 6 }}>
-    <button type="button" disabled={dang != null} onClick={() => setHoi(true)} style={{ ...nut, borderColor: '#22c55e', color: '#4ade80', fontWeight: 600 }}>{dang === x.creative_id ? '…' : '✓ Duyệt'}</button>
+    <button type="button" disabled={dang != null} onClick={() => setHoi(true)} style={{ ...nut, borderColor: '#22c55e', color: '#4ade80', fontWeight: 600 }}>{dang === cr ? '…' : '✓ Duyệt'}</button>
     <button type="button" disabled={dang != null} onClick={() => setHoi(false)} style={{ ...nut, borderColor: '#ef4444', color: '#f87171' }}>✕ Loại</button>
+  </div>;
+}
+
+/** DUYỆT / LOẠI ĐỨNG RIÊNG — cùng NutDuyet (ô xác nhận ghi rõ trạng thái sẽ sang), tự giữ trạng thái gửi + lỗi; dùng ở ngăn camp dòng ⏸ Chờ duyệt của bảng cây
+ *  (anh 25/11/2026 "Chờ duyệt thì show luôn cái form Duyệt/Loại vào đây"). Xong thì đọc lại bảng + ô Lọc thêm Chờ lên camp như thẻ phía trên. */
+export function NutDuyetCr({ cr, roas, lich }: { cr: number; roas: string | null; lich: string | null }) {
+  const router = useRouter(); const [dang, setDang] = useState<number | null>(null); const [bao, setBao] = useState<{ chu?: string; loi?: string }>({});
+  const bam: Bam = async (id, f) => { setDang(id); setBao({});
+    try { const r = await f(); if ('loi' in r) setBao({ loi: r.loi }); else { setBao({ chu: r.chu }); window.dispatchEvent(new CustomEvent('etp-loc-them', { detail: { k: 'duyet' } })); router.refresh(); } }
+    catch (e) { setBao({ loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` }); }
+    setDang(null); };
+  return <div data-o="duyet-ngan" style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+    <NutDuyet cr={cr} roas={roas} lich={lich} dk={false} dang={dang} bam={bam} />
+    {bao.loi ? <div role="alert" style={{ maxWidth: 420, padding: 6, border: '1px solid #ef4444', borderRadius: 4, background: 'rgba(239,68,68,.12)', color: '#fca5a5', fontSize: 12 }}>{bao.loi}</div> : null}
+    {bao.chu ? <div style={{ fontSize: 12, color: '#4ade80' }}>{bao.chu}</div> : null}
   </div>;
 }
 
@@ -116,7 +131,7 @@ export function ChoDuyetCr() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap', marginBottom: 10 }}>
           <b style={{ fontSize: 15 }}>{xn.phim ?? `phim #${xn.content_id}`}</b>
           <span style={{ color: 'var(--fg-2)', fontSize: 12 }}>{(xn.lang ?? '?').toUpperCase()} · cr #{xn.creative_id} · {xn.dang ?? ''} · {kieu(xn.roas)}</span>
-          {xn.duyet == null ? <span style={{ marginLeft: 'auto' }}><NutDuyet x={xn} dk={!!du.dungKhan} dang={dang} bam={bam} /></span> : null}
+          {xn.duyet == null ? <span style={{ marginLeft: 'auto' }}><NutDuyet cr={xn.creative_id} roas={xn.roas} lich={xn.tl?.g_lich ?? null} dk={!!du.dungKhan} dang={dang} bam={bam} /></span> : null}
         </div>
         <div style={{ marginBottom: 8 }}><TrangThaiCr x={xn} dk={!!du.dungKhan} /></div>
         {bao[xn.creative_id]?.loi ? <div role="alert" style={{ marginBottom: 8, padding: 6, border: '1px solid #ef4444', borderRadius: 4, background: 'rgba(239,68,68,.12)', color: '#fca5a5', fontSize: 12 }}>{bao[xn.creative_id]!.loi}</div> : null}
@@ -146,7 +161,7 @@ export function ChoDuyetCr() {
                 </div>
                 <TrangThaiCr x={x} dk={!!du.dungKhan} />
                 {cho1 ? (
-                  <div style={{ marginTop: 'auto' }}><NutDuyet x={x} dk={!!du.dungKhan} dang={dang} bam={bam} /></div>
+                  <div style={{ marginTop: 'auto' }}><NutDuyet cr={x.creative_id} roas={x.roas} lich={x.tl?.g_lich ?? null} dk={!!du.dungKhan} dang={dang} bam={bam} /></div>
                 ) : x.camp_id ? <div style={{ color: '#4ade80', marginTop: 'auto' }}>✓ đã duyệt → camp #{x.camp_id} ({x.trang_thai})</div> : (
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 'auto' }}>
                     <span style={{ color: '#60a5fa' }} title={du.dungKhan ? GIAI_DK : 'máy đang lên camp / thử lại theo nhịp'}>{du.dungKhan ? '⏳ đã duyệt · xếp hàng lên ' : '✓ đã duyệt · đang lên '}{kieu(x.roas)}</span>

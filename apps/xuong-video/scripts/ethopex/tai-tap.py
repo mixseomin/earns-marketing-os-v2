@@ -39,6 +39,9 @@ def tap_url(goc, html, n):
         # link trên trang có thể mang mã sách cũ (bản đổi tên) — ghép lại bằng book_id thật của trang
         return goc if n == 1 else re.sub(r'episode-1-(.+)-[0-9a-f]{24}-[a-z0-9]{10}', lambda m: f"episode-{n}-{m.group(1)}-{bid}-{ds[n]}", goc.split("?")[0])
     if "netshort.com" in goc: return goc if n == 1 else f"{goc.split('?')[0]}-ep-{n}"
+    if "dramaboxdb.com" in goc:   # trang dramaboxdb (/movie/… hoặc /<lang>/ep/…) liệt kê link /ep/<id>_<slug>/<chap>_Episode-N — trước chỉ khớp dramabox.com nên chỉ có tập 1 (25/11/2026 #85055/#82854 Bugatti: 6 khung, hết khung sau 3 bản)
+        m = re.findall(r'(?:https?://www\.dramaboxdb\.com)?(/(?:[a-z]{2}/)?ep/\d+_[^"\s/]+/\d+_Episode-' + str(n) + r')\b', html)
+        return ("https://www.dramaboxdb.com" + m[0]) if m else (goc if n == 1 else None)
     m = [sach(x) for x in re.findall(r'(?:https?://www\.dramabox\.com)?/video/\d{11}_[^"\s/]+/\d+_Episode-' + str(n) + r'\b', html)]
     return (m[0] if m[0].startswith("http") else "https://www.dramabox.com" + m[0]) if m else (goc if n == 1 else None)
 

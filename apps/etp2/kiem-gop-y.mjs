@@ -659,6 +659,7 @@ const LUAT = [
   { card: 'cho-duyet-rieng', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "dong_bo: da ? 'xep_hang' : 'cho_duyet'", vi: 'creative chưa duyệt hiện thành dòng ⏸ Chờ duyệt trong bảng cây' },
   { card: 'cho-duyet-rieng', tep: 'apps/etp2/src/components/etp-view.tsx', co: "chu: '⏸ Chờ duyệt'", vi: 'cột TT dòng chưa duyệt ghi ⏸ Chờ duyệt' },
   { card: 'cho-duyet-rieng', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'data-o="tt-chua-camp"', vi: 'cột TT dòng chưa có camp hiện CHỮ trạng thái, không phải nút ▶ Lên' },
+  { card: 'cho-duyet-rieng', tep: 'apps/etp2/src/components/etp-view.tsx', co: "fontSize: 10.5, lineHeight: 1.25, whiteSpace: 'normal', cursor: 'help' }}>{t.chu}", vi: 'chữ trạng thái cột TT xuống dòng, không cắt thành Chờ lê…' },
   { card: 'cho-duyet-rieng', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'return <NutLenGio cr={c.creative_id} anh={a?.anh} video={a?.video} />; }', vi: 'không đặt nút ▶ Lên vào cột TT' },
   { card: 'cho-duyet-rieng', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'cell: (c) => c.camp_id < 0 ? <ChoDuyetNgan c={c} /> : <ChipLuat', vi: 'cột Luật dòng chờ duyệt / chờ lên camp không hiện khối tóm tắt' },
   { card: 'cho-len-camp', tep: 'apps/etp2/src/lib/etp-doc.ts', cam: 'ten: `⏳ chờ anh duyệt', vi: 'dòng đã duyệt không còn ghi chờ anh duyệt' },

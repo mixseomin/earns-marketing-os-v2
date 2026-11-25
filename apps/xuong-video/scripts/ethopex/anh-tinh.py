@@ -77,8 +77,9 @@ def free_mau(ban=None):
     if not FREE_KIEU: raise RuntimeError("thư viện mẫu (apps/etp2/src/lib/etp-mau-cr.json) không còn kiểu nhãn + nút Free nào đang dùng được (trường lop_free) — thêm / bật lại ở tab Mẫu Creative")
     return FREE_MAU[FREE_KIEU[(FREE_BAN[0] if ban is None else ban) % len(FREE_KIEU)]]
 VANG_F, DO_F = (240, 200, 112, 255), (225, 29, 46, 255)
-def lop_free(lop, lang, day_ten=None, kieu=None):
-    """vẽ nhãn trên cùng + nút dưới tên phim (day_ten = mép dưới tên, px; None = sát vùng giao diện Meta ở đáy — PO, tên nằm sẵn trên poster) lên lớp chữ RGBA đứng yên"""
+def lop_free(lop, lang, day_ten=None, kieu=None, chi_nhan=False):
+    """vẽ nhãn trên cùng + nút dưới tên phim (day_ten = mép dưới tên, px; None = sát vùng giao diện Meta ở đáy — PO, tên nằm sẵn trên poster) lên lớp chữ RGBA đứng yên
+    chi_nhan: chỉ vẽ nhãn trên cùng (mẫu đã có nút CTA riêng, vd ảnh động logo gốc — anh 25/11/2026 "thiếu dòng ở trên: all episodes...")"""
     if day_ten is None: day_ten = H
     if not kieu: free_mau(); kieu = FREE_KIEU[FREE_BAN[0] % len(FREE_KIEU)]   # kiểu của thư viện mẫu; hết kiểu → free_mau() dừng kêu rõ
     nhan, nut = FREE.get(lang, FREE["en"]); d = ImageDraw.Draw(lop)
@@ -92,7 +93,7 @@ def lop_free(lop, lang, day_ten=None, kieu=None):
         d.text((x, y), chu, font=f, fill=mau)
     yn, yb = int(H * 0.055), int(min(day_ten + 44, H * 0.86 - 140))
     if kieu == "tim":
-        for chu, c, y, mau, dx, dy, mw in ((nhan, 76, yn, TIM, 44, 26, W - 160), (nut, 84, yb, XANH, 70, 34, W - 260)):
+        for chu, c, y, mau, dx, dy, mw in ((nhan, 76, yn, TIM, 44, 26, W - 160),) + (() if chi_nhan else ((nut, 84, yb, XANH, 70, 34, W - 260),)):
             f, (x0, y0, x1, y1) = co(chu, c, mw - 2 * dx); w, h = x1 - x0 + 2 * dx, y1 - y0 + 2 * dy; x = (W - w) // 2
             bong((x, y, x + w, y + h), h // 4); d.rounded_rectangle((x, y, x + w, y + h), radius=h // 4, fill=mau); d.text((x + dx - x0, y + dy - y0), chu, font=f, fill=(255, 255, 255, 255))
         return lop
@@ -110,6 +111,7 @@ def lop_free(lop, lang, day_ten=None, kieu=None):
         chu_bong(x - x0, ym - y0, nhan, f, (255, 255, 255, 255))
         for a_, b_ in ((60, x - 28), (x + w + 28, W - 60)):
             if b_ - a_ > 30: d.rectangle((a_, ym + h // 2 - 2, b_, ym + h // 2 + 2), fill=VANG_F)
+    if chi_nhan: return lop
     # ── NÚT ──
     if kieu == "vang":
         f, (x0, y0, x1, y1) = co(nut, 80, W - 420); dx, dy = 84, 36; w, h = x1 - x0 + 2 * dx, y1 - y0 + 2 * dy; x = (W - w) // 2; r = h // 2

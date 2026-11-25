@@ -11,7 +11,7 @@ Chạy (iMac, ~/.venvs/poster-mau/bin/python — có rembg):
   dung-mau.py --bang <content_id>              (vẽ mọi mẫu trên một phim → bảng ghép xem trước, không giọng, không nạp)
   dung-mau.py --xem-soan                       (xem trước các bản soạn etp2 đang chờ — máy dòng phim gọi mỗi 10 giây khi có việc)"""
 import colorsys, copy, importlib.util, json, time, math, os, random, re, subprocess, sys, traceback, urllib.error, urllib.request
-from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps
+from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps, ImageStat
 
 D = os.path.dirname(os.path.abspath(__file__))
 def _nap(ten, tep):
@@ -321,6 +321,7 @@ def dt_anh_dong_logo(c):
     cho lớp phủ hiện ở giây 1,5. Xem trước = ảnh tĩnh này."""
     lop, day = _lop_logo(c, NUT_DONG)
     nut(lop, cta(c, "WATCH MORE"), day + 24, ph("arial_black", 54), (198, 24, 30), (255, 255, 255), (236, 186, 70), (60, 24))
+    AT.lop_free(lop, c["lang"], chi_nhan=True)   # nhãn trên cùng "All Episodes Released" như mọi AT (anh 25/11/2026 "thiếu dòng ở trên: all episodes... ở creative"); nút đã có CTA riêng
     return None, lop
 CAN_CHO = {"dt_logo_chat_lieu": lambda c: (logo_goc(c)[0].height, logo_cho), "dt_anh_dong_logo": lambda c: (logo_goc(c)[0].height + NUT_DONG, logo_cho)}   # mẫu cần KHUNG ĐỦ CHỖ: (chiều cao khối, hàm thử chỗ) — vòng dựng duyệt khung xếp hạng tới khi vừa
 def _ten_hai_tang(c, y_min, them=130):
@@ -599,7 +600,14 @@ def _cong(b, han=120):
 DONG_LUI = [("kie", "kie:veo3_lite"), ("shopaikey", "shopaikey:grok-video-3-10s")]   # cổng TREO (nhận việc nhưng không chạy) → gửi lại ép cổng kế, theo đúng thứ tự chuỗi rẻ → đắt của cổng (spy cong-media chuoiVideo)
 def chuyen_dong(nen, tm, cid, ma, b):
     """khung sạch (chưa chữ) → clip AI 8 giây 9:16 → (tệp mp4, ₫). Ảnh đưa lên R2 qua box3 (tai-len.mts) làm anh_dau; cổng tự lùi nếu cổng đầu lỗi."""
-    jpg = os.path.join(tm, f"dong-{ma}-{b}.jpg"); Image.open(nen).convert("RGB").save(jpg, quality=92)
+    jpg = os.path.join(tm, f"dong-{ma}-{b}.jpg"); moi = Image.open(nen).convert("RGB"); ra = os.path.join(tm, f"dong-{ma}-{b}.mp4")
+    # DỰNG LẠI CÙNG KHUNG = DÙNG LẠI CLIP ĐÃ TRẢ TIỀN (anh 25/11/2026 thêm nhãn "All Episodes" vào mẫu → dựng lại creative Genie): clip AI chỉ phụ thuộc khung sạch,
+    # lớp chữ phủ sau (dung_dong) — khung y hệt lần trước (chênh trung bình < 1/255) mà clip còn trên máy thì không gửi AI lần nữa, 0₫
+    if os.path.exists(ra) and os.path.exists(jpg):
+        cu = Image.open(jpg).convert("RGB")
+        if cu.size == moi.size and sum(ImageStat.Stat(ImageChops.difference(cu, moi)).mean) / 3 < 1.0:
+            print(f"chuyển động: dùng lại clip đã trả tiền của đúng khung này ({ra}) · 0₫", flush=True); return ra, 0
+    moi.save(jpg, quality=92)
     tmb = f"/var/tmp/anh-dong/{int(cid)}"; AT.sh("ssh", AT.B, f"mkdir -p {tmb}", han=60)
     r = AT.sh("rsync", "-q", jpg, f"{AT.B}:{tmb}/", han=300)
     if r.returncode: raise RuntimeError(f"đẩy khung lên box3 lỗi: {(r.stderr or r.stdout)[-200:]}")
@@ -628,7 +636,6 @@ def chuyen_dong(nen, tm, cid, ma, b):
         print(f"{g.get('cong')} treo ({d.get('loi')}) → gửi lại qua {sau[0][1]}", flush=True)
         os.remove(so); ep, g = sau[0], None
     if not d.get("ok") or not d.get("uri"): raise RuntimeError(f"AI chuyển động hỏng ({g.get('cong')}): {str(d.get('loi'))[:300]}")
-    ra = os.path.join(tm, f"dong-{ma}-{b}.mp4")
     if d.get("can_khoa"):
         import base64; open(ra, "wb").write(base64.b64decode(_cong({"loai": "video_tai", "uri": d["uri"]}, 400)["video_b64"]))
     else:  # kho clip (CDN) chặn user-agent mặc định của Python → 403

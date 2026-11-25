@@ -12,7 +12,8 @@ Form = apps/etp/form-chu.json (một nguồn: chu-qc.py tạo creative mới cũ
 Dùng (box3): python3 ap-form-chu.py            — chỉ đếm, in mẫu
              python3 ap-form-chu.py --chay     — PATCH thật
              python3 ap-form-chu.py --ad <camp>:<vé>[:<creative>] [<camp>:<vé> …]
-             python3 ap-form-chu.py --ban-nha <creative> …   — creative của đội / bài đăng có sẵn: tạo bản nhà cùng video, chữ form (in {cũ: mới})"""
+             python3 ap-form-chu.py --ban-nha <creative> …   — creative của đội / bài đăng có sẵn: tạo bản nhà cùng video, chữ form (in {cũ: mới})
+             python3 ap-form-chu.py --kieu kien <creative> …  — creative NHÀ chưa gắn ad: đổi chữ sang kiểu Kiên (bộ chữ cùng phim trong apps/etp/chu-kieu.json)"""
 import concurrent.futures as cf, json, os, sys, urllib.request
 D = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, D); import ethopex_api as EA
 F, ds_l, dung_form = EA.FORM, EA.ds_l, EA.dung_form   # một chuẩn form: ethopex_api.py (cửa CamLechForm cũng dùng)
@@ -21,13 +22,17 @@ CHAY = "--chay" in sys.argv
 BODY = {"call_to_action": F["call_to_action"], "link_url": F["link_url"],
         "asset_spec": {"primaryTexts": F["primaryTexts"], "headlines": F["headlines"], "descriptions": F["descriptions"]}}
 
-def patch(cid):
-    r = urllib.request.Request(f"https://api.ethopex.dev/api/v1/creatives/{cid}", data=json.dumps(BODY).encode(), method="PATCH",
+def patch(cid, body=BODY):
+    r = urllib.request.Request(f"https://api.ethopex.dev/api/v1/creatives/{cid}", data=json.dumps(body).encode(), method="PATCH",
                                headers={"authorization": "Bearer " + EA.T, "content-type": "application/json", "user-agent": "etp-form-chu"})
     try:
         d = json.load(urllib.request.urlopen(r, timeout=60)); d = d.get("data", d)
         if not dung_form(d): return cid, "lệch sau PATCH"
-        EA._q(f"update etp.bai_cr set form_luc = now() where creative_id = {cid} and form_luc is null")
+        if body is BODY: EA._q(f"update etp.bai_cr set form_luc = now() where creative_id = {cid} and form_luc is null")
+        else:   # kiểu khác Dol (chu-kieu.json): form_luc nghĩa là "về form Dol" (etp2 Thiết lập in chữ form khi thấy nó) → ghi CHỮ THẬT vừa PATCH vào bai_cr
+            a = d.get("asset_spec") or {}; a = json.loads(a) if isinstance(a, str) else a
+            j = lambda v: "'" + json.dumps(EA.ds_l(v), ensure_ascii=False).replace("'", "''") + "'::jsonb"
+            EA._q(f"update etp.bai_cr set chinh = {j(a.get('primaryTexts'))}, tieu_de = {j(a.get('headlines'))}, mo_ta = {j(a.get('descriptions'))}, form_luc = null where creative_id = {cid}")
         return cid, "ok"
     except Exception as e: return cid, str(e)[:160]
 
@@ -65,6 +70,22 @@ def gan_lai(camp, ve, cr_ep=None):
     finally: os.environ.pop("ETP_VE", None)
     EA._q(f"update etp.bai_camp set chu_form_luc = now() where camp_id = {int(camp)}")
     return camp, "ok"
+
+def kieu(cr, ten):
+    """creative NHÀ chưa gắn ad → chữ kiểu `ten` (ethopex_api.KIEU_DOI): bộ chữ CÙNG phim trong apps/etp/chu-kieu.json; CTA + link theo form"""
+    toi = (EA.jwt_tai(EA.T) or {}).get("user_id")
+    c = EA.api(f"/api/v1/creatives/{int(cr)}"); c = c.get("data", c)
+    if not toi or c.get("user_id") != toi: return cr, "không phải creative nhà — không đụng"
+    if EA._q(f"select count(*) from etp.camp where creative_id = {int(cr)}") not in ("", "0"): return cr, "đã gắn camp — không đổi chữ creative đang chạy"
+    ds = EA.chu_doi(ten, c["content_id"])
+    if not ds: return cr, f"sổ chu-kieu.json chưa có chữ kiểu {ten} cho phim {c['content_id']}"
+    pt, hl, de = ds[0]
+    return patch(int(cr), {"call_to_action": F["call_to_action"], "link_url": F["link_url"], "asset_spec": {"primaryTexts": pt, "headlines": hl, "descriptions": de}})
+
+if __name__ == "__main__" and "--kieu" in sys.argv:
+    i = sys.argv.index("--kieu"); ten = sys.argv[i + 1]
+    if ten not in EA.KIEU_DOI: raise SystemExit(f"kiểu {ten!r} chưa có trong ethopex_api.KIEU_DOI {sorted(EA.KIEU_DOI)}")
+    print(json.dumps(dict(kieu(x, ten) for x in sys.argv[i + 2:] if x.isdigit()), ensure_ascii=False)); sys.exit(0)
 
 if __name__ == "__main__" and "--ban-nha" in sys.argv:
     print(json.dumps({x: ban_nha(x) for x in sys.argv[sys.argv.index("--ban-nha") + 1:] if x.isdigit()})); sys.exit(0)

@@ -820,6 +820,14 @@ const LUAT = [
   { card: 'roas-dan-2511', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'from etp.ke_cr k where k.creative_id = h.creative_id', vi: 'hàng chờ lên camp hiện mức dàn từ etp.ke_cr' },
   { card: 'khung-7-22-2511', tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: '"len_gio": [7, 22]', vi: 'sổ luật etp2: khung lên 07h + 22h VN' },
   { card: 'khung-7-22-2511', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"len_gio": [7, 22]', vi: 'sổ luật chung (nhan-ban đọc tệp này): khung lên 07h + 22h VN' },
+  // TRẠNG THÁI ✎ SỬA LẠI (anh 25/11/2026 #1863 "Thêm 1 status là Sửa lại !!")
+  { card: '1863', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "data-o=\"nut-sua-lai\"", vi: 'thẻ chờ duyệt có nút thứ ba ✎ Sửa lại bên cạnh Duyệt / Loại' },
+  { card: '1863', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "duyetChoAnh(cr, false, chu, true), 'sua')", vi: 'xác nhận Sửa lại gửi cờ sửa lại, không gửi như Duyệt' },
+  { card: '1863', tep: 'apps/etp2/src/lib/actions/etp-cham.ts', co: 'sua_lai = excluded.sua_lai', vi: 'Sửa lại lưu cờ sua_lai (ok = false nên không lên camp); Duyệt / Loại về sau ghi đè cờ' },
+  { card: '1863', tep: 'apps/etp2/src/lib/actions/etp-cham.ts', co: 'if (sl && !nx) return', vi: 'Sửa lại bắt buộc có nhận xét cần sửa gì' },
+  { card: '1863', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "return sl ? { ...o, dong_bo: 'sua_lai' } : o;", vi: 'creative Sửa lại vẫn hiện ở bảng cây camp với trạng thái ✎ Sửa lại' },
+  { card: '1863', tep: 'apps/etp2/src/lib/etp-chay.ts', co: "export const suaLaiCr", vi: 'dòng Sửa lại không bị đếm là đang chạy / đã tắt' },
+  { card: '1863', tep: 'apps/etp2/src/components/etp-view.tsx', co: "m('sualai', 'Sửa lại'", vi: 'ô Lọc có mục Sửa lại' },
 ];
 
 const loi = [];

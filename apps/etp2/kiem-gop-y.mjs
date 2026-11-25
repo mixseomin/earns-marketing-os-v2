@@ -728,6 +728,8 @@ const LUAT = [
   { card: '1844', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "dong('Giọng'", vi: 'thẻ chờ duyệt hiện giọng đọc của creative' },
   { card: '1844', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: "${giongCr('h.creative_id')} giong", vi: 'action chờ duyệt đọc giọng bằng giongCr' },
   { card: '1844', tep: 'apps/etp2/src/lib/etp-ban.ts', co: 'etp.diem_cham d where d.creative_id', vi: 'giọng lùi về sổ điểm chạm cho bản dựng trước 25/11' },
+  { card: '1845', tep: 'apps/etp2/src/components/etp-view.tsx', co: "m('kehoach', 'Đang lên kế hoạch',", vi: 'ô Lọc nhóm trạng thái: Đang lên kế hoạch không mang biểu tượng như các mục cùng nhóm' },
+  { card: '1845', tep: 'apps/etp2/src/components/etp-view.tsx', cam: "m('kehoach', '📝", vi: 'không thêm lại biểu tượng 📝 vào mục lọc trạng thái' },
 ];
 
 const loi = [];

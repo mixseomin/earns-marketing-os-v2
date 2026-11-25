@@ -29,7 +29,7 @@ import { openEntityDrawer } from '@/lib/entity-drawer';
 import { wrapHref } from '@/components/external-link';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
-import { VideoXem } from '@/components/ui/video-xem';
+import { NutTieng, VideoXem } from '@/components/ui/video-xem';
 import { moTabNeuModifier } from '@/lib/url-mo-tab';
 import { quetPhimEtp } from '@/lib/actions/etp-phim';
 import { docGioNgay, type SoGio } from '@/lib/actions/etp-gio';
@@ -3654,7 +3654,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
         {/* NGƯỜI ở dòng tiêu đề (anh 28/10/2026 "chuyển chọn tk này lên trên cho đúng logic"): đổi người là đổi dữ liệu CẢ TRANG (mọi tab), không phải một bộ lọc camp */}
         {/* CỤM NGƯỜI XUỐNG DÒNG (#1575 anh 12/11/2026 "trên mobile phần này đang làm tràn màn hình"): cụm Người · Luật máy · Nối Telegram · chỉ xem là inline-flex không gói → màn hẹp đẩy tràn ngang; cho gói + co trong bề ngang màn */}
-        <span style={{ alignSelf: 'center', display: 'inline-flex', flexWrap: 'wrap', minWidth: 0, maxWidth: '100%', gap: 6, alignItems: 'center' }}>{nguoiSel()}{!gon && coBo ? boSel() : null}{!gon && coKy ? kySel() : null}
+        <span style={{ alignSelf: 'center', display: 'inline-flex', flexWrap: 'wrap', minWidth: 0, maxWidth: '100%', gap: 6, alignItems: 'center' }}>{nguoiSel()}{!gon && coBo ? boSel() : null}{!gon && coKy ? kySel() : null}<NutTieng />{/* #1850 nút tiếng toàn trang, cạnh ô kỳ */}
           {du.nguoi.ngoai && quyen?.cheDo?.duoc.bao && du.nguoi.dang != null ? <CheDoLuatO nguoiId={du.nguoi.dang} c={quyen.cheDo} /> : null}
           {du.nguoi.ngoai && !(quyen?.sua != null && du.nguoi.dang === quyen.sua) ? <span title={du.nguoi.doi ? 'camp + số của CẢ ĐỘI (nhà + mọi người) gộp một — chỉ để theo dõi; luật / bật tắt không áp ở chế độ Team'
               : 'camp + số của tài khoản QC người này — chỉ để theo dõi / học; cột Luật = máy luật ĐỀ XUẤT cho camp người này (không thao tác), rê ô ngân sách xem lịch sử lên bậc + máy đề xuất trước bao lâu; nút bật / tắt không áp'}
@@ -3691,7 +3691,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         {([['Hôm nay', nay], ['Hôm qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, x], i) => <span key={i}><span style={{ color: 'var(--fg-2)' }}>{ten} </span><b style={{ fontSize: 14 }}><Lai s={x} /></b> <span style={{ fontSize: 11 }}><Roi s={x} /></span></span>)}
         <span><span style={{ color: 'var(--fg-2)' }}>Camp chạy </span><b style={{ fontSize: 14 }}>{chay.length}</b></span>
         <span><span style={{ color: 'var(--fg-2)' }}>Ngân sách </span><b style={{ fontSize: 14 }}>${[...chay, ...choChayDs].reduce((a, c) => a + c.ngan_sach, 0)}/ngày</b></span>
-        {lenDinh ? <><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}{coBo ? boSel() : null}{coKy ? kySel() : null}</span></>
+        {lenDinh ? <><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}{coBo ? boSel() : null}{coKy ? kySel() : null}<NutTieng /></span></>
           : du.nguoi.ds.length > 1 ? <span title="người đang xem — cuộn lên ô Người để đổi"><span style={{ color: 'var(--fg-2)' }}>Người </span><b style={{ fontSize: 14, color: du.nguoi.ngoai ? '#60a5fa' : undefined }}>{tenNguoi}</b></span> : null}{/* anh 31/10/2026 #1495 (điện thoại) */}
       </div> : null}
       {/* BỐ CỤC THANH TRÊN (anh 31/10/2026 "bố cục lại chỗ này" + YDNI): một hàng nowrap nhồi 8 tab + kỳ + kiểu xem + 6 ô lọc → tab gãy hai dòng chữ.

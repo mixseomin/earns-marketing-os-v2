@@ -340,8 +340,8 @@ def bang_mau_logo(lg):
 def nhan_logo(lop, c, pal):
     """nhãn trên cùng hợp logo: chữ hoa nét chân (Copperplate) tô dải màu của logo, viền màu nét viền logo, hai vạch trang trí cùng màu hai bên — không dải trắng"""
     sang, giua, toi, vien_ = pal; chu = AT.FREE.get(c["lang"], AT.FREE["en"])[0].upper()   # to + sáng (anh 25/11/2026 "chữ episodes... khó nhìn quá": 76px đỏ thẫm trên nền gạch không đọc được)
-    f, dong = vua(chu, "copper", W - 200, 104, toi_da=1, co_min=70)
-    if f.getlength(dong[0]) > W - 200: f, dong = vua(chu, "copper", W - 200, 104, toi_da=2, co_min=56)   # nhãn dài (ES "TODOS LOS EPISODIOS YA DISPONIBLES" 1.241px ở 60px) chia 2 dòng thay vì tràn khung
+    f, dong = vua(chu, "copper", W - 200, 104, toi_da=1, co_min=60)   # MỘT dòng khi vừa ở cỡ ≥ 60px (EN "ALL EPISODES RELEASED" 62px) — vua() không vừa thì tự bẻ dòng, nên phải kiểm cả số dòng
+    if len(dong) > 1 or f.getlength(dong[0]) > W - 200: f, dong = vua(chu, "copper", W - 200, 104, toi_da=2, co_min=56)   # nhãn dài (ES "TODOS LOS EPISODIOS YA DISPONIBLES" 1.241px ở 60px) chia 2 dòng thay vì tràn khung
     m, hop = mat_chu(dong, f, int(H * 0.06))
     # TÁCH KHỎI NỀN (anh 25/11/2026 "nổi hơn, tách ra khỏi nền chung một chút"): tấm tối mép mờ sau cả dải nhãn + quầng tối ôm chữ, rồi viền dày + vát sáng
     t0, t1 = hop[1] - 34, hop[3] + 34; tam = Image.new("L", (W, H)); ImageDraw.Draw(tam).rectangle((0, t0, W, t1), fill=235)

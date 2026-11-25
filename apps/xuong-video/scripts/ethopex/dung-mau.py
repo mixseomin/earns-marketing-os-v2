@@ -335,23 +335,36 @@ def bang_mau_logo(lg):
     return sang, lay(0.6), lay(0.15), vien_
 def nhan_logo(lop, c, pal):
     """nhãn trên cùng hợp logo: chữ hoa nét chân (Copperplate) tô dải màu của logo, viền màu nét viền logo, hai vạch trang trí cùng màu hai bên — không dải trắng"""
-    sang, giua, toi, vien_ = pal; chu = AT.FREE.get(c["lang"], AT.FREE["en"])[0].upper(); f = ph("copper", 64)
-    while f.getlength(chu) > W - 300 and f.size > 36: f = f.font_variant(size=f.size - 4)
-    m, hop = mat_chu([chu], f, int(H * 0.06)); bong(lop, m, (3, 6), 8, 230); vien(lop, m, 4, vien_); to(lop, m, doc_trong(sang, giua, toi, hop))
+    sang, giua, toi, vien_ = pal; chu = AT.FREE.get(c["lang"], AT.FREE["en"])[0].upper(); f = ph("copper", 76)
+    while f.getlength(chu) > W - 260 and f.size > 36: f = f.font_variant(size=f.size - 4)
+    m, hop = mat_chu([chu], f, int(H * 0.06))
+    # TÁCH KHỎI NỀN (anh 25/11/2026 "nổi hơn, tách ra khỏi nền chung một chút"): tấm tối mép mờ sau cả dải nhãn + quầng tối ôm chữ, rồi viền dày + vát sáng
+    t0, t1 = hop[1] - 30, hop[3] + 30; tam = Image.new("L", (W, H)); ImageDraw.Draw(tam).rectangle((0, t0, W, t1), fill=215)
+    for k in range(W // 2):   # dải mờ dần về hai mép (dải băng, không phải khối vuông)
+        a_ = max(0, min(255, int((k / (W * 0.18)) * 255))); ImageDraw.Draw(tam).line((k, t0, k, t1), fill=a_ * 215 // 255); ImageDraw.Draw(tam).line((W - 1 - k, t0, W - 1 - k, t1), fill=a_ * 215 // 255)
+    toi_nen = Image.new("RGBA", (W, H), tuple(v // 3 for v in vien_) + (0,)); toi_nen.putalpha(tam.filter(ImageFilter.GaussianBlur(3))); lop.alpha_composite(toi_nen)
+    chi = Image.new("L", (W, H)); dc = ImageDraw.Draw(chi)   # hai chỉ màu logo viền trên / dưới dải
+    for yy in (t0, t1): dc.rectangle((0, yy - 2, W, yy + 2), fill=255)
+    chi = ImageChops.multiply(chi, tam.point(lambda v: min(255, v * 255 // 215))); to(lop, chi, giua)
+    bong(lop, m.filter(ImageFilter.MaxFilter(15)), (0, 0), 14, 220); bong(lop, m, (4, 8), 6, 255)
+    vien(lop, m, 6, vien_); to(lop, m, doc_trong(sang, giua, toi, hop)); sang_khoi(lop, m, sang, vien_)
     d = ImageDraw.Draw(lop); ym = (hop[1] + hop[3]) // 2
     for a_, b_ in ((70, hop[0] - 30), (hop[2] + 30, W - 70)):
         if b_ - a_ > 40:
-            d.line((a_, ym, b_, ym), fill=vien_ + (230,), width=7); d.line((a_, ym, b_, ym), fill=giua + (255,), width=3)
-            for xx in ((b_,) if a_ == 70 else (a_,)): d.regular_polygon((xx, ym, 10), 4, fill=sang + (255,), outline=vien_ + (255,))
+            d.line((a_, ym, b_, ym), fill=vien_ + (240,), width=9); d.line((a_, ym, b_, ym), fill=giua + (255,), width=4)
+            for xx in ((b_,) if a_ == 70 else (a_,)): d.regular_polygon((xx, ym, 13), 4, fill=sang + (255,), outline=vien_ + (255,))
 def nut_logo(lop, chu, y, pal):
     """nút CTA hợp logo: viên thuốc tô dải màu của logo (sáng → giữa → tối), viền nét viền logo + chỉ sáng bên trong, chữ màu viền (đậm, đọc rõ trên nền sáng)"""
-    sang, giua, toi, vien_ = pal; f = ph("copper", 60)
+    sang, giua, toi, vien_ = pal; f = ph("copper", 66)
     while f.getlength(chu) + 2 * 70 > W - 200 and f.size > 32: f = f.font_variant(size=f.size - 4)
     x0, y0, x1, y1 = f.getbbox(chu); w, h = x1 - x0 + 140, y1 - y0 + 56; x = (W - w) // 2; r = h // 2
-    bo = Image.new("RGBA", (W, H)); ImageDraw.Draw(bo).rounded_rectangle((x + 4, y + 10, x + w + 4, y + h + 10), radius=r, fill=(0, 0, 0, 160)); lop.alpha_composite(bo.filter(ImageFilter.GaussianBlur(12)))
-    ImageDraw.Draw(lop).rounded_rectangle((x - 6, y - 6, x + w + 6, y + h + 6), radius=r + 6, fill=vien_ + (255,))
+    bo = Image.new("RGBA", (W, H)); ImageDraw.Draw(bo).rounded_rectangle((x - 30, y - 24, x + w + 30, y + h + 30), radius=r + 30, fill=(0, 0, 0, 150)); lop.alpha_composite(bo.filter(ImageFilter.GaussianBlur(26)))   # quầng tối tách nút khỏi nền
+    bo = Image.new("RGBA", (W, H)); ImageDraw.Draw(bo).rounded_rectangle((x + 6, y + 14, x + w + 6, y + h + 14), radius=r, fill=(0, 0, 0, 220)); lop.alpha_composite(bo.filter(ImageFilter.GaussianBlur(10)))   # bóng đổ sâu
+    ImageDraw.Draw(lop).rounded_rectangle((x - 8, y - 8, x + w + 8, y + h + 8), radius=r + 8, fill=vien_ + (255,))
     mk = Image.new("L", (W, H)); ImageDraw.Draw(mk).rounded_rectangle((x, y, x + w, y + h), radius=r, fill=255); to(lop, mk, doc_trong(sang, giua, toi, (x, y, x + w, y + h)))
-    ImageDraw.Draw(lop).rounded_rectangle((x + 8, y + 8, x + w - 8, y + h - 8), radius=r - 8, outline=sang + (170,), width=2)
+    bong_sang = Image.new("L", (W, H)); ImageDraw.Draw(bong_sang).rounded_rectangle((x + 14, y + 6, x + w - 14, y + h // 2), radius=r - 10, fill=90)   # vệt sáng nửa trên → nút nổi khối
+    to(lop, bong_sang.filter(ImageFilter.GaussianBlur(4)), (255, 255, 255))
+    ImageDraw.Draw(lop).rounded_rectangle((x + 8, y + 8, x + w - 8, y + h - 8), radius=r - 8, outline=sang + (200,), width=3)
     sang_chu = sum(giua) / 3 > 110; mc = vien_ if sang_chu else (255, 255, 255)
     d = ImageDraw.Draw(lop); tx, ty = x + 70 - x0, y + 28 - y0
     if not sang_chu: d.text((tx + 2, ty + 3), chu, font=f, fill=(0, 0, 0, 180))

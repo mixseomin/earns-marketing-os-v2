@@ -54,8 +54,8 @@ App nối vào giao diện: thêm `demGopY` vào bộ hành động `hd` (vd `ap
 | Nơi | Theo chuẩn |
 |---|---|
 | cty.on.tc (`apps/cty`) | đủ: gói + `demGopY` (thấy cả lượt Khôi đang chạy) |
-| studio.on.tc (`apps/xuong-video`) | gói + `demGopY` (sáng / chấm đỏ / số đỏ); còn thiếu một dòng `demGopY` trong `src/lib/gop-y.ts` để thấy lượt Vinh |
-| mos2.on.tc / city (`apps/web`), etp2 (`apps/etp2`) | gói giao diện, nhưng `lib/actions/gop-y-mos2.ts` là bản máy chủ chép riêng (chưa có `choYKien`, chưa `demGopY`) → số đỏ chỉ đếm card kẹt; etp2 còn hiệu ứng `huyChay` riêng |
+| studio.on.tc (`apps/xuong-video`) | đủ: gói + `demGopY` (`src/lib/gop-y.ts`, thấy cả lượt Vinh đang chạy) |
+| mos2.on.tc / city (`apps/web`), etp2 (`apps/etp2`) | đủ: gói giao diện + máy chủ gói (`lib/actions/gop-y-mos2.ts` chỉ gắn người / hòm / lọc nguồn; etp2 thêm việc Huy đang làm, phần kẹt gọi `demTuDs` của gói) |
 | castle.on.tc, worlds.on.tc (`apps/castle/public/gopy.js`, `data-gop-y-nut`) · studio2 · ngatu · dantranh (`data-gop-y-mo`) | trang tĩnh: script `/api/gop-y-ngoai/nut` tô sáng / chấm đỏ / số đỏ theo số hòm iframe gửi (25/11/2026) |
 | spy (Hiếu) | bản chép JS thuần (spy-on-tc 182bf06): sáng `gy-sang` + chấm đỏ kẹt + số đỏ, máy so khớp gốc |
 | Astrolas (Thành) | bản chép blade (ai 4847ea59c, đã gộp ai-pro 25/11): sáng `gy-sang` + chấm đỏ `counts.ket` + số đỏ, máy so khớp gốc |

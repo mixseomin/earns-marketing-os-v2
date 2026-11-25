@@ -152,3 +152,30 @@ export async function docThietLap(ids: number[], ke: KeTl[] = []): Promise<Thiet
   }
   return { form, dong, chung, thieu };
 }
+
+/** CAMP THẮNG để so cạnh camp đang xem (anh 26/11/2026: "Làm sao show đc so sánh tương đương với camp của Kiên hoặc Sơn ở đây !! (camp thắng)").
+ *  Thắng = camp Kiên (#116) / Sơn (#115) đang ACTIVE, chi 7 ngày > $20, ROI 7 ngày > 0 — cùng phim xếp trước, rồi ROI cao nhất. Kèm số 7 ngày của chính camp đang xem. */
+export type SoBay = { camp_id: number; nguoi: string; content_id: number | null; chi: number; thu: number; roi: number | null; ngay: number; cung_phim?: boolean };
+const TEN_DOI: Record<number, string> = { 115: 'Sơn', 116: 'Kiên' };
+export async function campThang(campId: number): Promise<{ nay: SoBay | null; thang: SoBay[] } | { loi: string }> {
+  if (!(await quyenEtp(await getCurrentUser()))) return { loi: 'không có quyền' };
+  const id = Number(campId); if (!Number.isInteger(id) || id <= 0) return { loi: 'mã camp sai' };
+  const db = getDb(); if (!db) return { loi: 'không nối được kho' };
+  const rows = (await db.execute(sql`with so as (
+      select a.campaign_id camp_id, sum(n.cost)::float chi, sum(n.revenue)::float thu, count(distinct n.ngay)::int ngay
+      from etp.bc_ad a join etp.bc_ad_ngay n on n.ad_id = a.ad_id where n.ngay >= current_date - 7 group by 1),
+    nay as (select coalesce((select content_id from etp.camp where camp_id = ${id}), (select content_id from etp.camp_ngoai where camp_id = ${id})) cid)
+    select s.camp_id, t.nguoi_id, c.content_id, s.chi, s.thu, s.ngay, (c.content_id = (select cid from nay)) cung_phim, false la_nay
+      from so s join etp.camp_ngoai c on c.camp_id = s.camp_id join etp.tai_khoan t on t.ad_account_id = c.ad_account_id
+      where t.nguoi_id in (115, 116) and c.trang_thai = 'ACTIVE' and s.chi > 20 and s.thu > s.chi
+    union all select ${id}, null, (select cid from nay), coalesce(s.chi, 0), coalesce(s.thu, 0), coalesce(s.ngay, 0), true, true from (select 1) x left join so s on s.camp_id = ${id}`)) as unknown as Record<string, unknown>[];
+  const doi = (r: Record<string, unknown>): SoBay => {
+    const chi = Number(r.chi) || 0, thu = Number(r.thu) || 0;
+    return { camp_id: Number(r.camp_id), nguoi: TEN_DOI[Number(r.nguoi_id)] ?? 'nhà', content_id: r.content_id == null ? null : Number(r.content_id), chi, thu,
+      roi: chi > 0 ? Math.round(((thu - chi) / chi) * 100) : null, ngay: Number(r.ngay) || 0, cung_phim: r.cung_phim === true };
+  };
+  const nay = rows.find((r) => r.la_nay === true);
+  const thang = rows.filter((r) => r.la_nay !== true && Number(r.camp_id) !== id).map(doi)
+    .sort((a, b) => Number(!!b.cung_phim) - Number(!!a.cung_phim) || (b.roi ?? 0) - (a.roi ?? 0) || b.chi - a.chi).slice(0, 6);
+  return { nay: nay ? doi(nay) : null, thang };
+}

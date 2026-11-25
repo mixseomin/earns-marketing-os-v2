@@ -5,11 +5,11 @@
 // CÙNG tên khối + tên trường + thứ tự như Ethopex (đọc từ gói mã facebook-campaign-create-page của họ). Màn hẹp: cây thành dải nút ngang trên đầu.
 // Chỉ đọc. Dữ liệu = docThietLap (etp.bai_camp.du — GET /api/v1/campaigns/<id> trọn, cùng nguồn bảng ⚙ Thiết lập), không đọc riêng.
 // Trang "Số liệu nhà" giữ phần ngăn camp cũ (bậc, ROI, điều khiển, biểu đồ, luật, creative) để không mất gì.
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { DeBaiQc, tachChu, type DeBai } from '@/components/etp-bai-qc';
-import { docThietLap, type DongTl, type KeTl, type OTl } from '@/lib/actions/etp-thiet-lap';
+import { campThang, docThietLap, type DongTl, type KeTl, type OTl, type SoBay } from '@/lib/actions/etp-thiet-lap';
 
-type Trang = 'camp' | 'nhom' | 'ad' | 'so';
+type Trang = 'camp' | 'nhom' | 'ad' | 'so' | 'ss';
 const KHOA = 'etp-ngan-camp-trang';
 
 // mã Meta → chữ Ethopex / Meta hiện trên trang; mã gốc vẫn in mờ bên cạnh
@@ -41,7 +41,7 @@ export function CamCauHinh({ campId, soLieu, xemTruoc, phim, ke }: {
   phim?: string | null;
 }) {
   const [trang, datTrang] = useState<Trang>('camp');
-  useEffect(() => { try { const v = localStorage.getItem(KHOA); if (v === 'camp' || v === 'nhom' || v === 'ad' || v === 'so') datTrang(v); } catch { /* không có localStorage: mở trang Campaign */ } }, []);
+  useEffect(() => { try { const v = localStorage.getItem(KHOA); if (v === 'camp' || v === 'nhom' || v === 'ad' || v === 'so' || v === 'ss') datTrang(v); } catch { /* không có localStorage: mở trang Campaign */ } }, []);
   const chon = (v: Trang) => { datTrang(v); try { localStorage.setItem(KHOA, v); } catch { /* như trên */ } };
   const [du, setDu] = useState<{ r: DongTl | null; chung: string[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
   // #1862: danh sách Chờ duyệt tải lại mỗi ~13s trao `ke` là object MỚI cùng nội dung → effect chạy lại, xoá du → khung xem trước bị dựng lại, bản dịch vừa mở gập mất. Khoá theo NỘI DUNG ke.
@@ -71,7 +71,7 @@ export function CamCauHinh({ campId, soLieu, xemTruoc, phim, ke }: {
     { k: 'nhom', ten: 'Ad set', nhan: v('g_ten') ?? '—', lui: 1 },
     { k: 'ad', ten: 'Ad', nhan: v('a_ten') ?? '—', lui: 2 },
   ];
-  const cham = (k: Trang) => k === 'so' ? null : coLoi[k] ? '#f87171' : coCanh[k] ? '#fbbf24' : null;
+  const cham = (k: Trang) => k === 'so' || k === 'ss' ? null : coLoi[k] ? '#f87171' : coCanh[k] ? '#fbbf24' : null;
   const cay = rong
     ? <aside style={{ position: 'sticky', top: 0, alignSelf: 'start', borderRight: '1px solid var(--line)', paddingRight: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--fg-3, #777)', padding: '2px 6px 8px' }}>Campaign structure</div>
@@ -83,10 +83,10 @@ export function CamCauHinh({ campId, soLieu, xemTruoc, phim, ke }: {
           </button>)}
         </nav>
         <div style={{ borderTop: '1px solid var(--line)', margin: '8px 0 4px' }} />
-        <button type="button" onClick={() => chon('so')} style={{ textAlign: 'left', border: 0, borderRadius: 6, padding: '6px 8px', cursor: 'pointer', fontSize: 12, background: trang === 'so' ? 'var(--bg-2, #1f2937)' : 'transparent', color: 'inherit', fontWeight: trang === 'so' ? 600 : 400 }}>📊 Số liệu nhà</button>
+        {([['ss', '⚖ So camp thắng'], ['so', '📊 Số liệu nhà']] as const).map(([k, ten]) => <button key={k} type="button" onClick={() => chon(k)} style={{ textAlign: 'left', border: 0, borderRadius: 6, padding: '6px 8px', cursor: 'pointer', fontSize: 12, background: trang === k ? 'var(--bg-2, #1f2937)' : 'transparent', color: 'inherit', fontWeight: trang === k ? 600 : 400 }}>{ten}</button>)}
       </aside>
     : <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 6, borderBottom: '1px solid var(--line)' }}>
-        {[...NUT.map((n) => ({ k: n.k, ten: n.ten })), { k: 'so' as Trang, ten: '📊 Số liệu nhà' }].map((n) => <button key={n.k} type="button" onClick={() => chon(n.k)}
+        {[...NUT.map((n) => ({ k: n.k, ten: n.ten })), { k: 'ss' as Trang, ten: '⚖ So camp thắng' }, { k: 'so' as Trang, ten: '📊 Số liệu nhà' }].map((n) => <button key={n.k} type="button" onClick={() => chon(n.k)}
           style={{ flex: 'none', border: '1px solid var(--line)', borderRadius: 999, padding: '4px 10px', fontSize: 12, cursor: 'pointer', background: trang === n.k ? 'var(--bg-2, #1f2937)' : 'transparent', color: 'inherit', fontWeight: trang === n.k ? 600 : 400, display: 'flex', alignItems: 'center', gap: 5 }}>
           {n.ten}{cham(n.k) ? <span style={{ width: 6, height: 6, borderRadius: 3, background: cham(n.k)! }} /> : null}</button>)}
       </div>;
@@ -235,10 +235,90 @@ export function CamCauHinh({ campId, soLieu, xemTruoc, phim, ke }: {
             Camp DỰ KIẾN — chưa tạo · chép khuôn #{String(r.ke_khuon ?? '')} + ô máy đè lúc lên{r.ke_thieu ? <b style={{ color: '#f87171' }}> · {String(r.ke_thieu)}</b> : null}</div>
           : !docDuoc ? <div title="apps/etp/bai-qc.py đọc ở lượt đồng bộ kế (~10 phút); các ô dưới chỉ có phần kho camp sẵn có" style={{ border: '1px solid #fbbf24', background: 'rgba(251,191,36,.08)', borderRadius: 8, padding: '8px 10px', fontSize: 12 }}>Kho chưa đọc cấu hình Ethopex · chờ lượt đồng bộ kế</div>
           : <div style={{ fontSize: 11, color: 'var(--fg-3, #777)' }}>Đọc từ Ethopex lúc {gioVn(String(r.du_luc)) ?? String(r.du_luc)} · chỉ xem</div>}
-        {trang === 'camp' ? trangCamp : trang === 'nhom' ? trangNhom : trangAd}
+        {trang === 'camp' ? trangCamp : trang === 'nhom' ? trangNhom : trang === 'ss' ? <SoThang campId={campId} nay={r} chung={du?.chung ?? []} rong={rong} /> : trangAd}
       </div>;
 
   return rong
     ? <div style={{ display: 'grid', gridTemplateColumns: '210px minmax(0, 1fr)', gap: 12, alignItems: 'start' }}>{cay}<div style={{ minWidth: 0 }}>{than}</div></div>
     : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{cay}{than}</div>;
+}
+
+// ── ⚖ SO CAMP THẮNG (anh 26/11/2026: "Làm sao show đc so sánh tương đương với camp của Kiên hoặc Sơn ở đây !! (camp thắng)") ──
+// Cùng bộ trường các trang Campaign / Ad set / Ad ở trên, hai cột: camp đang xem · camp thắng của Kiên / Sơn (campThang: cùng phim trước, rồi ROI 7 ngày).
+// Ô khác nhau tô vàng; danh sách (nước, vị trí…) so theo TẬP và chỉ in phần lệch. Giờ bắt đầu so theo giờ VN trong ngày (ngày lên khác nhau là đương nhiên).
+const SS: { nhom: string; k: string; nhan: string; kieu?: 'tap' | 'gio' | 'tien' }[] = [
+  { nhom: 'Campaign', k: 'c_gia', nhan: 'Bid strategy' }, { nhom: 'Campaign', k: 'c_che_do', nhan: 'Budget strategy' }, { nhom: 'Campaign', k: 'c_ns', nhan: 'Budget (camp)', kieu: 'tien' },
+  { nhom: 'Campaign', k: 'c_tk', nhan: 'Ad account' }, { nhom: 'Campaign', k: 'c_dac_biet', nhan: 'Special ad categories' },
+  { nhom: 'Ad set', k: 'g_toi_uu', nhan: 'Performance goal' }, { nhom: 'Ad set', k: 'g_roas', nhan: 'ROAS goal' }, { nhom: 'Ad set', k: 'g_su_kien', nhan: 'Conversion event' },
+  { nhom: 'Ad set', k: 'g_pixel', nhan: 'Pixel' }, { nhom: 'Ad set', k: 'g_attr', nhan: 'Attribution', kieu: 'tap' }, { nhom: 'Ad set', k: 'g_tinh_phi', nhan: 'Billing event' },
+  { nhom: 'Ad set', k: 'g_ns', nhan: 'Daily budget (ad set)', kieu: 'tien' }, { nhom: 'Ad set', k: 'g_bat_dau', nhan: 'Start (giờ VN trong ngày)', kieu: 'gio' },
+  { nhom: 'Ad set', k: 'g_nuoc', nhan: 'Include countries', kieu: 'tap' }, { nhom: 'Ad set', k: 'g_loai_nuoc', nhan: 'Exclude countries', kieu: 'tap' },
+  { nhom: 'Ad set', k: 'g_kieu_vt', nhan: 'Location types', kieu: 'tap' }, { nhom: 'Ad set', k: 'g_tuoi', nhan: 'Age' }, { nhom: 'Ad set', k: 'g_gioi', nhan: 'Genders' },
+  { nhom: 'Ad set', k: 'g_ngon_ngu', nhan: 'Languages', kieu: 'tap' }, { nhom: 'Ad set', k: 'g_adv', nhan: 'Advantage+ audience' },
+  { nhom: 'Ad set', k: 'g_nen', nhan: 'Publisher platforms', kieu: 'tap' }, { nhom: 'Ad set', k: 'g_vi_tri', nhan: 'Positions', kieu: 'tap' }, { nhom: 'Ad set', k: 'g_thiet_bi', nhan: 'Devices', kieu: 'tap' },
+  { nhom: 'Ad set', k: 'g_an_toan', nhan: 'Brand safety', kieu: 'tap' }, { nhom: 'Ad set', k: 'g_vung_qd', nhan: 'Regional regulated', kieu: 'tap' },
+  { nhom: 'Ad', k: 'a_page_ten', nhan: 'Facebook Page' }, { nhom: 'Ad', k: 'a_phim', nhan: 'Content (phim)' }, { nhom: 'Ad', k: 'a_mien', nhan: 'Domain' }, { nhom: 'Ad', k: 'a_lp', nhan: 'Landing page' },
+  { nhom: 'Ad', k: 'a_bai_co', nhan: 'Use existing post' }, { nhom: 'Ad', k: 'f_kieu', nhan: 'Ad type' }, { nhom: 'Ad', k: 'f_cta', nhan: 'Call to action' }, { nhom: 'Ad', k: 'f_link', nhan: 'Display link' },
+  { nhom: 'Ad', k: 'f_chinh', nhan: 'Primary text' }, { nhom: 'Ad', k: 'f_tieu', nhan: 'Headline' }, { nhom: 'Ad', k: 'f_mo_ta', nhan: 'Description' },
+];
+// ô khác nhau theo bản chất (mỗi camp một mã) — không tô vàng, chỉ in để đối chiếu
+const KHAC_SAN = new Set(['c_tk', 'a_page_ten', 'a_lp']);
+const tachTap = (s: string | null) => (s ?? '').split(/,\s*|\n|\s·\s/).map((x) => x.trim()).filter(Boolean);
+const gioTrongNgay = (s: string | null) => { if (!s) return null; const g = gioVn(s); return g ? g.slice(0, 5) : s; };
+
+function SoThang({ campId, nay, chung, rong }: { campId: number; nay: DongTl | null; chung: string[]; rong: boolean }) {
+  const [ds, setDs] = useState<{ nay: SoBay | null; thang: SoBay[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
+  const [chon, setChon] = useState<number | null>(null);
+  const [ref, setRef] = useState<{ r: DongTl | null; chung: string[] } | null>(null);
+  useEffect(() => { let bo = false; setDs(null); setLoi(null);
+    campThang(campId).then((x) => { if (bo) return; if ('loi' in x) setLoi(x.loi); else { setDs(x); setChon(x.thang[0]?.camp_id ?? null); } }, (e) => { if (!bo) setLoi(String(e?.message ?? e)); });
+    return () => { bo = true; }; }, [campId]);
+  useEffect(() => { let bo = false; setRef(null); if (chon == null) return;
+    docThietLap([chon]).then((x) => { if (bo) return; if ('loi' in x) setLoi(x.loi); else setRef({ r: x.dong[0] ?? null, chung: x.chung }); }, (e) => { if (!bo) setLoi(String(e?.message ?? e)); });
+    return () => { bo = true; }; }, [chon]);
+  const doc = (row: DongTl | null, ch: string[], k: string): string | null => { const x = row?.[k]; return x == null ? null : typeof x === 'number' ? (ch[x] ?? null) : String(x); };
+  if (loi) return <div style={{ border: '1px solid #f87171', background: 'rgba(248,113,113,.08)', borderRadius: 8, padding: '8px 10px', fontSize: 12 }}>Không so được: {loi}</div>;
+  if (!ds) return <div style={{ color: 'var(--fg-2)', fontSize: 12 }}>Đang tìm camp thắng của Kiên / Sơn…</div>;
+  if (!ds.thang.length) return <div style={{ color: 'var(--fg-2)', fontSize: 12 }}>Không có camp Kiên / Sơn nào đang chạy, chi 7 ngày &gt; $20 và lãi.</div>;
+  const th = ds.thang.find((x) => x.camp_id === chon) ?? ds.thang[0]!;
+  const so = (x: SoBay | null) => x ? `chi $${x.chi.toFixed(1)} · thu $${x.thu.toFixed(1)} · ROI ${x.roi == null ? '—' : `${x.roi > 0 ? '+' : ''}${x.roi}%`} · ${x.ngay} ngày` : '—';
+  let lech = 0;
+  const hang = SS.map((f) => {
+    const a = doc(nay, chung, f.k), b = ref ? doc(ref.r, ref.chung, f.k) : undefined;
+    let oA: ReactNode = a ?? '—', oB: ReactNode = b ?? '—', khac = false;
+    if (b !== undefined) {
+      if (f.kieu === 'tap') {
+        const A = new Set(tachTap(a)), B = new Set(tachTap(b)), chiA = [...A].filter((x) => !B.has(x)), chiB = [...B].filter((x) => !A.has(x));
+        khac = chiA.length + chiB.length > 0;
+        const ngan = (s: string | null, n: number) => s && s.length > 90 ? `${n} mục` : (s ?? '—');
+        oA = khac ? <>{ngan(a, A.size)}{chiA.length ? <div style={{ color: '#fbbf24' }}>chỉ bên này: {chiA.join(', ')}</div> : null}</> : ngan(a, A.size);
+        oB = khac ? <>{ngan(b, B.size)}{chiB.length ? <div style={{ color: '#fbbf24' }}>chỉ bên thắng: {chiB.join(', ')}</div> : null}</> : 'giống';
+      } else if (f.kieu === 'gio') { const ga = gioTrongNgay(a), gb = gioTrongNgay(b); oA = ga ?? '—'; oB = gb ?? '—'; khac = ga !== gb; }
+      else { if (f.kieu === 'tien') { oA = a == null ? '—' : `$${a}`; oB = b == null ? '—' : `$${b}`; } khac = (a ?? '') !== (b ?? ''); }
+    }
+    const vang = khac && !KHAC_SAN.has(f.k); if (vang) lech++;
+    return { f, oA, oB, vang, khac };
+  });
+  const o = { padding: '4px 8px', borderTop: '1px solid var(--line)', fontSize: 12, verticalAlign: 'top' as const, whiteSpace: 'pre-wrap' as const, wordBreak: 'break-word' as const };
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+      {ds.thang.map((x) => <button key={x.camp_id} type="button" onClick={() => setChon(x.camp_id)} title={so(x)}
+        style={{ border: '1px solid var(--line)', borderRadius: 999, padding: '3px 10px', fontSize: 12, cursor: 'pointer', background: x.camp_id === th.camp_id ? 'var(--bg-2, #1f2937)' : 'transparent', color: 'inherit', fontWeight: x.camp_id === th.camp_id ? 600 : 400 }}>
+        {x.nguoi} #{x.camp_id} · ROI {x.roi == null ? '—' : `+${x.roi}%`}{x.cung_phim ? ' · cùng phim' : ''}</button>)}
+    </div>
+    <div style={{ fontSize: 12, border: `1px solid ${lech ? '#fbbf24' : '#34d399'}`, background: lech ? 'rgba(251,191,36,.08)' : 'rgba(52,211,153,.08)', borderRadius: 8, padding: '8px 10px' }}>
+      {!ref ? 'Đang đọc cấu hình camp thắng…' : lech ? <><b>{lech} trường cấu hình khác</b> camp thắng (tô vàng bên dưới).</>
+        : <><b>Cấu hình giống camp thắng</b> (trừ tài khoản / Page / landing page — mỗi camp một mã). Chênh kết quả nằm ở creative, phim, ngân sách hoặc tài khoản, không ở ad set.</>}
+    </div>
+    <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rong ? 'fixed' : 'auto' }}>
+      <colgroup><col style={{ width: rong ? 170 : undefined }} /><col /><col /></colgroup>
+      <thead><tr style={{ textAlign: 'left', fontSize: 11, color: 'var(--fg-2)' }}><th style={o}>Trường</th><th style={o}>Camp này #{campId}<div style={{ fontWeight: 400 }}>{so(ds.nay)}</div></th>
+        <th style={o}>{th.nguoi} #{th.camp_id}<div style={{ fontWeight: 400 }}>{so(th)}</div></th></tr></thead>
+      <tbody>{hang.map(({ f, oA, oB, vang, khac }, i) => <Fragment key={f.k}>
+        {i === 0 || SS[i - 1]!.nhom !== f.nhom ? <tr><td colSpan={3} style={{ ...o, fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3, #777)' }}>{f.nhom}</td></tr> : null}
+        <tr style={{ background: vang ? 'rgba(251,191,36,.10)' : undefined }}>
+          <td style={{ ...o, color: 'var(--fg-2)' }}>{f.nhan}{khac && !vang ? <span style={{ color: 'var(--fg-3, #777)' }}> · khác (đương nhiên)</span> : null}</td><td style={o}>{oA}</td><td style={o}>{oB}</td></tr>
+      </Fragment>)}</tbody>
+    </table></div>
+  </div>;
 }

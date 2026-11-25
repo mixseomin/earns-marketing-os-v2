@@ -49,13 +49,16 @@ const JS = `(() => {
   let dangChup = false;
   const doi = (ms) => new Promise((r) => setTimeout(r, ms));
   const nho = (src, w, h) => { const k = Math.min(1, 1600 / Math.max(w, h)), c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k); c.getContext('2d').drawImage(src, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.85); };
+  const veXong = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  // Xin quyền chụp NGAY lúc bấm (còn hiệu lực cú bấm, hòm còn hiện) — ẩn hòm trước rồi mới xin thì trình duyệt từ chối 'Invalid state'.
+  // Có luồng hình rồi mới ẩn hòm, chờ trang vẽ lại, lấy một khung → ảnh không dính ngăn hòm.
   async function chupTab() {
     const md = navigator.mediaDevices;
     if (!md || !md.getDisplayMedia) throw new Error('trình duyệt không hỗ trợ chụp màn hình');
     const st = await md.getDisplayMedia({ video: { displaySurface: 'browser' }, audio: false, preferCurrentTab: true, selfBrowserSurface: 'include' });
     try {
       const v = document.createElement('video'); v.muted = true; v.srcObject = st; await v.play();
-      await doi(400);   // khung picker vừa đóng — chờ trang vẽ lại
+      hien(false); await veXong(); await doi(500);   // khung hình mới nhất phải là trang không có hòm
       return nho(v, v.videoWidth, v.videoHeight);
     } finally { st.getTracks().forEach((t) => t.stop()); }
   }
@@ -63,10 +66,11 @@ const JS = `(() => {
     if (dangChup || !khung) return;
     dangChup = true;
     let anh = null, loi = '';
-    hien(false);
     try {
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-      try { anh = window.__chupKhungTrang ? window.__chupKhungTrang() : null; } catch (e) { console.warn('[gop-y] chụp khung trang lỗi', e); }
+      if (window.__chupKhungTrang) {   // trang tự vẽ được khung hình (canvas) → không cần xin quyền
+        hien(false); await veXong();
+        try { anh = window.__chupKhungTrang(); } catch (e) { console.warn('[gop-y] chụp khung trang lỗi', e); }
+      }
       if (!(typeof anh === 'string' && anh.startsWith('data:image/'))) anh = await chupTab();
     } catch (e) { loi = (e && e.message) || 'đã huỷ'; anh = null; }
     dangChup = false;

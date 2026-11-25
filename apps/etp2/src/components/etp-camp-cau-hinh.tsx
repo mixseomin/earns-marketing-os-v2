@@ -5,7 +5,8 @@
 // CÙNG tên khối + tên trường + thứ tự như Ethopex (đọc từ gói mã facebook-campaign-create-page của họ). Màn hẹp: cây thành dải nút ngang trên đầu.
 // Chỉ đọc. Dữ liệu = docThietLap (etp.bai_camp.du — GET /api/v1/campaigns/<id> trọn, cùng nguồn bảng ⚙ Thiết lập), không đọc riêng.
 // Trang "Số liệu nhà" giữ phần ngăn camp cũ (bậc, ROI, điều khiển, biểu đồ, luật, creative) để không mất gì.
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { DeBaiQc, tachChu, type DeBai } from '@/components/etp-bai-qc';
 import { docThietLap, type DongTl, type KeTl, type OTl } from '@/lib/actions/etp-thiet-lap';
 
 type Trang = 'camp' | 'nhom' | 'ad' | 'so';
@@ -56,6 +57,10 @@ export function CamCauHinh({ campId, soLieu, xemTruoc, phim, ke }: {
 
   const r = du?.r ?? null;
   const v = (k: string): string | null => { const x: OTl | undefined = r?.[k]; return x == null ? null : typeof x === 'number' ? (du?.chung[x] ?? null) : x; };
+  // #1867: Ad preview đọc CHÍNH các giá trị khối cấu hình này (CTA, chữ, tên miền, Page) — trước đó khung tự đọc creative + camp khác cùng creative nên lệch cấu hình.
+  // Memo theo du: object mới mỗi lần dựng sẽ làm khung dịch chữ chạy lại không dứt.
+  const de = useMemo<DeBai | null>(() => r ? { cta: v('f_cta'), chinh: tachChu(v('f_chinh')), tieuDe: tachChu(v('f_tieu')), moTa: tachChu(v('f_mo_ta')), tenMien: v('a_mien'),
+    page: { ten: v('a_page_ten'), anh: v('a_page_anh') }, chuaCamp: ke ? true : undefined } : null, [du]); // eslint-disable-line react-hooks/exhaustive-deps
   const docDuoc = !!r && (r.du_luc != null);
   const coLoi = { camp: !!v('c_loi') && !v('c_loi')!.startsWith('⚠'), nhom: !!v('g_loi') && !v('g_loi')!.startsWith('⚠'), ad: !!v('a_loi') && !v('a_loi')!.startsWith('⚠') };
   const coCanh = { camp: !!v('c_loi'), nhom: !!v('g_loi'), ad: !!v('a_loi') };
@@ -218,7 +223,7 @@ export function CamCauHinh({ campId, soLieu, xemTruoc, phim, ke }: {
       </Khoi>
     </div>
     {xemTruoc ? <section style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', position: rong ? 'sticky' : undefined, top: 0 }}>
-      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8 }}>Ad preview</div>{xemTruoc}</section> : null}
+      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8 }}>Ad preview</div><DeBaiQc.Provider value={de}>{xemTruoc}</DeBaiQc.Provider></section> : null}
   </div>;
 
   const than = trang === 'so' ? soLieu

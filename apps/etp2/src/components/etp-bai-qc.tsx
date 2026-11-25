@@ -3,7 +3,7 @@
 // đầu bài (ảnh Page · tên Page · Được tài trợ) → chữ QC (cắt "… Xem thêm" như Facebook, nhiều bản thì lật ‹ 1/5 ›) → hình / video → dải dưới
 // (tên miền · tiêu đề · mô tả · nút CTA đúng loại của camp). Chữ THẬT từ kho (docBaiQc ← apps/etp/bai-qc.py), không chữ mẫu.
 // Chấm điểm / lý do chặn KHÔNG nằm trong khung — chỗ gọi đặt TheCr bên ngoài.
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { docBaiQc, dichChu, type BaiQc, type NoiDungCr } from '@/lib/actions/etp-bai';
 import { VideoXem } from '@/components/ui/video-xem';
 
@@ -18,6 +18,18 @@ const lay = (cr: number, camp?: number | null) => {
 const CTA: Record<string, string> = { LEARN_MORE: 'Learn more', WATCH_MORE: 'Watch more', WATCH_VIDEO: 'Watch video', SHOP_NOW: 'Shop now', SIGN_UP: 'Sign up', DOWNLOAD: 'Download',
   INSTALL_MOBILE_APP: 'Install now', PLAY_GAME: 'Play game', GET_OFFER: 'Get offer', SUBSCRIBE: 'Subscribe', SEE_MORE: 'See more', APPLY_NOW: 'Apply now', CONTACT_US: 'Contact us', NO_BUTTON: '' };
 const chuCta = (c: string | null) => (c == null ? '' : CTA[c] ?? c.toLowerCase().replace(/_/g, ' ').replace(/^./, (x) => x.toUpperCase()));
+// MỘT NGUỒN VỚI KHỐI CẤU HÌNH (anh #1867 "Fix ngay !!": cấu hình ghi WATCH_MORE mà Ad preview hiện "Learn more", Page / tên miền / headline của camp đội khác):
+// ngăn camp bọc khung bằng DeBaiQc = đúng giá trị khối cấu hình đang hiện (chữ form với camp dự kiến, chữ camp thật mang với camp đã lên) → khung lấy CTA,
+// chữ QC, tiêu đề, mô tả, tên miền, Page từ đó; chỉ hình / video / nội dung video còn đọc theo creative. Ngoài ngăn camp (thẻ rê, chờ duyệt) không có Provider → giữ như cũ.
+export type DeBai = { cta: string | null; chinh: string[]; tieuDe: string[]; moTa: string[]; tenMien: string | null; page: { ten: string | null; anh: string | null } | null; chuaCamp?: boolean };
+export const DeBaiQc = createContext<DeBai | null>(null);
+export const tachChu = (s: string | null) => (s ?? '').split('\n').map((x) => x.trim()).filter(Boolean);
+function deLen(b: BaiQc | null, de: DeBai | null): BaiQc | null {
+  if (!b || !de) return b;
+  const dich = { ...b.dich }; for (const s of [...de.chinh, ...de.tieuDe, ...de.moTa]) if (!(s in dich)) dich[s] = '';
+  return { ...b, dich, cta: de.cta ?? b.cta, chinh: de.chinh.length ? de.chinh : b.chinh, tieuDe: de.tieuDe.length ? de.tieuDe : b.tieuDe, moTa: de.moTa.length ? de.moTa : b.moTa,
+    tenMien: de.tenMien ?? b.tenMien, page: de.page?.ten ? { ten: de.page.ten, anh: de.page.anh ?? null, link: null } : b.page, chuaCamp: de.chuaCamp ?? b.chuaCamp };
+}
 const CAT = 125;   // Facebook cắt chữ QC ở khoảng 125 ký tự rồi hiện "… Xem thêm"
 const XAM = '#65676b', DEN = '#050505';
 const NUT_LAT: React.CSSProperties = { border: '1px solid #ccd0d5', background: '#fff', color: DEN, borderRadius: 4, width: 20, height: 18, lineHeight: '14px', cursor: 'pointer', padding: 0 };
@@ -119,7 +131,8 @@ function NoiDungVideo({ nd, v }: { nd: NoiDungCr | null; v: LayVi }) {
 // + hook / chữ video / lời đọc / điểm nội dung; phải: khung bài QC + video. Trước đó mọi thứ chồng một cột rộng 320px → cao ~1000px, thẻ phải cuộn mới thấy video.
 // Màn hẹp / ngăn camp vẫn một cột (ngang = false).
 export function KhungBaiQc({ cr, camp, anh, video, caoMedia, ngang = false, ben }: { cr: number; camp?: number | null; anh: string | null; video: string | null; /** cao vùng hình; bỏ trống = khổ 9:16 */ caoMedia?: number | string; /** hai cột: thông tin trái, bài QC phải */ ngang?: boolean; /** khối đặt đầu cột thông tin (vd TheCr) */ ben?: React.ReactNode }) {
-  const [b, setB] = useState<BaiQc | null>(null); const [loi, setLoi] = useState<string | null>(null);
+  const [goc, setB] = useState<BaiQc | null>(null); const [loi, setLoi] = useState<string | null>(null);
+  const de = useContext(DeBaiQc); const b = useMemo(() => deLen(goc, de), [goc, de]);
   const [i, setI] = useState(0); const [mo, setMo] = useState(false);
   useEffect(() => {
     let huy = false; setB(null); setLoi(null); setI(0); setMo(false);

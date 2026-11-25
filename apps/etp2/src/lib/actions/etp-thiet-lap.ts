@@ -46,7 +46,7 @@ export async function docThietLap(ids: number[], ke: KeTl[] = []): Promise<Thiet
   if (!lay.length) return { form, dong: [], chung: [], thieu: 0 };
   const rows = (await db.execute(sql`select c.camp_id, c.ten, c.bo, c.ad_account_id, c.trang_thai, c.giao, c.dong_bo, c.ngan_sach, c.creative_id, c.content_id, c.roas, c.chien_luoc, c.lich, c.loi camp_loi,
       to_char(c.tao at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') tao, b.page_id, b.ten_mien, b.final_url, b.du,
-      to_char(b.du_luc at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') du_luc, p.ten pten,
+      to_char(b.du_luc at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') du_luc, p.ten pten, p.them->>'picture_url' panh,
       r.kieu, r.cta, r.link, r.chinh, r.tieu_de, r.mo_ta, to_char(r.form_luc at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') form_luc, (r.form_luc is not null and c.tao < r.form_luc and b.chu_form_luc is null) chu_cu
     from (select camp_id, ten, bo, ad_account_id, trang_thai, giao, dong_bo, ngan_sach, creative_id, content_id, roas, chien_luoc, lich, loi, tao from etp.camp
         -- camp CẢ ĐỘI (#1859): etp.camp_ngoai không có bo / giao / roas / lịch / lỗi nhà → null; cấu hình trọn đọc từ bai_camp.du như camp nhà
@@ -94,7 +94,7 @@ export async function docThietLap(ids: number[], ke: KeTl[] = []): Promise<Thiet
       g_tt: S(g.status), g_epc: ns(Number(g.min_epc) || null), g_cpa: ns(Number(g.target_cpa) || null), g_dsa_b: S(gp.dsa_beneficiary) ?? S(cp.dsa_beneficiary), g_dsa_p: S(gp.dsa_payor) ?? S(cp.dsa_payor),
       g_kich: g.pending_activation ? 'chờ kích hoạt' : null, g_loi: gon([S(g.error), S(g.warning) && `⚠ ${S(g.warning)}`].filter(Boolean).join('\n') || null),
       // 3. AD
-      a_page: S(a.facebook_page_id) ?? S(r.page_id), a_page_ten: S(r.pten), a_mien: S(a.domain) ?? S(r.ten_mien), a_lp: S(a.landing_page_id), a_phim: S(a.content_id) ?? S(r.content_id),
+      a_page: S(a.facebook_page_id) ?? S(r.page_id), a_page_ten: S(r.pten), a_page_anh: S(r.panh), a_mien: S(a.domain) ?? S(r.ten_mien), a_lp: S(a.landing_page_id), a_phim: S(a.content_id) ?? S(r.content_id),
       a_url: S(a.final_url) ?? S(r.final_url), a_tags: S(a.url_tags), a_bai_co: S(a.is_existing_post), a_bai: S(a.effective_object_story_id), a_ext: S(a.external_ad_id), a_ext_cr: S(a.external_creative_id),
       a_video: S(a.video_id), a_meta: S(a.source_status), a_giao: S(a.delivery_status),
       a_ten: gon(S(a.name)), a_kich: a.pending_activation ? 'chờ kích hoạt' : null, a_loi: gon([S(a.error), S(a.warning) && `⚠ ${S(a.warning)}`].filter(Boolean).join('\n') || null),
@@ -115,9 +115,9 @@ export async function docThietLap(ids: number[], ke: KeTl[] = []): Promise<Thiet
         (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi')) bo from unnest(${sql.raw(`array[${cids.join(',')}]::int[]`)}) p(cid)`)) as unknown as Record<string, unknown>[];
     const boPhim = new Map(boR.map((r) => [Number(r.cid), S(r.bo)]));
     // tài khoản + Page theo BỘ: nhan-ban.py dựng trên khuôn của bộ khác thì đổi đúng tk / ext / page sang bộ đó (bo_tk — xv_khoa_ngoai.ethopex_bo_tk), nên camp dự kiến cũng đổi
-    const boTkR = (await db.execute(sql`select k.key bo, k.value->>'ext' ext, k.value->>'page' page, p.ten pten from xv_khoa_ngoai x, jsonb_each(x.gia_tri) k
+    const boTkR = (await db.execute(sql`select k.key bo, k.value->>'ext' ext, k.value->>'page' page, p.ten pten, p.them->>'picture_url' panh from xv_khoa_ngoai x, jsonb_each(x.gia_tri) k
         left join etp.tai_nguyen p on p.loai = 'page' and p.id::text = k.value->>'page' where x.ten = 'ethopex_bo_tk'`)) as unknown as Record<string, unknown>[];
-    const boTk = new Map(boTkR.map((r) => [String(r.bo), { ext: S(r.ext), page: S(r.page), pten: S(r.pten) }]));
+    const boTk = new Map(boTkR.map((r) => [String(r.bo), { ext: S(r.ext), page: S(r.page), pten: S(r.pten), panh: S(r.panh) }]));
     const khuon = new Map(tatCa.map((d) => [d.camp_id, d]));
     // ô CHƯA CÓ khi camp chưa tạo: mã Meta, trạng thái, đồng bộ, lỗi, giờ tạo — để trống, không mượn của camp khuôn
     const CHUA = ['du_luc', 'tao', 'c_ext', 'c_tt', 'c_meta', 'c_giao', 'c_loi', 'c_build', 'g_ten', 'g_ext', 'g_meta', 'g_giao', 'g_tt', 'g_kich', 'g_loi', 'g_bat_dau', 'g_ket_thuc',
@@ -134,7 +134,7 @@ export async function docThietLap(ids: number[], ke: KeTl[] = []): Promise<Thiet
           f_nguon: 'chữ form chuẩn — creative mới, máy chỉ lên khi creative đúng form (CamLechForm)',
         });
         const bt = boTk.get(String(d.c_bo ?? ''));
-        if (bt && String(g?.c_bo ?? '') !== String(d.c_bo)) Object.assign(d, { c_tk: bt.ext, a_page: bt.page, a_page_ten: bt.pten });
+        if (bt && String(g?.c_bo ?? '') !== String(d.c_bo)) Object.assign(d, { c_tk: bt.ext, a_page: bt.page, a_page_ten: bt.pten, a_page_anh: bt.panh });
         // ngân sách ad set chỉ đè khi khuôn dùng ngân sách ad set
         const de = { ...k.de }; if (g?.g_ns == null) delete de.g_ns;
         for (const [x, v] of Object.entries(de)) d[x] = gon(v ?? null);

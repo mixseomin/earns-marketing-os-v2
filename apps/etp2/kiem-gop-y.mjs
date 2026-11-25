@@ -826,6 +826,9 @@ const LUAT = [
   { card: 'khoa-the-2511', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: 'useState<ReadonlySet<number>>(() => new Set())', cam: 'disabled={dang != null} onClick={() => setHoi(true)}', vi: 'nút Duyệt / Loại khoá riêng từng thẻ — bấm một thẻ không khoá thẻ khác (anh 25/11/2026 "Bấm xong là đéo duyệt cái khác đc nữa")' },
   { card: 'khung-7-22-2511', tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: '"len_gio": [7, 22]', vi: 'sổ luật etp2: khung lên 07h + 22h VN' },
   { card: 'khung-7-22-2511', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"len_gio": [7, 22]', vi: 'sổ luật chung (nhan-ban đọc tệp này): khung lên 07h + 22h VN' },
+  { card: '1867', tep: 'apps/etp2/src/components/etp-camp-cau-hinh.tsx', co: '<DeBaiQc.Provider value={de}>{xemTruoc}</DeBaiQc.Provider>', vi: 'Ad preview trong ngăn camp nhận CTA / chữ / tên miền / Page từ chính khối cấu hình (#1867 khung ghi Learn more trong khi cấu hình WATCH_MORE)' },
+  { card: '1867', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: 'const b = useMemo(() => deLen(goc, de), [goc, de]);', vi: 'KhungBaiQc đè giá trị cấu hình lên bài đọc từ creative (#1867)' },
+  { card: '1867', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: "a_page_ten: S(r.pten), a_page_anh: S(r.panh)", vi: 'khối cấu hình trả tên + ảnh Page để khung xem trước hiện đúng Page (#1867)' },
 ];
 
 const loi = [];

@@ -40,5 +40,5 @@ export const docCardKet = cache(async (): Promise<CardKet[]> => {
             OR (coalesce(h.prep_payload->'site_status'->>h.project_id, h.status) = 'claimed' AND h.updated_at < now() - make_interval(mins => ${phut})))
      ORDER BY h.updated_at DESC LIMIT 200`)) as unknown as Array<{ id: number; hom: string; title: string | null; tt: string; ai: string[] }>;
   // card đã CHUYỂN cho kỹ sư đang chạy lượt = đang làm, không đếm kẹt (cùng luật chấm đỏ nút góp ý, gop-y server.ts demGopY)
-  return r.filter((x) => !(x.tt === 'broken' && nguoiDangLamCard((x.ai || [])[(x.ai || []).length - 1]))).map((x) => ({ id: x.id, hom: x.hom, tieuDe: (x.title || '').slice(0, 80), treo: x.tt === 'claimed', ...nguoiGiu(x.ai || []) }));
+  return r.filter((x) => !(x.tt === 'broken' && nguoiDangLamCard((x.ai || [])[(x.ai || []).length - 1], Number(x.id)))).map((x) => ({ id: x.id, hom: x.hom, tieuDe: (x.title || '').slice(0, 80), treo: x.tt === 'claimed', ...nguoiGiu(x.ai || []) }));
 });

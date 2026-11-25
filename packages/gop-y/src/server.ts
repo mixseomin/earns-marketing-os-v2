@@ -153,9 +153,14 @@ export function kySuPhuTrach(nguoi: string | undefined | null): { ten: string; t
   try { tat = JSON.parse(fs.readFileSync(path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip-chinh.json'), 'utf8'))?.[nguoi]?.bat === false; } catch { /* không có tệp → coi là bật */ }
   return { ten, tat };
 }
-/** Card broken đang chờ kỹ sư (thẻ "chờ kỹ sư …") mà một người trong đó đang chạy lượt → tên người đó, không thì null. */
-export function nguoiDangLamCard(tinAiCuoi: string | null | undefined): string | null {
-  for (const n of choKySu(tinAiCuoi)) if (/^[a-z0-9-]+$/.test(n) && nhipDangChay(n)) return kySuPhuTrach(n)?.ten || n;
+/** Card broken đang chờ kỹ sư (thẻ "chờ kỹ sư …") mà một người trong đó đang chạy lượt, HOẶC còn giữ việc của card này trong hàng giao
+ *  (goc = id card, chưa xong — giữa hai lượt không chớp đỏ) → tên người đó, không thì null. Người bị tắt nhịp thì không tính. */
+export function nguoiDangLamCard(tinAiCuoi: string | null | undefined, cardId?: number): string | null {
+  for (const n of choKySu(tinAiCuoi)) {
+    if (!/^[a-z0-9-]+$/.test(n)) continue;
+    const ps = kySuPhuTrach(n);
+    if (nhipDangChay(n) || (cardId != null && !ps?.tat && docHangGiao(n).viec.some((v) => v.trang_thai !== 'xong' && Number(v.goc) === Number(cardId)))) return ps?.ten || n;
+  }
   return null;
 }
 function nhipDangChay(nguoi: string): string | null {
@@ -170,7 +175,7 @@ function nhipDangChay(nguoi: string): string | null {
 }
 
 /** Một việc giao thẳng cho kỹ sư (tệp ~/may-ky-su/<người>/giao/*.json trên iMac, máy đẩy về box3 mỗi lượt — apps/cty/may/gop-y-ky-su.mjs dayHangGiao). */
-export type ViecGiao = { tep: string; tieu_de?: string; noi_dung?: string; luc?: string; trang_thai: 'cho' | 'dang' | 'xong'; ket?: string; xong_luc?: string; bao?: string };
+export type ViecGiao = { tep: string; /** id card góp ý gốc của việc chuyển */ goc?: number | null; tieu_de?: string; noi_dung?: string; luc?: string; trang_thai: 'cho' | 'dang' | 'xong'; ket?: string; xong_luc?: string; bao?: string };
 export type HangGiao = { nguoi: string; /** tên hiện (app điền, vd "Khôi") */ ten?: string; luc: string | null; viec: ViecGiao[] };
 /** Hàng việc giao của một kỹ sư: <CTY_DATA_DIR>/giao/<người>.json. Việc CHỜ cũ nhất = việc đang làm khi nhật ký nhịp báo "việc giao: <tiêu đề>"
  *  (bộ chạy lấy tệp cũ nhất trước). Thiếu tệp → hàng rỗng (luc null), không ném. */
@@ -208,7 +213,7 @@ export async function demGopY(duAn: string, me: Nguoi | null, o?: TuyChon): Prom
   const tatCa = (r as unknown as Array<{ id: number; title: string; updated_at: string | Date; tt: string; ai_cuoi: string | null }>).map((x) => ({ ...x, cn: new Date(x.updated_at).toISOString() }));
   const hang = tatCa.filter((x) => x.tt === 'claimed');
   // broken đã CHUYỂN cho kỹ sư đang chạy lượt = đang làm, không phải kẹt
-  const hongDs = tatCa.filter((x) => x.tt === 'broken').map((x) => ({ x, ai: nguoiDangLamCard(x.ai_cuoi) }));
+  const hongDs = tatCa.filter((x) => x.tt === 'broken').map((x) => ({ x, ai: nguoiDangLamCard(x.ai_cuoi, Number(x.id)) }));
   const hong = hongDs.filter((h) => !h.ai).map(({ x }) => `#${x.id} ${String(x.title ?? '').slice(0, 60)}`);
   const lam = [...hang.filter((x) => conTrongTran(x.cn)).map((x) => `#${x.id} ${String(x.title ?? '').slice(0, 60)}`),
     ...hongDs.filter((h) => h.ai).map(({ x, ai }) => `#${x.id} ${String(x.title ?? '').slice(0, 60)} · ${ai} đang làm`)];

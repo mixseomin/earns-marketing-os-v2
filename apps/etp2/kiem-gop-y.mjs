@@ -678,7 +678,7 @@ const LUAT = [
   { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'clip, v = chuyen_dong(nen, tm, cid, ma, b); vnd += v; nhip = None', vi: 'mẫu ảnh động đi đường AI chuyển động, ₫ cộng vào sổ' },
   { card: 'cta-nay', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'giay = dung_dong(clip, chu, mp3, out, nhip)', vi: 'nút CTA nảy đúng lúc giọng đọc câu CTA (anh 25/11/2026)' },
   { card: 'giong-phim', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'kg, ng = AT.giong_phim(p, _NHO[cid].get("giong")', vi: 'giọng theo phim + chủ đề phim, không dùng một giọng chung (anh 25/11/2026)' },
-  { card: 'giong-2-ban', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'for kg, ng in AT.giong_ban(kg, ng):', vi: '2 bản giọng: mặc định sổ luật + theo chủ đề phim, không bỏ giọng mặc định (anh 25/11/2026)' },
+  { card: 'giong-2-ban', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'for kg, ng in AT.giong_ban(kg, ng, len(da_khung) + b):', vi: 'hai giọng (mặc định sổ luật + theo chủ đề phim) xoay qua các bản, mỗi bản MỘT khung MỘT giọng, không bỏ giọng mặc định (anh 25/11/2026 + luật một hình)' },
   { card: 'cho-len-camp', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "new CustomEvent('etp-loc-them', { detail: { k: 'duyet' } })", vi: 'duyệt xong: ô Lọc thêm Chờ lên camp + đọc lại bảng, dòng hiện ngay dưới phim (anh 25/11/2026)' },
   { card: 'cho-len-camp', tep: 'apps/etp2/src/components/etp-view.tsx', co: "window.addEventListener('etp-loc-them', f)", vi: 'bảng camp nghe etp-loc-them để thêm mục lọc Chờ lên camp' },
   { card: 'duyet-ngan', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: '<CamCauHinh campId={xn.ke.id} ke={xn.ke}', vi: 'thẻ chờ duyệt bấm mở ngăn camp dự kiến (anh 25/11/2026)' },
@@ -829,6 +829,14 @@ const LUAT = [
   { card: '1867', tep: 'apps/etp2/src/components/etp-camp-cau-hinh.tsx', co: '<DeBaiQc.Provider value={de}>{xemTruoc}</DeBaiQc.Provider>', vi: 'Ad preview trong ngăn camp nhận CTA / chữ / tên miền / Page từ chính khối cấu hình (#1867 khung ghi Learn more trong khi cấu hình WATCH_MORE)' },
   { card: '1867', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: 'const b = useMemo(() => deLen(goc, de), [goc, de]);', vi: 'KhungBaiQc đè giá trị cấu hình lên bài đọc từ creative (#1867)' },
   { card: '1867', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: "a_page_ten: S(r.pten), a_page_anh: S(r.panh)", vi: 'khối cấu hình trả tên + ảnh Page để khung xem trước hiện đúng Page (#1867)' },
+  // TRẠNG THÁI ✎ SỬA LẠI (anh 25/11/2026 #1863 "Thêm 1 status là Sửa lại !!")
+  { card: '1863', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "data-o=\"nut-sua-lai\"", vi: 'thẻ chờ duyệt có nút thứ ba ✎ Sửa lại bên cạnh Duyệt / Loại' },
+  { card: '1863', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "duyetChoAnh(cr, false, chu, true), 'sua')", vi: 'xác nhận Sửa lại gửi cờ sửa lại, không gửi như Duyệt' },
+  { card: '1863', tep: 'apps/etp2/src/lib/actions/etp-cham.ts', co: 'sua_lai = excluded.sua_lai', vi: 'Sửa lại lưu cờ sua_lai (ok = false nên không lên camp); Duyệt / Loại về sau ghi đè cờ' },
+  { card: '1863', tep: 'apps/etp2/src/lib/actions/etp-cham.ts', co: 'if (sl && !nx) return', vi: 'Sửa lại bắt buộc có nhận xét cần sửa gì' },
+  { card: '1863', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "return sl ? { ...o, dong_bo: 'sua_lai' } : o;", vi: 'creative Sửa lại vẫn hiện ở bảng cây camp với trạng thái ✎ Sửa lại' },
+  { card: '1863', tep: 'apps/etp2/src/lib/etp-chay.ts', co: "export const suaLaiCr", vi: 'dòng Sửa lại không bị đếm là đang chạy / đã tắt' },
+  { card: '1863', tep: 'apps/etp2/src/components/etp-view.tsx', co: "m('sualai', 'Sửa lại'", vi: 'ô Lọc có mục Sửa lại' },
 ];
 
 const loi = [];

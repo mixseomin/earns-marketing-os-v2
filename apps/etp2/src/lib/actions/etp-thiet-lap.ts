@@ -122,16 +122,24 @@ export async function docThietLap(ids: number[], ke: KeTl[] = []): Promise<Thiet
     // ô CHƯA CÓ khi camp chưa tạo: mã Meta, trạng thái, đồng bộ, lỗi, giờ tạo — để trống, không mượn của camp khuôn
     const CHUA = ['du_luc', 'tao', 'c_ext', 'c_tt', 'c_meta', 'c_giao', 'c_loi', 'c_build', 'g_ten', 'g_ext', 'g_meta', 'g_giao', 'g_tt', 'g_kich', 'g_loi', 'g_bat_dau', 'g_ket_thuc',
       'a_ext', 'a_ext_cr', 'a_bai', 'a_video', 'a_meta', 'a_giao', 'a_ten', 'a_kich', 'a_loi', 'a_url', 'f_tt', 's_camp', 's_nhom', 's_ad', 's_media', 's_cho', 's_loi', 's_dong_bo_luc'];
+    // chữ THẬT của creative sắp lên (bai_cr, ap-form-chu ghi sau mỗi PATCH) — creative có thể mang kiểu khác Dol (apps/etp/chu-kieu.json, anh 26/11/2026);
+    // chưa có dòng / form_luc (đã về form Dol) → chữ form
+    const crKe = ke_.map((k) => -k.id);
+    const chuKe = new Map(crKe.length ? ((await db.execute(sql`select creative_id, chinh, tieu_de, mo_ta from etp.bai_cr
+        where creative_id in (${sql.join(crKe.map((c) => sql`${c}`), sql`, `)}) and form_luc is null and jsonb_array_length(coalesce(chinh, '[]')) > 0`)) as unknown as { creative_id: number; chinh: unknown; tieu_de: unknown; mo_ta: unknown }[])
+      .map((r) => [Number(r.creative_id), r]) : []);
     for (const k of ke_) {
       const g = khuon.get(k.khuon);
+      const ct = chuKe.get(-k.id);
       for (let i = 1; i <= Math.max(1, Math.min(k.so, 20)); i++) {
         const d: DongTl = { ...(g ?? {}), camp_id: k.id - i };
         for (const x of CHUA) d[x] = null;
         Object.assign(d, {
           ke_cha: k.id, ke_thu: `${i}/${k.so}`, ke_khuon: k.khuon, ke_thieu: g ? null : `kho không đọc được camp khuôn #${k.khuon}`,
           c_tt: 'kế hoạch', c_bo: k.bo || boPhim.get(k.cid) || null, a_phim: String(k.cid), a_url: `Ethopex sinh theo phim #${k.cid} lúc tạo camp`,
-          f_kieu: form.creative_type, f_cta: form.call_to_action, f_link: form.link_url, f_chinh: gon(form.primaryTexts.join('\n')), f_tieu: gon(form.headlines.join('\n')), f_mo_ta: gon(form.descriptions.join('\n')),
-          f_nguon: 'chữ form chuẩn — creative mới, máy chỉ lên khi creative đúng form (CamLechForm)',
+          f_kieu: form.creative_type, f_cta: form.call_to_action, f_link: form.link_url, f_chinh: gon((ct ? L(ct.chinh).map(String) : form.primaryTexts).join('\n')), f_tieu: gon((ct ? L(ct.tieu_de).map(String) : form.headlines).join('\n')),
+          f_mo_ta: gon((ct ? L(ct.mo_ta).map(String) : form.descriptions).join('\n')),
+          f_nguon: ct ? 'chữ creative (bai_cr) — kiểu lên camp trong apps/etp/chu-kieu.json hoặc form, cửa CamLechForm soát lúc lên' : 'chữ form chuẩn — creative mới, máy chỉ lên khi creative đúng form (CamLechForm)',
         });
         const bt = boTk.get(String(d.c_bo ?? ''));
         if (bt && String(g?.c_bo ?? '') !== String(d.c_bo)) Object.assign(d, { c_tk: bt.ext, a_page: bt.page, a_page_ten: bt.pten, a_page_anh: bt.panh });

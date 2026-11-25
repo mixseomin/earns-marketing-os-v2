@@ -71,6 +71,8 @@ def gan_lai(camp, ve, cr_ep=None):
     EA._q(f"update etp.bai_camp set chu_form_luc = now() where camp_id = {int(camp)}")
     return camp, "ok"
 
+# KIỂU TỰ DUYỆT (anh 26/11/2026 "Sx mỗi phim 2 camp dạng này và ko cần duyệt thủ công"): creative đổi sang chữ kiểu này xong là được duyệt luôn
+TU_DUYET = {"kien": "anh 26/11/2026: camp kiểu Kiên không cần duyệt thủ công"}
 def kieu(cr, ten):
     """creative NHÀ chưa gắn ad → chữ kiểu `ten` (ethopex_api.KIEU_DOI): bộ chữ CÙNG phim trong apps/etp/chu-kieu.json; CTA theo form, link = ethopex_api.link_kieu(ten)"""
     toi = (EA.jwt_tai(EA.T) or {}).get("user_id")
@@ -80,7 +82,10 @@ def kieu(cr, ten):
     ds = EA.chu_doi(ten, c["content_id"])
     if not ds: return cr, f"sổ chu-kieu.json chưa có chữ kiểu {ten} cho phim {c['content_id']}"
     pt, hl, de = ds[0]
-    return patch(int(cr), {"call_to_action": F["call_to_action"], "link_url": EA.link_kieu(ten), "asset_spec": {"primaryTexts": pt, "headlines": hl, "descriptions": de}})
+    kq = patch(int(cr), {"call_to_action": F["call_to_action"], "link_url": EA.link_kieu(ten), "asset_spec": {"primaryTexts": pt, "headlines": hl, "descriptions": de}})
+    if kq[1] == "ok" and ten in TU_DUYET:   # kiểu tự duyệt: chữ đúng kiểu đã lên → ghi duyệt để máy lên camp (lenh_cho SQL_CR_DUYET) — không đè lần anh đã loại / đã duyệt
+        EA._q(f"insert into etp.cham_duyet (creative_id, ok, ai, ghi) values ({int(cr)}, true, 'máy · kiểu {ten}', '{TU_DUYET[ten]}') on conflict (creative_id) do nothing")
+    return kq
 
 if __name__ == "__main__" and "--kieu" in sys.argv:
     i = sys.argv.index("--kieu"); ten = sys.argv[i + 1]

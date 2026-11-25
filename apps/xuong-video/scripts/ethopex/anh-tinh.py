@@ -439,6 +439,7 @@ def anh(cid, ten, k, tm, ban=0):
     if k.get("goc_tep"): Image.open(k["goc_tep"]).convert("RGB").save(goc)   # khung chỉ định (--anh)
     else: sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k["tap"] + ".mp4"), "-vf", f"{LOC},select=eq(n\\,{k['so'] - 1})", "-frames:v", "1", goc)
     if not os.path.exists(goc): raise RuntimeError(f"không lấy được khung gốc {k['tap']} #{k['so']}")
+    if k.get("lat"): ImageOps.mirror(Image.open(goc).convert("RGB")).save(goc)   # khung lật trái ↔ phải (dung-mau --lat): mat / xoa của k đã lật sẵn
     j = json.loads(subprocess.run([may_doc(), goc], capture_output=True, text=True, timeout=300).stdout.strip() or "{}")   # đọc chữ lại trên khung gốc: chữ nhỏ ("R") ảnh 540px bỏ sót
     k["xoa"] += [[x - w / 2, y - h / 2, w * 2, h * 2] if goc_nho([t, x, y, w, h]) else [x, y, w, h] for t, x, y, w, h in j.get("khung") or []]
     im = xoa(Image.open(goc).convert("RGB"), k["xoa"]); s = max(W / im.width, H / im.height)

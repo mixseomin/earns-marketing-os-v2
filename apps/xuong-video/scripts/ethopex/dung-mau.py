@@ -659,6 +659,8 @@ def _cong(b, han=120):
     if j.get("loi"): raise RuntimeError(f"cổng AI: {str(j['loi'])[:300]}")
     return j
 DONG_LUI = [("kie", "kie:veo3_lite"), ("shopaikey", "shopaikey:grok-video-3-10s")]   # cổng TREO (nhận việc nhưng không chạy) → gửi lại ép cổng kế, theo đúng thứ tự chuỗi rẻ → đắt của cổng (spy cong-media chuoiVideo)
+LAT_LECH = 4.0   # chênh trung bình (/255) tối đa giữa khung lật và gương của khung cũ để coi là cùng khung
+CHI_LAT = [False]   # --lat: cấm gửi AI chuyển động (chỉ lật clip đã trả)
 def chuyen_dong(nen, tm, cid, ma, b):
     """khung sạch (chưa chữ) → clip AI 8 giây 9:16 → (tệp mp4, ₫). Ảnh đưa lên R2 qua box3 (tai-len.mts) làm anh_dau; cổng tự lùi nếu cổng đầu lỗi."""
     jpg = os.path.join(tm, f"dong-{ma}-{b}.jpg"); moi = Image.open(nen).convert("RGB"); ra = os.path.join(tm, f"dong-{ma}-{b}.mp4")
@@ -668,6 +670,18 @@ def chuyen_dong(nen, tm, cid, ma, b):
         cu = Image.open(jpg).convert("RGB")
         if cu.size == moi.size and sum(ImageStat.Stat(ImageChops.difference(cu, moi)).mean) / 3 < 1.0:
             print(f"chuyển động: dùng lại clip đã trả tiền của đúng khung này ({ra}) · 0₫", flush=True); return ra, 0
+    # KHUNG LẬT (mot(lat=True)): khung mới = gương của một khung đã có clip trong thư mục phim → clip đó lật ngang (ffmpeg hflip), 0₫
+    import glob
+    guong = ImageOps.mirror(moi); lech = lambda a, b: sum(ImageStat.Stat(ImageChops.difference(a, b)).mean) / 3
+    for j in sorted(glob.glob(os.path.join(tm, f"dong-{ma}-*.jpg"))):
+        mp = j[:-4] + ".mp4"
+        if j == jpg or not os.path.exists(mp): continue
+        cu = Image.open(j).convert("RGB")
+        if cu.size == moi.size and lech(cu, guong) < LAT_LECH:
+            r = AT.sh("ffmpeg", "-v", "error", "-y", "-i", mp, "-vf", "hflip", "-an", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", ra)
+            if r.returncode or not os.path.exists(ra): raise RuntimeError(f"lật clip lỗi: {r.stderr[-200:]}")
+            moi.save(jpg, quality=92); print(f"chuyển động: khung lật của {os.path.basename(j)} → clip đó lật ngang · 0₫", flush=True); return ra, 0
+    if CHI_LAT[0]: raise RuntimeError("--lat: không tìm thấy clip đã trả tiền khớp khung gốc của bản lật — không gửi AI (giữ giá ~0₫)")
     moi.save(jpg, quality=92)
     tmb = f"/var/tmp/anh-dong/{int(cid)}"; AT.sh("ssh", AT.B, f"mkdir -p {tmb}", han=60)
     r = AT.sh("rsync", "-q", jpg, f"{AT.B}:{tmb}/", han=300)
@@ -769,7 +783,7 @@ tk = m.q("select ad_account_id from etp.tai_khoan where nha and ad_account_id is
 print(json.dumps({"ly": m.trang_chua_san(%d, tk)}, ensure_ascii=False))
 '''
 _NHO = {}
-def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
+def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
     """dựng ban bản theo mẫu ma cho phim cid → danh sách creative_id (xem=True: chỉ tệp).
     tc_xem = bản soạn etp2 cần XEM TRƯỚC ({cau, nhan, chu_dau, o}) — dựng đúng như bản thật sẽ ra (cùng ô ghim), chỉ ảnh tĩnh, không giọng / không nạp"""
     XT = tc_xem is not None; CANH.clear(); xem = xem or thu   # thu = dựng trọn video (giọng + AI chuyển động) nhưng không ghi sổ / không nạp thư viện / không tải creative
@@ -826,7 +840,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
             r_ = AT.sql(bang_sql() + " alter table etp.mau_dung add column if not exists khung_dung text[] not null default '{}'; alter table etp.mau_dung add column if not exists cau_dung text[] not null default '{}'; "
                         f"select coalesce(array_to_string(khung_dung, ';'), '') || E'\t' || coalesce(array_to_string(cau_dung, ';'), '') from etp.mau_dung where mau = {s_(ma)} and content_id = {int(cid)}") or "\t"
             da_khung, da_cau = ([x for x in y.split(";") if x] for y in (r_.split("\t") + [""])[:2])
-        khoa = lambda u: f"{u['tap']}#{u['so']}"; cx_dung = {x.split("|")[1] for x in da_khung if "|" in x}
+        khoa = lambda u: f"{u['tap']}#{u['so']}" + ("~lat" if u.get("lat") else ""); cx_dung = {x.split("|")[1] for x in da_khung if "|" in x}
         uv = [u for u in uv if khoa(u) not in {x.split("|")[0] for x in da_khung}]
         if not uv: raise RuntimeError(f"phim này đã dùng hết {len(da_khung)} khung ứng viên cho mẫu — không còn khung mới để ra bản khác")
         if da_khung: uv = sorted(uv, key=lambda u: bool(u.get("cam_xuc")) and u.get("cam_xuc") in cx_dung)   # khác cảm xúc lên trước, giữ thứ hạng AI trong từng nhóm
@@ -843,10 +857,17 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
         g_ghim = next((int(x.split(":")[1]) for x in [str((o_.get("giong") or {}).get("id") or "")] if re.fullmatch(r"[a-z]{2}:\d+", x)), None)
         # MỖI CREATIVE MỘT HÌNH (anh 25/11/2026 "chỉ đổi giọng mà ko đổi hình thì ko đc coi là khác nhau. Vi phạm nghiêm trọng"): khung đã có creative CHƯA BỊ LOẠI của (mẫu, phim)
         # trong kho thư viện = cấm dựng lại — kể cả khung anh ghim, kể cả sổ mau_dung bị xoá (đọc thẳng thu_vien, không tin mỗi da_khung)
-        co_hinh = set() if xem else {x for x in (AT.sql(f"select coalesce(string_agg(distinct substring(t.ghi from 'khung ([^ ]+)'), ';'), '') from etp.thu_vien t left join etp.cham_duyet u on u.creative_id = t.creative_id "
+        co_hinh = set() if xem and not lat else {x for x in (AT.sql(f"select coalesce(string_agg(distinct substring(t.ghi from 'khung ([^ ]+)'), ';'), '') from etp.thu_vien t left join etp.cham_duyet u on u.creative_id = t.creative_id "
                                                          f"where t.content_id = {int(cid)} and t.creative_id is not null and t.ghi like {s_('mẫu:' + ma + ' %')} and u.ok is not false") or "").split(";") if x}
         if k_ghim and khoa(k_ghim) in co_hinh:   # khung ghim đã ra creative (bản đầu) → bản sau bỏ ghim, chọn khung khác — không chết cả lượt (anh 25/11/2026 "32 camp sẵn sàng lên lúc 22h")
             print(f"khung anh ghim {khoa(k_ghim)} đã có creative cùng mẫu — bản này bỏ ghim, chọn khung khác (mỗi creative một hình)", file=sys.stderr); k_ghim = None
+        if lat:   # LẬT KHUNG TRÁI ↔ PHẢI (anh 26/11/2026 "nếu khung ko đạt thì có thể lật video từ trái sang phải… để có creative mới"): ứng viên = bản LẬT của các khung
+            # đã có creative cùng mẫu → hình mới (gương), clip AI = clip đã trả tiền của khung gốc lật ngang (chuyen_dong tự nhận ra), không gọi AI chuyển động
+            def _lat(u):
+                v = copy.deepcopy(u); v["lat"] = True; m = v["mat"]; v["mat"] = [1 - m[0] - m[2], m[1], m[2], m[3]]
+                v["xoa"] = [[1 - x - w, y, w, h] for x, y, w, h in v.get("xoa") or []]; return v
+            uv = [_lat(u) for u in uv_du if khoa(u) in co_hinh]; k_ghim = None
+            if not uv: raise RuntimeError(f"--lat: phim chưa có creative nào của mẫu {ma} để lật")
         uv = [u for u in uv if khoa(u) not in co_hinh]
         if not uv and not k_ghim: raise RuntimeError(f"phim này không còn khung chưa có creative cho mẫu {ma} — mỗi creative phải khác hình, không lặp khung")
         if k_ghim: uv = [k_ghim]
@@ -920,7 +941,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
                     giay = AT.dung(nen, chu, mp3, out)
                 if thu: print(f"[thử] {out} · {giay}s · {vnd}₫", flush=True); cr.append(out); continue
                 tt("thu_vien", g=f"nạp thư viện ({giay}s)")
-                tv = TB.nap(cid, lang, out, dang, f"mẫu:{ma} · {muc['ten']} · bản {len(da_khung) + 1} · khung {k['tap']}#{k['so']}" + (f" · {k['cam_xuc']} · {k.get('nhan_vat') or ''}" if k.get("cam_xuc") else "") + (f" · bản soạn #{soan}" if soan else "") + f" · giọng {kg}", v, (tc.get("chu_dau") or "").strip() or None)
+                tv = TB.nap(cid, lang, out, dang, f"mẫu:{ma} · {muc['ten']} · bản {len(da_khung) + 1} · khung {khoa(k)}" + (f" · {k['cam_xuc']} · {k.get('nhan_vat') or ''}" if k.get("cam_xuc") else "") + (f" · bản soạn #{soan}" if soan else "") + f" · giọng {kg}", v, (tc.get("chu_dau") or "").strip() or None)
                 if not tv: raise RuntimeError("nạp thư viện không ra mã")
                 soan_tt("dung", "đã vào thư viện — đang tải creative lên Ethopex", tv_id=tv)
                 AT.sql(f"update etp.mau_dung set tv_ids = array_append(tv_ids, {int(tv)}) where mau = {s_(ma)} and content_id = {int(cid)}")
@@ -1033,4 +1054,4 @@ if __name__ == "__main__":
     elif a[0] == "--xem-soan": xem_soan()
     elif a[0] == "--bang": bang_xem(int(a[1]))
     elif a[0] == "--poster": print(ghi_poster(int(a[1]), ngu_canh(int(a[1]))[0].get("url")))   # ghi bù poster gốc cho phim đã dựng trước 19/11/2026
-    else: print(json.dumps(mot(a[0], int(a[1]), "--xem" in a, int(a[a.index("--ban") + 1]) if "--ban" in a else 1, thu="--thu" in a)))
+    else: CHI_LAT[0] = "--lat" in a; print(json.dumps(mot(a[0], int(a[1]), "--xem" in a, int(a[a.index("--ban") + 1]) if "--ban" in a else 1, thu="--thu" in a, lat="--lat" in a)))

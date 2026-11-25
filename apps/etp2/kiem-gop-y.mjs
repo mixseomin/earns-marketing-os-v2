@@ -766,6 +766,9 @@ const LUAT = [
   { card: 'nut-tay-2511', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: "const vt = await xinVeTrucTiep('tao_camp', { content: x.content_id,", vi: 'nút lên camp creative (Sản xuất) = vé trực tiếp, cấp trước khi ghi dòng đang lên' },
   { card: 'nut-tay-2511', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', cam: "xinVeTay(", vi: 'etp-dong không còn vé tay' },
   { card: 'nut-tay-2511', tep: 'apps/etp/cong.py', co: 'truc_tiep(viec, [x for x in (camp_id, goc) if x], ct): return None', vi: 'vé trực tiếp nhân bản (gắn camp gốc) miễn phanh trong kiem (goc=)' },
+  { card: 1853, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "key: 'roi_tong'", vi: 'cột ROI tổng (trọn đời camp) trên Cây' },
+  { card: 1853, tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'sum(chi) dc, sum(thu) dt', vi: 'số trọn đời camp lấy từ soCamp (không lọc ngày)' },
+  { card: 1853, tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'tron: st(r.dc, r.dt)', vi: 'camp mang số trọn đời cho cột ROI tổng' },
 ];
 
 const loi = [];

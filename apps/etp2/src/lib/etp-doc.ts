@@ -36,6 +36,8 @@ export type CampEtpKho = { camp_id: number; /** miền trang đích của ad (Et
     /** khối: dòng chưa bắt đầu sinh creative (dong_phim 'cho') = 📝 Đang lên kế hoạch (anh 25/11/2026) */ ke?: boolean } | null; ten: string; bo: string | null; trang_thai: string; giao: string | null; ngan_sach: number; creative_id: number | null; content_id: number | null; cam?: { luc: string | null; ly_do: string | null } | null;
   goc: number | null; /** mã bài post "<page>_<post>" của ad (etp.camp.bai_viet) — cây camp gom các camp chung bài (#1758) */ bai?: string | null; lich: string | null; tao: string | null; loi: string | null; dong_bo?: string | null; phim: string | null; the_loai: string | null; dang: string | null; /** bản mẫu (PO.1…PO.5) — sqlBan */ ban: string | null; /** giọng đọc (ky_di…) — sqlGiong */ giong: string | null; doan: string | null; cung_doan: number;
   thang: SoTien; qua: SoTien; nay: SoTien;
+  /** số TRỌN ĐỜI camp (mọi ngày từ lúc lên, gồm hôm nay) — cột ROI tổng trên Cây (#1853); dòng chờ / đang sản xuất không có */
+  tron?: SoTien;
   /** đang tạm dừng vì LỊCH GIỜ (etp.lich_tat — apps/etp/lich-gio.py tự bật lại khi tới khung BẬT) */
   lich_tat: boolean;
   /** nước GIAO thật 7 ngày (etp.camp_nuoc, migration 0368) — g mã nước, c chi, t thu; nhiều chi nhất trước */
@@ -275,8 +277,9 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const soCamp = sql`select camp_id,
       sum(chi) filter (where ngay >= ${dauThang}::date) tc, sum(thu) filter (where ngay >= ${dauThang}::date) tt,
       sum(chi) filter (where ngay = ${qua}::date) qc, sum(thu) filter (where ngay = ${qua}::date) qt,
-      sum(chi) filter (where ngay = ${nay}::date) nc, sum(thu) filter (where ngay = ${nay}::date) nt, min(ngay) filter (where chi > 0) ngay_dau
-    from ${SN} group by camp_id`;
+      sum(chi) filter (where ngay = ${nay}::date) nc, sum(thu) filter (where ngay = ${nay}::date) nt, min(ngay) filter (where chi > 0) ngay_dau,
+      sum(chi) dc, sum(thu) dt
+    from ${SN} group by camp_id`;   // dc / dt = TRỌN ĐỜI camp (mọi ngày từ lúc lên, gồm hôm nay) — cột ROI tổng (#1853 anh 25/11/2026)
   // CHẠY SONG SONG (anh 09/11/2026 "page camp giờ chậm quá"): mọi câu dưới đây không cần kết quả câu nào khác → khởi chạy ngay một lượt,
   // đợi đúng chỗ dùng (trước đây ~17 nhịp nối đuôi, nhịp nào cũng chờ một vòng tới Postgres). som(): lỗi vẫn ném ra ở chỗ await, chỉ chặn
   // 'unhandled rejection' khi một câu trước đó đã ném và câu này không còn ai đợi.
@@ -425,13 +428,13 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     run<{ ngay: string; chi: string; thu: string; camp: string; ns: string | null }>(sql`select ngay::text ngay, sum(chi) chi, sum(thu) thu, count(*) filter (where chi > 0) camp, ${ngoai ? sql`null::numeric` : sql`sum(coalesce(ns_max, ngan_sach)) filter (where bat or chi > 0)`} ns from ${SN} group by ngay having sum(chi) > 0 or sum(thu) > 0 order by ngay`),
     ngoai ? run<Record<string, unknown>>(sql`with s as (${soCamp})
       select c.camp_id, c.ten, c.bo, c.trang_thai, null giao, c.ngan_sach, c.creative_id, c.content_id, null goc, null lich, c.tao::text tao, null loi, null roas, c.chien_luoc, c.mien,
-        coalesce(p.ten, c.phim_ten) phim, p.the_loai, nullif(crn.dang, 'team') dang, null ban, null giong, null doan, 0 cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, false lich_tat, null nuoc, null ab_ma
+        coalesce(p.ten, c.phim_ten) phim, p.the_loai, nullif(crn.dang, 'team') dang, null ban, null giong, null doan, 0 cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, s.dc, s.dt, false lich_tat, null nuoc, null ab_ma
       from ${CN} c ${doi ? sql`left` : sql``} join etp.tai_khoan t on t.ad_account_id = c.ad_account_id left join etp.phim p on p.content_id = c.content_id left join s on s.camp_id = c.camp_id
         left join etp.creative crn on crn.creative_id = c.creative_id   /* dạng creative đội: máy phân loại (apps/etp/phan_loai_cr.py) thay nhãn tạm 'team' */
       where ${cuaNg(sql`t.nguoi_id`)} and c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`) : run<Record<string, unknown>>(sql`with s as (${soCamp}),
         cd as (select cr.doan, count(*) filter (where c.trang_thai = 'ACTIVE') chay from etp.camp c join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) where cr.doan is not null group by cr.doan)
       select c.camp_id, c.ten, c.bo, c.trang_thai, c.giao, c.dong_bo, c.ngan_sach, etp.creative_cua(c.creative_id, c.ten) creative_id, c.content_id, c.goc, nullif(c.bai_viet, '') bai_viet, to_json(c.lich) #>> '{}' lich, c.tao::text tao, c.loi, c.roas, c.chien_luoc, c.mien,
-        p.ten phim, p.the_loai, cr.dang, ${banCr('cr.creative_id', 'cr.dang')} ban, ${giongCr('cr.creative_id')} giong, cr.doan, coalesce(cd.chay, 0) cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, (lt.camp_id is not null) lich_tat,
+        p.ten phim, p.the_loai, cr.dang, ${banCr('cr.creative_id', 'cr.dang')} ban, ${giongCr('cr.creative_id')} giong, cr.doan, coalesce(cd.chay, 0) cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, s.dc, s.dt, (lt.camp_id is not null) lich_tat,
         (select json_agg(json_build_object('g', cn.geo, 'c', round(cn.chi, 2), 't', round(cn.thu, 2)) order by cn.chi desc) from etp.camp_nuoc cn where cn.camp_id = c.camp_id) nuoc,
         ab.ma ab_ma, ab.ten ab_ten, ab.kieu ab_kieu, cab.nhanh ab_nhanh, ab.nhanh->cab.nhanh->>'ten' ab_nhanh_ten, ab.gia_thuyet ab_gt, ab.bat_dau::text ab_bd
       from etp.camp c left join etp.camp_ab cab on cab.camp_id = c.camp_id left join etp.ab ab on ab.ma = cab.ab and ab.trang_thai <> 'xong' left join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) left join etp.phim p on p.content_id = c.content_id left join etp.lich_tat lt on lt.camp_id = c.camp_id
@@ -478,7 +481,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const cs: CampEtpKho[] = camps.map((r) => ({ camp_id: n(r.camp_id), ten: String(r.ten ?? ''), bo: (r.bo as string) ?? null, trang_thai: String(r.trang_thai ?? ''), giao: (r.giao as string) ?? null, ngan_sach: n(r.ngan_sach),
     creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id), goc: r.goc == null ? null : n(r.goc), bai: (r.bai_viet as string) || null, lich: (r.lich as string) ?? null, tao: (r.tao as string) ?? null,
     loi: (r.loi as string) ?? null, dong_bo: (r.dong_bo as string) ?? null, phim: (r.phim as string) ?? (ngoai ? phimTuTenCamp(String(r.ten ?? '')) : null), the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, ban: (r.ban as string) ?? null, giong: (r.giong as string) ?? null, doan: (r.doan as string) ?? null, cung_doan: n(r.cung_doan),
-    thang: st(r.tc, r.tt), qua: st(r.qc, r.qt), nay: st(r.nc, r.nt), lich_tat: !!r.lich_tat, roas: r.roas == null ? null : n(r.roas), chien_luoc: (r.chien_luoc as string) ?? null, mien: (r.mien as string) || null,
+    thang: st(r.tc, r.tt), qua: st(r.qc, r.qt), nay: st(r.nc, r.nt), tron: st(r.dc, r.dt), lich_tat: !!r.lich_tat, roas: r.roas == null ? null : n(r.roas), chien_luoc: (r.chien_luoc as string) ?? null, mien: (r.mien as string) || null,
     nuoc: ((r.nuoc as { g: string; c: unknown; t: unknown }[] | null) ?? []).map((x) => ({ g: x.g, c: n(x.c), t: n(x.t) })),
     ab: r.ab_ma ? { ma: String(r.ab_ma), ten: String(r.ab_ten), kieu: String(r.ab_kieu), nhanh: r.ab_nhanh === 'thu' ? 'thu' : 'doi', nhanhTen: String(r.ab_nhanh_ten ?? r.ab_nhanh), giaThuyet: (r.ab_gt as string) ?? null, batDau: String(r.ab_bd) } : null }));
   // BẢNG SO SÁNH BẢN SAO ↔ GỐC (CapSoSanh): chỉ camp đang trong một lần A/B và có goc — một câu cho mọi cặp

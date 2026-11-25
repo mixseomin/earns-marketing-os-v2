@@ -492,6 +492,14 @@ def giong_phim(p, ai=None, ghim=None):
     return (tl, f"thể loại {p.get('the_loai')}") if tl else (GIONG_MAC_DINH, "mặc định sổ luật")
 assert giong_phim({"the_loai": "mafia"}) == ("gao", "thể loại mafia") and giong_phim({}, "tinh_nghich")[0] == "tinh_nghich" and giong_phim({}, "x", "cam_xuc")[0] == "cam_xuc" and giong_phim({})[0] == GIONG_MAC_DINH
 
+def giong_ban(kg, ng):
+    """CÁC BẢN GIỌNG của một bản dựng (anh 25/11/2026 "có 2 phiên bản chứ ko phải bỏ"): giọng mặc định sổ luật (tốt nhất theo số) LUÔN giữ,
+    thêm bản giọng theo chủ đề phim nếu khác; anh ghim giọng thì chỉ bản đó. → [(kiểu, nguồn)]"""
+    if ng == "anh ghim": return [(kg, ng)]
+    return [(GIONG_MAC_DINH, "mặc định sổ luật")] + ([(kg, ng)] if kg != GIONG_MAC_DINH else [])
+assert [k for k, _ in giong_ban("hao_hung", "AI theo chủ đề phim")] == [GIONG_MAC_DINH, "hao_hung"] or GIONG_MAC_DINH == "hao_hung"
+assert len(giong_ban(GIONG_MAC_DINH, "x")) == 1 and giong_ban("gao", "anh ghim") == [("gao", "anh ghim")]
+
 def cau_doc(lang, so_mau, kieu, ten):
     """câu đọc của một mẫu — MỘT chỗ cho giọng đọc lẫn dấu sổ. Gộp mạo từ lặp khi tên phim đã mở bằng nó ("Watch the The Great…" — Genie 21/11/2026)"""
     a_, b_, c_ = CAU[lang][so_mau]

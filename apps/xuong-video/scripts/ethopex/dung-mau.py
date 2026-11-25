@@ -890,29 +890,34 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
                 Image.alpha_composite(Image.open(nen).convert("RGBA"), lop).convert("RGB").save(out.replace(".mp4", ".jpg"), quality=88); cr.append(out.replace(".mp4", ".jpg")); continue
             tt("giong", g="giọng đọc (cổng giọng chung)")
             kg, ng = AT.giong_phim(p, _NHO[cid].get("giong"), str((o_.get("giong") or {}).get("kieu") or "") or None)   # giọng theo phim + chủ đề phim (anh 25/11/2026)
-            print(f"giọng: {kg} · {AT.KIEU_GIONG[kg][0]} · {ng}" + (f" — {_NHO[cid]['giong_ly_do']}" if ng.startswith("AI") and _NHO[cid].get("giong_ly_do") else ""), flush=True)
-            so_cau = g_ghim % len(AT.CAU[lang]) if g_ghim is not None else (len(da_khung) + b) % len(AT.CAU[lang]); mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, so_cau); vnd += v   # câu đọc xoay theo số bản đã dựng
-            if ma in DONG:
-                tt("video", g=f"AI làm khung chuyển động {DONG_GIAY}s + dựng video 1080×1920 (lớp phủ hiện ở giây {DONG_HIEN})")
-                clip, v = chuyen_dong(nen, tm, cid, ma, b); vnd += v; nhip = None
-                if c.get("_nut"):   # nút CTA nảy đúng lúc giọng đọc câu CTA (vế cuối mẫu câu giọng)
-                    t_cta = max(DONG_HIEN + 0.5, GIONG_TRE + moc_cta(mp3, AT.CAU[lang][so_cau][2])); nhip = (*nhip_nut(c, tm, b), t_cta); print(f"nút CTA nảy ở giây {t_cta:.2f}", flush=True)
-                giay = dung_dong(clip, chu, mp3, out, nhip)
-            else:
-                tt("video", g="dựng video 1080×1920")
-                giay = AT.dung(nen, chu, mp3, out)
-            if thu: print(f"[thử] {out} · {giay}s · {vnd}₫", flush=True); cr.append(out); continue
-            tt("thu_vien", g=f"nạp thư viện ({giay}s)")
-            tv = TB.nap(cid, lang, out, dang, f"mẫu:{ma} · {muc['ten']} · bản {len(da_khung) + 1} · khung {k['tap']}#{k['so']}" + (f" · {k['cam_xuc']} · {k.get('nhan_vat') or ''}" if k.get("cam_xuc") else "") + (f" · bản soạn #{soan}" if soan else "") + f" · giọng {kg}", v, (tc.get("chu_dau") or "").strip() or None)
-            if not tv: raise RuntimeError("nạp thư viện không ra mã")
-            soan_tt("dung", "đã vào thư viện — đang tải creative lên Ethopex", tv_id=tv)
-            AT.sql(f"update etp.mau_dung set tv_ids = array_append(tv_ids, {int(tv)}), khung_dung = array_append(khung_dung, {s_(khoa(k) + '|' + (k.get('cam_xuc') or ''))})"
+            out0 = out
+            for kg, ng in AT.giong_ban(kg, ng):   # 2 bản giọng: mặc định sổ luật (tốt nhất theo số) + theo chủ đề phim (anh 25/11/2026 "có 2 phiên bản chứ ko phải bỏ")
+                out = out0 if kg == AT.GIONG_MAC_DINH else out0.replace(".mp4", f"-g{kg}.mp4")
+                print(f"giọng: {kg} · {AT.KIEU_GIONG[kg][0]} · {ng}" + (f" — {_NHO[cid]['giong_ly_do']}" if ng.startswith("AI") and _NHO[cid].get("giong_ly_do") else ""), flush=True)
+                so_cau = g_ghim % len(AT.CAU[lang]) if g_ghim is not None else (len(da_khung) + b) % len(AT.CAU[lang]); mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, so_cau); vnd += v   # câu đọc xoay theo số bản đã dựng
+                if ma in DONG:
+                    tt("video", g=f"AI làm khung chuyển động {DONG_GIAY}s + dựng video 1080×1920 (lớp phủ hiện ở giây {DONG_HIEN})")
+                    clip, v = chuyen_dong(nen, tm, cid, ma, b); vnd += v; nhip = None
+                    if c.get("_nut"):   # nút CTA nảy đúng lúc giọng đọc câu CTA (vế cuối mẫu câu giọng)
+                        t_cta = max(DONG_HIEN + 0.5, GIONG_TRE + moc_cta(mp3, AT.CAU[lang][so_cau][2])); nhip = (*nhip_nut(c, tm, b), t_cta); print(f"nút CTA nảy ở giây {t_cta:.2f}", flush=True)
+                    giay = dung_dong(clip, chu, mp3, out, nhip)
+                else:
+                    tt("video", g="dựng video 1080×1920")
+                    giay = AT.dung(nen, chu, mp3, out)
+                if thu: print(f"[thử] {out} · {giay}s · {vnd}₫", flush=True); cr.append(out); continue
+                tt("thu_vien", g=f"nạp thư viện ({giay}s)")
+                tv = TB.nap(cid, lang, out, dang, f"mẫu:{ma} · {muc['ten']} · bản {len(da_khung) + 1} · khung {k['tap']}#{k['so']}" + (f" · {k['cam_xuc']} · {k.get('nhan_vat') or ''}" if k.get("cam_xuc") else "") + (f" · bản soạn #{soan}" if soan else "") + f" · giọng {kg}", v, (tc.get("chu_dau") or "").strip() or None)
+                if not tv: raise RuntimeError("nạp thư viện không ra mã")
+                soan_tt("dung", "đã vào thư viện — đang tải creative lên Ethopex", tv_id=tv)
+                AT.sql(f"update etp.mau_dung set tv_ids = array_append(tv_ids, {int(tv)}) where mau = {s_(ma)} and content_id = {int(cid)}")
+                tt("creative", g=f"tải lên Ethopex qua cổng mẫu (tv{tv})")
+                subprocess.run(["python3", os.path.join(D, "thu-vien-len.py"), str(tv)], check=False)
+                c_id = AT.sql(f"select coalesce(creative_id::text, '') from etp.thu_vien where id = {int(tv)}")
+                if c_id: cr.append(int(c_id)); AT.sql(f"update etp.mau_dung set creative_ids = array_append(creative_ids, {int(c_id)}) where mau = {s_(ma)} and content_id = {int(cid)}")
+            if thu: continue
+            AT.sql(f"update etp.mau_dung set khung_dung = array_append(khung_dung, {s_(khoa(k) + '|' + (k.get('cam_xuc') or ''))})"
                    + (f", cau_dung = array_append(cau_dung, {s_(cau.replace(';', ','))})" if cau else "") + f" where mau = {s_(ma)} and content_id = {int(cid)}")
             uv = [u for u in uv if khoa(u) != khoa(k)]; da_khung.append(khoa(k) + "|" + (k.get("cam_xuc") or ""))
-            tt("creative", g=f"tải lên Ethopex qua cổng mẫu (tv{tv})")
-            subprocess.run(["python3", os.path.join(D, "thu-vien-len.py"), str(tv)], check=False)
-            c_id = AT.sql(f"select coalesce(creative_id::text, '') from etp.thu_vien where id = {int(tv)}")
-            if c_id: cr.append(int(c_id)); AT.sql(f"update etp.mau_dung set creative_ids = array_append(creative_ids, {int(c_id)}) where mau = {s_(ma)} and content_id = {int(cid)}")
         if not xem:
             if cr: tt("xong", "xong", f"{len(cr)} creative: " + ", ".join(f"#{x}" for x in cr), vnd=vnd); soan_tt("xong", f"creative #{cr[-1]} đã vào thư viện", creative_id=cr[-1])
             else: tt("creative", "loi", "dựng xong nhưng không thành creative (cổng chữ / studio loại) — xem nhật ký", vnd=vnd); soan_tt("loi", "dựng xong nhưng không thành creative (cổng chữ / studio loại)")

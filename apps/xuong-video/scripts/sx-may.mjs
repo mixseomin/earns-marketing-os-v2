@@ -230,9 +230,10 @@ const main = async () => {
     a.deepEqual(docTongBai('✓ quora-1 (m, 33₫) → x\n✗ viết bài góc #2: lỗi (0₫)\n✓ quora-3 (m, 30₫) → y'), { so: 2, vnd: 63 });
     a.ok(docTongBai('✗ viết bài góc #2: hết câu hỏi (0₫)').loi.includes('hết câu hỏi'), '0 bài phải kèm lý do');
     a.ok(KHO.duong_rieng.includes('yesterdays-news-tonight') && KHO.duong_rieng.includes('mia-calloway'), 'sổ: kênh lịch sử + Mia đi đường riêng');
-    // MỌI máy đi đường riêng có lệnh lấp kho phải khai trong sổ, nếu không may-dung.mts chỉ in câu chung vô nghĩa (24/11/2026: Mia thiếu 1 bài facebook).
-    // giochap-van-khan đi đường riêng nhưng Phòng Nội dung không xếp việc kho| → máy đó không có lệnh, không bắt buộc.
-    for (const mrieng of KHO.duong_rieng.filter((x) => x !== 'giochap-van-khan')) a.ok(typeof KHO.rieng?.[mrieng]?.lenh === 'string' && KHO.rieng[mrieng].lenh.length > 10, `sổ _kho.rieng.${mrieng}.lenh: lệnh lấp kho riêng phải có trong sổ`);
+    // MỌI máy đi đường riêng PHẢI khai lệnh lấp kho riêng, không có là may-dung.mts chỉ in câu "chưa khai" (24/11/2026: Mia thiếu 1 bài facebook).
+    // giochap-van-khan từng được miễn với lý do "Phòng Nội dung không xếp việc kho|" — SAI: cham-dang.mjs chỉ bỏ qua máy trong _kho.may, còn duong_rieng
+    // vẫn nhận việc kho|, nên máy đó kẹt cứng ở câu "chưa khai" (25/11/2026). Nay khai đủ lệnh thật cho cả ba.
+    for (const mrieng of KHO.duong_rieng) a.ok(typeof KHO.rieng?.[mrieng]?.lenh === 'string' && KHO.rieng[mrieng].lenh.length > 10, `sổ _kho.rieng.${mrieng}.lenh: lệnh lấp kho riêng phải có trong sổ`);
     a.ok(KHO && KHO.tran_vnd_luot < 5000 && KHO.may.length && !KHO.may.includes('mia-calloway'), 'sổ _kho: trần dưới ngưỡng tự chạy 5.000₫, Mia đi đường lịch bài');
     a.deepEqual(docTongKho('✓ #1 top-n → x (26₫)\nsinh kho militarycalc: 5/6 đề, 1.150₫'), { so: 5, xin: 6, vnd: 1150 });
     a.ok(docTongKho('✗ #9 top-n: hook trùng\n· hết hook QC chưa dùng (3 hook đều đã có bài chờ đăng) — dừng lượt\nsinh kho r: 0/6 đề, 0₫').loi.includes('hết hook'), '0 đề phải kèm lý do');

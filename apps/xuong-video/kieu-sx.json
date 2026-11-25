@@ -27,7 +27,7 @@
     "mac_dinh": true
   },
   "_kho": {
-    "_ve": "LẤP KHO (anh 19/11/2026 'Thiếu thì sx chứ sao nữa' + 'chỉ sx trước vài bài so với ngày lên lịch, không sx hàng loạt'): mỗi lượt --het đọc SỐ THIẾU từng nền của Phòng Nội dung (cty worker/cham-dang.mjs --thieu: đủ 2 ngày đăng theo trần nền) — MỘT nguồn, máy không tự đếm lại (trước đây ba kiểu đếm: gộp mọi nền bù lên 6, nền link / poll đủ 7 ngày, Phòng Nội dung 2 ngày). Máy trong `may`: video thiếu → may-dung.mts --sinh-kho (hoặc lệnh `rieng`), link / poll → --sinh-kho --dang bai-link / binh-chon, bài viết (Quora / Substack / Medium) → puzzle-books sinh-bai.mjs ở iMac (giá ước `vnd_bai`); n = nền thiếu nhiều nhất trong loại (một bộ dùng cho mọi nền cùng loại). Nền ảnh, và mọi nền (trừ bài viết) của máy ngoài `may` (vd anglebrief) → sinh từ ô kế hoạch (may-dung.mts --sinh-de --nen). `duong_rieng`: máy có máy làm bài riêng theo lịch đã duyệt (Mia lịch bài persona, kênh lịch sử YNT, giochap mẫu van-khan-ngoai) — Máy SX không sinh cho các máy này. Máy trong `may` Phòng Nội dung không xếp việc kho| cho Khang. Cộng dồn tiền cả lượt dừng trước `tran_vnd_luot` (dưới ngưỡng tự chạy 5.000₫). `rieng`: máy lấp kho bằng LỆNH KHÁC --sinh-kho (anh 15/11/2026: Front Porch --sinh-game).",
+    "_ve": "LẤP KHO (anh 19/11/2026 'Thiếu thì sx chứ sao nữa' + 'chỉ sx trước vài bài so với ngày lên lịch, không sx hàng loạt'): mỗi lượt --het đọc SỐ THIẾU từng nền của Phòng Nội dung (cty worker/cham-dang.mjs --thieu: đủ 2 ngày đăng theo trần nền) — MỘT nguồn, máy không tự đếm lại (trước đây ba kiểu đếm: gộp mọi nền bù lên 6, nền link / poll đủ 7 ngày, Phòng Nội dung 2 ngày). Máy trong `may`: video thiếu → may-dung.mts --sinh-kho (hoặc lệnh `rieng`), link / poll → --sinh-kho --dang bai-link / binh-chon, bài viết (Quora / Substack / Medium) → puzzle-books sinh-bai.mjs ở iMac (giá ước `vnd_bai`); n = nền thiếu nhiều nhất trong loại (một bộ dùng cho mọi nền cùng loại). Nền ảnh, và mọi nền (trừ bài viết) của máy ngoài `may` (vd anglebrief) → sinh từ ô kế hoạch (may-dung.mts --sinh-de --nen). `duong_rieng`: máy có máy làm bài riêng theo lịch đã duyệt (Mia lịch bài persona, kênh lịch sử YNT, giochap lịch văn khấn theo ngày âm) — Máy SX không sinh cho các máy này. Máy trong `may` Phòng Nội dung không xếp việc kho| cho Khang; máy ở `duong_rieng` thì CÓ (25/11/2026 giochap kẹt vì thiếu lệnh). Cộng dồn tiền cả lượt dừng trước `tran_vnd_luot` (dưới ngưỡng tự chạy 5.000₫). `rieng`: máy lấp kho bằng LỆNH KHÁC --sinh-kho (anh 15/11/2026: Front Porch --sinh-game). MỌI máy ở `duong_rieng` PHẢI khai `rieng.<máy>.lenh` — sx-may.mjs --tu-kiem gác.",
     "vnd_de": 45,
     "vnd_bai": 60,
     "tran_vnd_luot": 4000,
@@ -61,6 +61,11 @@
         "lenh": "iMac: node apps/xuong-video/scripts/sx-may.mjs --slug <slug mới> (dang_tu = ngày thiếu, dang_bai = facebook, kieu_sx = reel_canh9_free, phim thật chưa dùng)",
         "vnd_de": 15,
         "ve": "Mia lịch bài persona: thêm đúng MỘT đề Reel cắt cảnh 9s FREE vào mau/may/mia-reel-*.json rồi --nap-nguon + --slug dựng bài. Không --sinh-kho (19/11/2026)."
+      },
+      "giochap-van-khan": {
+        "lenh": "iMac: /Users/htuan/Me/earns/giochap-ios/Tools/van-khan/nap-may.sh --ngay 120",
+        "vnd_de": 0,
+        "ve": "Lịch văn khấn theo ngày âm (Tools/van-khan/lich-dang.mjs) → ios-chung/noi-dung/nap-may.sh → nap-may.mts trên box3: nạp xv_may_video + đẩy video đã dựng sẵn lên R2. 0₫, không gọi AI. Cửa sổ đăng 3 ngày trước ngày cúng nên chạy lại không sinh trùng; bài ngoài cửa sổ thì Phòng Nội dung tính là chưa tới hạn, không phải thiếu."
       }
     }
   }

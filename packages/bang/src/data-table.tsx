@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent, type DragEvent as ReactDragEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { batDauKeo, docRongCot, ghiRongCot } from './keo-rong';
 import { useTableSort, type SortSpec, type ThSort } from './use-table-sort';
 import { AnchoredPopover } from './anchored-popover';
@@ -768,6 +769,7 @@ export function DataTable<T>({
   // NHÓM DÍNH: dòng nhóm đã cuộn qua mép dưới khối tiêu đề mà nhóm vẫn còn dòng dưới → chép dòng nhóm đó vào khối tiêu đề dính (thân bảng nằm trong
   // hộp overflow-x nên position:sticky của chính <tr> không dính theo trang được — cùng lý do tiêu đề là bảng riêng)
   const [nhomDinh, setNhomDinh] = useState<string | null>(null);
+  const nhomDinhRef = useRef<string | null>(null); nhomDinhRef.current = nhomDinh;
   const gapNhomRef = useRef(gapNhom); gapNhomRef.current = gapNhom;
   const coGom = !!cotGom;
   useEffect(() => {
@@ -792,10 +794,13 @@ export function DataTable<T>({
       // KHÔNG HIỆN 2 DẢI NHÓM (anh 19/11/2026 "sao lại có 2 nhóm?!"): dòng nhóm thật vẫn nằm NGUYÊN dưới tiêu đề (chưa bị cuộn khuất) thì không chép lên khối dính —
       // trước đây dòng nhóm đầu ngay dưới tiêu đề (top = mép dưới tiêu đề) vẫn qua ngưỡng + nửa dòng → bản dính + dòng thật = hai dải giống hệt nhau
       if (v != null && cuoi && cuoi.getBoundingClientRect().top - lech >= day - 1) v = null;
-      setNhomDinh((o) => (o === v ? o : v));
+      // DÍNH CÙNG KHUNG (etp2 #1860 anh 25/11/2026 "Sticky tên phim cứ giật giật khi kéo xuống"): trước đây xét hoãn sang requestAnimationFrame rồi setState để React vẽ
+      // ở khung SAU → dòng phim thật đã chui dưới tiêu đề một khung, bản dính mới bật về (đo: dòng thật top 215, bản dính bật về 219 dưới mép 220) — mỗi lần đổi phim là một cú giật.
+      // Gốc là TRỄ KHUNG: xét ngay trong sự kiện cuộn (trình duyệt phát scroll đúng một lần mỗi khung) và flushSync để bản dính vẽ cùng khung với vị trí cuộn mới.
+      if (nhomDinhRef.current !== v) { nhomDinhRef.current = v; flushSync(() => setNhomDinh(v)); }
     };
-    const nghe = () => { if (!hen) hen = requestAnimationFrame(xet); };
-    nguon.addEventListener('scroll', nghe, { passive: true }); window.addEventListener('resize', nghe); xet();
+    const nghe = () => { if (hen) { cancelAnimationFrame(hen); hen = 0; } xet(); };
+    nguon.addEventListener('scroll', nghe, { passive: true }); window.addEventListener('resize', nghe); hen = requestAnimationFrame(xet);   // lần đầu ngoài effect (flushSync không gọi được trong effect)
     return () => { nguon.removeEventListener('scroll', nghe); window.removeEventListener('resize', nghe); if (hen) cancelAnimationFrame(hen); };
   }, [theoTrang, effView, coGom, pageRows, visible.length, dinhDau]);   // chỉ gắn lại khi bảng / dòng đổi — cuộn đã có bộ nghe riêng (góp ý #giao-20261120T1141-chuyen-ie76)
   const nhDinh = nhomDinh != null ? cacNhom.find((x) => x.v === nhomDinh) : undefined;

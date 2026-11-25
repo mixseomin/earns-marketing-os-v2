@@ -2472,6 +2472,12 @@ function useCotNgay(du: DuLieuEtp) {
   ];
   return { bacO, ngay, so, sd7, tongNgay, idPhim, demCamp, cotNgay };
 }
+// Nhóm cột bảng Cây (#1856): ROI | Lãi | Chi — mỗi chỉ số MỘT nhóm, nhãn nhóm hiện một lần trên hàng nhãn nhóm; màu dải nhóm theo bảng chung (vàng ROI như dải ngày cũ)
+const NHOM_CAY = [
+  { key: 'roi', label: 'ROI', color: '#fbbf24', title: 'ROI = thu ÷ chi: 6 ngày Ethopex đã khép (vạch lãi / lỗ) → hôm nay → kỳ đang chọn → trọn đời camp' },
+  { key: 'lai', label: 'Lãi', color: '#22d3ee', title: 'Lãi = thu − chi: hôm nay → kỳ đang chọn' },
+  { key: 'chi', label: 'Chi', color: '#94a3b8', title: 'Tiền đã chi: kỳ đang chọn → trọn đời camp' },
+];
 const NHOM_NGAY = { key: 'ngay', label: '7 ngày gần nhất', color: '#fbbf24', title: 'ROI từng ngày Ethopex (07:00–07:00 VN): 6 ngày đã khép + hôm nay — vạch lãi / lỗ; dòng phim / dòng tổng ghi số camp có chi; rê ô xem chi · thu' };
 
 /** ⏸ / ▶ TẠM DỪNG creative chờ lên camp (anh 25/11/2026 "Vẫn có nút pause nếu cần thủ công"): khoá hoan_cr, máy lenh_cho bỏ qua; lỗi hiện ô đỏ ngay dưới nút */
@@ -2716,26 +2722,28 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
     { key: 'bai', header: 'Bài post', align: 'left', width: 80, title: 'link bài post Facebook của camp (bản Used post chưa có mã → bài của camp mẹ) — bấm mở tab mới', sortValue: (c) => baiCuaCamp(c, du.camps)?.bai ?? '', cell: (c) => <OBai c={c} kho={du.camps} /> },
     /* bỏ cột Loại riêng (#1538 anh 05/11/2026 "Bỏ cột này !!"): badge loại nằm NGAY TRƯỚC ô creative (oCr, #1826 anh 24/11/2026 — trước ở ô camp) */
     ...(coLich ? [{ key: 'lich', header: 'Lịch giờ', align: 'left' as const, cell: (c: CampEtpKho) => <LichCamp c={c} du={du} tl={tlC} gon />, sortValue: (c: CampEtpKho) => tlC(c.the_loai) }] : []),
-    // dải 6 ngày đã khép + nay = hàm chung useCotNgay (Thiết lập dùng cùng, #1819); Cây không có hàng nhóm cột nên bỏ nhãn nhóm
-    ...cotNgay.map(({ group: _g, ...k }) => k),
-    // LÃI HÔM NAY — CỘT CỐ ĐỊNH (anh 02/11/2026 #1508): không đổi theo kỳ đang chọn, luôn là ngày Ethopex hôm nay; dòng phim / dòng tổng cộng lại
-    { key: 'lai_nay', header: 'Lãi nay', width: 104, title: 'lãi HÔM NAY (ngày Ethopex 07:00–07:00 VN) — cố định, không theo kỳ đang chọn', cell: (c) => <LaiCot s={c.nay} />, sortValue: (c) => Math.round((c.nay.thu - c.nay.chi) * 100) / 100,
-      total: (rs) => <LaiCot s={rs.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 })} /> },
-    // TỔNG CHI TRONG KHUNG THỜI GIAN đang chọn (anh 29/10/2026) — cùng nguồn laiKy với cột lãi; dòng phim / dòng tổng cộng lại
-    { key: 'chi', header: `Chi ${tenKy.toLowerCase()}`, width: 124, title: `tổng chi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <Tien v={laiKy(c).chi} />, sortValue: (c) => Math.round(laiKy(c).chi * 100) / 100,
-      total: (rs) => <Tien v={rs.reduce((a, c) => a + laiKy(c).chi, 0)} /> },
-    { key: 'tong_chi', header: 'Tổng đã chi', width: 110, title: 'tổng đã chi từ lúc lên camp tới giờ (mọi ngày, cả hôm nay) — không theo kỳ đang chọn; dòng phim / dòng tổng cộng lại', cell: (c) => <Tien v={tongChi.get(c.camp_id) ?? 0} />,
-      sortValue: (c) => Math.round((tongChi.get(c.camp_id) ?? 0) * 100) / 100, total: (rs) => <Tien v={rs.reduce((a, c) => a + (tongChi.get(c.camp_id) ?? 0), 0)} /> },
-    { key: 'lai', header: `Lãi ${tenKy.toLowerCase()}`, width: 124, title: `lãi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <LaiCot s={laiKy(c)} />, sortValue: (c) => Math.round(laiDai(c) * 100) / 100,
-      total: (rs) => <LaiCot s={rs.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 })} /> },
+    // BA NHÓM CÓ NHÃN NHÓM (#1856 anh 25/11/2026 "Bố cục lại cho gọn + logic theo các vị trí cột liên quan !! ROI 1 nhóm, LÃI 1 nhóm"): trước đây Lãi nay · Chi kỳ ·
+    // Tổng chi · Lãi kỳ · ROI kỳ · ROI tổng xen kẽ theo thứ tự từng card thêm vào. Nay: ROI (6 ngày → nay → kỳ → tổng) | LÃI (nay → kỳ) | CHI (kỳ → tổng); tên nhóm
+    // nằm MỘT lần trên hàng nhãn nhóm (NHOM_CAY + groupHeader), tiêu đề cột chỉ còn mốc thời gian → cột hẹp, hết cắt "LÃI HÔM Q…". Dải ngày vẫn từ useCotNgay, chỉ đổi nhóm sang 'roi'.
+    ...cotNgay.map((k) => ({ ...k, group: 'roi' })),
     // ROI TRONG KỲ (#1855 anh 25/11/2026 "Thêm cột ROI trong kỳ"): cùng nguồn laiKy với cột Chi / Lãi kỳ; dòng phim / dòng tổng = ROI của tổng chi-thu cộng lại; chi / thu / lãi gập vào chữ rê
-    { key: 'roi_ky', header: `ROI ${tenKy.toLowerCase()}`, width: 88, title: `ROI ${tenKy.toLowerCase()} (theo chu kỳ đang chọn) — rê xem chi · thu · lãi; chi dưới $0.30 thì để trống`,
+    { key: 'roi_ky', group: 'roi', header: tenKy.toLowerCase(), width: 76, title: `ROI ${tenKy.toLowerCase()} (theo chu kỳ đang chọn) — rê xem chi · thu · lãi; chi dưới $0.30 thì để trống`,
       cellTitle: (c) => roiKyTitle(laiKy(c), tenKy), cell: (c) => <Roi s={laiKy(c)} />, sortValue: (c) => roiOf(laiKy(c)) ?? -1e9,
       total: (rs) => { const s = rs.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 }); return <span title={roiKyTitle(s, tenKy)}><Roi s={s} /></span>; } },
     // ROI TỔNG — TRỌN ĐỜI CAMP (#1853 anh 25/11/2026 "Thêm cột ROI tổng thể toàn camp"): mọi ngày từ lúc lên + hôm nay, không theo kỳ; dòng phim / dòng tổng = ROI của tổng chi-thu cộng lại; chi / thu / lãi gập vào chữ rê
-    { key: 'roi_tong', header: 'ROI tổng', width: 76, title: 'ROI trọn đời camp (mọi ngày từ lúc lên, gồm hôm nay) — không theo kỳ đang chọn; rê xem chi · thu · lãi; chi dưới $0.30 thì để trống',
+    { key: 'roi_tong', group: 'roi', header: 'tổng', width: 68, title: 'ROI trọn đời camp (mọi ngày từ lúc lên, gồm hôm nay) — không theo kỳ đang chọn; rê xem chi · thu · lãi; chi dưới $0.30 thì để trống',
       cellTitle: (c) => roiTongTitle(tronSo.get(c.camp_id)), cell: (c) => { const t = tronSo.get(c.camp_id); return t ? <Roi s={t} /> : null; }, sortValue: (c) => { const t = tronSo.get(c.camp_id); return t ? roiOf(t) ?? -1e9 : -1e9; },
       total: (rs) => { const s = tronCong(rs); return <span title={roiTongTitle(s)}><Roi s={s} /></span>; } },
+    // LÃI HÔM NAY — CỘT CỐ ĐỊNH (anh 02/11/2026 #1508): không đổi theo kỳ đang chọn, luôn là ngày Ethopex hôm nay; dòng phim / dòng tổng cộng lại
+    { key: 'lai_nay', group: 'lai', header: 'nay', width: 100, title: 'lãi HÔM NAY (ngày Ethopex 07:00–07:00 VN) — cố định, không theo kỳ đang chọn', cell: (c) => <LaiCot s={c.nay} />, sortValue: (c) => Math.round((c.nay.thu - c.nay.chi) * 100) / 100,
+      total: (rs) => <LaiCot s={rs.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 })} /> },
+    { key: 'lai', group: 'lai', header: tenKy.toLowerCase(), width: 100, title: `lãi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <LaiCot s={laiKy(c)} />, sortValue: (c) => Math.round(laiDai(c) * 100) / 100,
+      total: (rs) => <LaiCot s={rs.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 })} /> },
+    // TỔNG CHI TRONG KHUNG THỜI GIAN đang chọn (anh 29/10/2026) — cùng nguồn laiKy với cột lãi; dòng phim / dòng tổng cộng lại
+    { key: 'chi', group: 'chi', header: tenKy.toLowerCase(), width: 96, title: `tổng chi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <Tien v={laiKy(c).chi} />, sortValue: (c) => Math.round(laiKy(c).chi * 100) / 100,
+      total: (rs) => <Tien v={rs.reduce((a, c) => a + laiKy(c).chi, 0)} /> },
+    { key: 'tong_chi', group: 'chi', header: 'tổng', width: 96, title: 'tổng đã chi từ lúc lên camp tới giờ (mọi ngày, cả hôm nay) — không theo kỳ đang chọn; dòng phim / dòng tổng cộng lại', cell: (c) => <Tien v={tongChi.get(c.camp_id) ?? 0} />,
+      sortValue: (c) => Math.round((tongChi.get(c.camp_id) ?? 0) * 100) / 100, total: (rs) => <Tien v={rs.reduce((a, c) => a + (tongChi.get(c.camp_id) ?? 0), 0)} /> },
     // CỘT ĐỆM (không tiêu đề, không số): mọi cột có bề rộng cố định → khoảng thừa của bảng dồn ra mép phải, số liệu xếp sát nhau (anh 29/10/2026 "cho gọn lại")
     { key: 'dem', header: '', align: 'left', cell: () => null },
   ] as DataColumn<CampEtpKho>[]).map((k) => (['lai_nay', 'chi', 'tong_chi', 'lai', 'roi_ky', 'roi_tong'].includes(k.key) || cotNgay.some((x) => x.key === k.key) ? { ...k, cell: (c: CampEtpKho, i: number) => (c.sx?.khoi ? null : k.cell(c, i)) } : k));   // dòng KHỐI chưa có camp → ô tiền trống, không in $0.00 (anh 25/11/2026)
@@ -2772,7 +2780,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
   // CÂY CHỈ CÓ CAMP THẬT (anh 09/11/2026 "xoá nốt các dòng phụ như kẹt… chỉ hiện danh sách camp"): bỏ dòng giả camp thay / chờ, plan mở rộng, kẹt
   // + dòng XẾP HÀNG: creative đã duyệt chưa camp (du.hangCr, camp_id < 0) nằm trong nhóm phim — anh 22/11/2026 "duyệt rồi thì phải cho vào table bên dưới"
   const hangCay = hang?.length ? [...con.ds, ...hang] : con.ds;   // #1767: dòng ⏳ chờ duyệt đã qua bộ lọc (hangLoc) — không nối thẳng du.hangCr nữa (hiện cả khi lọc Đang chạy)
-  const bangCay = hep ? null : <DataTable rows={hangCay} columns={cotCay} getRowKey={(c) => String(c.camp_id)} persistKey="etp-cay" minWidth={1100} fixedLayout defaultSort={[{ key: 'lai', dir: 'desc' }]}
+  const bangCay = hep ? null : <DataTable rows={hangCay} columns={cotCay} getRowKey={(c) => String(c.camp_id)} persistKey="etp-cay" minWidth={1100} fixedLayout groups={NHOM_CAY} groupHeader defaultSort={[{ key: 'lai', dir: 'desc' }]}
     tree={{ parent: () => null, open: moBang, onOpen: doiMoBang }} groupBy={{ value: nhomCay, label: nhanPhim }}
     rowData={(c) => ({ 'camp-dong': c.camp_id })}
     rowStyle={(c) => { const mau = loiNb.get(c.camp_id) ? '#ef4444' : giam(c) ? '#f59e0b' : null; const mo = con.them.has(c.camp_id) ? { opacity: 0.55 } : {}; return toSangDong(hl, c.camp_id, mau ? { ...mo, boxShadow: `inset 3px 0 ${mau}`, background: `${mau}14` } : con.them.has(c.camp_id) ? mo : undefined); }}

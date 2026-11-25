@@ -7,6 +7,11 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1856, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'persistKey="etp-cay" minWidth={1100} fixedLayout groups={NHOM_CAY} groupHeader', vi: 'bảng Cây có hàng nhãn nhóm ROI | Lãi | Chi (anh 25/11/2026 "ROI 1 nhóm, LÃI 1 nhóm")' },
+  { card: 1856, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "...cotNgay.map((k) => ({ ...k, group: 'roi' })),", vi: 'dải ROI 6 ngày + nay vào nhóm ROI, không bỏ nhãn nhóm như trước' },
+  { card: 1856, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{ key: 'roi_tong', group: 'roi',", vi: 'ROI tổng đứng trong nhóm ROI' },
+  { card: 1856, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{ key: 'lai_nay', group: 'lai',", vi: 'Lãi nay đứng trong nhóm Lãi, cạnh Lãi kỳ' },
+  { card: 1856, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "{ key: 'tong_chi', header: 'Tổng đã chi'", vi: 'không quay lại cột chi chen giữa Lãi nay và Lãi kỳ' },
   { card: 1826, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<span data-o="loai-truoc-cr"', vi: 'cây camp: huy hiệu loại creative (CT / CC / PO…) đứng ngay trước ô creative (anh 24/11/2026 "chuyển badge thể loại creative ra trước creative")' },
   { card: 1831, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'setNganCamp(id); })} trangThai={ttCamp}', vi: 'Thiết lập hiện trạng thái camp dưới số camp, đọc CHUNG ttCamp của cây / bảng camp (anh 24/11/2026 "Show trạng thái của camp")' },
   { card: 1831, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: '<span data-tt-camp title={x.t}', vi: 'ô Camp của Thiết lập vẽ chữ trạng thái (rê xem chi tiết), không chỉ số camp trơn' },
@@ -55,7 +60,7 @@ const LUAT = [
   { card: 1837, tep: 'apps/etp2/src/components/etp-noi.tsx', co: "const dong = tachDongRe(sau, s.includes('\\n'));", vi: 'tachChuRe đi qua tachDongRe' },
   { card: 1837, tep: 'apps/etp2/src/components/etp-noi.tsx', cam: 'sau.split(/\\n|\\s+·\\s+/)', vi: 'CẤM chặt mọi " · " trong chữ đã chia dòng — "$5/ngày", "bộ 1" thành chấm rời' },
   { card: 1819, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function useCotNgay(du: DuLieuEtp)', vi: 'dải cột 7 ngày gần nhất (6 ngày khép + nay) là MỘT hàm chung cho Cây camp lẫn Thiết lập (anh 24/11/2026 góp ý #1819)' },
-  { card: 1819, tep: 'apps/etp2/src/components/etp-view.tsx', co: '...cotNgay.map(({ group: _g, ...k }) => k),', vi: 'Cây camp lấy dải ngày từ useCotNgay, không chép tay cột roi${i} / nay' },
+  { card: 1819, tep: 'apps/etp2/src/components/etp-view.tsx', co: "...cotNgay.map((k) => ({ ...k, group: 'roi' })),", vi: 'Cây camp lấy dải ngày từ useCotNgay, không chép tay cột roi${i} / nay (từ #1856 dải nằm trong nhóm ROI)' },
   { card: 1819, tep: 'apps/etp2/src/components/etp-view.tsx', co: "...cotNgay],", vi: 'Thiết lập dùng dải 7 ngày của Cây thay nhóm Hôm nay / Hôm qua' },
   { card: 1819, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "/^(nay|qua|kh)_/.test(k.key)", vi: 'Thiết lập không quay về nhóm cột nay_ / qua_' },
   { card: 1819, tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: "filter((k) => k.group === 'ngay')", vi: 'Thiết lập ghim nhóm 7 ngày ngay sau Vấn đề' },
@@ -768,7 +773,7 @@ const LUAT = [
   { card: 'nut-tay-2511', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: "const vt = await xinVeTrucTiep('tao_camp', { content: x.content_id,", vi: 'nút lên camp creative (Sản xuất) = vé trực tiếp, cấp trước khi ghi dòng đang lên' },
   { card: 'nut-tay-2511', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', cam: "xinVeTay(", vi: 'etp-dong không còn vé tay' },
   { card: 'nut-tay-2511', tep: 'apps/etp/cong.py', co: 'truc_tiep(viec, [x for x in (camp_id, goc) if x], ct): return None', vi: 'vé trực tiếp nhân bản (gắn camp gốc) miễn phanh trong kiem (goc=)' },
-  { card: '1852', tep: 'apps/etp2/src/components/etp-view.tsx', co: "key: 'tong_chi', header: 'Tổng đã chi'", vi: 'cây camp có cột Tổng đã chi trọn đời' },
+  { card: '1852', tep: 'apps/etp2/src/components/etp-view.tsx', co: "{ key: 'tong_chi', group: 'chi', header: 'tổng'", vi: 'cây camp có cột Tổng đã chi trọn đời (từ #1856 là cột "tổng" trong nhóm Chi)' },
   { card: '1852', tep: 'apps/etp2/src/components/etp-view.tsx', co: "for (const r of du.soNgay) m.set(r.c, (m.get(r.c) ?? 0) + r.chi)", vi: 'Tổng đã chi cộng mọi ngày trong sổ, không theo kỳ' },
   { card: '1847', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', mot: "export const SU_DUYET = 'etp-duyet-cr'", vi: 'bấm Duyệt / Loại phát tín hiệu đổi trạng thái ngay, không đợi tải lại bảng' },
   { card: '1847', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: 'bam(cr, () => duyetChoAnh(cr, hoi), hoi)', vi: 'form Duyệt / Loại báo kèm duyệt hay loại cho tín hiệu' },

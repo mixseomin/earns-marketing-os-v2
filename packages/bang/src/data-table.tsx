@@ -783,13 +783,16 @@ export function DataTable<T>({
       hen = 0;
       const day = dauRef.current?.querySelector('thead')?.getBoundingClientRect().bottom, bang = bangRef.current;   // đo mép dưới hàng tiêu đề (không tính dòng nhóm đang dính)
       if (day == null || !bang) return;
-      let v: string | null = null, cuoi: HTMLTableRowElement | null = null;
+      let v: string | null = null, cuoi: HTMLTableRowElement | null = null, truoc: HTMLTableRowElement | null = null;
       // ngưỡng = mép dưới tiêu đề + NỬA cao dòng nhóm: bản dính tự che dải [day, day + cao dòng] → dòng nhóm kế chui quá nửa dưới bản dính thì đổi sang nó,
       // không để bản dính ghi phim cũ trong khi camp bên dưới đã là của phim mới (etp #1485 rà lại 19/11/2026: cuộn vào Atravesando mà trên đầu vẫn ghi "#0")
       // CHỐNG GIẬT (anh 19/11/2026 "Màn hình cứ giật giật" · etp2 #1713 20/11/2026 "sticky của phim cứ giật giật hiện/ẩn liên tục"): bản dính KHÔNG chiếm chỗ trong
       // dòng chảy nữa — useLayoutEffect "BẢN DÍNH KHÔNG CHIẾM CHỖ" bên dưới kéo thân bảng lên đúng cao bản dính → thân không xê dịch khi bản dính hiện/ẩn, đo thẳng không trừ gì.
       const lech = 0;
-      for (const tr of Array.from(bang.querySelectorAll<HTMLTableRowElement>('tr.dt-nhom[data-nhom]'))) { const r = tr.getBoundingClientRect(); if (r.top - lech < day + r.height / 2) { v = tr.dataset.nhom ?? null; cuoi = tr; } else break; }
+      for (const tr of Array.from(bang.querySelectorAll<HTMLTableRowElement>('tr.dt-nhom[data-nhom]'))) { const r = tr.getBoundingClientRect(); if (r.top - lech < day + r.height / 2) { truoc = cuoi; v = tr.dataset.nhom ?? null; cuoi = tr; } else break; }
+      // KHÔNG TẮT GIỮA HAI PHIM (etp2 #1860): dòng phim kế qua ngưỡng nửa dòng nhưng chưa chạm mép tiêu đề → giữ PHIM TRƯỚC (đo trước sửa: scroll 1590–1614 bản dính tắt hẳn
+      // rồi hiện lại = giật mỗi lần qua ranh giới phim); chỉ phim ĐẦU (không có phim trước) mới để trống như luật "không hiện 2 dải nhóm" bên dưới
+      if (cuoi && truoc && cuoi.getBoundingClientRect().top - lech >= day - 1) { v = truoc.dataset.nhom ?? null; cuoi = truoc; }
       if (v != null && (gapNhom(v) || bang.getBoundingClientRect().bottom - lech <= day + (cuoi?.getBoundingClientRect().height ?? 0))) v = null;   // nhóm gập hoặc bảng đã cuộn hết
       // KHÔNG HIỆN 2 DẢI NHÓM (anh 19/11/2026 "sao lại có 2 nhóm?!"): dòng nhóm thật vẫn nằm NGUYÊN dưới tiêu đề (chưa bị cuộn khuất) thì không chép lên khối dính —
       // trước đây dòng nhóm đầu ngay dưới tiêu đề (top = mép dưới tiêu đề) vẫn qua ngưỡng + nửa dòng → bản dính + dòng thật = hai dải giống hệt nhau

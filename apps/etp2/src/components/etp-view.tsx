@@ -2514,6 +2514,8 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
   // điện thoại: dòng ⏳ CHỜ ANH DUYỆT (hang, camp_id < 0) vào nhóm phim như bảng máy tính — trước chỉ con.goc nên lọc Chờ duyệt ra "Tổng 0 phim" (anh 22/11/2026)
   const theoPhim = useMemo(() => { const g = new Map<string, CampEtpKho[]>(); for (const c of hep && hang?.length ? [...con.goc, ...hang] : con.goc) { const k = String(c.content_id ?? 0); g.set(k, [...(g.get(k) ?? []), c]); } return g; }, [con.goc, hang, hep]);
   const laiDai = (c: CampEtpKho) => { const x = laiKy(c); return x.thu - x.chi; };
+  // TỔNG ĐÃ CHI TỪ LÚC LÊN (#1852 anh 25/11/2026 "Thêm cột tổng đã chi"): cộng mọi ngày của camp trong sổ du.soNgay (sổ có từ 19/10 trước camp đầu tiên, gồm cả hôm nay) — không theo kỳ đang chọn
+  const tongChi = useMemo(() => { const m = new Map<number, number>(); for (const r of du.soNgay) m.set(r.c, (m.get(r.c) ?? 0) + r.chi); return m; }, [du.soNgay]);
   const sapXep = (ds: CampEtpKho[]) => [...ds].sort((a, b) => (xep === 'tuoi' ? (tuoi(b) ?? -1) - (tuoi(a) ?? -1) : laiDai(b) - laiDai(a)));
   const dem = (c: CampEtpKho): number => (con.m.get(c.camp_id) ?? []).reduce((a, x) => a + 1 + dem(x), 0);
   const giam = (c: CampEtpKho) => { const r = ngay.slice(-3).map((d) => roi(so.get(c.camp_id)?.get(d))); return r[0] != null && r[1] != null && r[2] != null && r[0] > r[1] && r[1] > r[2]; };
@@ -2699,11 +2701,13 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
     // TỔNG CHI TRONG KHUNG THỜI GIAN đang chọn (anh 29/10/2026) — cùng nguồn laiKy với cột lãi; dòng phim / dòng tổng cộng lại
     { key: 'chi', header: `Chi ${tenKy.toLowerCase()}`, width: 124, title: `tổng chi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <Tien v={laiKy(c).chi} />, sortValue: (c) => Math.round(laiKy(c).chi * 100) / 100,
       total: (rs) => <Tien v={rs.reduce((a, c) => a + laiKy(c).chi, 0)} /> },
+    { key: 'tong_chi', header: 'Tổng đã chi', width: 110, title: 'tổng đã chi từ lúc lên camp tới giờ (mọi ngày, cả hôm nay) — không theo kỳ đang chọn; dòng phim / dòng tổng cộng lại', cell: (c) => <Tien v={tongChi.get(c.camp_id) ?? 0} />,
+      sortValue: (c) => Math.round((tongChi.get(c.camp_id) ?? 0) * 100) / 100, total: (rs) => <Tien v={rs.reduce((a, c) => a + (tongChi.get(c.camp_id) ?? 0), 0)} /> },
     { key: 'lai', header: `Lãi ${tenKy.toLowerCase()}`, width: 124, title: `lãi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <LaiCot s={laiKy(c)} />, sortValue: (c) => Math.round(laiDai(c) * 100) / 100,
       total: (rs) => <LaiCot s={rs.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 })} /> },
     // CỘT ĐỆM (không tiêu đề, không số): mọi cột có bề rộng cố định → khoảng thừa của bảng dồn ra mép phải, số liệu xếp sát nhau (anh 29/10/2026 "cho gọn lại")
     { key: 'dem', header: '', align: 'left', cell: () => null },
-  ] as DataColumn<CampEtpKho>[]).map((k) => (['lai_nay', 'chi', 'lai'].includes(k.key) || cotNgay.some((x) => x.key === k.key) ? { ...k, cell: (c: CampEtpKho, i: number) => (c.sx?.khoi ? null : k.cell(c, i)) } : k));   // dòng KHỐI chưa có camp → ô tiền trống, không in $0.00 (anh 25/11/2026)
+  ] as DataColumn<CampEtpKho>[]).map((k) => (['lai_nay', 'chi', 'tong_chi', 'lai'].includes(k.key) || cotNgay.some((x) => x.key === k.key) ? { ...k, cell: (c: CampEtpKho, i: number) => (c.sx?.khoi ? null : k.cell(c, i)) } : k));   // dòng KHỐI chưa có camp → ô tiền trống, không in $0.00 (anh 25/11/2026)
   // KT ĐANG SINH / SẴN SÀNG theo phim (anh 29/10/2026 kế hoạch KT cho phim đang chạy): bản kể chuyện VideoExpress trong etp.thu_vien chưa thành creative
   const ktCua = useMemo(() => new Map((du.thuVien ?? []).filter(tvChuaCr).map((v) => [v.content_id, v.tv as string])), [du.thuVien]);
   const nhomCua = useMemo(() => new Map(du.phims.map((x) => [x.content_id, x.nhom_goc])), [du.phims]);

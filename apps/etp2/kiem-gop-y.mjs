@@ -766,6 +766,8 @@ const LUAT = [
   { card: 'nut-tay-2511', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: "const vt = await xinVeTrucTiep('tao_camp', { content: x.content_id,", vi: 'nút lên camp creative (Sản xuất) = vé trực tiếp, cấp trước khi ghi dòng đang lên' },
   { card: 'nut-tay-2511', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', cam: "xinVeTay(", vi: 'etp-dong không còn vé tay' },
   { card: 'nut-tay-2511', tep: 'apps/etp/cong.py', co: 'truc_tiep(viec, [x for x in (camp_id, goc) if x], ct): return None', vi: 'vé trực tiếp nhân bản (gắn camp gốc) miễn phanh trong kiem (goc=)' },
+  { card: '1852', tep: 'apps/etp2/src/components/etp-view.tsx', co: "key: 'tong_chi', header: 'Tổng đã chi'", vi: 'cây camp có cột Tổng đã chi trọn đời' },
+  { card: '1852', tep: 'apps/etp2/src/components/etp-view.tsx', co: "for (const r of du.soNgay) m.set(r.c, (m.get(r.c) ?? 0) + r.chi)", vi: 'Tổng đã chi cộng mọi ngày trong sổ, không theo kỳ' },
 ];
 
 const loi = [];

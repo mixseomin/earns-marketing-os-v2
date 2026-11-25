@@ -209,7 +209,7 @@ def xep_bu(q, con_sx=None):
 #   phanh nhả → chỉ sản xuất trong ~1 ngày chỗ lên THẬT: chỗ / ngày = trần camp mới / ngày (+ trần ★ ROAS hồi chợ khi đang đợt); trừ kho creative Sạch chờ lên
 #   (etp.cho_len_v, mỗi phim tối đa số chỗ camp test còn) và số camp các dòng đang sản xuất → còn ≤ 0 thì không xếp thêm.
 AT_BAN = int(re.search(r"^AT_BAN = (\d+)", open(_o.path.join(_o.path.dirname(_o.path.abspath(__file__)), "dong_phim.py")).read(), re.M).group(1))   # một nguồn: mỗi dòng tĩnh = AT_BAN camp
-SQL_KHO_SAN = (f"select coalesce(sum(least(kx.n, coalesce({CG.sql_test_con('kx.content_id')}, {int(CG.TT['so'])}))), 0) from"
+SQL_KHO_SAN = (f"select coalesce(sum(least(kx.n, coalesce({CG.sql_test_con('kx.content_id')}, {int(CG.TT['so'] or 10**6)}))), 0) from"
                " (select content_id, count(*) n from etp.cho_len_v where ly_do is null and content_id is not null group by 1) kx")   # kx: _sql_test dùng sẵn bí danh x
 SQL_DANG_SX = ("select coalesce(sum(case when loai in (" + ", ".join(f"'{k}'" for k in sorted(DG.TINH)) + f") and coalesce(ai, '') not like 'máy: bù camp%'"
                f" then greatest(coalesce(so_camp, 1), {AT_BAN}) else greatest(coalesce(so_camp, 1), 1) end), 0) from etp.dong_phim where trang_thai = 'chay'")

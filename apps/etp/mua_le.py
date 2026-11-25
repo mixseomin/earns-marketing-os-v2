@@ -50,7 +50,7 @@ def chay(q, luc=None):
     ch = lambda k, md: json.loads(q(f"select coalesce((select gia_tri::text from etp.cau_hinh where khoa = '{k}'), '{md}')") or md)
     so, tt, tran = ch("cpm_ngay", "{}"), ch("mua_le", "{}"), ch("tran_camp_moi_ngay", "null")
     luc = luc or dt.datetime.now(dt.timezone.utc); hn = luc.date().isoformat()
-    if tran is None: return {"loi": "chưa có tran_camp_moi_ngay"}
+    if tran is None: return {"bo_tran": "anh 25/11/2026 bỏ trần camp mới / ngày — mùa lễ không co giãn trần (khoá tăng vẫn đọc mua_le cũ)"}
     if tt and tt.get("tran") is not None and int(tran) != int(tt["tran"]):   # lưới 3: ai đó đổi tay trần giữa mùa → đó là trần gốc mới
         tt["tran_goc"] = int(tran); tt["tran"] = int(tran)
     goc = tt.get("tran_goc") or tran

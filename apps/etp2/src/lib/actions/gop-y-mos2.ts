@@ -50,5 +50,6 @@ export async function demGopY(): Promise<hom.DemGopY> {
   const dangLam = huy ? [huy, ...lam] : lam;
   const cho = ds.filter((b) => b.choYKien);
   // tên kỹ sư phụ trách phòng: cùng sổ SOUL.md + cờ tắt nhip-chinh.json như mọi hòm của gói (góp ý #1673) — dải đầu hòm của gói tự ghi "Huy đang …"
-  return { working: dangLam.length, dangLam, can_y_kien: cho.length, choYKien: cho.map((b) => b.id), kySu: hom.kySuPhuTrach(KY_SU_ETP) };
+  const { ket, ketDs, treo } = hom.demTuDs(ds, bay);   // kẹt (broken + claimed quá trần) → chấm đỏ góc nút, luật chung dem.ts
+  return { working: dangLam.length, dangLam, can_y_kien: cho.length, choYKien: cho.map((b) => b.id), kySu: hom.kySuPhuTrach(KY_SU_ETP), ket, ketDs, treo };
 }

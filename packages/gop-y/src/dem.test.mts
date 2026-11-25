@@ -36,6 +36,8 @@ const d = demTuDs([
 assert.deepEqual([d.working, d.can_y_kien, d.choYKien], [2, 1, [3]], 'dự phòng: claimed trong trần + chờ ý kiến');
 assert.equal(d.dangLam[0], '#1 Nút lệch');
 assert.deepEqual(d.treo, ['#2 cũ (45 phút)'], 'claimed quá trần → treo, kèm tuổi');
+assert.deepEqual([d.ket, d.ketDs], [2, ['#4 kẹt', '#2 cũ (45 phút)']], 'kẹt = broken + treo → chấm đỏ (anh 25/11/2026)');
+assert.equal(demTuDs([{ id: 5, noiDung: 'x', trangThai: 'claimed', capNhat: truoc(60_000) }], bay).ket, 0, 'đang làm trong trần → không chấm đỏ');
 // #1746: card claimed 2 giờ, không phiên nào chạy → dải KHÔNG được nói "rảnh"
 const t = demTuDs([{ id: 1746, noiDung: 'Xử lý rủi ro anglebrief', trangThai: 'claimed', capNhat: truoc(2 * 3600_000) }], bay);
 assert.equal(t.working, 0);

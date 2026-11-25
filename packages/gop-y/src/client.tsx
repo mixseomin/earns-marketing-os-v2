@@ -8,6 +8,7 @@ import { createContext, useContext, useEffect, useRef, useState, type CSSPropert
 import { ChonTim } from '@mos2/bang/chon-tim';
 import type { GopYCuaToi, TinTraoDoi, Kq, HangGiao, ViecGiao } from './server';
 import { demTuDs, chuDaiKySu, DEM_RONG, type DemGopY } from './dem';
+import { GY_NUT_CSS, tieuDeNut } from './nut';
 import { VanBan } from './van-ban';
 
 export type HanhDongGopY = {
@@ -33,11 +34,7 @@ const GY_CSS = `.gy-btn{appearance:none;display:inline-flex;align-items:center;g
 background:var(--bg-2,#1a1d24);color:var(--fg-1,#e5e7eb);border:1px solid var(--line,#2a2f3a)}
 .gy-btn:hover{background:var(--bg-3,#242833)}.gy-btn:disabled{opacity:.5;cursor:default}
 .gy-btn.chinh{background:var(--accent-soft,rgba(59,130,246,.2));color:var(--accent,#60a5fa);border-color:var(--accent,#60a5fa);font-weight:600}
-.gy-nut.gy-dang-lam{border-color:#22d3ee!important;color:#22d3ee!important}
-.gy-nut.gy-dang-lam .gy-bieu{display:inline-block;animation:gy-rung 3s ease-in-out infinite}
-@keyframes gy-rung{0%,78%,100%{transform:none}82%{transform:rotate(-9deg)}86%{transform:rotate(9deg)}90%{transform:rotate(-6deg)}94%{transform:rotate(6deg)}}
-@media (prefers-reduced-motion:reduce){.gy-nut.gy-dang-lam .gy-bieu{animation:none}.gy-nut.gy-dang-lam{outline:2px solid #22d3ee;outline-offset:2px}}
-.gy-so-do{position:absolute;top:-6px;left:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:var(--red,#ef4444);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;box-shadow:0 0 0 2px var(--bg-1,#111);pointer-events:none}`;
+` + GY_NUT_CSS;
 type Cfg = { khoa: string; hd: HanhDongGopY; xemAnh?: (url: string) => void; nut: { thuong: string; chinh: string }; chonNgan: string; chonLoi: string };
 const Ctx = createContext<Cfg | null>(null);
 
@@ -567,15 +564,7 @@ export function DsViecGiao({ hg, tieuDe = true }: { hg: HangGiao | null; tieuDe?
   );
 }
 
-/** Chữ khi rê chuột lên nút 💬: vừa gửi · số chờ ý kiến · "AI đang làm: <tiêu đề việc>" (CHUAN.md). */
-export function tieuDeNut(vuaGui: number | null, dem: DemGopY): string {
-  if (vuaGui) return `Đã gửi card #${vuaGui}`;
-  const dong = [
-    dem.can_y_kien ? `${dem.can_y_kien} góp ý đang chờ ý kiến của bạn (mở tab Của tôi)` : '',
-    dem.working ? `AI đang làm: ${dem.dangLam.join(' · ') || `${dem.working} việc`}` : '',
-  ].filter(Boolean);
-  return dong.length ? dong.join('\n') : 'Góp ý / báo lỗi về màn đang xem';
-}
+export { tieuDeNut };
 
 export function HomGopY(p: CauHinhHom) {
   const { ten, khoa, hd, Khung } = p;
@@ -592,13 +581,15 @@ export function HomGopY(p: CauHinhHom) {
     window.addEventListener('error', e); window.addEventListener('unhandledrejection', r); window.addEventListener('gop-y:mo', m);
     return () => { window.removeEventListener('error', e); window.removeEventListener('unhandledrejection', r); window.removeEventListener('gop-y:mo', m); };
   }, []);
-  // SỐ CHO NÚT (CHUAN.md): rung khi AI đang làm + số đỏ chờ ý kiến. Nạp 60 giây một lần chỉ khi tab đang hiện, nạp lại lúc quay về tab.
+  // SỐ CHO NÚT (CHUAN.md): sáng nhấp nhô khi AI đang làm + chấm đỏ khi có việc kẹt + số đỏ chờ ý kiến. Nạp 60 giây một lần chỉ khi tab đang hiện, nạp lại lúc quay về tab.
   const [dem, setDem] = useState<DemGopY>(DEM_RONG);
   const napDem = async () => {
     if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
     try { setDem(hd.demGopY ? await hd.demGopY() : demTuDs(await hd.dsGopYCuaToi())); } catch { /* mạng chập / bản mới vừa lên: giữ số cũ, lượt sau hỏi lại */ }
   };
   const napDemRef = useRef(napDem); napDemRef.current = napDem;
+  // báo số ra ngoài: hòm nhúng (/nhung/gop-y) chuyển lên trang tĩnh để nút 💬 ở đó cũng sáng / chấm đỏ đúng chuẩn
+  useEffect(() => { window.dispatchEvent(new CustomEvent('gop-y:dem', { detail: dem })); }, [dem]);
   useEffect(() => {
     const nhip = () => { void napDemRef.current(); };
     nhip(); const t = setInterval(nhip, 60_000); document.addEventListener('visibilitychange', nhip);
@@ -623,11 +614,12 @@ export function HomGopY(p: CauHinhHom) {
       {/* nút mặc định gy-btn TỰ MANG KIỂU (góp ý #1458, 28/10/2026): trước không có CSS nào cho class này → nút trình duyệt nền trắng, chữ mất màu trên trang không có .btn (etp.on.tc) */}
       <style>{GY_CSS}</style>
       {!mo && <button type="button" aria-label="Góp ý / báo lỗi" title={tieuDeNut(vuaGui, dem)}
-        className={`gy-nut${dem.working ? ' gy-dang-lam' : ''}`} data-dang-lam={dem.working || undefined} data-can-y-kien={dem.can_y_kien || undefined}
+        className={`gy-nut${dem.working ? ' gy-dang-lam' : ''}`} data-dang-lam={dem.working || undefined} data-can-y-kien={dem.can_y_kien || undefined} data-ket={dem.ket || undefined}
         onClick={() => setMo((v) => !v)}
         style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 60, minWidth: 40, height: 40, padding: vuaGui ? '0 12px' : 0, borderRadius: 999, border: `1px solid ${vuaGui ? 'var(--lime)' : 'var(--line)'}`, background: 'var(--bg-2)', color: vuaGui ? 'var(--lime)' : 'var(--fg-2)', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.35)', fontSize: vuaGui ? 12 : 17, transition: 'all .2s', ...p.nutStyle }}>
         <span className="gy-bieu">{vuaGui ? `✓ đã gửi #${vuaGui}` : '💬'}</span>
         {dem.can_y_kien > 0 && <span className="gy-so-do">{dem.can_y_kien}</span>}
+        {(dem.ket ?? 0) > 0 && <span className="gy-cham-do" data-gy-ket={dem.ket} />}
       </button>}
       {mo && (
         <Khung onClose={() => setMo(false)} tieuDe={`💬 Góp ý / báo lỗi · ${ten}`} dau={

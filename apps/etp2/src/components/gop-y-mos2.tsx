@@ -1,8 +1,8 @@
 'use client';
 
-// HÒM GÓP Ý 💬 CỦA ETP2 = hòm dùng chung @mos2/gop-y/client theo chuẩn packages/gop-y/CHUAN.md (rung "AI đang làm" gy-rung, số đỏ chờ ý kiến,
+// HÒM GÓP Ý 💬 CỦA ETP2 = hòm dùng chung @mos2/gop-y/client theo chuẩn packages/gop-y/CHUAN.md (sáng "AI đang làm" gy-sang, chấm đỏ kẹt, số đỏ chờ ý kiến,
 // nạp 60 giây khi tab hiện — tất cả ở gói, etp2 không giữ hiệu ứng / nhịp riêng nữa; anh 17/11/2026 "Chuẩn hoá toàn bộ phần gopy").
-// Phần riêng etp2: khung = Drawer, action = lib/actions/gop-y-mos2 (hòm mos2, lọc card gửi từ etp / etp2, rung theo hàng việc của Huy), vị trí nút góc phải TRÊN
+// Phần riêng etp2: khung = Drawer, action = lib/actions/gop-y-mos2 (hòm mos2, lọc card gửi từ etp / etp2, sáng theo hàng việc của Huy), vị trí nút góc phải TRÊN
 // (anh 29/10/2026 "nút này để chỗ khác": bảng camp chiếm hết mép phải + dòng tổng dính chân).
 // Tên kỹ sư AI phụ trách phòng ("🔧 Huy đang làm: …" / "🤖 Huy đang rảnh" / "⏸ Huy đang tắt") = dải đầu hòm CỦA GÓI, tên lấy từ sổ SOUL.md
 // qua demGopY().kySu như mọi hòm (anh 18–19/11/2026 góp ý #1673) — etp2 không dựng dải tên riêng. Tiêu đề hòm mang tên phòng "Ethopex"

@@ -30,17 +30,48 @@ export default function NhungGopY() {
     const trang = new URLSearchParams(location.search).get('trang') || '';
     if (/^https?:\/\//.test(trang)) w.__trangGopY = () => trang;
     let goc = '*'; try { goc = new URL(trang).origin; } catch { /* không có trang → không trả lời ai */ }
-    // 📷 Chụp trang trong hòm (ImageAttach) → trang ngoài ẩn hòm, chụp trang thật, hiện lại hòm rồi trả 'gop-y:anh-chup' (ảnh hoặc lỗi)
-    // → ảnh về đúng ô đính kèm vừa bấm. Một lượt chụp một lúc; trang ngoài không trả lời trong 90 s thì báo lỗi, không treo.
+    // 📷 Chụp trang trong hòm (ImageAttach) → ảnh về đúng ô đính kèm vừa bấm. Hai đường:
+    // - trang ngoài tự vẽ được khung hình (__chupKhungTrang, báo qua coKhung lúc mở) → nhờ nó: ẩn hòm, vẽ khung, trả 'gop-y:anh-chup';
+    // - còn lại → XIN QUYỀN CHỤP NGAY TRONG IFRAME NÀY, đúng lúc bấm 📷 (iframe có allow display-capture). Xin ở trang cha sau tin postMessage
+    //   thì Chrome từ chối «Invalid state» vì cú bấm nằm ở iframe, không phải ở trang cha (worlds 25/11/2026). Có luồng hình rồi mới ẩn
+    //   ngăn hòm (iframe trong suốt → khung hình là trang thật phía sau), lấy một khung, hiện lại ngăn.
     let choChup: { xong: (a: string) => void; loi: (e: Error) => void; hen: ReturnType<typeof setTimeout> } | null = null;
-    if (goc !== '*') (w as { __chupNgoaiGopY?: () => Promise<string> }).__chupNgoaiGopY = () => new Promise<string>((xong, loi) => {
+    let coKhung = false;
+    const nhoKhung = (v: HTMLVideoElement) => {
+      const k = Math.min(1, 1600 / Math.max(v.videoWidth, v.videoHeight)), c = document.createElement('canvas');
+      c.width = Math.round(v.videoWidth * k); c.height = Math.round(v.videoHeight * k);
+      c.getContext('2d')!.drawImage(v, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.85);
+    };
+    const anHom = (an: boolean) => {
+      let s = document.getElementById('gy-dang-chup');
+      if (an && !s) { s = document.createElement('style'); s.id = 'gy-dang-chup'; s.textContent = 'body{opacity:0!important}'; document.head.appendChild(s); }
+      if (!an && s) s.remove();
+    };
+    const chupTab = async (): Promise<string> => {
+      const md = navigator.mediaDevices as MediaDevices & { getDisplayMedia?: (c: unknown) => Promise<MediaStream> };
+      if (!md?.getDisplayMedia) throw new Error('trình duyệt không hỗ trợ chụp màn hình');
+      // gọi ngay trong cú bấm (không await gì trước nó) — còn hiệu lực cú bấm
+      const st = await md.getDisplayMedia({ video: { displaySurface: 'browser' }, audio: false, preferCurrentTab: true, selfBrowserSurface: 'include' });
+      try {
+        const v = document.createElement('video'); v.muted = true; v.srcObject = st; await v.play();
+        anHom(true);
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        await new Promise((r) => setTimeout(r, 500));   // khung hình mới nhất phải là trang không có ngăn hòm
+        return nhoKhung(v);
+      } finally { st.getTracks().forEach((t) => t.stop()); anHom(false); }
+    };
+    const nhoCha = () => new Promise<string>((xong, loi) => {
       if (choChup) { loi(new Error('đang chụp dở')); return; }
       choChup = { xong, loi, hen: setTimeout(() => { choChup = null; loi(new Error('trang không trả ảnh')); }, 90_000) };
       window.parent.postMessage({ loai: 'gop-y:chup' }, goc);
     });
+    if (goc !== '*') (w as { __chupNgoaiGopY?: () => Promise<string> }).__chupNgoaiGopY = () => {
+      if (!coKhung) return chupTab();
+      return nhoCha().catch((e) => { console.warn('[gop-y] khung trang lỗi, xin chụp tab', e); return chupTab(); });
+    };
     const nhan = (e: MessageEvent) => {
       if (goc === '*' || e.origin !== goc || e.source !== window.parent) return;
-      const d = (e.data || {}) as { loai?: string; trang?: string; nguCanh?: string; anh?: string | null; anhThem?: string[]; loi?: string };
+      const d = (e.data || {}) as { loai?: string; trang?: string; nguCanh?: string; anh?: string | null; anhThem?: string[]; loi?: string; coKhung?: boolean };
       if (d.loai === 'gop-y:anh-chup') {
         const c = choChup; if (!c) return;
         choChup = null; clearTimeout(c.hen);
@@ -48,6 +79,7 @@ export default function NhungGopY() {
         return;
       }
       if (d.loai !== 'gop-y:mo') return;
+      coKhung = d.coKhung === true;
       // iframe được nút chuẩn NẠP SẴN từ lúc trang mở → trang một-trang (studio2…) đã đổi URL; card phải mang URL lúc bấm, không phải lúc nạp
       if (typeof d.trang === 'string') { try { if (new URL(d.trang).origin === goc) { const t = d.trang.slice(0, 2000); w.__trangGopY = () => t; } } catch { /* URL hỏng → giữ ?trang= */ } }
       const nc = String(d.nguCanh || '').slice(0, 1000); w.__nguCanhTrang = () => nc;

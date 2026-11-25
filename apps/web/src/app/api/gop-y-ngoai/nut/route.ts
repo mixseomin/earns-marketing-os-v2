@@ -25,7 +25,7 @@ const JS = `(() => {
     document.body.appendChild(khung);
   }
   function hien(co) { if (!khung) return; khung.style.visibility = co ? 'visible' : 'hidden'; khung.style.pointerEvents = co ? 'auto' : 'none'; }
-  function guiMo() { if (!cho || !sanSang || !khung) return; khung.contentWindow.postMessage({ loai: 'gop-y:mo', trang: location.href, nguCanh: cho.nguCanh, anh: cho.anh, anhThem: cho.anhThem }, GOC); }   // GIỮ cho tới khi đóng: iframe nạp lại (thẻ "cần đăng nhập" → hòm thật sau khi đăng nhập) báo san-sang lần nữa thì gửi lại
+  function guiMo() { if (!cho || !sanSang || !khung) return; khung.contentWindow.postMessage({ loai: 'gop-y:mo', trang: location.href, nguCanh: cho.nguCanh, anh: cho.anh, anhThem: cho.anhThem, coKhung: typeof window.__chupKhungTrang === 'function' }, GOC); }   // GIỮ cho tới khi đóng: iframe nạp lại (thẻ "cần đăng nhập" → hòm thật sau khi đăng nhập) báo san-sang lần nữa thì gửi lại
   function mo() {
     if (dangMo) return;
     dangMo = true;
@@ -45,33 +45,20 @@ const JS = `(() => {
     if (d.loai === 'gop-y:chup') chup();
   });
   // 📷 CHỤP TRANG TRONG LUỒNG GÓP Ý (anh 25/11/2026): nút 💬 mở thẳng hòm, không hỏi chụp; muốn kèm ảnh thì bấm 📷 Chụp trang trong hòm →
-  // ẩn hòm, chụp trang đang xem (khung canvas của trang nếu có __chupKhungTrang, không thì chọn tab hiện tại), hiện lại hòm kèm ảnh.
+  // trang tự vẽ được khung hình (__chupKhungTrang, canvas) → ẩn hòm, vẽ khung, hiện lại hòm kèm ảnh. Trang không có khung thì hòm trong
+  // iframe TỰ xin quyền chụp tab ngay lúc bấm 📷 (nhung/gop-y/page.tsx) — xin ở trang cha này sau tin postMessage thì Chrome báo
+  // «Invalid state» vì cú bấm nằm trong iframe (worlds 25/11/2026), nên ở đây KHÔNG gọi getDisplayMedia nữa.
   let dangChup = false;
-  const doi = (ms) => new Promise((r) => setTimeout(r, ms));
-  const nho = (src, w, h) => { const k = Math.min(1, 1600 / Math.max(w, h)), c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k); c.getContext('2d').drawImage(src, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.85); };
   const veXong = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-  // Xin quyền chụp NGAY lúc bấm (còn hiệu lực cú bấm, hòm còn hiện) — ẩn hòm trước rồi mới xin thì trình duyệt từ chối 'Invalid state'.
-  // Có luồng hình rồi mới ẩn hòm, chờ trang vẽ lại, lấy một khung → ảnh không dính ngăn hòm.
-  async function chupTab() {
-    const md = navigator.mediaDevices;
-    if (!md || !md.getDisplayMedia) throw new Error('trình duyệt không hỗ trợ chụp màn hình');
-    const st = await md.getDisplayMedia({ video: { displaySurface: 'browser' }, audio: false, preferCurrentTab: true, selfBrowserSurface: 'include' });
-    try {
-      const v = document.createElement('video'); v.muted = true; v.srcObject = st; await v.play();
-      hien(false); await veXong(); await doi(500);   // khung hình mới nhất phải là trang không có hòm
-      return nho(v, v.videoWidth, v.videoHeight);
-    } finally { st.getTracks().forEach((t) => t.stop()); }
-  }
   async function chup() {
     if (dangChup || !khung) return;
     dangChup = true;
     let anh = null, loi = '';
     try {
-      if (window.__chupKhungTrang) {   // trang tự vẽ được khung hình (canvas) → không cần xin quyền
-        hien(false); await veXong();
-        try { anh = window.__chupKhungTrang(); } catch (e) { console.warn('[gop-y] chụp khung trang lỗi', e); }
-      }
-      if (!(typeof anh === 'string' && anh.startsWith('data:image/'))) anh = await chupTab();
+      if (!window.__chupKhungTrang) throw new Error('trang không tự chụp được');
+      hien(false); await veXong();
+      anh = window.__chupKhungTrang();
+      if (!(typeof anh === 'string' && anh.startsWith('data:image/'))) throw new Error('trang trả khung rỗng');
     } catch (e) { loi = (e && e.message) || 'đã huỷ'; anh = null; }
     dangChup = false;
     if (dangMo) { hien(true); try { khung.focus(); } catch (e) {} }

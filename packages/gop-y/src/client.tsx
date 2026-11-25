@@ -217,8 +217,8 @@ export function ImageAttach({ value, onChange, max = 6, upload, xemAnh, xoaAnh, 
 
   // "Chụp trang" — capture the screen/tab via the native picker, grab one frame.
   const capture = async () => {
-    // HÒM NHÚNG (/nhung/gop-y trên trang tĩnh — worlds, castle…): nhờ trang ngoài chụp — nó ẩn hòm, chụp đúng trang đang xem, rồi mở lại hòm kèm ảnh
-    // (chụp từ trong iframe thì ngăn hòm che mất nửa trang). Ảnh trả về đúng ô đính kèm vừa bấm (form góp ý hay ô trả lời).
+    // HÒM NHÚNG (/nhung/gop-y trên trang tĩnh — worlds, castle…): trang ngoài tự vẽ khung (canvas) thì nhờ nó; còn lại iframe TỰ xin quyền chụp tab
+    // ngay trong cú bấm này (gọi ngoai() không được await gì trước nó), rồi ẩn ngăn hòm lấy một khung. Ảnh trả về đúng ô đính kèm vừa bấm.
     const ngoai = (window as unknown as { __chupNgoaiGopY?: () => Promise<string> }).__chupNgoaiGopY;
     if (ngoai) {
       setStatus({ ok: true, text: '📷 Đang chụp trang…' });

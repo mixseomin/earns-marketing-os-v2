@@ -95,7 +95,7 @@ export async function lenCamp(cr: number): Promise<{ ok: true; chu: string } | {
   const [dk] = await run<{ v: boolean }>(sql`select coalesce((select gia_tri = 'true'::jsonb from etp.cau_hinh where khoa = 'dung_khan'), false) v`);
   if (dk?.v) return { ok: true, chu: `đã duyệt #${id} — xếp hàng: máy tự lên camp ở nhịp đầu nhả dừng khẩn, giờ chạy theo lịch` };
   // creative trong sổ ★ ROAS (len_cr_roas): ROAS riêng của sổ — lenh_cho.py lên ★ ROAS ở nhịp worker kế (một creative một camp)
-  const [ro] = await run<{ x: number }>(sql`select 1 x from etp.cau_hinh where khoa = 'len_cr_roas' and gia_tri ? ${String(id)}`);
+  const [ro] = await run<{ x: number }>(sql`select 1 x from etp.cau_hinh where khoa = 'len_cr_roas' and gia_tri ? ${String(id)} and coalesce(gia_tri -> ${String(id)} ->> 'tu', '') <> 'true'`);   // mục "tu" = anh chỉ sửa mức ROAS (#1857) → vẫn lên tự động
   if (ro) return { ok: true, chu: `đã ghi duyệt #${id} — dòng ★ ROAS hiện ở bảng Camp, lọc ⏳ Chờ duyệt: rê xem camp sẽ tạo, anh bấm ▶ Lên mới lên (máy không tự lên — anh 22/11/2026)` };
   const r = await lenCampCr(-1, id);
   if ('loi' in r) return { loi: `Đã ghi DUYỆT #${id}, nhưng chưa lên camp: ${r.loi}` };
@@ -168,6 +168,27 @@ export async function hoanCr(cr: number, bat: boolean): Promise<{ ok: true; chu:
   return { ok: true, chu: `creative #${id} chạy tiếp — máy lên camp ở khung kế` };
 }
 
+/** ✎ SỬA TAY ROAS LEVEL creative CHƯA LÊN camp (anh 25/11/2026 #1857 "phải cho sửa thủ công ROAS level với camp chưa thực sự lên"): ghi / gộp mức roas vào sổ len_cr_roas.
+ *  Creative chưa có mục trong sổ → mục mới mang cờ tu = true: apps/etp/lenh_cho.py vẫn TỰ LÊN như cũ (chỉ đổi mức), không biến thành "chờ anh ▶ Lên tay".
+ *  Đã gửi lệnh lên / đã có camp → từ chối (camp thật đã gửi Ethopex không sửa Ad Set được). Không tạo camp, không gọi Ethopex, không tốn tiền. */
+export async function suaRoasCr(cr: number, roas: number): Promise<{ ok: true; chu: string } | { loi: string }> {
+  const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được sửa ROAS' };
+  const id = Math.trunc(Number(cr)); if (!(id > 0)) return { loi: 'mã creative không hợp lệ' };
+  const r = Math.round(Number(roas) * 100) / 100;
+  if (!(r >= ROAS_CR[0] && r <= ROAS_CR[1])) return { loi: `ROAS level phải trong ${ROAS_CR[0]}–${ROAS_CR[1]} (cùng mức nhan-ban.py chấp nhận)` };
+  const [c] = await run<{ x: number }>(sql`select 1 x from etp.camp where creative_id = ${id} limit 1`);
+  if (c) return { loi: `creative #${id} đã có camp — camp đã lên thì không sửa ROAS ở đây được` };
+  if (docNhatKyLen(id).gui) return { loi: `creative #${id} đã gửi lệnh lên camp, máy đang tạo — không sửa ROAS được nữa` };
+  const [cu] = await run<{ ns: string | null; tu: string | null; co: boolean }>(sql`select x.gia_tri -> ${String(id)} ->> 'ns' ns, x.gia_tri -> ${String(id)} ->> 'tu' tu, x.gia_tri ? ${String(id)} co
+    from etp.cau_hinh x where x.khoa = 'len_cr_roas'`);
+  const ns = cu?.ns != null ? Math.trunc(Number(cu.ns)) : Math.trunc(Number(BANG_LUAT.hoi_cho.ns));
+  const tu = !cu?.co || cu.tu === 'true';   // mục cũ "chờ anh ▶ Lên tay" giữ nguyên kiểu chờ tay — chỉ đổi mức
+  const v = JSON.stringify({ [String(id)]: { roas: r, ns, luc: new Date().toISOString(), ai: `anh sửa tay ROAS ở etp2 (${me.email})`, ...(tu ? { tu: true } : {}) } });
+  await getDb()!.execute(sql`insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('len_cr_roas', ${v}::jsonb, 'creative anh duyệt lên ★ ROAS (etp2)', ${me.email})
+    on conflict (khoa) do update set gia_tri = coalesce(etp.cau_hinh.gia_tri, '{}'::jsonb) || excluded.gia_tri, luc = now()`);
+  return { ok: true, chu: `creative #${id} sẽ lên ★ ROAS ${r} · $${ns}${tu ? ' — máy vẫn tự lên theo lịch' : ' — vẫn chờ anh bấm ▶ Lên'}` };
+}
+
 export async function lenNgayCr(cr: number, gio?: string | null, o?: { roas: number; ns: number; khuon: number } | null): Promise<KqNut> {
   const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được lên camp' };
   await getDb()!.execute(sql`update etp.cau_hinh set gia_tri = gia_tri - ${String(Math.trunc(Number(cr)))}, luc = now() where khoa = 'hoan_cr' and gia_tri ? ${String(Math.trunc(Number(cr)))}`);   // ▶ Lên tay = lệnh trực tiếp, bỏ ⏸ tạm dừng
@@ -214,6 +235,28 @@ export async function doiGioCamp(campId: number, gio: string): Promise<KqNut> {
   spawn('python3', ['nhan-ban.py', String(id), ...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), '--gio', g, '--thay-cho', String(id), '--that',
     '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
   return { ok: true, chu: `đã gửi lệnh: camp mới ${chuGio(g)}, xong thì tạm dừng #${id}` };
+}
+
+/** ✎ ĐỔI ROAS LEVEL camp ★ ROAS đã đẩy Ethopex nhưng CHƯA CHẠY (lich > now) — anh 25/11/2026 #1857 "…hoặc chưa active (nếu đc)". Ethopex không sửa Ad Set được,
+ *  nên cùng khuôn 🕒 đổi giờ: camp mới GIỮ NGUYÊN giờ chạy + ngân sách, mức ROAS mới, xong thì tạm dừng camp cũ (nhan-ban.py --thay-cho). Anh bấm = vé trực tiếp. */
+export async function doiRoasCamp(campId: number, roas: number): Promise<KqNut> {
+  const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được đổi ROAS camp' };
+  const id = Math.trunc(Number(campId)), r = Math.round(Number(roas) * 100) / 100;
+  if (!(r >= ROAS_CR[0] && r <= ROAS_CR[1])) return { loi: `ROAS level phải trong ${ROAS_CR[0]}–${ROAS_CR[1]} (cùng mức nhan-ban.py chấp nhận)` };
+  const [c] = await run<{ la_roas: boolean | null; roas: string | null; ngan_sach: string | null; lich: string | null; cho: boolean }>(sql`select c.la_roas, c.roas::text roas, c.ngan_sach::text ngan_sach, to_char(c.lich at time zone 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD HH24:MI') lich,
+      (c.lich is not null and c.lich > now() + interval '5 minutes' and coalesce(c.trang_thai, '') not in ('PAUSED', 'ARCHIVED', 'DELETED')) cho from etp.camp c where c.camp_id = ${id}`);
+  if (!c) return { loi: `không thấy camp #${id} trong sổ nhà` };
+  if (!c.cho || !c.lich) return { loi: `camp #${id} đã chạy (hoặc còn dưới 5 phút) — ROAS chỉ đổi được cho camp chưa chạy` };
+  if (!c.la_roas) return { loi: `camp #${id} không phải camp ★ ROAS — không có ROAS level để đổi` };
+  if (c.roas != null && Math.abs(Number(c.roas) - r) < 1e-6) return { loi: `camp #${id} đang là ROAS ${r} rồi` };
+  const g = c.lich, ns = Math.trunc(Number(c.ngan_sach ?? 0));
+  const lenh = `anh bấm ✎ đổi ROAS camp #${id} trên etp2 → ★ ROAS ${r} (camp mới giữ giờ ${chuGio(g)}, tạm dừng #${id})`;
+  const v = await xinVeTrucTiep('nhan_ban', { camp: id, lenh, ns });
+  if (!('ma' in v)) return v;
+  const log = openSync(`/tmp/etp-doi-gio-${id}.log`, 'a');   // cùng nhật ký đổi giờ → nhatKyDoiGio đọc lỗi KÊU TO dưới nút
+  spawn('python3', ['nhan-ban.py', String(id), '--roas', String(r), '--ns', String(ns), '--gio', g, '--thay-cho', String(id), '--that',
+    '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
+  return { ok: true, chu: `đã gửi lệnh: camp mới ★ ROAS ${r} · $${ns} giữ giờ ${chuGio(g)}, xong thì tạm dừng #${id}` };
 }
 
 /** tail nhật ký đổi giờ (box3 /tmp/etp-doi-gio-<id>.log) — lỗi KÊU TO dưới nút */

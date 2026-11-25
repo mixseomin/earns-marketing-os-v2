@@ -138,7 +138,7 @@ def len_cr(st, chan, luc, xem, bao):
         h = hang.setdefault(cr, {"tt": "cho", "luc": luc}); kq.append({"cr": int(cr), "tt": h["tt"], "ly": chan, "kieu": f"★ ROAS {float(ro_[cr]['roas']):g} · ${int(ro_[cr]['ns'])}" if cr in ro_ else f"★ ROAS {float(HOI_CHO['roas']):g} · ${int(HOI_CHO['ns'])}"})
         if h["tt"] == "dang" and h.get("xet", "") < (dt.datetime.fromisoformat(luc) - dt.timedelta(hours=1)).isoformat(): h["tt"] = "cho"   # lượt bị cắt giữa chừng, 1 giờ chưa thấy camp → về hàng
         if h["tt"] == "dang" or (h["tt"] == "loi" and h.get("xet", "") > (dt.datetime.fromisoformat(luc) - dt.timedelta(hours=6)).isoformat()): continue   # lỗi thật: thử lại sau 6 giờ
-        if cr in ro_:   # ★ ROAS từ len_cr_roas: CHỜ ANH DUYỆT TAY ở etp2 (▶ Lên) — máy không tự lên (anh 22/11/2026 "show … ở trạng thái Chờ duyệt rồi tao sẽ duyệt = tay")
+        if cr in ro_ and not ro_[cr].get("tu"):   # mục "tu" = anh chỉ sửa tay mức ROAS ở etp2 (#1857 suaRoasCr) → vẫn tự lên với mức đó · còn lại: ★ ROAS từ len_cr_roas: CHỜ ANH DUYỆT TAY ở etp2 (▶ Lên) — máy không tự lên (anh 22/11/2026 "show … ở trạng thái Chờ duyệt rồi tao sẽ duyệt = tay")
             if h.get("ly") != TAY_LY: h.update(tt="cho", ly=TAY_LY); doi = True
             continue
         if chan or xem or not bo:

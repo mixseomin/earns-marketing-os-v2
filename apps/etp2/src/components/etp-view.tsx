@@ -46,7 +46,7 @@ import { TabLogs } from '@/components/etp-logs';
 import { ChoDuyetCr, NutDuyetCr, SU_DUYET, type SuDuyet } from '@/components/etp-cho-duyet';
 import { NutLenGio, OGioVn } from '@/components/etp-len-gio';
 import { keCr } from '@/lib/etp-ke-cr';
-import { dsCrMoiCamp, hoanCr, lenNgayCr } from '@/lib/actions/etp-cho-duyet';
+import { doiRoasCamp, dsCrMoiCamp, hoanCr, lenNgayCr, suaRoasCr } from '@/lib/actions/etp-cho-duyet';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLenCamp, datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 // CHỈ XEM (anh 29/10/2026 "sso thêm 1 người … chỉ view"): khách một trang etp (users.chi_host) — ẩn mọi nút ghi; action máy chủ cũng đòi admin
@@ -2492,6 +2492,43 @@ function NutHoan({ cr, hoan }: { cr: number; hoan: boolean }) {
     {loi ? <span role="alert" onClick={(e) => { e.stopPropagation(); setLoi(''); }} style={{ position: 'absolute', top: '100%', right: 0, zIndex: 30, width: 240, marginTop: 2, padding: 6, border: '1px solid #ef4444', borderRadius: 4, background: '#2a1215', color: '#fca5a5', fontSize: 11, whiteSpace: 'normal' }}>{loi}</span> : null}</span>;
 }
 
+/** ✎ SỬA TAY ROAS LEVEL (anh 25/11/2026 #1857 "phải cho sửa thủ công ROAS level với camp chưa thực sự lên hoặc chưa active (nếu đc)"):
+ *  dòng CHƯA LÊN (camp_id < 0) → sổ len_cr_roas, máy lên đúng mức mới, không tạo camp · camp ★ ROAS đã đẩy CHƯA CHẠY → camp mới giữ giờ + ngân sách, tạm dừng camp cũ (hỏi lại ngay trong ô).
+ *  Bấm số level → ô nổi neo dưới số (AnchoredPopover) với các mức 0.9–1.4; lỗi / kết quả hiện ô ngay dưới số. */
+const MUC_ROAS_TAY = [0.9, 1, 1.1, 1.2, 1.3, 1.4];
+function SuaRoas({ c }: { c: CampEtpKho }) {
+  const router = useRouter(); const neo = useRef<HTMLButtonElement>(null);
+  const [mo, setMo] = useState(false); const [dang, setDang] = useState(false); const [hoi, setHoi] = useState<number | null>(null); const [bao, setBao] = useState<{ loi?: string; chu?: string } | null>(null);
+  const chua = c.camp_id < 0, hien = c.roas ?? mucRoas(c.ten), trung = (v: number) => hien != null && Math.abs(v - hien) < 1e-6;
+  const lam = async (v: number) => { setMo(false); setHoi(null); setDang(true); setBao(null);
+    try { const r = chua ? await suaRoasCr(Number(c.creative_id), v) : await doiRoasCamp(c.camp_id, v);
+      if ('loi' in r) setBao({ loi: r.loi }); else if ('canh' in r) setBao({ loi: r.canh }); else { setBao({ chu: r.chu }); router.refresh(); } }
+    catch (x) { setBao({ loi: String((x as Error)?.message ?? x) }); } finally { setDang(false); } };
+  const chon = (e: React.MouseEvent, v: number) => { e.preventDefault(); e.stopPropagation(); if (trung(v)) { setMo(false); return; } if (chua) void lam(v); else setHoi(v); };
+  const nut = (v: number) => <button key={v} type="button" role="menuitem" onClick={(e) => chon(e, v)}
+    style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, border: `1px solid ${trung(v) || hoi === v ? MAU_ROAS : 'var(--line)'}`, background: hoi === v ? 'var(--bg-2)' : 'transparent', color: trung(v) || hoi === v ? MAU_ROAS : 'var(--fg-1)', cursor: 'pointer', fontVariantNumeric: 'tabular-nums' }}>{v.toFixed(1)}</button>;
+  return <span style={{ position: 'relative', flex: 'none' }}>
+    <button ref={neo} type="button" data-nut="sua-roas" disabled={dang} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBao(null); setHoi(null); setMo((m) => !m); }}
+      title={`ROAS level ${hien ?? '—'} — bấm để sửa${chua ? ' (máy lên camp đúng mức anh chọn)' : ' (camp chưa chạy: máy tạo camp mới đúng mức, giữ giờ chạy)'}`}
+      style={{ fontSize: 11, lineHeight: 1, padding: '1px 3px', borderRadius: 4, border: `1px dashed ${MAU_ROAS}`, background: mo ? 'var(--bg-2)' : 'transparent', color: MAU_ROAS, fontWeight: 700, fontVariantNumeric: 'tabular-nums', cursor: 'pointer' }}>
+      {dang ? '…' : `${hien != null ? hien.toFixed(1) : '—'} ✎`}</button>
+    <AnchoredPopover anchorRef={neo} open={mo} onClose={() => { setMo(false); setHoi(null); }}>
+      <div data-o="hang-muc-roas" role="menu" onClick={(e) => e.stopPropagation()} style={{ padding: 6, display: 'flex', flexDirection: 'column', gap: 6, width: 250, fontSize: 11, lineHeight: 1.4,
+        background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>
+        <div style={{ color: 'var(--fg-2)' }}>ROAS level {chua ? 'khi máy lên camp' : `camp #${c.camp_id} (chưa chạy)`}</div>
+        <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>{MUC_ROAS_TAY.map(nut)}</div>
+        {hoi != null ? <div role="alert" style={{ padding: 6, borderRadius: 4, border: '1px solid #facc15', background: 'rgba(250,204,21,.1)', color: '#fde68a' }}>
+          Ethopex không sửa được camp đã đẩy lên: máy tạo camp MỚI ★ ROAS {hoi.toFixed(1)} giữ nguyên giờ chạy + ngân sách, xong thì tạm dừng camp #{c.camp_id}. Chắc?
+          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+            <button type="button" onClick={(e) => { e.stopPropagation(); void lam(hoi); }} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, border: '1px solid #facc15', background: 'rgba(250,204,21,.2)', color: '#fde68a', cursor: 'pointer' }}>Đổi sang {hoi.toFixed(1)}</button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); setHoi(null); }} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, border: '1px solid var(--line)', background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer' }}>Thôi</button>
+          </div></div> : null}
+      </div>
+    </AnchoredPopover>
+    {bao ? <span role={bao.loi ? 'alert' : 'status'} onClick={(e) => { e.stopPropagation(); setBao(null); }} style={{ position: 'absolute', top: '100%', left: 0, zIndex: 30, width: 260, marginTop: 2, padding: 6, borderRadius: 4, fontSize: 11, whiteSpace: 'normal', cursor: 'pointer',
+      ...(bao.loi ? { border: '1px solid #ef4444', background: '#2a1215', color: '#fca5a5' } : { border: '1px solid #22c55e', background: '#0f2a18', color: '#86efac' }) }}>{bao.loi ?? bao.chu}</span> : null}</span>;
+}
+
 function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp, moPhim, onTimDoi, khiTimTrong, hl }: { hl?: Set<number> | null; onTimDoi?: (q: string) => void; khiTimTrong?: React.ReactNode; moCamp?: (id: number) => void; moPhim?: (k: string) => void; camps: CampEtpKho[]; hang?: CampEtpKho[]; du: DuLieuEtp; hep?: boolean; laiKy: (c: CampEtpKho) => SoTien; tenKy: string; moCr?: (cr: number, e: React.MouseEvent, camp?: number) => void; dongCr?: () => void }) {
   const coLich = du.cauHinh.find((k) => k.khoa === 'lich_gio')?.gia_tri === true, LT = luoiTrong(coLich);
   const dkCay = useContext(DieuKhienCtx), choCay = dkCay?.cho;   // vết ⏳ ở ô ngân sách dòng điện thoại · dkCay != null = chủ được điều khiển (nút ⏸ cột TT, #1789)
@@ -2678,13 +2715,13 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
       cell: (c) => { if (c.camp_id < 0) return <span data-o="camp-cay" data-xep-hang="" title={chuChoDuyet(c)} onClick={moCamp && !dangSxCr(c) && c.content_id ? (e) => { if ((e.target as HTMLElement).closest('button')) return; e.preventDefault(); e.stopPropagation(); moCamp(c.camp_id); } : undefined}
           style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0, cursor: moCamp && !dangSxCr(c) && c.content_id ? 'pointer' : 'help' }}>   {/* bấm dòng chờ lên camp = ngăn camp dự kiến (anh 25/11/2026 "bấm vào cũng phải show ra chi tiết") */}   {/* khuôn dòng camp thật, ID = ⏳ chờ (anh 22/11/2026 "trình bày gần giống camp đang có, chỉ thiếu ID") */}
           {c.sx?.khoi ? <b data-o="khoi-phim-ten" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>🎬 {c.phim ?? `#${c.content_id ?? '?'}`}</b>
-          : daLoaiCr(c) ? <><span style={{ width: 8, textAlign: 'center', fontSize: 10, color: '#f87171' }}>✕</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /><b style={{ color: '#f87171', opacity: 0.75 }}>{`cr #${c.creative_id}`}</b></>   // vừa bấm Loại (#1847)
-          : <><span style={{ width: 8, textAlign: 'center', fontSize: 10 }}>{choAnhDuyet(c) ? '⏸' : '⏳'}</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /><b style={{ color: laRoas(c) ? MAU_ROAS : '#60a5fa', opacity: 0.75 }}>{dangSxCr(c) ? (c.sx?.buoc ?? 'đang làm') : `cr #${c.creative_id}`}</b></>}
-          <MucBid c={c} nho />   {/* #1851 số level ROAS ở MỌI dòng camp — cả dòng chờ duyệt / chờ lên / đang sản xuất, cùng ô với camp thật (anh 25/11/2026) */}
+          : daLoaiCr(c) ? <><span style={{ width: 8, textAlign: 'center', fontSize: 10, color: '#f87171' }}>✕</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /><b title={`creative #${c.creative_id} — đã loại`} style={{ color: '#f87171', opacity: 0.75 }}>đã loại</b></>   // vừa bấm Loại (#1847)
+          : <><span style={{ width: 8, textAlign: 'center', fontSize: 10 }}>{choAnhDuyet(c) ? '⏸' : '⏳'}</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /><b data-o="cho-id" title={dangSxCr(c) ? undefined : `chưa có ID camp — máy lên creative #${c.creative_id}`} style={{ color: 'var(--fg-3)', fontWeight: 500 }}>{dangSxCr(c) ? (c.sx?.buoc ?? 'đang làm') : 'chờ ID'}</b></>}   {/* #1857 "đổi thành cái khác": nhãn cr #… thành "chờ ID" đúng chỗ ID camp sẽ hiện; mã creative trong chữ rê */}
+          {!c.sx?.khoi && !dangSxCr(c) && !daLoaiCr(c) && !c.xep?.gui && c.creative_id && laRoas(c) ? <SuaRoas c={c} /> : <MucBid c={c} nho />}   {/* #1857 sửa tay ROAS level dòng chưa lên · #1851 số level ở MỌI dòng camp */}
           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}>{choDuyet(c) && !c.xep?.gui ? <NutLenGio cr={c.creative_id} anh={c.creative_id ? anhCr.get(c.creative_id)?.anh : undefined} video={c.creative_id ? anhCr.get(c.creative_id)?.video : undefined} nhan="▶" /> : <span style={{ minWidth: 22 }} />}</span></span>;   {/* ▶ lên ngay / đặt giờ ở ô camp — cột TT chỉ hiện trạng thái (anh 25/11/2026) */}
         const n = dem(c); return <span data-o="camp-cay" style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} />
         <b data-nut="mo-camp" onClick={moCamp ? (e) => { e.preventDefault(); e.stopPropagation(); moCamp(c.camp_id); } : undefined} title={moCamp ? 'mở ngăn chi tiết camp' : undefined}
-          style={{ ...(laRoas(c) ? { color: MAU_ROAS } : {}), ...(moCamp ? { cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 } : {}) }}>#{c.camp_id}</b><MucBid c={c} nho /><CoNuoc nuoc={c.nuoc ?? []} /><NhanAb ab={c.ab} ban={c.camp_id} />
+          style={{ ...(laRoas(c) ? { color: MAU_ROAS } : {}), ...(moCamp ? { cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 } : {}) }}>#{c.camp_id}</b>{choGio(c) && laRoas(c) ? <SuaRoas c={c} /> : <MucBid c={c} nho />}<CoNuoc nuoc={c.nuoc ?? []} /><NhanAb ab={c.ab} ban={c.camp_id} />
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}>
         {/* bỏ dấu ⚠ nhân bản lỗi (#1524 anh 04/11/2026 "bỏ các thông báo lỗi này · chỉnh thể loại thẳng cột"): ô số bản nhân luôn rộng 22px → badge loại thẳng một cột */}
         {n ? <ReThe the={() => ({ ma: `#${c.camp_id}`, ten: c.ten, tieu: `${n} bản nhân`, mau: '#94a3b8', moc: [{ ten: 'Nhân bản', mau: '#94a3b8', so: `x${n}`, chu: 'camp nhân y nguyên từ camp này (cùng creative) — mở ▶ xem từng bản' }] })}><span style={{ color: 'var(--fg-2)', fontSize: 11, minWidth: 22, textAlign: 'right', cursor: 'help' }}>x{n}</span></ReThe>

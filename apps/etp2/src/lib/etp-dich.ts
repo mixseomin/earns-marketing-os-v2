@@ -65,8 +65,11 @@ export async function dungBaiQc(db: Db, cr: number, camp: number | null): Promis
   const c = Number.isInteger(camp) && (camp as number) > 0 ? (camp as number) : null;
   // camp của bài: camp đang xem; không có thì camp nhà đang chạy mới nhất của creative này, rồi camp bất kỳ
   const r = ((await db.execute(sql`with k as (
-      select x.camp_id from etp.camp x where x.creative_id = ${cr} and (${c}::int is null or x.camp_id = ${c}::int)
-      order by (x.trang_thai = 'ACTIVE') desc, x.camp_id desc limit 1)
+      select x.camp_id from (select camp_id, creative_id, trang_thai, 1 nha from etp.camp
+        -- camp CẢ ĐỘI (#1859): camp đội cũng là camp đã lên → bài QC lấy Page / tên miền thật, không gắn "chưa lên camp"
+        union all select n.camp_id, n.creative_id, n.trang_thai, 0 from etp.camp_ngoai n where not exists (select 1 from etp.camp y where y.camp_id = n.camp_id)) x
+      where x.creative_id = ${cr} and (${c}::int is null or x.camp_id = ${c}::int)
+      order by x.nha desc, (x.trang_thai = 'ACTIVE') desc, x.camp_id desc limit 1)
     select b.kieu, b.cta, b.link, b.chinh, b.tieu_de, b.mo_ta, (b.creative_id is not null and b.chinh is not null) dong_bo,
       (select camp_id from k) camp, bc.ten_mien, bc.final_url, p.ten pten, p.them->>'picture_url' panh, p.them->>'link' plink,
       (select tv.chu_qc from etp.thu_vien tv where tv.creative_id = ${cr} and tv.chu_qc is not null order by tv.id desc limit 1) chu_qc,

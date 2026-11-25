@@ -7,6 +7,7 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1859, tep: 'apps/etp2/src/lib/etp-dich.ts', co: 'from etp.camp_ngoai n where not exists (select 1 from etp.camp y where y.camp_id = n.camp_id)) x', vi: 'bài QC của camp CẢ ĐỘI lấy Page / tên miền thật, không gắn "chưa lên camp — chữ dự kiến"' },
   { card: 1859, tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: 'from etp.camp_ngoai n where not exists (select 1 from etp.camp x where x.camp_id = n.camp_id)) c', vi: 'ngăn cấu hình camp đọc cả camp CẢ ĐỘI (etp.camp_ngoai), không còn "Không thấy camp trong kho" (anh 25/11/2026 "camp cả đội cũng phải tải về hết")' },
   { card: 1856, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'persistKey="etp-cay" minWidth={1100} fixedLayout groups={NHOM_CAY} groupHeader', vi: 'bảng Cây có hàng nhãn nhóm ROI | Lãi | Chi (anh 25/11/2026 "ROI 1 nhóm, LÃI 1 nhóm")' },
   { card: 1856, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "...cotNgay.map((k) => ({ ...k, group: 'roi' })),", vi: 'dải ROI 6 ngày + nay vào nhóm ROI, không bỏ nhãn nhóm như trước' },

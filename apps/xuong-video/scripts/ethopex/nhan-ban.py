@@ -99,7 +99,7 @@ def gio_roas(luc=None):
     return f"{d.isoformat()} {int(a):02d}:00"
 def gio_len(tu=None, luc=None):
     """GIỜ LÊN CAMP = HAI KHUNG CỐ ĐỊNH (anh 24/11/2026 "Tất cả đều phải lên theo 1 trong 2 khung giờ cố định như vậy. Cái nào gần nhất thì lên vào khung đó.
-    Cấm tự lên ngay !!" — khuôn giờ lên của Kiên: start_time Ad Set 15:00 UTC = 22:00 VN, đọc API 40 camp Kiên 24/11; anh chốt "chuyển về khung 22h đêm" 24/11/2026): trả "YYYY-MM-DD HH:MM" giờ VN của khung khung_doi.len_gio GẦN NHẤT, không sớm hơn
+    Cấm tự lên ngay !!" — khuôn giờ lên của Kiên: start_time Ad Set 15:00 UTC = 22:00 VN, đọc API 40 camp Kiên 24/11; anh chốt "chuyển về khung 22h đêm" 24/11/2026; anh 25/11/2026 thêm khung 07h sáng: "2 khung gần nhất là 22h tối và 7h sáng hôm sau"): trả "YYYY-MM-DD HH:MM" giờ VN của khung khung_doi.len_gio GẦN NHẤT, không sớm hơn
     bây giờ + len_gio_cach_phut và không sớm hơn `tu` (giờ anh đặt, giờ VN). MỌI đường lên (thường · ★ ROAS · vé trực tiếp · đổi giờ · bản nhân · A/B) đi qua đây
     rồi dat_gio → Ad Set lịch Custom; không đường nào trả "chạy ngay"."""
     kd = BANG_LUAT["khung_doi"]; ds = sorted(int(x) for x in kd["len_gio"])
@@ -800,13 +800,14 @@ _u = lambda s: dt.datetime.fromisoformat(s + "+00:00")   # gio_roas: 23–03h VN
 assert BANG_LUAT["khung_doi"]["len_roas"] == [23, 3], "★ ROAS lên ban tối 23–03h VN (anh 22/11/2026)"
 assert gio_roas(_u("2026-11-22T16:30:00")) is None and gio_roas(_u("2026-11-22T19:59:00")) is None, "23:30 / 02:59 VN trong khung → chạy ngay"
 assert gio_roas(_u("2026-11-22T00:14:00")) == "2026-11-22 23:00" and gio_roas(_u("2026-11-22T15:59:00")) == "2026-11-22 23:00" and gio_roas(_u("2026-11-22T20:00:00")) == "2026-11-23 23:00", "ngoài khung → 23:00 VN kế tiếp"
-# KHUNG CỐ ĐỊNH 22h VN (giờ thật của Kiên; anh 24/11/2026 "chuyển về khung 22h đêm" · "Cấm tự lên ngay !!") — không bao giờ None / chạy ngay
-assert BANG_LUAT["khung_doi"]["len_gio"] == [22], "khung lên camp 22h VN (anh 24/11/2026)"
+# HAI KHUNG CỐ ĐỊNH 22h tối + 07h sáng VN (anh 25/11/2026 "Giờ lên camp cũng set theo 2 khung gần nhất là 22h tối và 7h sáng hôm sau !!"; trước: chỉ 22h, anh 24/11) — không bao giờ None / chạy ngay
+assert BANG_LUAT["khung_doi"]["len_gio"] == [7, 22], "khung lên camp 07h + 22h VN (anh 25/11/2026)"
 assert gio_len(luc=_u("2026-11-24T05:58:00")) == "2026-11-24 22:00", "12:58 VN → khung 22:00 hôm nay, không chạy ngay"
 assert gio_len(luc=_u("2026-11-24T14:30:00")) == "2026-11-24 22:00", "21:30 VN → 22:00 tối nay"
-assert gio_len(luc=_u("2026-11-23T23:00:00")) == "2026-11-24 22:00", "06:00 VN → 22:00 tối nay"
-assert gio_len(luc=_u("2026-11-24T14:55:00")) == "2026-11-25 22:00", "21:55 VN (còn < 10 phút) → sang khung 22:00 mai"
-assert gio_len("2026-11-24 15:00", luc=_u("2026-11-24T01:00:00")) == "2026-11-24 22:00" and gio_len("2026-11-24 23:00", luc=_u("2026-11-24T05:58:00")) == "2026-11-25 22:00", "giờ anh đặt → khung đầu tiên từ giờ đó"
+assert gio_len(luc=_u("2026-11-23T23:00:00")) == "2026-11-24 07:00", "06:00 VN → 07:00 sáng nay"
+assert gio_len(luc=_u("2026-11-24T14:55:00")) == "2026-11-25 07:00", "21:55 VN (còn < 10 phút) → khung 07:00 sáng mai"
+assert gio_len(luc=_u("2026-11-24T15:30:00")) == "2026-11-25 07:00", "22:30 VN → 07:00 sáng mai"
+assert gio_len("2026-11-24 15:00", luc=_u("2026-11-24T01:00:00")) == "2026-11-24 22:00" and gio_len("2026-11-24 23:00", luc=_u("2026-11-24T05:58:00")) == "2026-11-25 07:00", "giờ anh đặt → khung đầu tiên từ giờ đó"
 
 def bao_hay_chan(truc, kq, *cua):
     """cổng → lý do chặn đầu tiên (máy tự lên). Vé TRỰC TIẾP của anh (truc): chạy HẾT các cổng, gom lý do vào kq["canh"] + stderr, trả None — không bao giờ chặn

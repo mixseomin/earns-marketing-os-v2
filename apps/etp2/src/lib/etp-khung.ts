@@ -62,7 +62,7 @@ export function lucLam(huong: HuongLuat | 'tao', luc: string | null, cu: boolean
   return null;
 }
 /** GIỜ LÊN CAMP = HAI KHUNG CỐ ĐỊNH (anh 24/11/2026 "Tất cả đều phải lên theo 1 trong 2 khung giờ cố định như vậy. Cái nào gần nhất thì lên vào khung đó. Cấm tự lên ngay !!"):
- *  cùng luật nhan-ban.gio_len (sổ khung_doi.len_gio 22h VN, len_gio_cach_phut) — trả mốc ms của khung gần nhất, không sớm hơn now + cách phút và không sớm hơn `tu` (ms). */
+ *  cùng luật nhan-ban.gio_len (sổ khung_doi.len_gio 07h + 22h VN, len_gio_cach_phut) — trả mốc ms của khung gần nhất, không sớm hơn now + cách phút và không sớm hơn `tu` (ms). */
 export function gioLen(now = Date.now(), tu?: number | null): number {
   const k = BANG_LUAT.khung_doi as unknown as { len_gio: number[]; len_gio_cach_phut?: number };
   const som = Math.max(now + (k.len_gio_cach_phut ?? 10) * 60_000, tu ?? 0), ds = [...k.len_gio].sort((a, b) => a - b);

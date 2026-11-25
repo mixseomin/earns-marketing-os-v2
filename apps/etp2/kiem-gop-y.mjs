@@ -785,6 +785,9 @@ const LUAT = [
   { card: 'ls-bac-2511', tep: 'apps/etp2/src/components/etp-view.tsx', co: "lsBac: gopBac(d0.lsBac ?? {}, vuaBac)", vi: 'du.lsBac ghép đổi bậc vừa bấm' },
   { card: 'ls-bac-2511', tep: 'apps/etp2/src/components/etp-view.tsx', co: "ctx?.ghiBac?.(c.camp_id, {", vi: 'lệnh ngân sách xong ghi vào lịch sử bậc của trang' },
   { card: 'ls-bac-2511', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "boLuotDoc();", vi: 'lệnh tay xong bỏ lượt đọc sổ đang chạy' },
+  // HAI KHUNG LÊN CAMP 22h + 07h (anh 25/11/2026 "Giờ lên camp cũng set theo 2 khung gần nhất là 22h tối và 7h sáng hôm sau !!")
+  { card: 'khung-7-22-2511', tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: '"len_gio": [7, 22]', vi: 'sổ luật etp2: khung lên 07h + 22h VN' },
+  { card: 'khung-7-22-2511', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"len_gio": [7, 22]', vi: 'sổ luật chung (nhan-ban đọc tệp này): khung lên 07h + 22h VN' },
 ];
 
 const loi = [];

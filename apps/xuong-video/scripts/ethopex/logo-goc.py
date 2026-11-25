@@ -123,7 +123,8 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
         """cổng chất lượng của một lớp nét → lý do trượt | None"""
         if not dac.any(): return "không còn nét logo sau khi tách"
         phu = dac[chu].mean(); ngoai = (dac & ~nd.binary_dilation(chu, iterations=int(0.3 * lh))).sum() / dac.sum()
-        du = min(dac[int(max(0, b[1] - Y0)):int(b[3] - Y0), int(max(0, b[0] - X0)):int(b[2] - X0)].any(0).mean() for b in hp)
+        # khe giữa chữ / giữa từ hẹp hơn ~0,6 cao dòng không tính là mất nét (25/11/2026 dòng nhỏ "WHAT IF I'M" chỉ 69% cột có nét vì khoảng trắng) — phần chữ mất thật rộng hơn nhiều
+        du = min(nd.binary_closing(dac[int(max(0, b[1] - Y0)):int(b[3] - Y0), int(max(0, b[0] - X0)):int(b[2] - X0)].any(0), np.ones(max(3, int(0.6 * (b[3] - b[1]))), bool)).mean() for b in hp)
         if not 0.10 <= phu <= tran: return f"nét phủ {phu:.0%} hộp chữ"
         if ngoai > 0.15: return f"{ngoai:.0%} phần tách nằm ngoài khối chữ"
         if du < du_min: return f"một dòng tên chỉ còn nét trên {du:.0%} bề ngang"
@@ -131,7 +132,7 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
     al, _, ly = cat(bg); cach = "cat"
     # TÊN THIẾU TỪ (21/11/2026 Get Out of My Bugatti: "Bugatti" viết tay máy đọc chữ bỏ sót): các tầng cắt theo HỘP CHỮ đều mất phần đó → chỉ nhận tầng khoá màu,
     # nơi AI tô hồng mọi thứ trừ logo nên lấy được cả phần chữ máy không đọc ra (dải ngang quanh khối tên, bỏ chữ khác của poster). Khoá màu trượt → không có logo.
-    thieu = can - doc
+    thieu = {w for w in can - doc if len(w) > 3}   # từ nối ngắn (of, a, the… ≤ 3 ký tự) máy đọc hay bỏ sót nhưng nằm giữa khối tên — không tính thiếu (25/11/2026 One Hell of a Fighter: rụng "OF A" làm khoá màu sạch bị bỏ)
     if thieu and not ly: ly = f"máy đọc chữ không ra từ {' '.join(sorted(thieu))} — cắt theo hộp chữ sẽ mất phần đó"
     # TẦNG KHOÁ MÀU (anh 20/11/2026 "các mẫu này khi nhìn lại vẫn ko đẹp, nhất là các viền xung quanh"): cách nền sạch + BiRefNet để dính mảng nền (da người, bóng tối)
     # quanh logo. Nay mô hình ảnh rẻ nhất GIỮ NGUYÊN logo, tô mọi thứ còn lại một màu hồng phẳng → khoá màu hồng ra lớp trong suốt (mép + ánh sáng quanh chữ mờ dần tự nhiên,
@@ -168,6 +169,8 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
                     F[..., 0] -= 0.85 * du_h; F[..., 2] -= 0.85 * du_h
                     goc_lon = np.asarray(Image.fromarray(im.astype(np.uint8)).resize((KX, KY), Image.LANCZOS)).astype(np.float32); loi_ = nd.binary_erosion(a > 0.95, iterations=3)
                     lech = float(np.abs(goc_lon - F).mean(-1)[loi_].mean()) if loi_.any() else 255.0
+                    tim = (np.minimum(F[..., 0], F[..., 2]) - F[..., 1] > 25) & (a > 0.5)   # đốm hồng AI tô lẫn vào vân chữ (25/11/2026 FIGHTER lấm tấm tím trên nền tối): nét đặc → lấy màu thật của poster gốc tại chỗ đó
+                    F[tim] = goc_lon[tim]
                     if lyk: noi(f"khoá màu trượt cổng ({lyk})")
                     elif lech > 38: noi(f"khoá màu: nét logo lệch poster gốc {lech:.0f}/255 (chuẩn ≤ 38) — AI vẽ lại chữ, bỏ")
                     else:

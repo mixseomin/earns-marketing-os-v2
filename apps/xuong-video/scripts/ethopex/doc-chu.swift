@@ -23,7 +23,7 @@ for duong in CommandLine.arguments.dropFirst() where duong != "--mat" && duong !
         // Neural Engine lỗi (e5rtError lúc ANE còn dịch mô hình cho bản vừa dịch — CPU không chạy được mức .accurate) → đợi rồi thử lại tới 3 phút (đo 07/11: bản vừa dịch ấm ANE mất 56 giây); vẫn lỗi mới thoát
         // ANE TREO (25/11/2026: ANECompilerService root kẹt 57 phút → .accurate đứng im không trả lỗi, mọi lượt dựng chết vì quá hạn 120s của bên gọi):
         //   chạy .accurate ở luồng phụ, chờ tối đa 15 giây; quá hạn → đọc lại bằng CPU mức .fast (đo 2 giây) + kêu to ở stderr + "du_phong": true trong JSON
-        var lan = 0; var loi: Error? = nil
+        var lan = 0; var loi: Error? = nil; var fdKq: [VNFaceObservation]? = nil
         let xong = DispatchSemaphore(value: 0)
         Thread.detachNewThread {
             while true {
@@ -35,9 +35,11 @@ for duong in CommandLine.arguments.dropFirst() where duong != "--mat" && duong !
         if xong.wait(timeout: .now() + 15) == .timedOut {
             FileHandle.standardError.write("doc-chu: ⚠ Neural Engine không trả lời sau 15 giây ở \(duong) — đọc dự phòng bằng CPU mức .fast (bắt ít chữ hơn)\n".data(using: .utf8)!)
             let yd = VNRecognizeTextRequest(); yd.recognitionLevel = .fast; yd.usesCPUOnly = true; yd.recognitionLanguages = yc.recognitionLanguages
-            do { try VNImageRequestHandler(cgImage: cg, options: [:]).perform([yd]) }
+            // dò mặt cũng chạy CPU (25/11/2026: dự phòng bỏ mặt → "mat": [] im lặng, bên gọi tưởng khung không có người, ghép logo chết max() rỗng)
+            let fd = VNDetectFaceCaptureQualityRequest(); fd.usesCPUOnly = true
+            do { try VNImageRequestHandler(cgImage: cg, options: [:]).perform(coMat ? [yd, fd] : [yd]) }
             catch { FileHandle.standardError.write("doc-chu: Vision CPU lỗi ở \(duong): \(error)\n".data(using: .utf8)!); exit(2) }
-            duPhong = true
+            duPhong = true; fdKq = fd.results
             for r in yd.results ?? [] {
                 guard let t = r.topCandidates(1).first?.string else { continue }
                 chu.append(t); let b = r.boundingBox
@@ -49,7 +51,7 @@ for duong in CommandLine.arguments.dropFirst() where duong != "--mat" && duong !
             chu.append(t); let b = r.boundingBox
             khung.append([t, b.minX, 1 - b.maxY, b.width, b.height])
         } }
-        for f in fq.results ?? [] { let b = f.boundingBox; mat.append([b.minX, 1 - b.maxY, b.width, b.height, f.faceCaptureQuality ?? 0]) }
+        for f in (duPhong ? fdKq : fq.results) ?? [] { let b = f.boundingBox; mat.append([b.minX, 1 - b.maxY, b.width, b.height, f.faceCaptureQuality ?? 0]) }
     }
     var o: [String: Any] = ["anh": duong, "chu": chu.joined(separator: " | "), "khung": khung]
     if coMat { o["mat"] = mat }

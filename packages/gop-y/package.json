@@ -7,7 +7,8 @@
   "exports": {
     "./server": "./src/server.ts",
     "./client": "./src/client.tsx",
-    "./van-ban": "./src/van-ban.tsx"
+    "./van-ban": "./src/van-ban.tsx",
+    "./nut": "./src/nut.ts"
   },
   "dependencies": {
     "@mos2/db": "*",

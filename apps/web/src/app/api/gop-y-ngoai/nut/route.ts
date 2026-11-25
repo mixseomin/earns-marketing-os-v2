@@ -7,6 +7,7 @@
 // window.__anhNgoaiTrang = () => [dataURL] (ảnh thật đã chọn — castle 📷, trang tự tải sẵn) — đọc lúc bấm mở; hiện thành ảnh đính kèm trong hòm (tải lên R2 như ảnh chụp trang).
 // Không đuôi .js + no-store: zone Cloudflare on.tc giữ .js 30 ngày.
 import { nuocDuocKhach, TRANG_KHACH } from '@/lib/gop-y-khach';
+import { GY_NUT_CSS } from '@mos2/gop-y/nut';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +41,27 @@ const JS = `(() => {
     const d = e.data || {};
     if (d.loai === 'gop-y:san-sang') { sanSang = true; guiMo(); }
     if (d.loai === 'gop-y:dong') dong();
+    if (d.loai === 'gop-y:dem') { dem = d; to(); }
   });
+  // NÚT CHUẨN (packages/gop-y/src/nut.ts, anh 25/11/2026): AI đang làm → sáng nhấp nhô · có việc kẹt → chấm tròn đỏ góc · chờ ý kiến → số đỏ.
+  // Số do hòm trong iframe đếm (60 giây một lần) rồi gửi 'gop-y:dem'; tô mọi nút [data-gop-y-mo] / [data-gop-y-nut] (castle·worlds bỏ data-gop-y-mo để mở qua menu).
+  let dem = null;
+  const css = document.createElement('style'); css.textContent = __GY_NUT_CSS__; document.head.appendChild(css);
+  function to() {
+    if (!dem) return;
+    document.querySelectorAll('[data-gop-y-mo],[data-gop-y-nut]').forEach((b) => {
+      if (!b.dataset.gyGoc) { b.dataset.gyGoc = b.title || ' '; b.classList.add('gy-nut'); if (getComputedStyle(b).position === 'static') b.style.position = 'relative'; }
+      b.classList.toggle('gy-dang-lam', dem.working > 0);
+      let c = b.querySelector(':scope > .gy-cham-do');
+      if (dem.ket > 0 && !c) { c = document.createElement('span'); c.className = 'gy-cham-do'; b.appendChild(c); }
+      if (dem.ket <= 0 && c) c.remove();
+      let n = b.querySelector(':scope > .gy-so-do');
+      if (dem.can_y_kien > 0) { if (!n) { n = document.createElement('span'); n.className = 'gy-so-do'; b.appendChild(n); } n.textContent = String(dem.can_y_kien); } else if (n) n.remove();
+      b.title = dem.working || dem.ket || dem.can_y_kien ? dem.tieuDe : b.dataset.gyGoc.trim();
+    });
+  }
+  let hen = 0;
+  new MutationObserver(() => { if (dem && !hen) hen = requestAnimationFrame(() => { hen = 0; to(); }); }).observe(document.documentElement, { childList: true, subtree: true });
   document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-gop-y-mo]'); if (b) { e.preventDefault(); e.stopPropagation(); mo(); } }, true);
   window.moGopYMos2 = mo;
   const napSan = () => (window.requestIdleCallback ? requestIdleCallback(tao, { timeout: 4000 }) : setTimeout(tao, 1500));
@@ -52,5 +73,5 @@ const JS = `(() => {
 export function GET(req: Request) {
   const vn = nuocDuocKhach(req.headers.get('cf-ipcountry'));
   const chan = `if (${JSON.stringify(TRANG_KHACH)}.includes(location.hostname) && !${vn}) { const s = document.createElement('style'); s.textContent = '[data-gop-y-mo]{display:none!important}'; document.head.appendChild(s); return; }`;
-  return new Response(JS.replace('(() => {\n', '(() => {\n  ' + chan + '\n'), { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' } });
+  return new Response(JS.replace('__GY_NUT_CSS__', JSON.stringify(GY_NUT_CSS)).replace('(() => {\n', '(() => {\n  ' + chan + '\n'), { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' } });
 }

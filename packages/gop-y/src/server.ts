@@ -21,6 +21,7 @@ export type GopYCuaToi = {
 };
 export type Kq = { ok: boolean; error?: string };
 export type { DemGopY } from './dem';
+export { demTuDs } from './dem';
 /** Luật riêng của app (vd mos2: team ETP gửi được, lọc card theo nguồn etp, admin thấy card máy tạo, trạng thái qua setBacklinkSite). */
 export type TuyChon = {
   /** app đã tự xét quyền gửi (thay luật mặc định admin-only) */
@@ -187,23 +188,26 @@ export async function hangGiao(duAn: string, me: Nguoi | null): Promise<HangGiao
 export function hangGiaoNguoi(nguoi: string): HangGiao { return docHangGiao(nguoi, nhipDangChay(nguoi)); }
 
 /** SỐ CHO NÚT 💬 (CHUAN.md): working = card claimed của hòm (mọi người gửi, còn trong trần phiên) + lượt kỹ sư CLI đang chạy;
+ *  ket = card kẹt của hòm (broken + claimed quá trần) → chấm đỏ góc nút;
  *  can_y_kien = card CỦA CHÍNH người xem đang chờ họ. Nút nạp 60 giây một lần khi tab đang hiện. */
 export async function demGopY(duAn: string, me: Nguoi | null, o?: TuyChon): Promise<DemGopY> {
   const db = getDb();
   if (!me || !db) return DEM_RONG;
-  const r = await db.execute(sql`SELECT id, title, updated_at FROM human_tasks
+  const r = await db.execute(sql`SELECT id, title, updated_at, COALESCE(prep_payload->'site_status'->>${duAn}, status) AS tt FROM human_tasks
     WHERE project_id = ${duAn} AND prep_payload->>'source_platform' = 'feedback'
-      AND COALESCE(prep_payload->'site_status'->>${duAn}, status) = 'claimed'
+      AND COALESCE(prep_payload->'site_status'->>${duAn}, status) IN ('claimed', 'broken')
       ${o?.locNguon ? sql`AND (COALESCE(prep_payload->>'source_url', '') ~ ${o.locNguon.mau}) = ${o.locNguon.khop}` : sql``}
-    ORDER BY updated_at DESC LIMIT 20`);
-  const hang = (r as unknown as Array<{ id: number; title: string; updated_at: string | Date }>).map((x) => ({ ...x, cn: new Date(x.updated_at).toISOString() }));
+    ORDER BY updated_at DESC LIMIT 50`);
+  const tatCa = (r as unknown as Array<{ id: number; title: string; updated_at: string | Date; tt: string }>).map((x) => ({ ...x, cn: new Date(x.updated_at).toISOString() }));
+  const hang = tatCa.filter((x) => x.tt === 'claimed');
+  const hong = tatCa.filter((x) => x.tt === 'broken').map((x) => `#${x.id} ${String(x.title ?? '').slice(0, 60)}`);
   const lam = hang.filter((x) => conTrongTran(x.cn)).map((x) => `#${x.id} ${String(x.title ?? '').slice(0, 60)}`);
   const treo = hang.filter((x) => !conTrongTran(x.cn)).map((x) => nhanTreo(x.id, String(x.title ?? ''), x.cn));
   const luot = kySuDangChay(duAn, o);
   // lượt kỹ sư thường là chính card claimed → chỉ cộng thêm khi không có card, hoặc là việc giao thẳng (ngoài hòm)
   const dangLam = luot && (!lam.length || /^việc giao/.test(luot)) ? [...lam, luot] : lam;
   const cho = (await dsGopYCuaToi(duAn, me, o)).filter((b) => b.choYKien);
-  return { working: dangLam.length, dangLam, can_y_kien: cho.length, choYKien: cho.map((b) => b.id), kySu: kySuPhuTrach(o?.kySu || KY_SU_HOM[duAn]), treo };
+  return { working: dangLam.length, dangLam, can_y_kien: cho.length, choYKien: cho.map((b) => b.id), kySu: kySuPhuTrach(o?.kySu || KY_SU_HOM[duAn]), treo, ket: hong.length + treo.length, ketDs: [...hong, ...treo] };
 }
 
 export async function docTraoDoi(duAn: string | string[], me: Nguoi | null, taskId: number): Promise<TinTraoDoi[]> {

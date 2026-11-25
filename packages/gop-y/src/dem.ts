@@ -1,9 +1,10 @@
 // ĐẾM CHO NÚT 💬 (chuẩn packages/gop-y/CHUAN.md) — phần thuần, dùng ở cả máy chủ (server.ts) lẫn trình duyệt (client.tsx):
-//  · working     = số việc AI đang làm (card claimed còn trong trần phiên kỹ sư + kỹ sư CLI phụ trách hòm đang chạy một lượt) → nút rung
+//  · working     = số việc AI đang làm (card claimed còn trong trần phiên kỹ sư + kỹ sư CLI phụ trách hòm đang chạy một lượt) → nút SÁNG NHẤP NHÔ
+//  · ket         = số việc KẸT của hòm (card 'broken' + card claimed quá trần phiên) → CHẤM TRÒN ĐỎ ở góc nút (anh 25/11/2026)
 //  · can_y_kien  = số card CỦA CHÍNH người xem đang chờ họ: tin cuối là kỹ sư hỏi (mở bằng ❓) mà chưa ai đáp; kẹt một mình không tính → số đỏ trên nút
 // Tự kiểm: node_modules/.bin/tsx packages/gop-y/src/dem.test.mts
 
-/** Trần phiên kỹ sư hòm (may/gop-y-ky-su tranPhut 40) + 5 phút: card claimed / lượt "▶ bắt đầu" quá trần coi là phiên đã chết — không rung mãi. */
+/** Trần phiên kỹ sư hòm (may/gop-y-ky-su tranPhut 40) + 5 phút: card claimed / lượt "▶ bắt đầu" quá trần coi là phiên đã chết — không sáng mãi. */
 export const TRAN_DANG_LAM_MS = 45 * 60_000;
 /** Lượt quét hòm rỗng chạy ~6 giây rồi xong: chưa đủ 15 giây thì chưa tính "đang làm" (nút khỏi giật vì lượt nhìn qua rồi về). */
 export const TOI_THIEU_LUOT_MS = 15_000;
@@ -24,8 +25,11 @@ export type DemGopY = {
   /** card còn claimed mà QUÁ trần phiên — không phiên nào đang chạy nó nhưng tab vẫn ghi "Đang làm". Có thì dải đầu hòm KHÔNG được nói "rảnh"
    *  (#1746 23/11/2026: dải ghi "Đạt đang rảnh" trong khi tab Đang làm 1 · card claimed 2 giờ vì máy nộp bị cổng chặn). */
   treo?: string[];
+  /** số việc kẹt (broken + treo) → chấm đỏ góc nút; ketDs = nhãn từng việc (tooltip) */
+  ket?: number;
+  ketDs?: string[];
 };
-export const DEM_RONG: DemGopY = { working: 0, dangLam: [], can_y_kien: 0, choYKien: [] };
+export const DEM_RONG: DemGopY = { working: 0, dangLam: [], can_y_kien: 0, choYKien: [], ket: 0, ketDs: [] };
 /** Chữ dải đầu hòm: "<tên> đang tắt" / "<tên> đang làm:" / "<tên> đang rảnh"; chưa biết tên → "AI". */
 export function chuDaiKySu(dem: DemGopY): { nhan: string; tat: boolean } {
   const ten = dem.kySu?.ten || 'AI';
@@ -84,5 +88,6 @@ export function demTuDs(ds: Array<{ id: number; noiDung: string; trangThai: stri
   const lam = ds.filter((b) => b.trangThai === 'claimed' && conTrongTran(b.capNhat, bay));
   const treo = ds.filter((b) => b.trangThai === 'claimed' && !conTrongTran(b.capNhat, bay)).map((b) => nhanTreo(b.id, b.noiDung, b.capNhat, bay));
   const cho = ds.filter((b) => !!b.choYKien);
-  return { working: lam.length, dangLam: lam.map((b) => `#${b.id} ${b.noiDung.split('\n')[0]!.slice(0, 60)}`), can_y_kien: cho.length, choYKien: cho.map((b) => b.id), treo };
+  const ketDs = [...ds.filter((b) => b.trangThai === 'broken').map((b) => `#${b.id} ${b.noiDung.split('\n')[0]!.slice(0, 60)}`), ...treo];
+  return { working: lam.length, dangLam: lam.map((b) => `#${b.id} ${b.noiDung.split('\n')[0]!.slice(0, 60)}`), can_y_kien: cho.length, choYKien: cho.map((b) => b.id), treo, ket: ketDs.length, ketDs };
 }

@@ -4,6 +4,7 @@
 // trang này chỉ nối: ?trang= → window.__trangGopY (card mang đúng trang người dùng đang đứng), ngữ cảnh + ảnh khung hình trang ngoài
 // gửi qua postMessage → window.__nguCanhTrang / hàng ảnh __anhGopY, mở hòm ('gop-y:mo'), hòm đóng ('gop-y:dong') → báo trang ngoài ẨN iframe (nút chuẩn nạp sẵn và giữ iframe để lần mở sau tức thì).
 import { useEffect, useState } from 'react';
+import { tieuDeNut, type DemGopY } from '@mos2/gop-y/nut';
 
 export default function NhungGopY() {
   // BÁO CHỜ (anh 17/11/2026: "nếu phải đợi thì phải thông báo chờ"): ảnh trang ngoài đưa vào (chụp trang + ảnh thật chọn ở castle 📷) phải tải lên R2
@@ -43,9 +44,11 @@ export default function NhungGopY() {
       window.dispatchEvent(new CustomEvent('gop-y:mo'));
     };
     const dong = (e: Event) => { if (goc !== '*') window.parent.postMessage({ loai: 'gop-y:dong', vuaGui: (e as CustomEvent<{ vuaGui?: number }>).detail?.vuaGui ?? null }, goc); };
-    window.addEventListener('message', nhan); window.addEventListener('gop-y:dong', dong);
+    // số nút 💬 (đang làm / kẹt / chờ ý kiến) → trang ngoài tô nút của nó đúng chuẩn (packages/gop-y/src/nut.ts)
+    const dem = (e: Event) => { const x = (e as CustomEvent<DemGopY>).detail; if (goc !== '*' && x) window.parent.postMessage({ loai: 'gop-y:dem', working: x.working, ket: x.ket ?? 0, can_y_kien: x.can_y_kien, tieuDe: tieuDeNut(null, x) }, goc); };
+    window.addEventListener('message', nhan); window.addEventListener('gop-y:dong', dong); window.addEventListener('gop-y:dem', dem);
     if (goc !== '*') window.parent.postMessage({ loai: 'gop-y:san-sang' }, goc);
-    return () => { window.removeEventListener('message', nhan); window.removeEventListener('gop-y:dong', dong); };
+    return () => { window.removeEventListener('message', nhan); window.removeEventListener('gop-y:dong', dong); window.removeEventListener('gop-y:dem', dem); };
   }, []);
   // nền trong suốt để thấy trang ngoài phía sau ngăn hòm
   return (

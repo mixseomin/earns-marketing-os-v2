@@ -17,6 +17,7 @@ export function ganGopY({ nut, chupAnh = () => null, nguCanh = () => '', anhNgoa
   window.__chupTrang = () => (kemAnh ? chupAnh() : null); // ảnh khung hình CHỈ khi chọn "kèm ảnh màn hình"
   window.__anhNgoaiTrang = () => anhNgoai();  // ảnh thật đã chọn ở 📷 → hiện thành ảnh đính kèm trong hòm (thấy / bỏ được trước khi gửi)
   nut.removeAttribute('data-gop-y-mo');       // không để script hòm tự mở khi bấm nút — mở qua menu
+  nut.setAttribute('data-gop-y-nut', '');     // vẫn là nút hòm: script hòm tô sáng nhấp nhô (AI đang làm) + chấm đỏ (việc kẹt) — chuẩn packages/gop-y/src/nut.ts
   nut.title = 'Góp ý / báo lỗi — chọn có kèm ảnh màn hình hay không; tab thứ hai của hòm xem trạng thái + trả lời mọi thẻ đã gửi';
   if (!document.querySelector(`script[src="${NUT_HOM}"]`)) { const s = document.createElement('script'); s.src = NUT_HOM; s.defer = true; s.onerror = () => console.error('[castle] không nạp được hòm góp ý mos2', NUT_HOM); document.head.append(s); }
   const st = document.createElement('style'); st.textContent = CSS; document.head.append(st);

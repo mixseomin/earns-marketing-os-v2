@@ -14,11 +14,13 @@ import { getCurrentUser } from '@/lib/auth';
 import { duyetCham } from '@/lib/actions/etp-cham';
 import { lenCampCr } from '@/lib/actions/etp-dong';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
+import { giongCr } from '@/lib/etp-ban';
 import { KHUON_CR, keCr, tenCampCr } from '@/lib/etp-ke-cr';
 import { docThietLap, type KeTl } from '@/lib/actions/etp-thiet-lap';
 
 export type ChoDuyet = {
   creative_id: number; content_id: number | null; phim: string | null; lang: string | null; dang: string | null; video: string | null; anh: string | null;
+  /** giọng đọc (ky_di…) — giongCr (#1844 "show thêm kiểu giọng") */ giong: string | null;
   ghi: string; tao: string; duyet: boolean | null; diem_thap: string | null; camp_id: number | null; trang_thai: string | null; nhat_ky: string | null;
   /** '1|5' = máy lên ★ ROAS 1 · $5 thay camp $1 (etp.cau_hinh.len_cr_roas, apps/etp/lenh_cho.py — anh 22/11/2026) */ roas: string | null;
   /** camp DỰ KIẾN (lib/etp-ke-cr keCr) — ngăn camp đọc lại bằng docThietLap([], [ke]) */ ke: KeTl | null;
@@ -40,7 +42,7 @@ function nhatKy(cr: number): string | null {
 export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean } | { loi: string }> {
   const me = await getCurrentUser();
   if (me?.role !== 'admin') return { loi: 'chỉ admin' };
-  const ds = await run<Omit<ChoDuyet, 'nhat_ky' | 'ke' | 'tl' | 'tlLoi'>>(sql`select h.creative_id, r.content_id, f.ten phim, r.lang, r.dang, r.video, r.anh, h.ghi, h.tao::text tao, u.ok duyet,
+  const ds = await run<Omit<ChoDuyet, 'nhat_ky' | 'ke' | 'tl' | 'tlLoi'>>(sql`select h.creative_id, r.content_id, f.ten phim, r.lang, r.dang, r.video, r.anh, ${giongCr('h.creative_id')} giong, h.ghi, h.tao::text tao, u.ok duyet,
       (select string_agg(e.k || ' ' || e.v, ', ' order by e.v::numeric) from etp.cham c, jsonb_each_text(c.diem) e(k, v)
         where c.creative_id = h.creative_id and (e.k like 'meta.%' or e.k like 'afs.%') and e.v::numeric <= 4) diem_thap,
       k.camp_id, k.trang_thai,

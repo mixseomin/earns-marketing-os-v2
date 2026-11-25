@@ -14,7 +14,12 @@ const THEO_DAI = DS_DANG.flatMap((x) => [[x.khong_dau, x.dang], [x.dang, x.dang]
 export const dangTheoTen = (ten: string | null | undefined): string | null => { const t = (ten ?? '').toLowerCase(); return THEO_DAI.find(([k]) => t.includes(k))?.[1] ?? null; };
 
 /** tên giọng đọc máy dựng (xuong-video/scripts/ethopex/anh-tinh.py KIEU_GIONG) — mã chưa có tên thì hiện nguyên mã */
-export const TEN_GIONG: Record<string, string> = { thuong: 'thường', ky_di: 'kỳ dị', gao: 'gào', cam_xuc: 'cảm xúc', hao_hung: 'hào hứng' };
+export const TEN_GIONG: Record<string, string> = { thuong: 'thường', ky_di: 'kỳ dị', gao: 'gào', cam_xuc: 'cảm xúc', hao_hung: 'hào hứng', tinh_nghich: 'tinh nghịch' };
+/** người đọc + cách đọc của từng giọng (anh-tinh.py KIEU_GIONG) — hiện ở tooltip thẻ chờ duyệt (#1844) */
+export const MO_TA_GIONG: Record<string, string> = {
+  thuong: 'George — đọc thẳng, không nhấn nhá', ky_di: 'Brian — thì thầm tên phim → cười rợn → hét "Watch More Now!"', gao: 'Callum — hét cả câu, gào câu cuối',
+  cam_xuc: 'Jessica — khóc nghẹn rồi hét câu cuối', hao_hung: 'Laura — phấn khích, la câu cuối', tinh_nghich: 'Charlotte — tinh nghịch → cười khúc khích → hào hứng',
+};
 export const tenGiong = (g: string | null | undefined) => (g ? TEN_GIONG[g] ?? g : null);
 /** mã giọng gọn trên nhãn (anh 09/11/2026 "PO.1.G = gào, CTS.KD = kỳ dị"): chữ đầu mỗi phần của mã máy — ky_di → KD, gao → G, thuong → T; giọng mới tự có mã */
 export const maGiong = (g: string | null | undefined) => (g ? g.split('_').map((x) => x[0] ?? '').join('').toUpperCase() : null);

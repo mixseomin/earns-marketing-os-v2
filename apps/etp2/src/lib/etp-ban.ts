@@ -8,5 +8,6 @@ export const sqlBan = (tvGhi: string, dang: string) => sql.raw(`case when ${dang
 // (anh-tinh.py KIEU_GIONG) → đọc ra tự động cho MỌI dạng có giọng (PO, AT, CT…); giọng mới tự hiện bằng mã của nó cho tới khi thêm tên ở TEN_GIONG (lib/etp-dang).
 const tvGhiCr = (cid: string) => `(select t.ghi from etp.thu_vien t where t.creative_id = ${cid})`;
 export const sqlGiong = (tvGhi: string) => sql.raw(`substring(${tvGhi} from 'giọng ([a-z_]+)')`);
-export const giongCr = (cid: string) => sqlGiong(tvGhiCr(cid));
+// #1844: bản dựng trước 25/11 (dung-mau.py chưa ghi "giọng …" vào ghi) → lùi về giọng len-creative ghi trong sổ điểm chạm (etp.diem_cham.cham.voice.giong, khoá creative_id)
+export const giongCr = (cid: string) => sql.raw(`coalesce(substring(${tvGhiCr(cid)} from 'giọng ([a-z_]+)'), (select d.cham->'voice'->>'giong' from etp.diem_cham d where d.creative_id = ${cid}))`);
 export const banCr = (cid: string, dang: string) => sqlBan(tvGhiCr(cid), dang);

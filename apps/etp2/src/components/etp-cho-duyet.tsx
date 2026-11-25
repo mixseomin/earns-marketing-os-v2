@@ -9,6 +9,7 @@ import { CamCauHinh } from './etp-camp-cau-hinh';
 import { KhungBaiQc } from './etp-bai-qc';
 import { dsChoDuyet, duyetChoAnh, lenCamp, type ChoDuyet } from '@/lib/actions/etp-cho-duyet';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
+import { MO_TA_GIONG, maGiong, tenGiong } from '@/lib/etp-dang';
 
 const nut: React.CSSProperties = { fontSize: 12, padding: '3px 10px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' };
 const GIAI = 'chưa duyệt thì máy không lên camp. ✓ Duyệt = creative rời ô này, thành dòng ⏳ xếp hàng ở bảng camp bên dưới; giờ chạy theo lịch. ✕ Loại = không bao giờ lên.';
@@ -27,6 +28,9 @@ function TomTl({ x }: { x: ChoDuyet }) {
     <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: mau ?? (gt ? 'inherit' : 'var(--fg-3, #888)') }}>{gt || '—'}</span></div>;
   const nuoc = t.g_so_nuoc ? `${t.g_so_nuoc} nước${t.g_loai_nuoc ? ` · loại ${t.g_so_loai ?? ''}` : ''}` : (t.g_nuoc ?? null);
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: 11.5, borderTop: '1px solid var(--line)', paddingTop: 4, marginTop: 2 }}>
+    {/* #1844 "show thêm kiểu giọng áp dụng với loại creative này": giọng đọc lúc dựng (giongCr — ghi thư viện, lùi về sổ điểm chạm); người đọc + cách đọc ở rê chuột */}
+    {dong('Giọng', x.giong ? `${tenGiong(x.giong)} (${maGiong(x.giong)})` : null,
+      x.giong ? (MO_TA_GIONG[x.giong] ?? tenGiong(x.giong) ?? '') : 'bản dựng trước 25/11 không lưu lại giọng đã dùng — từ 25/11 mỗi lượt dựng ra 2 bản: giọng mặc định (kỳ dị) + giọng hợp chủ đề phim')}
     {dong('Ngôn ngữ', t.g_ngon_ngu || 'All languages', 'nhan-ban bỏ targeting.locales của mọi camp — không nhắm ngôn ngữ (luật cố định 24/11/2026)', t.g_ngon_ngu ? '#f87171' : '#4ade80')}
     {dong('Nước', nuoc, [t.g_nuoc, t.g_loai_nuoc ? `loại: ${t.g_loai_nuoc}` : ''].filter(Boolean).join('\n'))}
     {dong('Tuổi · GT', [t.g_tuoi, t.g_gioi ? t.g_gioi.split(', ').map((g) => (g === '1' ? 'Male' : g === '2' ? 'Female' : g)).join(', ') : 'All genders'].filter(Boolean).join(' · ') || null,

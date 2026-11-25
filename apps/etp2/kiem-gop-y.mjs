@@ -725,6 +725,9 @@ const LUAT = [
   { card: '1843', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: ": 'All genders'].filter(Boolean)", vi: 'thẻ chờ duyệt hiện giới mặc định All genders' },
   { card: '1843', tep: 'apps/etp2/src/lib/etp-ke-cr.ts', co: 'VN · còn ${Math.floor(p / 60)} giờ', vi: 'lịch camp dự kiến ghi còn bao lâu tới khung lên' },
   { card: '1843', tep: 'apps/etp2/src/lib/etp-ke-cr.ts', cam: '(khung lên gần nhất)`', vi: 'bỏ chữ (khung lên gần nhất)' },
+  { card: '1844', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "dong('Giọng'", vi: 'thẻ chờ duyệt hiện giọng đọc của creative' },
+  { card: '1844', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: "${giongCr('h.creative_id')} giong", vi: 'action chờ duyệt đọc giọng bằng giongCr' },
+  { card: '1844', tep: 'apps/etp2/src/lib/etp-ban.ts', co: 'etp.diem_cham d where d.creative_id', vi: 'giọng lùi về sổ điểm chạm cho bản dựng trước 25/11' },
 ];
 
 const loi = [];

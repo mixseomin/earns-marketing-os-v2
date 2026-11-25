@@ -28,14 +28,15 @@ const co = (p: string) => access(p).then(() => true, () => false);
 
 // LỊCH SỬ (anh 26/11/2026 "sinh xong phải lưu vào lịch sử để xem lại"): mỗi câu nói xong ghi một dòng vào KHO/lich-su.jsonl; GET trả danh sách mới nhất trước.
 const SO = join(KHO, 'lich-su.jsonl');
-type Dong = { bam: string; chu: string; cam: string; giong: string; vnd: number; luc?: string };
+type Dong = { bam: string; chu: string; cam: string; giong: string; vnd: number; nv?: string; luc?: string };   // nv = tên nhân vật (osane, ilo…): mỗi nhân vật một lịch sử
 const ghiSo = (d: Dong) => appendFile(SO, JSON.stringify({ ...d, luc: new Date().toISOString() }) + '\n');
 
-export async function GET() {
+export async function GET(req: Request) {
+  const nv = new URL(req.url).searchParams.get('nv') || '';
   const u = await getCurrentUser();
   if (u?.role !== 'admin') return NextResponse.json({ ok: false, loi: 'Chỉ admin mos2 xem được lịch sử câu đã sinh.' }, { status: 403 });
   const dong = (await readFile(SO, 'utf8').catch(() => '')).split('\n').filter(Boolean).map((x) => { try { return JSON.parse(x) as Dong; } catch { return null; } }).filter((x): x is Dong => !!x);
-  const moi = new Map<string, Dong>(); for (const d of dong) { moi.delete(d.bam); moi.set(d.bam, d); }   // cùng câu nói lại → đưa lên đầu, không lặp
+  const moi = new Map<string, Dong>(); for (const d of dong) { if (nv && (d.nv || 'osane') !== nv) continue; moi.delete(d.bam); moi.set(d.bam, d); }   // cùng câu nói lại → đưa lên đầu, không lặp
   const ds = [...moi.values()].reverse().map((d) => ({ ...d, am: `/du-lieu-giong/${d.bam}.mp3`, mat: `/du-lieu-giong/${d.bam}-mat.json` }));
   return NextResponse.json({ ok: true, ds });
 }
@@ -43,7 +44,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const u = await getCurrentUser();
   if (u?.role !== 'admin') return NextResponse.json({ ok: false, loi: 'Chỉ admin mos2 được cho nhân vật nói câu mới (mỗi câu tốn ~156₫ tiền giọng).' }, { status: 403 });
-  const { chu = '', cam = '', giong = 'Charlotte' } = (await req.json().catch(() => ({}))) as { chu?: string; cam?: string; giong?: string };
+  const { chu = '', cam = '', giong = 'Charlotte', nv: nvVao = '' } = (await req.json().catch(() => ({}))) as { chu?: string; cam?: string; giong?: string; nv?: string };
+  const nv = /^[a-z0-9-]{1,30}$/.test(nvVao) ? nvVao : '';
   const c = chu.trim();
   if (!c) return NextResponse.json({ ok: false, loi: 'Chưa gõ câu nào.' }, { status: 400 });
   if (c.length > TRAN_CHU) return NextResponse.json({ ok: false, loi: `Câu dài ${c.length} ký tự, tối đa ${TRAN_CHU}. Tách thành nhiều câu ngắn.` }, { status: 400 });
@@ -52,7 +54,7 @@ export async function POST(req: Request) {
   const e = A2F_CAM[camTen] ? `${A2F_CAM[camTen]}:${Math.min(1, +camMuc || 0.6)}` : '';
   const bam = createHash('sha1').update(`${giong}|${e}|${c}`).digest('hex').slice(0, 16);
   const mp3 = join(KHO, `${bam}.mp3`), mat = join(KHO, `${bam}-mat.json`), ket = { ok: true, am: `/du-lieu-giong/${bam}.mp3`, mat: `/du-lieu-giong/${bam}-mat.json`, chu: c, cam };
-  if (await co(mat)) { await ghiSo({ bam, chu: c, cam, giong, vnd: 0 }); return NextResponse.json({ ...ket, vnd: 0, lai: true }); }
+  if (await co(mat)) { await ghiSo({ bam, chu: c, cam, giong, vnd: 0, nv }); return NextResponse.json({ ...ket, vnd: 0, lai: true }); }
   const viec = dang.then(async () => {
     let vnd = 0;
     await mkdir(KHO, { recursive: true });
@@ -71,6 +73,6 @@ export async function POST(req: Request) {
     return vnd;
   });
   dang = viec.catch(() => null);
-  try { const vnd = await viec; await ghiSo({ bam, chu: c, cam, giong, vnd }); return NextResponse.json({ ...ket, vnd }); }
+  try { const vnd = await viec; await ghiSo({ bam, chu: c, cam, giong, vnd, nv }); return NextResponse.json({ ...ket, vnd }); }
   catch (x) { return NextResponse.json({ ok: false, loi: (x as Error).message }, { status: 502 }); }
 }

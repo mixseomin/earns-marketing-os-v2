@@ -96,7 +96,8 @@ KHUON_CR = {"en": 65110, "es": 65734}   # trùng KHUON của apps/etp2/src/lib/a
 SQL_CR_DUYET = """select h.creative_id, r.content_id, coalesce(r.lang, 'en'), regexp_replace(coalesce(f.ten, r.content_id::text), '[^A-Za-z0-9 .,:!?#-]', '', 'g')
     from etp.cho_anh_duyet_cr h join etp.creative r on r.creative_id = h.creative_id join etp.cham_duyet u on u.creative_id = h.creative_id and u.ok
       left join etp.phim f on f.content_id = r.content_id join etp.cham_cong g on g.creative_id = h.creative_id and g.duoc_len
-    where r.content_id is not null and not exists (select 1 from etp.camp c where c.creative_id = h.creative_id) order by u.luc limit 20"""
+    where r.content_id is not null and not exists (select 1 from etp.camp c where c.creative_id = h.creative_id)
+      and not coalesce((select x.gia_tri ? h.creative_id::text from etp.cau_hinh x where x.khoa = 'hoan_cr'), false) order by u.luc limit 20"""   # ⏸ anh tạm dừng ở etp2 (khoá hoan_cr, anh 25/11/2026) → máy không lên
 # ★ ROAS TỪ CREATIVE ANH DUYỆT (anh 22/11/2026 "lên thêm các camp kiểu đó tương tự … roas kiểu Sơn đang lên"): khoá etp.cau_hinh.len_cr_roas = {"<cr>": {roas, ns, luc, ai}}
 # — creative có trong sổ này lên ★ ROAS (nhan-ban --roas … --creative, ns trong hoi_cho.ns_khoang $5–10) THAY cho camp $1: luật "một creative một camp" (nhan-ban roas_main)
 KHOA_ROAS = "len_cr_roas"

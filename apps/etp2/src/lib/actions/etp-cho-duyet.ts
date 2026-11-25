@@ -152,8 +152,25 @@ async function lenhNb(cr: number, gio?: string | null, o?: { roas: number; ns: n
     '--content', String(x.content_id), '--ten', ten, ...(g ? ['--gio', g] : [])] };
 }
 
+/** ⏸ TẠM DỪNG creative đã duyệt chờ lên camp (anh 25/11/2026 "Vẫn có nút pause nếu cần thủ công"): khoá etp.cau_hinh.hoan_cr = {"<cr>": {luc, ai}}
+ *  — apps/etp/lenh_cho.py SQL_CR_DUYET bỏ qua creative trong khoá này; bat=false gỡ ra, máy lên lại theo lịch */
+export async function hoanCr(cr: number, bat: boolean): Promise<{ ok: true; chu: string } | { loi: string }> {
+  const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được tạm dừng' };
+  const id = Math.trunc(Number(cr)); if (!(id > 0)) return { loi: 'mã creative không hợp lệ' };
+  const [c] = await run<{ x: number }>(sql`select 1 x from etp.camp where creative_id = ${id} limit 1`);
+  if (c) return { loi: `creative #${id} đã có camp — muốn dừng thì tắt camp đó` };
+  if (bat) { if (docNhatKyLen(id).gui) return { loi: `creative #${id} đã gửi lệnh lên camp, máy đang tạo — không tạm dừng được nữa (xong thì tắt camp)` };
+    const v = JSON.stringify({ [String(id)]: { luc: new Date().toISOString(), ai: me.email } });
+    await getDb()!.execute(sql`insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('hoan_cr', ${v}::jsonb, 'creative anh tạm dừng ở etp2 — máy không lên camp', ${me.email})
+      on conflict (khoa) do update set gia_tri = coalesce(etp.cau_hinh.gia_tri, '{}'::jsonb) || excluded.gia_tri, luc = now()`);
+    return { ok: true, chu: `đã TẠM DỪNG creative #${id} — máy không lên camp cho tới khi anh bấm chạy tiếp` }; }
+  await getDb()!.execute(sql`update etp.cau_hinh set gia_tri = gia_tri - ${String(id)}, luc = now() where khoa = 'hoan_cr' and gia_tri ? ${String(id)}`);
+  return { ok: true, chu: `creative #${id} chạy tiếp — máy lên camp ở khung kế` };
+}
+
 export async function lenNgayCr(cr: number, gio?: string | null, o?: { roas: number; ns: number; khuon: number } | null): Promise<KqNut> {
   const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được lên camp' };
+  await getDb()!.execute(sql`update etp.cau_hinh set gia_tri = gia_tri - ${String(Math.trunc(Number(cr)))}, luc = now() where khoa = 'hoan_cr' and gia_tri ? ${String(Math.trunc(Number(cr)))}`);   // ▶ Lên tay = lệnh trực tiếp, bỏ ⏸ tạm dừng
   const L = await lenhNb(cr, gio, o); if ('loi' in L) return L;
   const id = Math.trunc(Number(cr)), { ro, g, lenh } = L;
   const dg = docNhatKyLen(id).gui; if (dg) return { canh: `đã gửi lệnh lên lúc ${gioVnIso(dg)} giờ VN, máy đang tạo camp — chờ xong, không gửi lần hai` };   // #1770: dòng "đang lên" bấm lại không nhân đôi camp

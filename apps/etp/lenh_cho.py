@@ -106,11 +106,17 @@ def doc_roas():
     try: return json.loads(q(f"select gia_tri from etp.cau_hinh where khoa = '{KHOA_ROAS}'") or "{}")
     except ValueError: return {}
 
+def doc_ke():
+    """kế camp MỘT nguồn (view etp.ke_cr, migration 0476 — anh 25/11/2026 "Các chỉ số ROAS phải dàn đủ như tao bảo"): {cr: {roas, ns, khuon, nguon}}
+    — khối dàn muc 0.9/1.0/1.1/1.2 theo thứ tự creative của phim + khuôn khối (Kiên · marcusbeilby.com); 'sổ len_cr_roas' = lệnh tay 22/11 chờ ▶ Lên; không có = hoi_cho"""
+    try: return json.loads(q("""select coalesce(json_object_agg(creative_id, json_build_object('roas', roas, 'ns', ns, 'khuon', khuon, 'nguon', nguon)), '{}') from etp.ke_cr""") or "{}")
+    except ValueError: return {}
+
 def lenh_cr(cr, ct, lang, ten, bo, ro):
     """dòng lệnh nhan-ban cho một creative đã duyệt — ro = mục len_cr_roas (★ ROAS) hoặc None (★ ROAS mặc định hoi_cho — anh 24/11/2026 "Từ giờ mặc định là roas", hết camp $1)"""
     if not ro: ro = {"roas": HOI_CHO["roas"], "ns": HOI_CHO["ns"], "ai": "anh (24/11/2026: mặc định lên creative mới = ★ ROAS) — máy lên khi phanh nhả"}
-    if ro: return [NB, str(KHUON_CR[lang]), "--roas", f"{float(ro['roas']):g}", "--ns", str(int(ro["ns"])), "--tay", "--bo", bo, "--creative", cr, "--content", ct,
-                   "--ten", f"duyet {ten} {lang.upper()} - cr moi #{cr}", "--that", "--luat", f"anh duyệt creative #{cr} + lệnh ★ ROAS {float(ro['roas']):g} · ${int(ro['ns'])} kiểu Sơn (chat 22/11/2026) — lên khi phanh nhả",
+    if ro: return [NB, str(ro.get("khuon") or KHUON_CR[lang]), "--roas", f"{float(ro['roas']):g}", "--ns", str(int(ro["ns"])), "--tay", "--bo", bo, "--creative", cr, "--content", ct,
+                   "--ten", f"duyet {ten} {lang.upper()} - cr moi #{cr}", "--that", "--luat", f"anh duyệt creative #{cr} + ★ ROAS {float(ro['roas']):g} · ${int(ro['ns'])} ({ro.get('nguon') or 'kiểu Sơn, chat 22/11/2026'}) — lên khi phanh nhả",
                    "--ai", ro.get("ai") or "anh (chat 22/11/2026: roas kiểu Sơn đang lên) — máy lên khi phanh nhả"]
     return [NB, str(KHUON_CR[lang]), "--tay", "--bo", bo, "--creative", cr, "--content", ct, "--ten", f"duyet {ten} {lang.upper()} - creative #{cr}", "--that",
             "--luat", f"anh duyệt creative #{cr} (etp2 › Camp · Chờ anh duyệt) — lên khi phanh nhả", "--ai", "anh (etp2 › Chờ anh duyệt) — máy lên khi phanh nhả"]
@@ -133,12 +139,12 @@ def len_cr(st, chan, luc, xem, bao):
     hang = st.setdefault("len_cr", {}); doi, kq = False, []
     ds = [l.split("|") for l in (q(SQL_CR_DUYET) or "").splitlines() if l.strip()]
     bo = q("select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi'") or ""
-    ro_ = doc_roas()
+    ro_ = doc_ke()
     for cr, ct, lang, ten in ds:
         h = hang.setdefault(cr, {"tt": "cho", "luc": luc}); kq.append({"cr": int(cr), "tt": h["tt"], "ly": chan, "kieu": f"★ ROAS {float(ro_[cr]['roas']):g} · ${int(ro_[cr]['ns'])}" if cr in ro_ else f"★ ROAS {float(HOI_CHO['roas']):g} · ${int(HOI_CHO['ns'])}"})
         if h["tt"] == "dang" and h.get("xet", "") < (dt.datetime.fromisoformat(luc) - dt.timedelta(hours=1)).isoformat(): h["tt"] = "cho"   # lượt bị cắt giữa chừng, 1 giờ chưa thấy camp → về hàng
         if h["tt"] == "dang" or (h["tt"] == "loi" and h.get("xet", "") > (dt.datetime.fromisoformat(luc) - dt.timedelta(hours=6)).isoformat()): continue   # lỗi thật: thử lại sau 6 giờ
-        if cr in ro_ and not ro_[cr].get("tu"):   # mục "tu" = anh chỉ sửa tay mức ROAS ở etp2 (#1857 suaRoasCr) → vẫn tự lên với mức đó · còn lại: ★ ROAS từ len_cr_roas: CHỜ ANH DUYỆT TAY ở etp2 (▶ Lên) — máy không tự lên (anh 22/11/2026 "show … ở trạng thái Chờ duyệt rồi tao sẽ duyệt = tay")
+        if (ro_.get(cr) or {}).get("nguon") == "sổ len_cr_roas":   # CHỈ lệnh tay 22/11 (len_cr_roas không "tu") CHỜ ANH ▶ Lên ở etp2 (anh 22/11/2026) · khối + "tu" (anh sửa mức, #1857) → tự lên khi anh duyệt (anh 25/11/2026 "duyệt xong thì sẽ mặc định lên theo plan")
             if h.get("ly") != TAY_LY: h.update(tt="cho", ly=TAY_LY); doi = True
             continue
         if chan or xem or not bo:
@@ -234,6 +240,8 @@ def nap():
 
 def _tu_kiem():
     r_ = lenh_cr("1", "2", "es", "X", "3", {"roas": 1, "ns": 5}); d_ = lenh_cr("1", "2", "en", "X", "3", None)
+    k_ = lenh_cr("1", "2", "es", "X", "3", {"roas": 1.1, "ns": 5, "khuon": 109047, "nguon": "khối #1"})
+    assert k_[1] == "109047" and k_[k_.index("--roas") + 1] == "1.1", "khối (etp.ke_cr): khuôn khối + mức ★ ROAS dàn theo creative, không phải hoi_cho"
     assert r_[1] == "65734" and r_[r_.index("--roas") + 1] == "1" and r_[r_.index("--ns") + 1] == "5" and "--that" in r_, "★ ROAS: khuôn cùng tiếng + roas + ns"
     assert d_[1] == "65110" and d_[d_.index("--roas") + 1] == f"{float(HOI_CHO['roas']):g}" and d_[d_.index("--ns") + 1] == str(int(HOI_CHO["ns"])), "không có trong sổ len_cr_roas → ★ ROAS mặc định hoi_cho (anh 24/11/2026)"
     b = _u("2026-11-20T03:00:00Z")

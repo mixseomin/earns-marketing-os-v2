@@ -721,7 +721,7 @@ const LUAT = [
   { card: 'roas-mac-dinh', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if moi and roas is None and not thang and "--hoi-cho" not in a: roas = float(HOI_CHO["roas"])', vi: 'lên creative mới không nói --roas = ★ ROAS hoi_cho (anh 24/11/2026 "Từ giờ mặc định là roas")' },
   { card: 'roas-mac-dinh', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'GHI SỔ CHỜ ĐỌC NGAY khi có camp', vi: 'camp ★ ROAS vào sổ chờ đọc lại ngay lúc tạo — bên gọi cắt giờ không làm camp mồ côi' },
   { card: 'roas-mac-dinh', tep: 'apps/etp/lenh_cho.py', co: 'if not ro: ro = {"roas": HOI_CHO["roas"], "ns": HOI_CHO["ns"]', vi: 'creative anh duyệt ngoài sổ len_cr_roas lên ★ ROAS hoi_cho, không còn $1' },
-  { card: 'roas-mac-dinh', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: "'--roas', String(BANG_LUAT.hoi_cho.roas), '--ns', String(BANG_LUAT.hoi_cho.ns), '--tay'", vi: 'nút Lên camp creative gửi ★ ROAS hoi_cho' },
+  { card: 'roas-mac-dinh', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: "'--roas', String(roas), '--ns', String(ns), '--tay'", vi: 'nút Lên camp creative gửi ★ ROAS theo etp.ke_cr (khối dàn mức), ngoài khối = hoi_cho' },
   { card: 'roas-mac-dinh', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: ': { roas: Number(BANG_LUAT.hoi_cho.roas), ns: Math.trunc(Number(BANG_LUAT.hoi_cho.ns)) };', vi: '▶ Lên / ⏱ theo lịch creative ngoài sổ = ★ ROAS hoi_cho' },
   { card: 'roas-mac-dinh', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', cam: "...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), '--tay', ...(o ?", vi: 'lệnh lên creative không còn nhánh camp $1' },
   { card: 'roas-mac-dinh', tep: 'apps/etp2/src/components/etp-dong.tsx', cam: '$1/ngày, ${chuLich()}', vi: 'nút lên creative không hứa $1/ngày' },
@@ -815,6 +815,9 @@ const LUAT = [
   { card: '1857', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: "export async function suaRoasCr(", vi: 'ghi mức ROAS tay của dòng chưa lên vào sổ len_cr_roas (cờ tu, máy vẫn tự lên) (#1857)' },
   { card: '1857', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: "export async function doiRoasCamp(", vi: 'đổi ROAS camp chưa chạy = camp mới giữ giờ + ngân sách, tạm dừng camp cũ (#1857)' },
   // HAI KHUNG LÊN CAMP 22h + 07h (anh 25/11/2026 "Giờ lên camp cũng set theo 2 khung gần nhất là 22h tối và 7h sáng hôm sau !!")
+  { card: 'roas-dan-2511', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: 'from etp.ke_cr where creative_id = ${cr} limit 1', cam: "'--roas', String(BANG_LUAT.hoi_cho.roas)", vi: 'lenCampCr đọc mức + khuôn từ etp.ke_cr, cấm cứng hoi_cho ROAS 1 (anh 25/11/2026 "cái nào cũng roas 1 à")' },
+  { card: 'roas-dan-2511', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: "from etp.ke_cr where creative_id = ${id} and nguon = 'sổ len_cr_roas'", cam: "khoa = 'len_cr_roas') roas", vi: 'thẻ chờ duyệt + ▶ Lên đọc etp.ke_cr: mỗi creative hiện đúng mức sẽ lên' },
+  { card: 'roas-dan-2511', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'from etp.ke_cr k where k.creative_id = h.creative_id', vi: 'hàng chờ lên camp hiện mức dàn từ etp.ke_cr' },
   { card: 'khung-7-22-2511', tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: '"len_gio": [7, 22]', vi: 'sổ luật etp2: khung lên 07h + 22h VN' },
   { card: 'khung-7-22-2511', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"len_gio": [7, 22]', vi: 'sổ luật chung (nhan-ban đọc tệp này): khung lên 07h + 22h VN' },
 ];

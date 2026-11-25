@@ -280,7 +280,7 @@ export async function batDauCamp(dongId: number): Promise<{ ok: true } | { loi: 
  *  etp.cau_hinh lo_trinh[phim].cr (nhan-ban miễn luật một camp / ngày cho đúng creative này) rồi chạy nhan-ban.py một ★ ROAS hoi_cho (mặc định từ 24/11/2026) — mọi cổng luật khác vẫn chặn.
  *  Chỉ creative cổng chấm đang cho lên (cham_cong.duoc_len), chưa có camp. Nhật ký: /tmp/etp-len-cr-<creative>.log trên box3. Chỉ admin. */
 const KHUON: Record<string, number> = { en: 65110, es: 65734 };   // camp mẫu cùng tiếng — cùng sổ apps/etp/dong_phim.py KHUON
-export async function lenCampCr(dongId: number, creativeId: number): Promise<{ ok: true } | { loi: string }> {
+export async function lenCampCr(dongId: number, creativeId: number): Promise<{ ok: true; roas: number; ns: number; nguon: string } | { loi: string }> {
   const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được lên camp' };
   const id = Math.trunc(Number(dongId)), cr = Math.trunc(Number(creativeId));
   const [x] = await run<{ content_id: number; ten: string | null; lang: string | null; duoc: boolean | null; co_camp: boolean; bo: string | null }>(sql`select p.content_id, p.ten, r.lang, g.duoc_len duoc,
@@ -300,17 +300,21 @@ export async function lenCampCr(dongId: number, creativeId: number): Promise<{ o
     on conflict (khoa) do update set gia_tri = coalesce(etp.cau_hinh.gia_tri, '{}'::jsonb) || jsonb_build_object(${String(x.content_id)}::text,
       coalesce(etp.cau_hinh.gia_tri->${String(x.content_id)}, '{}'::jsonb) || jsonb_build_object('cr', coalesce(etp.cau_hinh.gia_tri->${String(x.content_id)}->'cr', '[]'::jsonb) || jsonb_build_array(${cr})))`);
   const lang = x.lang === 'es' ? 'es' : 'en';
+  // KẾ CAMP MỘT NGUỒN (view etp.ke_cr, 0476 — anh 25/11/2026 "Các chỉ số ROAS phải dàn đủ như tao bảo"): khối dàn muc theo thứ tự creative + khuôn khối; ngoài khối = hoi_cho + KHUON
+  const [ke] = await run<{ roas: string | null; ns: number | null; khuon: number | null; nguon: string | null }>(sql`select roas::text roas, ns, khuon, nguon from etp.ke_cr where creative_id = ${cr} limit 1`);
+  const roas = ke?.roas != null ? Number(ke.roas) : Number(BANG_LUAT.hoi_cho.roas), ns = ke?.ns != null ? Math.trunc(Number(ke.ns)) : Math.trunc(Number(BANG_LUAT.hoi_cho.ns));
+  const khuon = ke?.khuon ? Math.trunc(Number(ke.khuon)) : KHUON[lang]!, nguon = ke?.nguon ?? 'mặc định hoi_cho';
   const ten = `${id > 0 ? `dp${id}` : 'tay'} ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - cr moi #${cr}`;   // spawn không qua shell — chỉ giữ chữ ASCII cho tên camp
   const dir = `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/xuong-video/scripts/ethopex`;
-  const vt = await xinVeTrucTiep('tao_camp', { content: x.content_id, lenh: `anh bấm etp2: lên camp creative #${cr} (Sản xuất)`, ns: BANG_LUAT.hoi_cho.ns });   // anh bấm = LỆNH TRỰC TIẾP (anh 25/11/2026 "fix tất cả nút thủ công")
+  const vt = await xinVeTrucTiep('tao_camp', { content: x.content_id, lenh: `anh bấm etp2: lên camp creative #${cr} (Sản xuất)`, ns });   // anh bấm = LỆNH TRỰC TIẾP (anh 25/11/2026 "fix tất cả nút thủ công")
   if ('loi' in vt) return { loi: vt.loi };
   if ('canh' in vt) return { loi: `⚠ ${vt.canh}` };
   const ve = vt.ma;
   const log = moNhatKyLen(cr, `anh (etp2 ${me.email})`);   // #1770: dòng gửi → bảng hiện "đang lên" ngay
-  spawn('python3', ['nhan-ban.py', String(KHUON[lang]), '--roas', String(BANG_LUAT.hoi_cho.roas), '--ns', String(BANG_LUAT.hoi_cho.ns), '--tay',   // ★ ROAS mặc định hoi_cho (anh 24/11/2026 "Từ giờ mặc định là roas")
+  spawn('python3', ['nhan-ban.py', String(khuon), '--roas', String(roas), '--ns', String(ns), '--tay',   // ★ ROAS theo etp.ke_cr (khối dàn mức) · ngoài khối mặc định hoi_cho
     '--bo', x.bo ?? '', '--creative', String(cr), '--content', String(x.content_id), '--ten', ten, '--that',   // giờ chạy do nhan-ban.lich_len quyết (anh 05/11/2026: ngoài 07–12h VN hẹn 07:00 hôm sau)
-    '--luat', `anh bấm lên camp creative #${cr} (etp.on.tc › Sản xuất)`, '--ai', `anh (etp.on.tc ${me.email})`], { cwd: dir, detached: true, stdio: ['ignore', log, log], env: envVe(ve) }).unref();
-  return { ok: true };
+    '--luat', `anh duyệt / bấm lên camp creative #${cr} — ★ ROAS ${roas} · $${ns} (${nguon})`, '--ai', `anh (etp.on.tc ${me.email})`], { cwd: dir, detached: true, stdio: ['ignore', log, log], env: envVe(ve) }).unref();
+  return { ok: true, roas, ns, nguon };
 }
 
 /** FIX: máy chạy dòng giết tiến trình bước (nếu còn), chạy lại bước đó + các bước sau, mở lại dòng */

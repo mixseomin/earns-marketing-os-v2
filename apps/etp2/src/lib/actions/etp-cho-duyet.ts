@@ -23,7 +23,8 @@ export type ChoDuyet = {
   /** giọng đọc (ky_di…) — giongCr (#1844 "show thêm kiểu giọng") */ giong: string | null;
   ghi: string; tao: string; duyet: boolean | null; diem_thap: string | null; camp_id: number | null; trang_thai: string | null; nhat_ky: string | null;
   /** nhận xét anh ghi trước đó cho creative KHÁC của cùng phim (etp.nhan_xet_cr, 0474) — đọc lại để thấy hướng sửa đã nêu */ nx: { cr: number; ok: boolean; chu: string; luc: string }[];
-  /** '1|5' = máy lên ★ ROAS 1 · $5 thay camp $1 (etp.cau_hinh.len_cr_roas, apps/etp/lenh_cho.py — anh 22/11/2026) */ roas: string | null;
+  /** '1.1|5' = mức ★ ROAS · $ máy sẽ lên — view etp.ke_cr (khối dàn muc 0.9/1.0/1.1/1.2 theo creative · sổ len_cr_roas), trống = hoi_cho */ roas: string | null;
+  /** khuôn camp của khối theo tiếng (etp.ke_cr) — trống = KHUON_CR */ khuon: number | null; mien: string | null;
   /** camp DỰ KIẾN (lib/etp-ke-cr keCr) — ngăn camp đọc lại bằng docThietLap([], [ke]) */ ke: KeTl | null;
   /** tóm tắt camp dự kiến để REVIEW ngay trên thẻ (anh 25/11/2026 "nhất là các thông tin về ngôn ngữ, targeting,... form text rất quan trọng") — ô = mã docThietLap, giá trị đã mở khỏi `chung` */
   tl: Record<string, string | null> | null; tlLoi: string | null;
@@ -47,7 +48,8 @@ export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean 
       (select string_agg(e.k || ' ' || e.v, ', ' order by e.v::numeric) from etp.cham c, jsonb_each_text(c.diem) e(k, v)
         where c.creative_id = h.creative_id and (e.k like 'meta.%' or e.k like 'afs.%') and e.v::numeric <= 4) diem_thap,
       k.camp_id, k.trang_thai,
-      (select (x.gia_tri -> h.creative_id::text ->> 'roas') || '|' || (x.gia_tri -> h.creative_id::text ->> 'ns') from etp.cau_hinh x where x.khoa = 'len_cr_roas') roas
+      (select e.roas || '|' || e.ns from etp.ke_cr e where e.creative_id = h.creative_id limit 1) roas,   -- MỘT nguồn kế camp (0476) — cùng lenh_cho.py / lenCampCr / lenhNb
+      (select e.khuon from etp.ke_cr e where e.creative_id = h.creative_id limit 1) khuon, (select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'mien_len') mien
     from etp.cho_anh_duyet_cr h join etp.creative r on r.creative_id = h.creative_id left join etp.phim f on f.content_id = r.content_id
       left join etp.cham_duyet u on u.creative_id = h.creative_id
       left join lateral (select c.camp_id, c.trang_thai from etp.camp c where c.creative_id = h.creative_id order by c.camp_id desc limit 1) k on true
@@ -61,7 +63,7 @@ export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean 
   const nxCua = (cid: number | null) => cid == null ? [] : nxDs.filter((n) => Number(n.content_id) === Number(cid)).slice(0, 3).map((n) => ({ cr: Number(n.cr), ok: n.ok, chu: n.chu, luc: n.luc }));
   // camp DỰ KIẾN của từng creative (cùng lệnh ▶ Lên: khuôn theo tiếng, ★ ROAS, bộ phim mới) — một lượt docThietLap cho cả ô
   const ke = new Map(ds.filter((x) => x.content_id != null && !x.camp_id).map((x) => [Number(x.creative_id),
-    keCr({ cr: Number(x.creative_id), cid: Number(x.content_id), lang: x.lang, phim: x.phim, roas: x.roas, bo: null /* null → docThietLap tính bộ cùng luật máy lên (SQL_BO_PHIM) */ })]));
+    keCr({ cr: Number(x.creative_id), cid: Number(x.content_id), lang: x.lang, phim: x.phim, roas: x.roas, khuon: x.khuon == null ? null : Number(x.khuon), mien: x.mien, bo: null /* null → docThietLap tính bộ cùng luật máy lên (SQL_BO_PHIM) */ })]));
   const tl = ke.size ? await docThietLap([], [...ke.values()]).catch((e: unknown) => ({ loi: String((e as Error)?.message ?? e).slice(0, 200) })) : null;
   const tom = (cr: number): Record<string, string | null> | null => {
     if (!tl || 'loi' in tl) return null; const d = tl.dong.find((r) => r.ke_cha === -cr); if (!d) return null;
@@ -101,11 +103,11 @@ export async function lenCamp(cr: number): Promise<{ ok: true; chu: string } | {
   const [dk] = await run<{ v: boolean }>(sql`select coalesce((select gia_tri = 'true'::jsonb from etp.cau_hinh where khoa = 'dung_khan'), false) v`);
   if (dk?.v) return { ok: true, chu: `đã duyệt #${id} — xếp hàng: máy tự lên camp ở nhịp đầu nhả dừng khẩn, giờ chạy theo lịch` };
   // creative trong sổ ★ ROAS (len_cr_roas): ROAS riêng của sổ — lenh_cho.py lên ★ ROAS ở nhịp worker kế (một creative một camp)
-  const [ro] = await run<{ x: number }>(sql`select 1 x from etp.cau_hinh where khoa = 'len_cr_roas' and gia_tri ? ${String(id)} and coalesce(gia_tri -> ${String(id)} ->> 'tu', '') <> 'true'`);   // mục "tu" = anh chỉ sửa mức ROAS (#1857) → vẫn lên tự động
+  const [ro] = await run<{ x: number }>(sql`select 1 x from etp.ke_cr where creative_id = ${id} and nguon = 'sổ len_cr_roas'`);   // chỉ lệnh tay 22/11 chờ ▶ Lên · khối + mục "tu" (anh sửa mức, #1857) → lên tự động
   if (ro) return { ok: true, chu: `đã ghi duyệt #${id} — dòng ★ ROAS hiện ở bảng Camp, lọc ⏳ Chờ duyệt: rê xem camp sẽ tạo, anh bấm ▶ Lên mới lên (máy không tự lên — anh 22/11/2026)` };
   const r = await lenCampCr(-1, id);
   if ('loi' in r) return { loi: `Đã ghi DUYỆT #${id}, nhưng chưa lên camp: ${r.loi}` };
-  return { ok: true, chu: `đã gửi lệnh lên ★ ROAS ${BANG_LUAT.hoi_cho.roas} · $${BANG_LUAT.hoi_cho.ns} cho creative #${id} — giờ chạy theo lịch lên; dòng này tự hiện số camp khi xong` };
+  return { ok: true, chu: `đã gửi lệnh lên ★ ROAS ${r.roas} · $${r.ns} (${r.nguon}) cho creative #${id} — giờ chạy theo lịch lên; dòng này tự hiện số camp khi xong` };
 }
 
 // ▶ LÊN NGAY / 🕒 ĐỔI GIỜ (anh 22/11/2026 "nút bấm Lên ngay = Tao ra lệnh sao phải xin mày ?" · "tao có thể điều chỉnh ngày, giờ lên camp") — anh bấm = LỆNH TRỰC TIẾP:
@@ -134,10 +136,11 @@ async function lenhNb(cr: number, gio?: string | null, o?: { roas: number; ns: n
   const id = Math.trunc(Number(cr)), g = gioVn(gio);
   if (gio && !g) return { loi: `giờ không đọc được: "${gio}" — dạng YYYY-MM-DD HH:MM giờ VN` };
   if (g && daQua(g)) return { loi: `giờ ${g} VN đã qua — chọn giờ sau bây giờ` };
-  const [x] = await run<{ content_id: number | null; ten: string | null; lang: string | null; ok: boolean | null; co_camp: boolean; bo: string | null; roas: string | null; ns: string | null }>(sql`select r.content_id, f.ten, r.lang, u.ok,
+  const [x] = await run<{ content_id: number | null; ten: string | null; lang: string | null; ok: boolean | null; co_camp: boolean; bo: string | null; roas: string | null; ns: string | null; khuon: number | null }>(sql`select r.content_id, f.ten, r.lang, u.ok,
       exists (select 1 from etp.camp c where c.creative_id = r.creative_id) co_camp, (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo,
-      (select gia_tri -> ${String(id)} ->> 'roas' from etp.cau_hinh where khoa = 'len_cr_roas') roas, (select gia_tri -> ${String(id)} ->> 'ns' from etp.cau_hinh where khoa = 'len_cr_roas') ns
-    from etp.creative r left join etp.phim f using (content_id) left join etp.cham_duyet u on u.creative_id = r.creative_id where r.creative_id = ${id}`);
+      e.roas::text roas, e.ns::text ns, e.khuon   -- kế camp MỘT nguồn: view etp.ke_cr (0476)
+    from etp.creative r left join etp.phim f using (content_id) left join etp.cham_duyet u on u.creative_id = r.creative_id
+      left join lateral (select * from etp.ke_cr k where k.creative_id = r.creative_id limit 1) e on true where r.creative_id = ${id}`);
   if (!x) return { loi: `không thấy creative #${id}` };
   if (!x.ok) return { loi: `creative #${id} chưa duyệt — duyệt trước rồi mới lên` };
   if (x.co_camp) return { loi: `creative #${id} đã có camp` };
@@ -154,7 +157,7 @@ async function lenhNb(cr: number, gio?: string | null, o?: { roas: number; ns: n
   const chu = lich ? `theo lịch: ${chayLuc(Date.now(), !!ro)}` : chuGio(g);
   const lenh = o ? `anh bấm nhân bản ★ ROAS ${o.roas} creative mới #${id} từ camp #${o.khuon} trên etp2 (${chu})` : `anh bấm ${lich ? '⏱ Lên theo lịch' : '▶ Lên ngay'} creative #${id} trên etp2 (${chu})`;
   const ten = tenCampCr(x.ten, lang, id);   // cùng tên camp dự kiến của ô duyệt (lib/etp-ke-cr)
-  return { lenh, ro, content: Number(x.content_id), g, lich, args: ['nhan-ban.py', String(o ? Math.trunc(Number(o.khuon)) : KHUON_CR[lang]), '--roas', String(ro.roas), '--ns', String(ro.ns), '--tay', ...(o ? [] : ['--bo', String(x.bo)]), '--creative', String(id),   // khuôn ★: không --bo → giữ bộ camp khuôn
+  return { lenh, ro, content: Number(x.content_id), g, lich, args: ['nhan-ban.py', String(o ? Math.trunc(Number(o.khuon)) : x.khuon ? Math.trunc(Number(x.khuon)) : KHUON_CR[lang]), '--roas', String(ro.roas), '--ns', String(ro.ns), '--tay', ...(o ? [] : ['--bo', String(x.bo)]), '--creative', String(id),   // khuôn ★: không --bo → giữ bộ camp khuôn
     '--content', String(x.content_id), '--ten', ten, ...(g ? ['--gio', g] : [])] };
 }
 

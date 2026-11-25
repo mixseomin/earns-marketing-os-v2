@@ -561,7 +561,9 @@ def b_camp_khoi(d, truoc):
         if k.get("mien") and mien != k["mien"]: return "dung", f"khuôn #{khuon} miền {mien or '?'} khác miền khối {k['mien']} — sửa etp.khoi.khuon", None
         ve = ve_dong(d)
         if not ve: return ("cho", f"đã lên {len(xong)} camp · chờ vé nhiệm vụ ngày cho phim {d['content_id']} (cong.py --ve-truc-tiep nhan_ban --phim {d['content_id']})", None) if not xong else ket_camp(d, xong, loi + ["hết vé"], {}, gan, may_)
-        sql(f"update etp.dong_buoc set ghi = {s(f'khối #{k['id']}: lên camp ★{muc[i]} (creative #{c})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")
+        ke = sql(f"select roas from etp.ke_cr where creative_id = {c} limit 1")   # MỘT nguồn mức (view 0476) — cùng mức etp2 / lenh_cho.py hiện + lên khi anh duyệt
+        if ke: muc[i] = float(ke)
+        sql(f"update etp.dong_buoc set ghi = {s(f'khối #{k['id']}: lên camp ★{muc[i]:g} (creative #{c})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")
         ten = re.sub(r"[^ -~]|['\"$`\\]", "", f"dp{d['id']} {d.get('ten') or ''} {lang.upper()} - khoi {k['id']} roas {muc[i]} cr moi #{c}")
         rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {khuon} --roas {muc[i]} --ns {int(float(k["ns"]))} --tay --bo {bo} --creative {c} --content {d["content_id"]} --ten "{ten}" --that --luat "khối #{k['id']} ★{muc[i]} (anh 25/11/2026)" --ai "{ai_dong(d, f"khối #{k['id']} etp2")}"'""", 1500, ve=ve)
         j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None) or {}

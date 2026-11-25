@@ -12,7 +12,7 @@ CHỐT CHẶN (máy tự làm, không chờ anh):
 Phần chia NUOI (bộ → tỉ lệ trần) để apps/etp/nuoi_bo.py nhân phim thắng sang bộ ít camp (anh 11/11/2026 "lên thêm camp ở 2 bộ chưa lên camp nào để nuôi tài khoản").
 BÙ GIÁ ADSENSE (anh 13/11/2026 "tạo roadmap cho plan này và triển khai đi", tiendo E24 bước 1): mọi số lãi / ROI ở đây (mức theo lãi, chốt 1, chốt 2, chốt 3)
 chia thu ngày đó cho hệ số giá AdSense cả chợ (gia_adsense.hs_sql — chỉ ngày giá tụt). 12/11/2026 lãi thô +$13 (ROI +0,1%) kéo trần 45 → 1; đã bù = +19%.
-Trạng thái: etp.cau_hinh.tran_len {ngay, tran, ly_do, bo_dung, nuoi}. Ghi tran_camp_moi_ngay. Telegram (etp.canh_bao 'tran_len') khi trần đổi.
+Trạng thái: etp.cau_hinh.tran_len {ngay, tran, ly_do, bo_dung, nuoi}. KHÔNG ghi tran_camp_moi_ngay nữa (anh 25/11/2026 bỏ mọi trần ngày / số camp — số tran chỉ còn để chia nuôi bộ). Telegram (etp.canh_bao 'tran_len') khi trần đổi.
 Tự kiểm: python3 apps/etp/tran_len.py"""
 import json, os, sys, datetime as dt
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import gia_adsense as GA
@@ -62,7 +62,6 @@ def chay(q, luc=None):
     kq = quyet(tong, lop, cu, bo3)
     moi = {"ngay": hn, "tran": kq["tran"], "ly_do": kq["ly_do"], "bo_dung": kq["bo_dung"], "nuoi": chia(kq["tran"], kq["bo_dung"])}
     q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('tran_len', $J${json.dumps(moi, ensure_ascii=False)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
-    q(f"update etp.cau_hinh set gia_tri = to_jsonb({int(kq['tran'])}), luc = now() where khoa = 'tran_camp_moi_ngay'")
     if cu != kq["tran"] or tt.get("bo_dung") != kq["bo_dung"]:
         chu = (f"Trần camp mới {hn}: {cu if cu is not None else '—'} → {kq['tran']}/ngày — {kq['ly_do']}"
                + (f" · bộ dừng nhận camp mới (3 ngày ROI < {BO_ROI}%): {', '.join(kq['bo_dung'])}" if kq["bo_dung"] else "")

@@ -113,8 +113,12 @@ def _sql_test(cid):
               and not exists (select 1 from etp.camp k where k.camp_id = (x->>'id')::int)) n,
         coalesce((select sum(n.chi) >= {float(po['chi'])} and sum(n.thu) > sum(n.chi) from etp.so_ngay n join etp.camp k using (camp_id) where k.content_id = {cid}
             and n.ngay between (now() at time zone 'utc')::date - {int(po['ngay'])} and (now() at time zone 'utc')::date - 1), false) "on")"""
+# BỎ TRẦN (anh 25/11/2026 "Ko set trần ngày hay số camp limit nào hết … Xoá hết"): sổ luật tran_test_phim.so = null → không trần camp test / phim:
+# sql_test_con trả null (= không trần, như phim lãi ổn định), cổng kiem không đếm / giữ chỗ. Đặt lại số trong sổ thì trần chạy lại y như cũ.
+CO_TRAN_TEST = TT.get("so") is not None
 def sql_test_con(cid):
-    """câu SQL con → số chỗ camp test còn lại của phim (null = phim lãi ổn định, không trần) — lộ trình đọc để không sản xuất creative cho phim đã đủ camp test"""
+    """câu SQL con → số chỗ camp test còn lại của phim (null = không trần: sổ bỏ trần hoặc phim lãi ổn định) — lộ trình đọc để không sản xuất creative cho phim đã đủ camp test"""
+    if not CO_TRAN_TEST: return "(select null::int)"
     return f"(select case when t.on then null else greatest({int(TT['so'])} - t.n, 0) end from {_sql_test(cid)} t)"
 def giu_test(cid):
     """(số camp test đang chạy kể cả chỗ đang giữ, phim lãi ổn định?, được qua?) — đếm + giữ chỗ trong MỘT giao dịch có khoá (cùng cách giu_cho)"""
@@ -579,7 +583,7 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         # TRẦN CAMP TEST MỖI PHIM (anh 18/11/2026, sổ luật tran_test_phim — xem giu_test): mọi đường máy tạo camp / nhân bản (dòng phim, AT, len-sau-cham, nhan-ban, nuôi bộ, thang).
         # Miễn: anh bấm tay (vé) / lệnh đích danh của anh (lenh_anh) · ★ ROAS (dạng riêng, trần riêng của đợt hồi chợ) · camp thay bài bị Meta từ chối (thay: thay chỗ, không thêm)
         # Miễn thêm (anh 19/11/2026, xung đột 5): nhân bản từ camp gốc ĐÃ ĐẠT NẤC NB (mien_tran_goc) — bản nhân không tính trần, không giữ chỗ
-        if ct and viec in ("tao_camp", "nhan_ban") and not ve and not lenh_anh and not roas and not thay and not (viec == "nhan_ban" and (goc or camp_id) and mien_tran_goc(goc or camp_id)):
+        if CO_TRAN_TEST and ct and viec in ("tao_camp", "nhan_ban") and not ve and not lenh_anh and not roas and not thay and not (viec == "nhan_ban" and (goc or camp_id) and mien_tran_goc(goc or camp_id)):
             so_t, _on, duoc_t = giu_test(int(ct))
             if not duoc_t: return ly_tran_test(ct, so_t)
         tcm = ch.get(KHOA_TRAN_NGAY)   # TRẦN CAMP MỚI MỖI NGÀY (anh 07/11/2026 chốt 100 camp thử / ngày): đếm camp nhà tạo trong ngày VN, kể cả bản nhân
@@ -718,11 +722,11 @@ def _tu_kiem():
     assert phanh_sx({"phanh_cho": {"gia6": {"ti": 0.6, "den": _x(1)}}}).startswith("chờ phanh nhả: PHANH CHỢ (báo sớm)") and phanh_sx({"phanh_cho": {"roi_sang": {"roi": -14, "kem": -34, "den": _x(3)}}}).startswith("chờ phanh nhả: PHANH MỞ RỘNG"), "báo sớm gia6 / roi_sang cũng ngừng"
     assert phanh_sx({"phanh_cho": {"rut": {"den": "2026-11-18T00:00:00+00:00"}}}, _u("2026-11-17T04:00:00")).startswith("chờ phanh nhả: RÚT KHỎI CHỢ") and phanh_sx({}, _u("2026-11-17T04:00:00")) is None and phanh_sx(None) is None
     assert phanh_sx({"bao_tri_len": {"bat": True}}, _u("2026-11-17T04:00:00")).startswith("chờ phanh nhả: ETHOPEX BẢO TRÌ") and phanh_sx({"dung_khan": True}).startswith("chờ phanh nhả: ĐANG DỪNG KHẨN")
-    assert int(TT["so"]) == 2 and _NB_MIN == (3.0, 50.0), "trần camp test / phim lệch sổ luật (anh 18/11/2026: 2 camp test, camp lãi = nấc NB $3 & +50% hoặc ROI cộng dồn dương)"
+    assert TT["so"] is None and not CO_TRAN_TEST and sql_test_con(1) == "(select null::int)" and _NB_MIN == (3.0, 50.0), "anh 25/11/2026 bỏ trần camp test / phim: sổ tran_test_phim.so = null, sql_test_con không trần"
     assert la_lai(5, 6) and la_lai(3, 4.5) and la_lai(0.5, 0.6) and not la_lai(3, 3) and not la_lai(0, 0) and not la_lai(10, 4) and not la_lai(None, None), "camp lãi = thu > chi (chi > 0)"
     # xung đột 5 (anh 19/11/2026): camp gốc nấc 45 / 100 (tiêu $45, thu $100) → bản nhân không tính trần; gốc chưa đạt nấc ($2 / $10, $10 / $12) → vẫn tính, trần giữ nguyên
     assert goc_dat_nac(45, 100) and not goc_dat_nac(2, 10) and not goc_dat_nac(10, 12) and not goc_dat_nac(0, 0), "gốc đạt nấc NB thấp nhất mới miễn trần"
-    assert int(TT["so"]) == 2 and "c.goc is not null" in _sql_test(1) and _NB_LOG_MIEN in _sql_test(1) and _NB_LOG_MIEN in sql_test_con(1), "đếm trần bỏ bản nhân từ gốc đạt nấc (kho + nhật ký), phim không có gốc đạt nấc vẫn trần 2"
+    assert "c.goc is not null" in _sql_test(1) and _NB_LOG_MIEN in _sql_test(1), "đếm trần bỏ bản nhân từ gốc đạt nấc (kho + nhật ký) — dùng khi sổ đặt lại trần"
     assert "having sum(g.chi) >= " + str(_NB_MIN[0]) in _sql_goc_nac(7), "SQL gốc đạt nấc cùng ngưỡng nấc NB thấp nhất của sổ"
     assert "tran_test_phim" in ly_tran_test(1, 2) and "chạm trần" in ly_tran_test(1, 2), "câu chặn phải mang khoá (dòng phim mo_tran_test) + 'chạm trần' (SQL_DONG_HONG không đếm là dòng hỏng)"
     assert '"on"' in _sql_test(1) and "camp_dang_chay" in _sql_test(1) and "la_roas" in _sql_test(1) and "ethopex_nhat_ky" in _sql_test(1)

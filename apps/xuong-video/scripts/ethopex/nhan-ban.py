@@ -516,7 +516,7 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
     # ep (sang bộ khác theo lệnh anh, 28/10/2026 "lên bộ 3 như bộ 1"): camp thắng bộ 1 đã bị luật chấm tắt vẫn là khuôn + bài đăng dùng được
     if c.get("state") != "ACTIVE" and not roas and not moi and not ep and not hoi_cho: raise ValueError(f"camp gốc đang {c.get('state')}")
     # NHÂN BẢN BÀI CŨ (anh 11/11/2026 "khi dup camp lãi ổn định dạng ko phải roas thì chọn Use existing post"): clone camp thường CÙNG BỘ (bài đăng thuộc Page của bộ)
-    # → ad dùng lại bài đăng của camp gốc (giữ tương tác), ngân sách CONG.NS_BAI_CU, không đòi CTA mới. Creative mới (--creative), sang bộ khác, camp team → đăng bài mới như cũ.
+    # → ad dùng lại bài đăng của camp gốc (giữ tương tác), ngân sách CONG.NS_MOI ($5), không đòi CTA mới. Creative mới (--creative), sang bộ khác, camp team → đăng bài mới như cũ.
     sid_goc = (a.get("effective_object_story_id") or "").strip()
     bai = (not roas and not moi and not NGOAI and bool(re.fullmatch(r"\d+_\d+", sid_goc)) and (not bo or str(bo) == str(bo_cua_camp(c))))
     if len(d.get("ad_groups") or []) != 1 or len(g.get("ads") or []) != 1: raise ValueError("camp gốc không đúng khuôn 1 nhóm 1 ad")
@@ -541,7 +541,7 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
     # BỎ mọi mã định danh + mốc thời gian của camp GỐC (chạy khô 22/10/2026: source_payload Ad Set mang campaign_id FB + start_time của camp gốc
     # → gửi nguyên là gắn nhầm vào camp gốc / chạy theo lịch cũ). Lịch của bản mới do type_run quyết.
     BO = {"id", "campaign_id", "adset_id", "account_id", "start_time", "end_time", "stop_time", "created_time", "updated_time", "effective_status", "configured_status", "issues_info"}
-    sp_c = {k: v for k, v in js(c.get("source_payload")).items() if k not in BO}; sp_c.update(name=ten, daily_budget=int(thang) if thang else (int(ns_tay) if ns_tay else (CONG.NS_BAI_CU if bai else 1)), status="PAUSED")   # số nguyên như lam-ethopex tang (bậc thang đều là $ nguyên)
+    sp_c = {k: v for k, v in js(c.get("source_payload")).items() if k not in BO}; sp_c.update(name=ten, daily_budget=int(thang) if thang else (int(ns_tay) if ns_tay else CONG.NS_MOI), status="PAUSED")   # số nguyên như lam-ethopex tang (bậc thang đều là $ nguyên)
     tk, ext, page = c.get("ad_account_id"), c.get("external_account_id"), a.get("facebook_page_id")
     bo = None if NGOAI else (bo or bo_cua_camp(c) or "1")   # người trong team: không có bộ — dựng đúng tài khoản / Page của camp gốc
     if bo and bo_cua_camp(c) != str(bo):   # dựng trên khuôn camp của bộ khác → đổi đúng 3 trường tài khoản / Page (pixel dùng chung, bài đăng FB tạo mới)
@@ -627,14 +627,14 @@ def main(a):
     roas = float(lay("--roas")) if lay("--roas") else None
     # MẶC ĐỊNH ★ ROAS (anh 24/11/2026 "Từ giờ mặc định là roas"): lên creative MỚI (--creative) mà không nói --roas → ★ ROAS hoi_cho.roas · $hoi_cho.ns (sổ etp-bang-luat.json), không còn camp $1
     if moi and roas is None and not thang and "--hoi-cho" not in a: roas = float(HOI_CHO["roas"])
-    # NGÂN SÁCH ANH CHỈNH cho bản không bid / sang bộ khác (anh 22/11/2026 "Ngân sách cho điều chỉnh"): chỉ khi anh bấm tay (vé), $1–20 nguyên; thiếu = mặc định ($10 bài cũ NB từ 22/11/2026 · $1 bài mới)
+    # NGÂN SÁCH ANH CHỈNH cho bản không bid / sang bộ khác (anh 22/11/2026 "Ngân sách cho điều chỉnh"): chỉ khi anh bấm tay (vé), $1–20 nguyên; thiếu = CONG.NS_MOI ($5 mọi camp mới, anh 25/11/2026)
     ns_tay = int(float(lay("--ns"))) if lay("--ns") and roas is None and not thang else None
     if ns_tay is not None and not (anh and 1 <= ns_tay <= 20): raise SystemExit("--ns cho bản không bid / sang bộ khác chỉ đi cùng vé thao tác tay, $1–20")
     hoi_cho = "--hoi-cho" in a   # ĐỢT LÊN HỒI CHỢ (anh 18/11/2026, apps/etp/hoi_cho.py): nhân bản BÀI CŨ của camp từng lãi trước đợt sụt — gốc tắt vẫn được, BẮT BUỘC bài cũ
     if roas is not None:
         if thang or hoi_cho: raise SystemExit("--roas không đi kèm --thang / --hoi-cho")
         if not ROAS_MIN <= roas <= ROAS_MAX: raise SystemExit(f"--roas phải trong {ROAS_MIN}–{ROAS_MAX} (Support 26/10/2026)")
-        return roas_main(goc, roas, int(float(lay("--ns", str(HOI_CHO["ns"]) if moi else "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a, tay, moi=moi, bo=bo, lenh_cho="--lenh-cho" in a, gio=gio, cu=cu, doi="--roas-doi" in a, truc=truc, ngay=ngay)
+        return roas_main(goc, roas, int(float(lay("--ns", str(CONG.NS_MOI)))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a, tay, moi=moi, bo=bo, lenh_cho="--lenh-cho" in a, gio=gio, cu=cu, doi="--roas-doi" in a, truc=truc, ngay=ngay)
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None, "chay": lich}
     try:
         d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep, hoi_cho=hoi_cho and not moi and not thang, ns_tay=ns_tay); kq["ten"] = ten; bo = pl.pop("bo"); bai0 = bai = pl.pop("bai_cu", None); cr_bai = pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"]
@@ -753,7 +753,7 @@ def main(a):
             if c.get("sync_status") in ("done", "synced") or c.get("error"): break
         kq.update(ok=not c.get("error"), moi=moi, dong_bo=c.get("sync_status"), loi=c.get("error") or None, bo=bo, ns=c.get("budget_daily"))
         if mien_cham and ep: q(f"update etp.cau_hinh set gia_tri = gia_tri || to_jsonb({int(moi)}), luc = now() where khoa = 'cham_mien' and not gia_tri @> to_jsonb({int(moi)})")
-        ns_dich = thang or (CONG.NS_BAI_CU if bai else None)
+        ns_dich = thang or ns_tay or CONG.NS_MOI   # camp mới đều $5 (anh 25/11/2026) — Ethopex không nhận ngân sách lúc tạo thì đặt lại
         if ns_dich and kq["ok"] and float(c.get("budget_daily") or 0) != ns_dich:   # Ethopex không nhận ngân sách lúc tạo → đặt lại ngay (camp mới chưa học gì)
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": int(ns_dich)}}}); time.sleep(8)
             kq["ns"] = api(f"/api/v1/campaigns/{moi}")["campaign"].get("budget_daily")
@@ -844,7 +844,7 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
             lo_, hi_ = HOI_CHO["ns_khoang"]
             _sl = _iuc.spec_from_file_location("etp_lenh_cho", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "lenh_cho.py")); LC = _iuc.module_from_spec(_sl); _sl.loader.exec_module(LC)
             if not (lo_ <= ns <= hi_ and LC.hop_le(goc, roas, ns)): raise ValueError(f"--lenh-cho: không có lệnh chờ phanh đang chạy cho #{goc} roas {roas:g} ${ns} (hoặc ngoài ${lo_:g}–{hi_:g})")
-        elif not 5 <= ns <= 20 and not CONG.truc_tiep("nhan_ban", [goc]): raise ValueError("ngân sách camp ROAS $5–20 (Dol 22/11/2026: camp mới $5, lãi thì nuôi dần lên) — lệnh trực tiếp của anh: cấp vé cong.py --ve-truc-tiep")   # LỆNH TRỰC TIẾP (anh 20/11/2026 09:35) miễn khoảng $15–20
+        elif ns != CONG.NS_MOI and not CONG.truc_tiep("nhan_ban", [goc]): raise ValueError(f"camp ★ ROAS mới bắt đầu ${CONG.NS_MOI} (anh 25/11/2026 \"các camp mới đều bắt đầu từ $5\"; lãi thì nuôi dần lên) — mức khác chỉ bằng vé trực tiếp của anh")   # LỆNH TRỰC TIẾP (anh 20/11/2026 09:35) miễn khoảng $15–20
         d, ten, cid, pl = payload(goc, lich, moi=moi, bo=bo if moi else None, roas=roas, ns_roas=ns, nhan=nhan); kq["ten"] = ten; bo = pl.pop("bo")
         if moi:
             kq["content"], kq["creative"] = cid, int(moi["creative"])

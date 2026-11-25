@@ -345,27 +345,52 @@ def b_creative_lt(d, truoc):
     if not sach: return "dung", f"cả {len(ds)} creative bị cổng chấm chặn / giữ", {"ds": ds}
     return "xong", f"{len(sach)}/{len(ds)} creative chấm sạch: " + ", ".join(f"#{x['creative_id']}" for x in sach), {"ds": ds, "sach": sach}
 
+# MỖI MỨC ROAS MỘT CREATIVE MỚI (anh 25/11/2026 "ở mức level 0.9, 1.0, 1.1 của từng phim. Mỗi mức đó cần 1 creative riêng mới để ko cạnh tranh nhau"):
+# etp.khoi.muc = các mức ★ ROAS (migration 0472); phim lên so_camp camp, camp thứ i ★ ROAS muc[i] (thiếu thì mức cuối) và MỘT creative riêng — không creative nào chạy hai camp.
+# Cùng công thức bên etp2: apps/etp2/src/lib/etp-khoi-muc.ts (mucCampKhoi).
+def muc_camp(k, so=None):
+    muc = [float(x) for x in (k.get("muc") or []) if x is not None] or [float(k["roas"])]
+    n = max(1, int(so or k.get("cr_camp") or len(muc)))
+    return [muc[min(i, len(muc) - 1)] for i in range(n)]
+
+def cr_mau_moi(ma, cid, bo_ra):
+    """creative của (mẫu, phim) đã dựng mà CHƯA có camp, mỗi khung một cái (2 bản giọng cùng khung = cùng hình → chỉ lấy bản đầu), theo thứ tự dựng"""
+    ids = [int(x) for x in re.findall(r"\d+", sql(f"select coalesce(array_to_string(creative_ids, ' '), '') from etp.mau_dung where mau = {s(ma)} and content_id = {int(cid)}"))]
+    if not ids: return []
+    khung = {int(a): b for a, b in (l.split("\t") for l in sql(f"""select t.creative_id, coalesce(substring(t.ghi from 'khung [^ ·]+'), t.id::text) from etp.thu_vien t
+              where t.creative_id in ({','.join(map(str, ids))})""").splitlines() if l.count("\t") == 1)}
+    co_camp = {int(x) for x in sql(f"select distinct creative_id from etp.camp where creative_id in ({','.join(map(str, ids))})").split()}
+    ra, da_k = [], set()
+    for c in ids:
+        k_ = khung.get(c, str(c))
+        if c in co_camp or c in bo_ra or k_ in da_k: da_k.add(k_); continue
+        da_k.add(k_); ra.append(c)
+    return ra
+
 def b_creative_khoi(d):
-    """KHỐI có mẫu (etp.khoi.mau, vd dt_anh_dong_logo): dung-mau.py <mẫu> <phim> --ban 1 trên iMac (môi trường poster-mau) → MỘT creative tiếng của phim → cổng chấm.
-    Kế hoạch etp2 (⚙ Thiết lập · Đang lên kế hoạch) hứa đúng điều này: 1 creative theo mẫu × cr_camp camp chép khuôn. Bản đã dựng (etp.mau_dung.creative_ids) thì dùng lại, không dựng lần hai."""
-    k = d["khoi"]; ma = str(k["mau"]); cid = int(d["content_id"])
+    """KHỐI có mẫu (etp.khoi.mau, vd dt_anh_dong_logo): mỗi camp của phim (mức ★ ROAS muc_camp) cần MỘT creative mới riêng chưa có camp → dung-mau.py <mẫu> <phim> --ban <thiếu>
+    trên iMac (môi trường poster-mau; mỗi bản một khung khác, máy dựng nhớ khung đã dùng) → cổng chấm. Bản đã dựng chưa có camp thì dùng lại, không dựng lần hai.
+    Lượt chạy quá hạn bước thì lượt sau đọc lại etp.mau_dung.creative_ids, chỉ dựng phần còn thiếu."""
+    k = d["khoi"]; ma = str(k["mau"]); cid = int(d["content_id"]); muc = muc_camp(k, d.get("so_camp"))
     tr = (d.get("buoc") or {}).get("creative") or {}; kq0 = tr.get("ket_qua") or {}
-    ids = [int(x["creative_id"]) for x in kq0.get("ds") or []]
-    if not ids: ids = [int(x) for x in re.findall(r"\d+", sql(f"select coalesce(array_to_string(creative_ids, ' '), '') from etp.mau_dung where mau = {s(ma)} and content_id = {cid}"))][:1]
-    if not ids:
-        rc, out = chay_tien_trinh(d["id"], "creative", [os.path.expanduser("~/.venvs/poster-mau/bin/python"), os.path.join(E, "dung-mau.py"), ma, str(cid), "--ban", "1"], dict(BUOC)["creative"] - 120)
-        j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("[")), None)
-        ids = [int(x) for x in j or []][:1]
-        if not ids: return ("loi" if rc == -9 or j is None else "dung"), f"dựng mẫu {ma} không ra creative: {out[-300:]}", None
+    ids = [int(x["creative_id"]) for x in kq0.get("ds") or []][:len(muc)]
+    if len(ids) < len(muc): ids += cr_mau_moi(ma, cid, set(ids))[:len(muc) - len(ids)]
+    if len(ids) < len(muc):
+        rc, out = chay_tien_trinh(d["id"], "creative", [os.path.expanduser("~/.venvs/poster-mau/bin/python"), os.path.join(E, "dung-mau.py"), ma, str(cid), "--ban", str(len(muc) - len(ids))], dict(BUOC)["creative"] - 120)
+        ids += cr_mau_moi(ma, cid, set(ids))[:len(muc) - len(ids)]
+        if not ids: return ("loi" if rc == -9 else "dung"), f"dựng mẫu {ma} không ra creative: {out[-300:]}", None
+        if len(ids) < len(muc): return ("loi" if rc == -9 else "dung"), f"mẫu {ma}: mới có {len(ids)}/{len(muc)} creative riêng cho {len(muc)} mức ★ ROAS — {out[-240:]}", {"ds": [{"creative_id": c} for c in ids]}
     sql(f"update etp.dong_phim set creative_id = {ids[0]} where id = {d['id']}")
-    kq = {"creative_id": ids[0], "ds": [{"creative_id": c} for c in ids]}
+    kq = {"creative_id": ids[0], "ds": [{"creative_id": c, "roas": muc[i]} for i, c in enumerate(ids)]}
     r = {int(l.split(chr(9))[0]): (l.split(chr(9))[1:] + ["", ""])[:2] for l in sql(f"""select r.creative_id, coalesce(r.lang, 'en'), coalesce(g.duoc_len::text, '')
             from etp.creative r left join etp.cham_cong g using (creative_id) where r.creative_id in ({','.join(map(str, ids))})""").splitlines() if chr(9) in l}
-    if len(r) < len(ids): return "cho", f"creative mẫu {ma} #{ids[0]} đã tạo — chờ đồng bộ kho etp", kq
-    if any(v[1] == "" for v in r.values()): return "cho", f"creative mẫu {ma} #{ids[0]} — chờ máy chấm", kq
-    kq["sach"] = [{"creative_id": c, "lang": r[c][0]} for c in ids if r[c][1] == "true"]
-    if not kq["sach"]: return "dung", f"creative mẫu {ma} #{ids[0]} bị cổng chấm chặn", kq
-    return "xong", f"creative mẫu {ma} #{ids[0]} chấm sạch", kq
+    ten = ", ".join(f"#{c}" for c in ids)
+    if len(r) < len(ids): return "cho", f"creative mẫu {ma} {ten} đã tạo — chờ đồng bộ kho etp", kq
+    if any(v[1] == "" for v in r.values()): return "cho", f"creative mẫu {ma} {ten} — chờ máy chấm", kq
+    bi = [c for c in ids if r[c][1] != "true"]
+    if bi: return "dung", f"creative mẫu {ma} {', '.join(f'#{c}' for c in bi)} bị cổng chấm chặn — mỗi mức ★ ROAS cần một creative sạch riêng", kq
+    kq["sach"] = [{"creative_id": c, "lang": r[c][0], "roas": muc[i]} for i, c in enumerate(ids)]
+    return "xong", f"{len(ids)} creative mẫu {ma} chấm sạch, mỗi mức một cái: " + " · ".join(f"★{muc[i]} #{c}" for i, c in enumerate(ids)), kq
 
 def b_creative_kt(d):
     """KT: dòng đứng đầu hàng đợi máy sinh kể chuyện (hang-ke-chuyen.mts bậc 5000) → chờ creative kể chuyện MỚI của phim (tạo sau lúc bước này bắt đầu) → cổng chấm"""
@@ -513,34 +538,36 @@ def b_camp_mr(d, truoc):
     return ket, (f"{len(xong) + len(cu)}/{d['so_camp']} camp · " + ghi + (f" · thiếu {thieu} (không đủ creative sạch)" if thieu > 0 and not loi else "")) if ket == "xong" else ghi, kq
 
 # KHỐI CAMP (anh 25/11/2026 "Nếu lên theo khối của phim thì sẽ phải nhìn thấy đủ các thành phần, các camp đang sx", etp.khoi — migration 0470):
-# dòng thuộc khối lên camp bằng ĐÚNG tham số khối (★ ROAS · $/ngày · khuôn theo tiếng có miền = khối.mien), mỗi creative cr_camp camp — không đọc hoi_cho / KHUON.
-# Một creative nhiều camp chỉ đi được bằng vé trực tiếp (nhan-ban chặn creative đã có camp khi không có vé) → dòng khối mang ai DONG_TRUC_TIEP, mỗi camp một vé
+# dòng thuộc khối lên camp bằng ĐÚNG tham số khối (★ ROAS theo mức muc_camp · $/ngày · khuôn theo tiếng có miền = khối.mien), MỖI CAMP MỘT CREATIVE RIÊNG — không đọc hoi_cho / KHUON.
+# Camp khối đi bằng vé trực tiếp → dòng khối mang ai DONG_TRUC_TIEP, mỗi camp một vé
 # trong số camp của etp.cau_hinh.nhiem_vu_ngay (cong.py cấp theo câu anh). Hết vé = chờ, không có đường tự lên.
 def b_camp_khoi(d, truoc):
     k = d["khoi"]
     if k.get("trang_thai") != "chay": return "cho", f"khối #{k['id']} {k.get('ten') or ''} chưa duyệt (trạng thái {k.get('trang_thai')})", None
-    cr = truoc.get("creative") or {}; ds = [int(x["creative_id"]) for x in (cr.get("sach") or ([cr] if cr.get("creative_id") else []))]
-    if not ds: return "loi", "chưa có creative sạch", None
+    cr = truoc.get("creative") or {}; sach = cr.get("sach") or []
+    muc = muc_camp(k, d.get("so_camp"))
+    if len(sach) < len(muc): return "loi", f"mới có {len(sach)}/{len(muc)} creative sạch — mỗi mức ★ ROAS cần một creative riêng", None
     bo = str(d.get("bo") or "").strip() or sql(CG.SQL_BO_PHIM.format(cid=int(d['content_id'])))
     if not bo: return "loi", "không đọc được bộ của phim", None
+    ds = [int(x["creative_id"]) for x in sach[:len(muc)]]
     xong, loi, gan, may_ = [], [], [], False
     da = {int(a): int(b) for a, b in (l.split("\t") for l in sql(f"select creative_id, count(*) from etp.camp where creative_id in ({','.join(map(str, ds))}) group by 1").splitlines() if l.count("\t") == 1)}
-    for c in ds:
+    for i, c in enumerate(ds):
+        if da.get(c): continue   # mỗi creative đúng MỘT camp — đã có thì mức này xong
         lang = sql(f"select coalesce(lang, 'en') from etp.creative where creative_id = {c}") or "en"
         khuon = int((k.get("khuon") or {}).get(lang) or 0)
         if not khuon: loi.append(f"#{c}: khối #{k['id']} không có khuôn tiếng {lang}"); continue
         mien = sql(f"select coalesce(mien, '') from etp.camp where camp_id = {khuon}")
         if k.get("mien") and mien != k["mien"]: return "dung", f"khuôn #{khuon} miền {mien or '?'} khác miền khối {k['mien']} — sửa etp.khoi.khuon", None
-        for i_ in range(max(0, int(k.get("cr_camp") or 1) - da.get(c, 0))):
-            ve = ve_dong(d)
-            if not ve: return ("cho", f"đã lên {len(xong)} camp · chờ vé nhiệm vụ ngày cho phim {d['content_id']} (cong.py --ve-truc-tiep nhan_ban --phim {d['content_id']})", None) if not xong else ket_camp(d, xong, loi + ["hết vé"], {}, gan, may_)
-            sql(f"update etp.dong_buoc set ghi = {s(f'khối #{k['id']}: lên camp {len(xong) + 1} (creative #{c})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")
-            ten = re.sub(r"[^ -~]|['\"$`\\]", "", f"dp{d['id']} {d.get('ten') or ''} {lang.upper()} - khoi {k['id']} cr moi #{c}")
-            rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {khuon} --roas {float(k["roas"])} --ns {int(float(k["ns"]))} --tay --bo {bo} --creative {c} --content {d["content_id"]} --ten "{ten}" --that --luat "khối #{k['id']} (anh 25/11/2026)" --ai "{ai_dong(d, f"khối #{k['id']} etp2")}"'""", 1500, ve=ve)
-            j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None) or {}
-            if j.get("ok") and j.get("moi"): xong.append(int(j["moi"])); gan.append({"creative_id": c, "camp": int(j["moi"])})
-            else: loi.append(f"#{c}: {(j.get('loi') or out[-120:])[:120]}"); may_ = may_ or not j or bool(j.get("may")); break
-    return ket_camp(d, xong, loi, {}, gan, may_) if xong or loi else ("xong", f"khối #{k['id']}: mọi creative đã đủ {k.get('cr_camp')} camp", None)
+        ve = ve_dong(d)
+        if not ve: return ("cho", f"đã lên {len(xong)} camp · chờ vé nhiệm vụ ngày cho phim {d['content_id']} (cong.py --ve-truc-tiep nhan_ban --phim {d['content_id']})", None) if not xong else ket_camp(d, xong, loi + ["hết vé"], {}, gan, may_)
+        sql(f"update etp.dong_buoc set ghi = {s(f'khối #{k['id']}: lên camp ★{muc[i]} (creative #{c})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")
+        ten = re.sub(r"[^ -~]|['\"$`\\]", "", f"dp{d['id']} {d.get('ten') or ''} {lang.upper()} - khoi {k['id']} roas {muc[i]} cr moi #{c}")
+        rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {khuon} --roas {muc[i]} --ns {int(float(k["ns"]))} --tay --bo {bo} --creative {c} --content {d["content_id"]} --ten "{ten}" --that --luat "khối #{k['id']} ★{muc[i]} (anh 25/11/2026)" --ai "{ai_dong(d, f"khối #{k['id']} etp2")}"'""", 1500, ve=ve)
+        j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None) or {}
+        if j.get("ok") and j.get("moi"): xong.append(int(j["moi"])); gan.append({"creative_id": c, "camp": int(j["moi"]), "roas": muc[i]})
+        else: loi.append(f"#{c}: {(j.get('loi') or out[-120:])[:120]}"); may_ = may_ or not j or bool(j.get("may")); break
+    return ket_camp(d, xong, loi, {}, gan, may_) if xong or loi else ("xong", f"khối #{k['id']}: đủ {len(muc)} camp, mỗi mức ★ ROAS một creative riêng", None)
 
 def b_camp(d, truoc):
     if d.get("khoi"): return b_camp_khoi(d, truoc)

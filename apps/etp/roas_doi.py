@@ -43,6 +43,7 @@ def nb(args, luat):
     except Exception as e: return {"ok": False, "loi": str(e)[:200]}
 
 def chay(xem=False):
+    if RD.get("tat"): return {"chay": False, "ly": RD.get("_tat") or "roas_doi đang tắt"}   # anh 25/11/2026: tắt cổng nhân bản tới khi review
     bay = dt.datetime.now(dt.timezone.utc); h = (bay + dt.timedelta(hours=7)).hour
     if not trong_khung(h) and not xem: return {"chay": False, "ly": f"ngoài khung {RD['khung'][0]:02d}–{RD['khung'][1]:02d}h VN"}
     ngay = dem_qua(bay); a, b = RD["dem"]
@@ -72,8 +73,8 @@ def chay(xem=False):
     return kq
 
 def _tu_kiem():
-    assert RD["muc"] == [0.9, 1.1] and RD["ns"] == 10 and RD["dem"] == [16, 24] and RD["khung"] == [7, 12], "sổ roas_doi lệch (anh 22/11/2026: ROAS 0.9 + 1.1 ở $10, đêm 23–07h VN)"
-    assert all(0.9 <= m <= 1.4 for m in RD["muc"]) and 5 <= RD["ns"] <= 20, "mức / ngân sách phải qua cổng ROAS của nhan-ban (0.9–1.4, $5–20)"
+    assert RD["muc"] == [0.9, 1.1] and RD["ns"] == 5 and RD["dem"] == [16, 24] and RD["khung"] == [7, 12], "sổ roas_doi lệch (anh 22/11/2026: ROAS 0.9 + 1.1, đêm 23–07h VN; $5 như mọi camp mới — anh 25/11/2026)"
+    assert all(0.9 <= m <= 1.4 for m in RD["muc"]) and RD["ns"] == CG.NS_MOI, "mức / ngân sách phải qua cổng ROAS của nhan-ban (0.9–1.4, camp mới $5)"
     assert CG._BL["khung_doi"]["len_roas"] == [23, 3]
     u = lambda s: dt.datetime.fromisoformat(s + "+00:00")
     assert str(dem_qua(u("2026-11-23T00:30:00"))) == "2026-11-22", "07:30 VN 23/11 → đêm UTC ngày 22/11 giờ 16–23"

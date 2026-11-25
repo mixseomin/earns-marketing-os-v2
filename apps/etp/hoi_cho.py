@@ -127,7 +127,7 @@ def _tu_kiem():
     assert not dot({"gia6_nay": 0.8}, "2026-11-17", u("2026-11-19T01:00:00"))[0] and not dot({}, "2026-11-17", u("2026-11-19T01:00:00"))[0], "giá chưa về ≥ ngưỡng / chưa đo được → chưa lên"
     assert not dot({"gia6_nay": 0.9, "gia6": {"ti": 0.7, "den": "2026-11-19T03:00:00+00:00"}}, "2026-11-17", u("2026-11-19T01:00:00"))[0], "còn nấc báo sớm → chưa lên"
     assert not dot({"gia6_nay": 0.9, "rut": {"den": "2026-11-20T00:00:00+00:00"}}, "2026-11-17", u("2026-11-19T01:00:00"))[0] and not dot(tt, None, u("2026-11-19T01:00:00"))[0]
-    assert HC["roas"] == 1 and HC["ns_khoang"] == [5, 10] and HC["ns_khoang"][0] <= HC["ns"] <= HC["ns_khoang"][1] and HC["tran_ngay"] == 5, "đợt hồi chợ lệch sổ luật (anh 18/11/2026: ROAS 1, $5–10, 5 camp / ngày)"
+    assert HC["roas"] == 1 and HC["ns_khoang"] == [5, 5] and HC["ns_khoang"][0] <= HC["ns"] <= HC["ns_khoang"][1] and HC["tran_ngay"] == 5, "đợt hồi chợ lệch sổ luật (anh 18/11/2026: ROAS 1, 5 camp / ngày; $5 như mọi camp mới — anh 25/11/2026)"
     assert KHUON.get("en") and KHUON.get("es")
     assert DU_TRU == 15, "kho dự trữ hồi chợ = 5 camp ROAS / ngày × 3 ngày (anh 18/11/2026)"
     gia = lambda tong, co, thieu: (lambda s: du_tru(lambda _: s))(f"{tong}|{co}|{thieu}")

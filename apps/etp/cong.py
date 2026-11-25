@@ -215,10 +215,10 @@ def phim_chan_len():
     return ra
 
 # NHÂN BẢN BÀI CŨ (anh 11/11/2026, Dol: "chạy lại post cũ để $2 luôn cũng được" — anh chốt "$2 cho camp dùng bài cũ thắng"): bản nhân bản camp thắng thường
-# dùng LẠI bài đăng của camp gốc (Use existing post, ad chỉ mang effective_object_story_id) được lên tới NS_BAI_CU; mọi camp mới khác vẫn $1.
+# dùng LẠI bài đăng của camp gốc (Use existing post, ad chỉ mang effective_object_story_id) — từ 25/11/2026 cùng mức NS_MOI như mọi camp mới.
 # NB $10 (anh 22/11/2026, Dol "Camp dup ra, anh có thể để luôn budget ~ 10$ thử" — anh: "duyệt nb vào $10 luôn ko cần nắp"): bản nhân dùng bài cũ lên thẳng $10;
 # nắp camp trẻ / nắp ROI 3 ngày chỉ áp lệnh TĂNG, không áp mức khởi điểm của bản nhân. Camp mới từ creative vẫn $1.
-NS_BAI_CU = 10
+NS_MOI = int(_BL["camp_moi"]["ns"])   # CAMP MỚI ĐỀU $5 (anh 25/11/2026 "các camp mới đều bắt đầu từ $5") — sổ luật chung camp_moi.ns, thay $1 camp mới / $10 nhân bản bài cũ
 TRAN_TUYET = 30   # trần tuyệt đối $/camp/ngày (anh 14/11/2026) — kiem() chặn trước mọi miễn trừ
 # VÉ THAO TÁC TAY (anh 18/11/2026 "kiểm soát tuyệt đối" — thay cho chữ ai / cờ anh_bam: 17/11 dòng phim gọi nhan-ban --tay lọt 91 camp, 18/11 máy AT ghi ai
 # "anh (chat 05/11/2026: …)" lọt 31 camp — mọi chữ người gọi tự khai đều giả được). Nút người bấm (etp2 · nút Telegram · nút etp) xin MỘT vé ngay lúc bấm
@@ -549,8 +549,8 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
             return f"mùa lễ Mỹ: khoá tăng bậc ({(ch.get('mua_le') or {}).get('ly_do') or '25–30/11'}) — giảm / tắt / camp mới vẫn chạy (etp.cau_hinh.mua_le, apps/etp/mua_le.py)"
         # CAMP MỚI = $1 (anh 08/11/2026: "Ai cho mày lên camp mới ngân sách hơn $1" · "AB test vẫn phải đi từ $1. Nếu khác thì phải xin phép"): tạo camp / nhân bản thường
         # (kể cả camp A/B, clone sang bộ khác) gửi ngân sách > $1 → chặn. Miễn: camp ROAS (roas=True, loại anh duyệt 26/10/2026) · bản thang (bac=True, thang nhân bản anh duyệt 25/10/2026)
-        if viec in ("tao_camp", "nhan_ban") and not roas and not bac and ns_moi is not None and float(ns_moi) > (NS_BAI_CU if bai_cu and viec == "nhan_ban" else 1):
-            return f"camp mới phải $1 — đang gửi ${float(ns_moi):g} (anh 08/11/2026); ngân sách khác phải xin anh"
+        if viec in ("tao_camp", "nhan_ban") and not roas and not bac and ns_moi is not None and float(ns_moi) > NS_MOI:
+            return f"camp mới bắt đầu ${NS_MOI} — đang gửi ${float(ns_moi):g} (anh 25/11/2026 \"các camp mới đều bắt đầu từ $5\"); ngân sách khác chỉ bằng nút anh bấm"
         # NẮP ROI 3 NGÀY (Dol 09/11/2026): camp thường tăng lên $X mà X > trần của dải ROI 3 ngày khép → chặn; camp ★ ROAS không áp; camp đang chạy không bị hạ (chỉ chặn tăng)
         if viec == "tang" and not roas and camp_id and ns_moi is not None and _q(f"select 1 from etp.camp c where c.camp_id = {int(camp_id)} and {sql_roas_luat('c')}") != "1":
             r3 = _q(SQL_ROI3.format(cid=int(camp_id))); r3f = float(r3) if r3 not in ("", None) else None
@@ -668,10 +668,10 @@ def ns_tao(body):
     bai = bool(ads) and all(str(ad.get("effective_object_story_id") or "").strip() and ad.get("creative_id") is None and ad.get("content_id") is None for ad in ads)
     if sp.get("bid_strategy") == "LOWEST_COST_WITH_MIN_ROAS": tran, loai = 20.0, "camp ROAS"
     elif m: tran, loai = float(m.group(1)), "bản thang"
-    elif bai: tran, loai = float(NS_BAI_CU), "nhân bản bài cũ"   # theo VẬT: mọi ad chỉ mang bài đăng cũ, không creative mới
-    else: tran, loai = 1.0, "camp mới"
+    elif bai: tran, loai = float(NS_MOI), "nhân bản bài cũ"   # theo VẬT: mọi ad chỉ mang bài đăng cũ, không creative mới
+    else: tran, loai = float(NS_MOI), "camp mới"
     vuot = [(k, v) for k, v in so if v > tran]
-    if vuot: return f"{loai} '{ten[:60]}' gửi {', '.join(f'{k}=${v:g}' for k, v in vuot)} > ${tran:g} — camp mới phải $1 (anh 08/11/2026), ngân sách khác phải xin anh", tran
+    if vuot: return f"{loai} '{ten[:60]}' gửi {', '.join(f'{k}=${v:g}' for k, v in vuot)} > ${tran:g} — camp mới bắt đầu ${NS_MOI} (anh 25/11/2026), ngân sách khác chỉ bằng nút anh bấm", tran
     if not any(k == "daily_budget" for k, _ in so): return f"lệnh tạo camp '{ten[:60]}' không có daily_budget — không gửi (Ethopex có thể tự đặt mức khác)", tran
     return None, tran
 
@@ -744,19 +744,19 @@ def _tu_kiem():
     # camp mới $1 đọc trên payload — phá thử: mỗi ca sai phải đỏ
     _pl = lambda ns, ten="X EN - anh tinh 0-9s", bid=None, g=None: {"name": ten, "campaign": {"source_payload": {"name": ten, "daily_budget": ns, **({"bid_strategy": bid} if bid else {})},
                                                                        "ad_groups": [{"source_payload": g or {"name": ten + " · adset"}}]}}
-    assert ns_tao(_pl(1))[0] is None
-    assert ns_tao(_pl(3))[0], "camp mới $3 phải chặn"
-    assert ns_tao(_pl(1, g={"daily_budget": 3}))[0], "ngân sách $3 nấp ở Ad Set phải chặn"
+    assert ns_tao(_pl(1))[0] is None and ns_tao(_pl(5))[0] is None, "camp mới tới đúng $5"
+    assert ns_tao(_pl(6))[0], "camp mới $6 phải chặn"
+    assert ns_tao(_pl(1, g={"daily_budget": 6}))[0], "ngân sách $6 nấp ở Ad Set phải chặn"
     assert ns_tao(_pl(1, g={"lifetime_budget": "50"}))[0], "lifetime_budget ở Ad Set phải chặn"
     assert ns_tao({"name": "X", "campaign": {"source_payload": {"name": "X"}, "ad_groups": []}})[0], "thiếu daily_budget phải chặn"
     assert ns_tao(_pl(18, bid="LOWEST_COST_WITH_MIN_ROAS"))[0] is None and ns_tao(_pl(25, bid="LOWEST_COST_WITH_MIN_ROAS"))[0], "ROAS tới $20"
-    assert ns_tao(_pl(18, ten="★ ROAS 1.1 · X duplicate by 1"))[0], "tên ROAS mà không có chiến lược thầu ROAS → vẫn là camp mới $1"
+    assert ns_tao(_pl(18, ten="★ ROAS 1.1 · X duplicate by 1"))[0], "tên ROAS mà không có chiến lược thầu ROAS → vẫn là camp mới $5"
     assert ns_tao(_pl(5, ten="X (thang $5 cua 87811)")) == (None, 5.0) and ns_tao(_pl(10, ten="X (thang $5 cua 87811)"))[0], "bản thang tới đúng $X"
-    assert ns_tao(_pl(3, ten="X (thang $5 cua 87811) copy"))[0], "chữ thang giữa tên không tính"
+    assert ns_tao(_pl(7, ten="X (thang $15 cua 87811) copy"))[0], "chữ thang giữa tên không tính"
     assert ns_tao(_pl(1, g={"is_adset_budget_sharing_enabled": True}))[0] is None, "cờ boolean không phải ngân sách"
     _bc = lambda ns, ad: {"name": "X", "campaign": {"source_payload": {"name": "X", "daily_budget": ns}, "ad_groups": [{"source_payload": {}, "ads": [ad]}]}}
-    assert ns_tao(_bc(10, {"effective_object_story_id": "1_2"})) == (None, 10.0) and ns_tao(_bc(11, {"effective_object_story_id": "1_2"}))[0], "bài cũ (NB) tới đúng $10"
-    assert ns_tao(_bc(2, {"effective_object_story_id": "1_2", "creative_id": 5}))[0] and ns_tao(_bc(2, {"creative_id": 5}))[0], "có creative mới → vẫn camp mới $1"
+    assert ns_tao(_bc(5, {"effective_object_story_id": "1_2"})) == (None, 5.0) and ns_tao(_bc(10, {"effective_object_story_id": "1_2"}))[0], "bài cũ (NB) tới đúng $5 như mọi camp mới (anh 25/11/2026)"
+    assert ns_tao(_bc(6, {"effective_object_story_id": "1_2", "creative_id": 5}))[0] and ns_tao(_bc(6, {"creative_id": 5}))[0], "có creative mới → vẫn camp mới $5"
     # AT CHỈ DẠNG FREE (anh 19/11/2026) — phá thử: AT cta kien / khong_nut / chưa sổ phải đỏ; AT Free, cảnh thật mẫu Kiên, AT team không sổ qua
     assert ly_at([(1, "ảnh tĩnh", "ảnh tĩnh", "kien", "tv1", True)]) and "kien" in ly_at([(1, "ảnh tĩnh", "ảnh tĩnh", "kien", "tv1", True)]), "AT cta kien phải bị chặn"
     assert ly_at([(2, "ảnh tĩnh", "ảnh tĩnh", "khong_nut", "tv1", True)]) and ly_at([(3, "ảnh tĩnh", "", None, "tv1", False)]) and ly_at([(4, "cảnh thật", "ảnh tĩnh", "kien", "x", True)])

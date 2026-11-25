@@ -844,7 +844,8 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False):
         # trong kho thư viện = cấm dựng lại — kể cả khung anh ghim, kể cả sổ mau_dung bị xoá (đọc thẳng thu_vien, không tin mỗi da_khung)
         co_hinh = set() if xem else {x for x in (AT.sql(f"select coalesce(string_agg(distinct substring(t.ghi from 'khung ([^ ]+)'), ';'), '') from etp.thu_vien t left join etp.cham_duyet u on u.creative_id = t.creative_id "
                                                          f"where t.content_id = {int(cid)} and t.creative_id is not null and t.ghi like {s_('mẫu:' + ma + ' %')} and u.ok is not false") or "").split(";") if x}
-        if k_ghim and khoa(k_ghim) in co_hinh: raise RuntimeError(f"khung anh ghim {khoa(k_ghim)} đã có creative cùng mẫu chưa bị loại — mỗi creative phải KHÁC HÌNH, ghim khung khác (hoặc loại creative cũ trước)")
+        if k_ghim and khoa(k_ghim) in co_hinh:   # khung ghim đã ra creative (bản đầu) → bản sau bỏ ghim, chọn khung khác — không chết cả lượt (anh 25/11/2026 "32 camp sẵn sàng lên lúc 22h")
+            print(f"khung anh ghim {khoa(k_ghim)} đã có creative cùng mẫu — bản này bỏ ghim, chọn khung khác (mỗi creative một hình)", file=sys.stderr); k_ghim = None
         uv = [u for u in uv if khoa(u) not in co_hinh]
         if not uv and not k_ghim: raise RuntimeError(f"phim này không còn khung chưa có creative cho mẫu {ma} — mỗi creative phải khác hình, không lặp khung")
         if k_ghim: uv = [k_ghim]

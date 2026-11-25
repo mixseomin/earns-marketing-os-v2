@@ -29,7 +29,8 @@ function TomTl({ x }: { x: ChoDuyet }) {
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: 11.5, borderTop: '1px solid var(--line)', paddingTop: 4, marginTop: 2 }}>
     {dong('Ngôn ngữ', t.g_ngon_ngu || 'All languages', 'nhan-ban bỏ targeting.locales của mọi camp — không nhắm ngôn ngữ (luật cố định 24/11/2026)', t.g_ngon_ngu ? '#f87171' : '#4ade80')}
     {dong('Nước', nuoc, [t.g_nuoc, t.g_loai_nuoc ? `loại: ${t.g_loai_nuoc}` : ''].filter(Boolean).join('\n'))}
-    {dong('Tuổi · GT', [t.g_tuoi, t.g_gioi].filter(Boolean).join(' · ') || null)}
+    {dong('Tuổi · GT', [t.g_tuoi, t.g_gioi ? t.g_gioi.split(', ').map((g) => (g === '1' ? 'Male' : g === '2' ? 'Female' : g)).join(', ') : 'All genders'].filter(Boolean).join(' · ') || null,
+      'khuôn không đặt tuổi / giới → Meta mặc định 18–65+, mọi giới (Advantage+ audience bật: tuổi chỉ là gợi ý)')}
     {dong('Giá · NS', [t.g_roas ? `★ ROAS ${t.g_roas}` : null, t.c_ns ? `$${t.c_ns}/ngày` : null].filter(Boolean).join(' · ') || null)}
     {dong('Bộ · Page', [t.c_bo ? `bộ ${t.c_bo}` : null, t.a_page_ten].filter(Boolean).join(' · ') || null, `tài khoản ${t.c_tk ?? '?'}`)}
     {dong('Tên miền', t.a_mien)}

@@ -18,10 +18,10 @@ export function mucCr(roas: string | null | undefined): { roas: number; ns: numb
   return r && n ? { roas: Number(r), ns: Math.trunc(Number(n)) } : { roas: Number(BANG_LUAT.hoi_cho.roas), ns: Math.trunc(Number(BANG_LUAT.hoi_cho.ns)) };
 }
 const p2 = (n: number) => String(n).padStart(2, '0');
-/** khung lên gần nhất (gioLen — hai khung cố định), chữ giờ VN */
+/** khung lên gần nhất (gioLen — hai khung cố định), chữ giờ VN + còn bao lâu (anh #1843 25/11/2026 "Bỏ (khung giờ gần nhất), thay bằng : còn bao lâu") */
 export function chuKhungLen(now = Date.now()): string {
-  const d = new Date(gioLen(now) + 7 * 3_600_000);
-  return `${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())} ${p2(d.getUTCDate())}/${p2(d.getUTCMonth() + 1)} VN (khung lên gần nhất)`;
+  const t = gioLen(now), d = new Date(t + 7 * 3_600_000), p = Math.max(0, Math.round((t - now) / 60_000));
+  return `${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())} ${p2(d.getUTCDate())}/${p2(d.getUTCMonth() + 1)} VN · còn ${Math.floor(p / 60)} giờ ${p2(p % 60)} phút`;
 }
 
 /** camp dự kiến của creative: id = -cr (dòng docThietLap ra camp_id -cr-1, ke_cha -cr) */

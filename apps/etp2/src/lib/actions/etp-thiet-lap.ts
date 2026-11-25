@@ -84,7 +84,7 @@ export async function docThietLap(ids: number[], ke: KeTl[] = []): Promise<Thiet
       g_su_kien: S(po.custom_event_type), g_pixel: S(po.pixel_id) ?? ds(L(du.pixel).map((x) => J(x).pixel_id)), g_roas: ns(bc.roas_average_floor ?? (Number(g.target_roas) || null) ?? r.roas),
       g_ns: ns(g.daily_budget || null), g_attr: gon(attr), g_bat_dau: S(gp.start_time), g_ket_thuc: S(gp.end_time), g_lich: S(r.lich),
       g_nuoc: gon(ds(geo.countries)), g_so_nuoc: ns(L(geo.countries).length || null), g_kieu_vt: ds(geo.location_types), g_loai_nuoc: gon(ds(ex.countries)), g_so_loai: ns(L(ex.countries).length || null),
-      g_ngon_ngu: ds(t.locales), g_tuoi: t.age_min || t.age_max ? `${S(t.age_min) ?? '?'}–${S(t.age_max) ?? '?'}` : null, g_gioi: ds(t.genders),
+      g_ngon_ngu: ds(t.locales), g_tuoi: `${S(t.age_min) ?? '18'}–${t.age_max == null || Number(t.age_max) >= 65 ? '65+' : S(t.age_max)}`, g_gioi: ds(t.genders),
       g_adv: ta.advantage_audience == null ? null : ta.advantage_audience ? 'bật' : 'tắt', g_nen: gon(ds(t.publisher_platforms)), g_vi_tri: gon(vt), g_thiet_bi: ds(t.device_platforms),
       g_an_toan: gon(ds(t.brand_safety_content_filter_levels)), g_vung_qd: gon(ds(gp.regional_regulated_categories)), g_ext: S(g.external_group_id), g_meta: S(g.source_status), g_giao: S(g.delivery_status),
       g_tt: S(g.status), g_epc: ns(Number(g.min_epc) || null), g_cpa: ns(Number(g.target_cpa) || null), g_dsa_b: S(gp.dsa_beneficiary) ?? S(cp.dsa_beneficiary), g_dsa_p: S(gp.dsa_payor) ?? S(cp.dsa_payor),

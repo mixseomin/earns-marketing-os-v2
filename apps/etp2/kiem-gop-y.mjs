@@ -720,6 +720,11 @@ const LUAT = [
   { card: '1836', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'groupBy={{ value: nhomCay', vi: 'bảng Cây nhóm theo một hàm khoá nhóm chung' },
   { card: '1836', tep: 'apps/etp2/src/components/etp-view.tsx', co: '...nhomBang.map((k) => `p${k}`)', vi: 'Mở hết mở cả nhóm khối / nhóm chỉ có dòng sắp lên (lọc Đang sản xuất)' },
   { card: '1836', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const moHet = tatCa.length > 0', vi: 'Gập hết / Mở hết xét đủ nhóm của bảng, không chỉ phim có camp thật' },
+  { card: '1843', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: "g_tuoi: `${S(t.age_min) ?? '18'}–", vi: 'ad set không ghi tuổi → hiện mặc định Meta 18–65+, không để trống' },
+  { card: '1843', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', cam: 'g_tuoi: t.age_min || t.age_max ?', vi: 'không quay lại tuổi null khi khuôn không đặt tuổi' },
+  { card: '1843', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: ": 'All genders'].filter(Boolean)", vi: 'thẻ chờ duyệt hiện giới mặc định All genders' },
+  { card: '1843', tep: 'apps/etp2/src/lib/etp-ke-cr.ts', co: 'VN · còn ${Math.floor(p / 60)} giờ', vi: 'lịch camp dự kiến ghi còn bao lâu tới khung lên' },
+  { card: '1843', tep: 'apps/etp2/src/lib/etp-ke-cr.ts', cam: '(khung lên gần nhất)`', vi: 'bỏ chữ (khung lên gần nhất)' },
 ];
 
 const loi = [];

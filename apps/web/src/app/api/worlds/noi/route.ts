@@ -20,8 +20,8 @@ const KHO = '/opt/worlds-du-lieu/giong';
 const PY = '/opt/a2f/.venv/bin/python';
 const A2F = '/opt/worlds/scripts/a2f-mat.py';
 const TRAN_CHU = 300;   // một câu thoại; dài hơn thì từ chối thành lời (Audio2Face 2 GB RAM, tiếng dài làm box3 hết bộ nhớ)
-// cảm xúc bộ nhà (bo-cam.json) → cảm xúc Audio2Face; mức giữ nguyên ("vui:0.4" → joy:0.4). Cùng bảng với giong-nhan-vat.mjs.
-const A2F_CAM: Record<string, string> = { vui: 'joy', gian: 'anger', soi: 'anger', dau: 'pain', giat: 'amazement', buon: 'sadness', so: 'fear' };
+// cảm xúc bộ nhà → cảm xúc Audio2Face; mức giữ nguyên ("vui:0.4" → joy:0.4). Một bảng chung với giong-nhan-vat.mjs: repo worlds scripts/a2f-cam.json.
+const A2F_CAM_TEP = '/opt/worlds/scripts/a2f-cam.json';
 let dang: Promise<unknown> = Promise.resolve();   // một câu một lúc: hai lượt Audio2Face song song = 4 GB, box3 không đủ
 const chay = promisify(execFile);
 const co = (p: string) => access(p).then(() => true, () => false);
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
   const u = await getCurrentUser();
   if (u?.role !== 'admin') return NextResponse.json({ ok: false, loi: 'Chỉ admin mos2 xem được lịch sử câu đã sinh.' }, { status: 403 });
   const dong = (await readFile(SO, 'utf8').catch(() => '')).split('\n').filter(Boolean).map((x) => { try { return JSON.parse(x) as Dong; } catch { return null; } }).filter((x): x is Dong => !!x);
-  const moi = new Map<string, Dong>(); for (const d of dong) { if (nv && (d.nv || 'osane') !== nv) continue; moi.delete(d.bam); moi.set(d.bam, d); }   // cùng câu nói lại → đưa lên đầu, không lặp
+  const moi = new Map<string, Dong>(); for (const d of dong) { if (nv && d.nv !== nv) continue; moi.delete(d.bam); moi.set(d.bam, d); }   // cùng câu nói lại → đưa lên đầu, không lặp
   const ds = [...moi.values()].reverse().map((d) => ({ ...d, am: `/du-lieu-giong/${d.bam}.mp3`, mat: `/du-lieu-giong/${d.bam}-mat.json` }));
   return NextResponse.json({ ok: true, ds });
 }
@@ -51,7 +51,8 @@ export async function POST(req: Request) {
   if (c.length > TRAN_CHU) return NextResponse.json({ ok: false, loi: `Câu dài ${c.length} ký tự, tối đa ${TRAN_CHU}. Tách thành nhiều câu ngắn.` }, { status: 400 });
   if (!/^[A-Za-z ]{1,40}$/.test(giong) || !/^[a-z0-9:. ]{0,40}$/.test(cam)) return NextResponse.json({ ok: false, loi: 'giọng hoặc cảm xúc sai dạng' }, { status: 400 });
   const [camTen = '', camMuc = ''] = (cam.trim().split(/\s+/)[0] ?? '').split(':');
-  const e = A2F_CAM[camTen] ? `${A2F_CAM[camTen]}:${Math.min(1, +camMuc || 0.6)}` : '';
+  const A2F_CAM = JSON.parse(await readFile(A2F_CAM_TEP, 'utf8')) as Record<string, string>;   // thiếu tệp → lỗi 500 kêu to, không lặng lẽ bỏ cảm xúc
+  const e = A2F_CAM[camTen] && camTen !== '_ghi' ? `${A2F_CAM[camTen]}:${Math.min(1, +camMuc || 0.6)}` : '';
   const bam = createHash('sha1').update(`${giong}|${e}|${c}`).digest('hex').slice(0, 16);
   const mp3 = join(KHO, `${bam}.mp3`), mat = join(KHO, `${bam}-mat.json`), ket = { ok: true, am: `/du-lieu-giong/${bam}.mp3`, mat: `/du-lieu-giong/${bam}-mat.json`, chu: c, cam };
   if (await co(mat)) { await ghiSo({ bam, chu: c, cam, giong, vnd: 0, nv }); return NextResponse.json({ ...ket, vnd: 0, lai: true }); }

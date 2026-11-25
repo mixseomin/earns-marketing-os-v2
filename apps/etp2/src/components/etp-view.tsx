@@ -62,7 +62,8 @@ const LsBacCtx = createContext<DuLieuEtp['lsBac']>({});   // lịch sử đổi 
 // ĐIỀU KHIỂN CAMP NHÀ BẰNG TAY (#1553): chỉ chủ (admin mos2) đang xem camp Nhà — null = không hiện nút ⚙ · bo = các bộ tài khoản để nhân bản sang
 // LỊCH SỬ THAY ĐỔI của một camp cho tab 🕘 Lịch sử (anh 09/11/2026 "thêm lịch sử thay đổi vào đó"): lệnh tay etp2 (sổ chờ áp, 2 giờ) · bật / tắt (nhật ký luật) · bậc 30 ngày
 type LsDk = { tay: ChoAp[]; batTat: DuLieuEtp['nhatKy']; bac: DuLieuEtp['lsBac'][number] };
-const DieuKhienCtx = createContext<{ bo: string[]; cho: Map<number, ChoAp[]>; ls: (id: number) => LsDk; /** phanh chợ đang chạy → cảnh báo ở bước xác nhận (etp-phanh-cho canhBaoPhanh) */ phanh?: { tang: string | null; len: string | null } } | null>(null);
+const DieuKhienCtx = createContext<{ bo: string[]; cho: Map<number, ChoAp[]>; ls: (id: number) => LsDk; /** phanh chợ đang chạy → cảnh báo ở bước xác nhận (etp-phanh-cho canhBaoPhanh) */ phanh?: { tang: string | null; len: string | null };
+  /** lệnh ĐANG GỬI theo camp (anh 25/11/2026 "2 cái này phải hiện đồng thời"): ngăn camp ghi lúc bấm Làm, ô ngân sách dòng bảng hiện ⏳ cùng lúc với "đang gửi máy…" */ gui?: Map<number, string>; datGui?: (id: number, chu: string | null) => void } | null>(null);
 // VẾT CHỜ (anh 09/11/2026 "khi thay đổi mà chưa áp dụng ngay thì phải show lại vết"): lệnh tay còn chờ = kho chưa khớp với lệnh (ngân sách / trạng thái);
 // nhân bản giữ vết 45 phút (camp mới hiện ở lượt đồng bộ kế). Hết chờ thì tự biến mất — không ai phải xoá.
 function conCho(ds: ChoAp[], camps: Pick<CampEtpKho, 'camp_id' | 'ngan_sach' | 'trang_thai'>[]): Map<number, ChoAp[]> {
@@ -86,7 +87,8 @@ function BienLotCua({ canhBao }: { canhBao: { luc: string; muc: string; noi_dung
   </div>;
 }
 
-function DauCho({ ds }: { ds?: ChoAp[] }) {
+function DauCho({ ds, gui }: { ds?: ChoAp[]; /** lệnh đang gửi (chưa có kết quả) — DieuKhienCtx.gui */ gui?: string }) {
+  if (gui) return <span title={`đang gửi máy: ${gui} (đọc lại Ethopex có thể tới 2 phút)`} style={{ color: '#60a5fa', fontSize: 11, cursor: 'help', whiteSpace: 'nowrap' }}>⏳ {gui}</span>;
   if (!ds?.length) return null;
   return <span title={`đã gửi, chờ lượt đồng bộ kho (~10 phút):\n${ds.map((x) => `${gioCho(x.luc)} · ${x.chu}`).join('\n')}`} style={{ color: '#f59e0b', fontSize: 11, cursor: 'help' }}>⏳{ds.at(-1)!.viec === 'ns' && ds.at(-1)!.sau != null ? `$${ds.at(-1)!.sau}` : ''}</span>;
 }
@@ -912,17 +914,17 @@ function DieuKhienCamp({ c, lon, tat, boDs, choDs, lsDk }: { c: Pick<CampEtpKho,
     : rQua < 0 && bacNay > 0 ? { ns: BAC_NS[bacNay - 1]!, ly: `hôm qua lỗ (ROI ${rQua}%)` } : null;
   const laSao = /★ ROAS/.test(c.ten ?? ''), saoLai = laSao && c.thang.chi > 10 && (rThang ?? 0) > 50;   // camp ★ ROAS vừa lên đã lãi (Dol 22/11/2026 "2 camp lên mà lãi luôn → duplicate thêm 2 camp, bid 0.9, 1.1")
   const goiNb: KieuNb['kieu'] | null = (c.thang.chi > 100 && (rThang ?? 0) > 50) || saoLai ? 'roas' : (rQua ?? -1) >= 30 ? 'thuong' : null;
-  const lam = async (ten: string, f: () => Promise<{ ok: true; chu: string } | { loi: string }>) => {
-    setDang(ten); setKq(null);
+  const lam = async (ten: string, f: () => Promise<{ ok: true; chu: string } | { loi: string }>, chu?: string) => {
+    setDang(ten); setKq(null); ctx?.datGui?.(c.camp_id, chu ?? 'đang gửi');
     // #1789: lệnh hỏng giữa đường (máy chủ vừa lên bản → "An unexpected response was received from the server") trước đây làm khung đứng im ở "đang gửi máy…" — nay báo đỏ ngay dưới nút
     let r: Awaited<ReturnType<typeof f>>;
     try { r = await f(); } catch (e) {
-      setDang(null);
+      setDang(null); ctx?.datGui?.(c.camp_id, null);
       const m = String((e as Error)?.message ?? e);
       setKq({ ok: false, o: ten, chu: `Lệnh CHƯA gửi được — máy chủ trả lỗi: ${m}\n${/unexpected response|Failed to find Server Action|fetch/i.test(m) ? 'Trang vừa lên bản mới: bấm F5 tải lại trang rồi làm lại.' : 'Bấm làm lại; còn lỗi thì gửi góp ý kèm câu này.'}` });
       return;
     }
-    setDang(null);
+    setDang(null); ctx?.datGui?.(c.camp_id, null);
     if ('loi' in r) { setKq({ ok: false, chu: r.loi, o: ten }); return; }
     setKq({ ok: true, chu: r.chu, o: ten }); router.refresh();
   };
@@ -935,7 +937,7 @@ function DieuKhienCamp({ c, lon, tat, boDs, choDs, lsDk }: { c: Pick<CampEtpKho,
   const xacNhan = (k: string) => (cho && cho.o === k ? <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid #f59e0b', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
     {(() => { const cb = k === 'ns' && Number(ns) > c.ngan_sach ? ctx?.phanh?.tang : k === 'nb' ? ctx?.phanh?.len : null; return cb ? <div style={{ flexBasis: '100%', color: '#fca5a5', fontWeight: 600 }}>{cb}</div> : null; })()}
     <span style={{ flex: 1, minWidth: 160 }}>Chắc chắn: <b>{cho.chu}</b>?</span>
-    <button onClick={() => { const f = cho.f; setCho(null); void lam(k, f); }} style={{ ...nut, borderColor: '#f59e0b' }}>Làm</button>
+    <button onClick={() => { const f = cho.f; setCho(null); void lam(k, f, k === 'tt' ? (c.trang_thai === 'ACTIVE' ? 'đang tắt' : 'đang bật') : k === 'ns' ? `→ $${ns}` : 'đang nhân bản'); }} style={{ ...nut, borderColor: '#f59e0b' }}>Làm</button>
     <button onClick={() => setCho(null)} style={nut}>Huỷ</button></div> : null);
   const muc = (t: string, mo2: string) => <div style={{ marginBottom: 6 }}><b style={{ fontSize: 13 }}>{t}</b>{hd ? <div style={{ color: 'var(--fg-2)', lineHeight: 1.45, marginTop: 2 }}>{mo2}</div> : null}</div>;
   const hop: React.CSSProperties = { padding: 12, border: '1px solid var(--line)', borderRadius: 8, marginBottom: 12 };
@@ -1107,7 +1109,7 @@ function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'tran
     </span>
     <CoTay ls={ls} />{/* #1711: cờ "đang nâng bậc tay" — máy tự tăng / hạ bậc kế thì tự bỏ */}
     {sua ? <SuaCamp c={c} /> : null}
-    {dk ? <DauCho ds={dkCtx!.cho.get(c.camp_id)} /> : null}
+    {dk ? <DauCho ds={dkCtx!.cho.get(c.camp_id)} gui={dkCtx!.gui?.get(c.camp_id)} /> : null}
     {dk && c.camp_id > 0 ? <DieuKhienCamp c={c} /> : null}
   </span>);
 }
@@ -2564,7 +2566,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
         <span style={{ display: 'grid', gridTemplateColumns: LUOI_CAMP_HEP, columnGap: 6, alignItems: 'center', minWidth: 0, whiteSpace: 'nowrap' }}>
           <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span>
           <span data-cot="camp" style={{ paddingLeft: (cap - 1) * 12, overflow: 'hidden', textOverflow: 'ellipsis' }}><span className="mui">{ds.length ? '▸' : ''}</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b></span>{/* điện thoại không có nhãn loại CT/CC sau số camp (anh 29/10/2026 #1480 "bỏ nút này trên mobile" — ô hẹp cắt thành "…") */}
-          <span data-cot="ngan-sach" data-cot-can="phai" style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{choCay?.get(c.camp_id) ? <DauCho ds={choCay.get(c.camp_id)} /> : `$${c.ngan_sach}`}</span>
+          <span data-cot="ngan-sach" data-cot-can="phai" style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{choCay?.get(c.camp_id) || dkCay?.gui?.get(c.camp_id) ? <DauCho ds={choCay?.get(c.camp_id)} gui={dkCay?.gui?.get(c.camp_id)} /> : `$${c.ngan_sach}`}</span>
           <span data-cot="dau-hieu" style={{ fontSize: 11, overflow: 'hidden' }}>{n ? <span title={`${n} bản nhân`}>x{n}</span> : null}</span>
         </span>
         {(() => { const sd = ngayHien.map((d) => so.get(c.camp_id)?.get(d)), mx = coQua ? undefined : maxLai([...sd, c.nay]);
@@ -3111,7 +3113,9 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const du = useMemo(() => { const d = duGoc.nhe && nang ? ghepNang(duGoc, nang) : duGoc; if (!Object.keys(bamDuyet).length || !d.hangCr) return d;
     return { ...d, hangCr: d.hangCr.map((c) => { const ok = c.creative_id != null && choAnhDuyet(c) ? bamDuyet[c.creative_id] : undefined; if (ok == null) return c;
       return ok ? { ...c, dong_bo: 'xep_hang', ten: c.ten.replace(/^⏸ Chờ duyệt/, '⏳ Chờ lên camp') } : { ...c, dong_bo: 'da_loai', ten: c.ten.replace(/^⏸ Chờ duyệt/, '✕ Đã loại') }; }) }; }, [duGoc, nang, bamDuyet]);
-  const choMap = useMemo(() => conCho(choAp, du.camps), [choAp, du.camps]);   // lệnh tay chờ áp còn hiệu lực (vết ⏳)
+  const choMap = useMemo(() => conCho(choAp, du.camps), [choAp, du.camps]);
+  const [guiMap, setGuiMap] = useState<Map<number, string>>(() => new Map());   // lệnh tay đang gửi theo camp — ngăn camp + ô ngân sách dòng bảng cùng đọc
+  const datGui = useCallback((id: number, chu: string | null) => setGuiMap((m) => { const n = new Map(m); if (chu) n.set(id, chu); else n.delete(id); return n; }), []);   // lệnh tay chờ áp còn hiệu lực (vết ⏳)
   // ⚙ Thiết lập: dòng khối 📝 Đang lên kế hoạch → camp DỰ KIẾN (chép cấu hình camp khuôn, đè đúng các ô khối đặt — giống nhan-ban.py của dong_phim.py b_camp_khoi)
   const keHoachTl = useCallback((c: CampEtpKho) => { const k = c.sx?.khoi; if (!k || !c.sx?.khuon || c.content_id == null) return null;
     const lang = (c.sx.tieng ?? '?').toUpperCase();
@@ -3651,7 +3655,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     // TRANG TỰ CUỘN (body của mos2 khoá cuộn — trong mos2 chỉ vùng nội dung cuộn; etp.on.tc đứng riêng): khung cao đúng màn hình, cuộn bên trong,
     // đầu trang trôi đi, tiêu đề bảng + thanh trang của DataTable dính theo khung này — kéo lên xem hết bảng như bên Ethopex
     <ChiXem.Provider value={chiXem}><HoanCtx.Provider value={hoanSo}><LsBacCtx.Provider value={du.lsBac ?? {}}>
-    <PhamViLuu value={phamViNg(du)}><DieuKhienCtx.Provider value={quyen?.vai === 'chu' && !du.nguoi.ngoai ? { bo: Object.keys(du.boTk).sort(), cho: choMap, ls: lsCamp, phanh: canhBaoPhanh(du.cauHinh) } : null}><SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
+    <PhamViLuu value={phamViNg(du)}><DieuKhienCtx.Provider value={quyen?.vai === 'chu' && !du.nguoi.ngoai ? { bo: Object.keys(du.boTk).sort(), cho: choMap, ls: lsCamp, phanh: canhBaoPhanh(du.cauHinh), gui: guiMap, datGui } : null}><SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
     <div ref={cuonRef} onScroll={(e) => { const h = heroRef.current; const g = !!h && e.currentTarget.scrollTop > (gon ? h.offsetTop + h.offsetHeight : 12); if (g !== gonHero) setGonHero(g); }} style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <HoverChu goc={cuonRef} />{/* #1546: mọi title= trong trang → thẻ nổi chung */}
       <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}@keyframes etpXoay{to{transform:rotate(360deg)}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>

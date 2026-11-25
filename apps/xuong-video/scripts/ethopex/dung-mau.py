@@ -315,13 +315,55 @@ def _lop_logo(c, them=0):
         nen = Image.new("RGBA", (W, H), (0, 0, 0, 0)); nen.putalpha(toi); lop = Image.alpha_composite(lop, nen)
     return Image.alpha_composite(lop, bg), y + lg.height
 NUT_DONG = 150   # chỗ cho nút CTA dưới logo của mẫu ảnh động (khoảng cách 24 + nút ~120)
+def bang_mau_logo(lg):
+    """BẢNG MÀU CỦA LOGO PHIM (anh 25/11/2026 "chữ all episode và watch more dùng layout và thiết kế cho hợp với logo"): đọc điểm ảnh đặc của logo gốc →
+    (sáng, giữa, tối, viền): sắc độ chiếm nhiều nhất trong các điểm có màu (vàng kim, đỏ máu, xanh băng…), lấy điểm sáng / trung vị / tối của sắc đó;
+    viền = điểm đặc tối nhất (nét viền của chính logo). Logo không màu (trắng / bạc) → bảng bạc."""
+    import colorsys
+    im = lg.convert("RGBA"); im.thumbnail((360, 360)); px = [p[:3] for p in im.getdata() if p[3] > 200]
+    hsv = [(colorsys.rgb_to_hsv(*(v / 255 for v in p)), p) for p in px]
+    mau = [(h, p) for h in hsv for h, p in [h] if h[1] > 0.35 and h[2] > 0.3]
+    toi = sorted(px, key=sum)[: max(1, len(px) // 20)] if px else [(20, 16, 12)]
+    vien_ = tuple(min(60, sum(p[i] for p in toi) // len(toi)) for i in range(3))
+    if len(mau) < max(30, len(px) // 20): return (255, 255, 255), (214, 216, 222), (120, 124, 134), (18, 18, 22)
+    o = [0] * 18
+    for (h, _, _), _p in mau: o[int(h * 18) % 18] += 1
+    k = max(range(18), key=lambda i: o[i] + 0.5 * (o[i - 1] + o[(i + 1) % 18]))
+    cung = sorted((p for (h, _, v), p in mau if min(abs(int(h * 18) - k), 18 - abs(int(h * 18) - k)) <= 1), key=lambda p: colorsys.rgb_to_hsv(*(v / 255 for v in p))[2])
+    lay = lambda t: cung[min(len(cung) - 1, int(len(cung) * t))]
+    sang = tuple(min(255, int(v * 1.08) + 12) for v in lay(0.95))
+    return sang, lay(0.6), lay(0.15), vien_
+def nhan_logo(lop, c, pal):
+    """nhãn trên cùng hợp logo: chữ hoa nét chân (Copperplate) tô dải màu của logo, viền màu nét viền logo, hai vạch trang trí cùng màu hai bên — không dải trắng"""
+    sang, giua, toi, vien_ = pal; chu = AT.FREE.get(c["lang"], AT.FREE["en"])[0].upper(); f = ph("copper", 64)
+    while f.getlength(chu) > W - 300 and f.size > 36: f = f.font_variant(size=f.size - 4)
+    m, hop = mat_chu([chu], f, int(H * 0.06)); bong(lop, m, (3, 6), 8, 230); vien(lop, m, 4, vien_); to(lop, m, doc_trong(sang, giua, toi, hop))
+    d = ImageDraw.Draw(lop); ym = (hop[1] + hop[3]) // 2
+    for a_, b_ in ((70, hop[0] - 30), (hop[2] + 30, W - 70)):
+        if b_ - a_ > 40:
+            d.line((a_, ym, b_, ym), fill=vien_ + (230,), width=7); d.line((a_, ym, b_, ym), fill=giua + (255,), width=3)
+            for xx in ((b_,) if a_ == 70 else (a_,)): d.regular_polygon((xx, ym, 10), 4, fill=sang + (255,), outline=vien_ + (255,))
+def nut_logo(lop, chu, y, pal):
+    """nút CTA hợp logo: viên thuốc tô dải màu của logo (sáng → giữa → tối), viền nét viền logo + chỉ sáng bên trong, chữ màu viền (đậm, đọc rõ trên nền sáng)"""
+    sang, giua, toi, vien_ = pal; f = ph("copper", 60)
+    while f.getlength(chu) + 2 * 70 > W - 200 and f.size > 32: f = f.font_variant(size=f.size - 4)
+    x0, y0, x1, y1 = f.getbbox(chu); w, h = x1 - x0 + 140, y1 - y0 + 56; x = (W - w) // 2; r = h // 2
+    bo = Image.new("RGBA", (W, H)); ImageDraw.Draw(bo).rounded_rectangle((x + 4, y + 10, x + w + 4, y + h + 10), radius=r, fill=(0, 0, 0, 160)); lop.alpha_composite(bo.filter(ImageFilter.GaussianBlur(12)))
+    ImageDraw.Draw(lop).rounded_rectangle((x - 6, y - 6, x + w + 6, y + h + 6), radius=r + 6, fill=vien_ + (255,))
+    mk = Image.new("L", (W, H)); ImageDraw.Draw(mk).rounded_rectangle((x, y, x + w, y + h), radius=r, fill=255); to(lop, mk, doc_trong(sang, giua, toi, (x, y, x + w, y + h)))
+    ImageDraw.Draw(lop).rounded_rectangle((x + 8, y + 8, x + w - 8, y + h - 8), radius=r - 8, outline=sang + (170,), width=2)
+    sang_chu = sum(giua) / 3 > 110; mc = vien_ if sang_chu else (255, 255, 255)
+    d = ImageDraw.Draw(lop); tx, ty = x + 70 - x0, y + 28 - y0
+    if not sang_chu: d.text((tx + 2, ty + 3), chu, font=f, fill=(0, 0, 0, 180))
+    d.text((tx, ty), chu, font=f, fill=mc + (255,)); return y + h
 def dt_anh_dong_logo(c):
     """ẢNH ĐỘNG LOGO GỐC + CTA (anh 24/11/2026, mẫu đối thủ KneDraQ - DE - 03: "dạng AT nhưng mở rộng thành kiểu ảnh động"): lớp phủ = logo gốc của phim
     (như dt_logo_chat_lieu) + nút CTA đỏ viền vàng ngay dưới. Nền KHÔNG đứng yên: bản dựng thật đưa khung sạch qua AI chuyển động (chuyen_dong) rồi dung_dong
     cho lớp phủ hiện ở giây 1,5. Xem trước = ảnh tĩnh này."""
     lop, day = _lop_logo(c, NUT_DONG)
-    nut(lop, cta(c, "WATCH MORE"), day + 24, ph("arial_black", 54), (198, 24, 30), (255, 255, 255), (236, 186, 70), (60, 24))
-    AT.lop_free(lop, c["lang"], chi_nhan=True)   # nhãn trên cùng "All Episodes Released" như mọi AT (anh 25/11/2026 "thiếu dòng ở trên: all episodes... ở creative"); nút đã có CTA riêng
+    pal = bang_mau_logo(logo_goc(c)[0])   # nhãn + nút lấy màu / kiểu chữ theo logo của phim (anh 25/11/2026 "dùng layout và thiết kế cho hợp với logo hoặc nội dung film")
+    nut_logo(lop, cta(c, "WATCH MORE"), day + 24, pal)
+    nhan_logo(lop, c, pal)   # nhãn trên cùng "All Episodes Released" như mọi AT (anh 25/11/2026 "thiếu dòng ở trên: all episodes... ở creative")
     return None, lop
 CAN_CHO = {"dt_logo_chat_lieu": lambda c: (logo_goc(c)[0].height, logo_cho), "dt_anh_dong_logo": lambda c: (logo_goc(c)[0].height + NUT_DONG, logo_cho)}   # mẫu cần KHUNG ĐỦ CHỖ: (chiều cao khối, hàm thử chỗ) — vòng dựng duyệt khung xếp hạng tới khi vừa
 def _ten_hai_tang(c, y_min, them=130):

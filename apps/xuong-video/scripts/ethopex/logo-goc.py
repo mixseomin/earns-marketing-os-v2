@@ -212,6 +212,20 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
         elif b_ >= d0 - 0.2 * lh: duoi = min(duoi, b_ - 2)
         elif tu(t_) & NHAN and (b_ + f) / 2 > (t0 + d0) / 2:   # nhãn nền tảng dưới tâm khối tên mà hộp tên lấn qua nó (25/11/2026 Deny Me, Dragon King: hộp "Dragonkus" đọc cao tới đáy 728px, nhãn DramaBox ở 700px) → nhãn vẫn là đáy dải
             duoi = min(duoi, b_ - 2); d0 = min(d0, b_ - 2)
+    # MÉP DƯỚI THEO ĐIỂM ẢNH, KHÔNG THEO HỘP MÁY ĐỌC (anh 25/11/2026 "logo này bị cụt ở chân", 88231 One Hell of a Fighter): hộp chữ máy đọc rộng hơn nét thật
+    # (FIGHTER đọc tới 701px, nhãn DramaBox từ 700px, nét thật hết ở 692px) → dải cắt + mờ dần ăn vào chân chữ. Chữ khác chặn sát đáy thì tìm KHE thật giữa nét logo
+    # và chữ dưới (hàng gần như không có điểm sáng / đậm màu), đáy dải = cuối khe, phần mờ dần nằm trọn trong khe.
+    if duoi < d0 + 0.6 * lh - 1:
+        xs_ = slice(int(max(0, min(b[0] for b in hp))), int(min(X, max(b[2] for b in hp))))
+        mu = lambda y: float(((im[y, xs_].max(-1) > 170) | (im[y, xs_].max(-1) - im[y, xs_].min(-1) > 90)).mean())
+        lo, hi = int(max(t0, d0 - 0.45 * lh)), int(min(Y - 1, duoi + 0.35 * lh)); m_ = [mu(y) for y in range(lo, hi + 1)]
+        trong_ = [i for i, v in enumerate(m_) if v < 0.04]
+        if trong_:   # khe = đoạn hàng trống dài nhất
+            doan = []; s0 = p0 = trong_[0]
+            for i in trong_[1:] + [None]:
+                if i is not None and i == p0 + 1: p0 = i; continue
+                doan.append((s0, p0)); s0 = p0 = i
+            a_, b2 = max(doan, key=lambda d: d[1] - d[0]); d0, duoi = float(lo + a_), float(lo + b2 + 1)
     tren, duoi = int(tren), int(duoi)
     if duoi - tren < 1.05 * (d0 - t0): noi("dải logo bị chữ khác của poster chèn sát — không lấy được"); return None, None
     g = im[tren:duoi]; hh = g.shape[0]; yy = np.arange(hh, dtype=np.float32)

@@ -30,6 +30,7 @@ export const LUAT = [
   { card: 'tu-choi-1211', tep: 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py', co: 'return tao_moi(kq, camp, d, cu, cid, ly_meta, "Spam', vi: 'ad Meta gắn Spam: tạo camp mới thay thế (anh 12/11/2026 "camp bị phốt thì phải tạo cái mới thay thế để duyệt lại")' },
   { card: 'tu-choi-1211', tep: 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py', cam: 'máy dừng thay, anh xem', vi: 'sửa 3 lần vẫn bị thì tạo camp mới, không dừng chờ anh' },
   { card: 'tu-choi-1211', tep: 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py', co: 'kb = ly_khong_bat(camp, d["campaign"].get("budget_daily"))', vi: 'camp không bao giờ bật lại → tạo camp mới thay thế, không sửa ad cũ' },
+  { card: 'bat-da-active-2511', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', co: 'ghi="đã ACTIVE sẵn — không gửi lệnh"', vi: 'lệnh bat cho camp đã ACTIVE (hẹn giờ đã qua) ghi thành công, không đẻ dòng lỗi "camp đã ACTIVE" + cảnh báo; còn hẹn giờ thì từ chối nêu giờ hẹn' },
   { card: 'tu-choi-1211', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', co: 'ly = ly_khong_bat(cid, truoc["ns"])', vi: 'một cổng "không bật lại" cho lệnh bat và máy thay creative' },
   { card: 'tu-choi-1211', tep: 'apps/etp/canh-bao.py', co: 'TC_24, TC_7 = 2, 4', vi: 'cảnh báo từ chối dồn theo bộ từ sổ phốt (bản cũ đếm camp ACTIVE → luôn 0)' },
   { card: 'tu-choi-1211', tep: 'apps/etp/canh-bao.py', cam: "where trang_thai = 'ACTIVE' and (giao = 'DISAPPROVED'", vi: 'không đếm từ chối trên camp ACTIVE (Ethopex đã PAUSED)' },

@@ -248,7 +248,14 @@ def main(a):
             if d0 and d0.get("ok") is False: raise ValueError(d0.get("error") or "Ethopex từ chối tắt")
             ok = lambda s: s["tt"] == "PAUSED"
         elif viec == "bat":   # bật lại camp đã tắt — chỉ khi anh lệnh (vd 22/10/2026 "camp nào lãi hơn 20% thì bật lại")
-            if truoc["tt"] == "ACTIVE": raise ValueError("camp đã ACTIVE")
+            # CAMP ĐÃ BẬT SẴN (25/11/2026: lệnh "bật luôn camp đang chờ giờ chạy" gửi bat cho 6 camp ★ ROAS đã ACTIVE, giờ hẹn 22:00 đã qua, Meta đang duyệt /
+            # nhóm QC chưa giao → 6 dòng lỗi "camp đã ACTIVE" + cảnh báo). Đích của "bật" đã đạt → ghi THÀNH CÔNG không gửi lệnh, kèm trạng thái giao thật;
+            # còn hẹn giờ ở tương lai thì vẫn từ chối, nói rõ giờ hẹn (bat không dời giờ được — đổi giờ đi đường nút 🕒 / nhan-ban.thay_cho).
+            if truoc["tt"] == "ACTIVE":
+                hen, giao = (q(f"select coalesce(case when lich > now() then to_char(lich at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') end, ''), coalesce(giao, '') from etp.camp where camp_id = {cid}") + "|").split("|")[:2]
+                if hen: raise ValueError(f"camp đã bật, hẹn chạy {hen} giờ VN — lệnh bật không dời giờ (đổi giờ: nút 🕒)")
+                kq.update(ok=True, sau=truoc, loi=None, ghi="đã ACTIVE sẵn — không gửi lệnh" + (f" (giao: {giao})" if giao and giao != "ACTIVE" else ""))
+                ghi_nhat_ky(kq, luat, ai); print(json.dumps(kq, ensure_ascii=False)); return
             # camp đang tạm dừng vì LỊCH GIỜ (etp.lich_tat): không bật giữa khung TẮT — apps/etp/lich-gio.py tự bật khi tới khung BẬT (≤ 10 phút sau mốc)
             tt_bat = tay or CONG.truc_tiep("bat", [cid])   # LỆNH TRỰC TIẾP của anh: miễn khung lịch giờ + luật tắt quá 24 giờ (anh 20/11/2026 09:35); phim cấm / camp đội vẫn chặn ở kiem
             if tt_bat and q(f"delete from etp.lich_tat where camp_id = {cid} returning camp_id"): kq["lich"] = "bỏ khỏi lịch giờ — lệnh trực tiếp của anh"

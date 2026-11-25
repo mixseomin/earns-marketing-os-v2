@@ -48,7 +48,11 @@ export async function docThietLap(ids: number[], ke: KeTl[] = []): Promise<Thiet
       to_char(c.tao at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') tao, b.page_id, b.ten_mien, b.final_url, b.du,
       to_char(b.du_luc at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') du_luc, p.ten pten,
       r.kieu, r.cta, r.link, r.chinh, r.tieu_de, r.mo_ta, to_char(r.form_luc at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') form_luc, (r.form_luc is not null and c.tao < r.form_luc and b.chu_form_luc is null) chu_cu
-    from etp.camp c left join etp.bai_camp b using (camp_id) left join etp.bai_cr r on r.creative_id = c.creative_id
+    from (select camp_id, ten, bo, ad_account_id, trang_thai, giao, dong_bo, ngan_sach, creative_id, content_id, roas, chien_luoc, lich, loi, tao from etp.camp
+        -- camp CẢ ĐỘI (#1859): etp.camp_ngoai không có bo / giao / roas / lịch / lỗi nhà → null; cấu hình trọn đọc từ bai_camp.du như camp nhà
+        union all select n.camp_id, n.ten, null, n.ad_account_id, n.trang_thai, null, null, n.ngan_sach, n.creative_id, n.content_id, null, n.chien_luoc, null, null, n.tao
+          from etp.camp_ngoai n where not exists (select 1 from etp.camp x where x.camp_id = n.camp_id)) c
+      left join etp.bai_camp b using (camp_id) left join etp.bai_cr r on r.creative_id = c.creative_id
       left join etp.tai_nguyen p on p.loai = 'page' and (p.id = b.page_id or p.external_id = b.page_id::text)
     where c.camp_id = any(${sql.raw(`array[${lay.join(',')}]::int[]`)})`)) as unknown as Record<string, unknown>[];
   const chung: string[] = [], soChung = new Map<string, number>();

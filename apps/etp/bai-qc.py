@@ -36,10 +36,14 @@ def cr_thieu():
         where (b.creative_id is null or (b.chinh is null and b.lan_loi < 3)) order by i.chay desc, i.creative_id desc limit {SO}""").split()]
 
 def camp_thieu():
-    return [int(l) for l in EA._q(f"""select c.camp_id from etp.camp c left join etp.bai_camp b using (camp_id)
+    # camp nhà (etp.camp) + camp CẢ ĐỘI (etp.camp_ngoai — anh 25/11/2026 #1859 "thông tin chi tiết của camp cả đội cũng phải tải về hết"):
+    # trước chỉ đọc etp.camp → ngăn camp đội trên etp2 báo "Không thấy camp trong kho". Thứ tự: chưa có cấu hình → đang chạy → nhà trước đội → mới nhất.
+    return [int(l) for l in EA._q(f"""with c as (select camp_id, trang_thai, 1 nha from etp.camp
+              union all select n.camp_id, n.trang_thai, 0 from etp.camp_ngoai n where not exists (select 1 from etp.camp x where x.camp_id = n.camp_id))
+        select c.camp_id from c left join etp.bai_camp b using (camp_id)
         where b.camp_id is null or (b.page_id is null and b.lan_loi < 3) or (b.du is null and b.lan_loi < 3)
            or (c.trang_thai = 'ACTIVE' and b.du_luc < now() - interval '6 hours')
-        order by (b.du is null) desc, (c.trang_thai = 'ACTIVE') desc, c.camp_id desc limit {SO}""").split()]
+        order by (b.du is null) desc, (c.trang_thai = 'ACTIVE') desc, c.nha desc, c.camp_id desc limit {SO}""").split()]
 
 def _js(v):
     if isinstance(v, str) and v.strip()[:1] in "{[":

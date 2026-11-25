@@ -4,6 +4,7 @@
 //   { card: <id>, tep: <tệp từ gốc repo>, mot | co | cam: '<chuỗi>', vi: '<anh muốn gì>' }   mot = đúng 1 lần · co = phải có · cam = không được có
 export const V = 'apps/web/src/components/etp-view.tsx';
 export const LUAT = [
+  { card: 1859, tep: 'apps/etp/bai-qc.py', co: 'union all select n.camp_id, n.trang_thai, 0 from etp.camp_ngoai n', vi: 'máy tải cấu hình trọn (GET campaigns/<id>) cho cả camp CẢ ĐỘI, không chỉ camp nhà (anh 25/11/2026 "camp cả đội cũng phải tải về hết")' },
   { card: 'anh-tinh-box3-2311', tep: 'apps/xuong-video/scripts/ethopex/don-kho.py', co: 'XA = "/var/tmp/anh-tinh"; GIO_XA = 48;', vi: 'bản tạm anh-tinh / tinh-ba-kieu trên box3 tự dọn sau 48 giờ (Tài 23/11/2026: lên 12 GB, đĩa còn 11 GB)' },
   { card: 'anh-tinh-box3-2311', tep: 'apps/xuong-video/scripts/ethopex/don-kho.py', co: 'apps/xuong-video/scripts/ethopex/don-kho.py --box3', vi: 'mỗi lần iMac dọn kho thì ssh dọn luôn bản tạm box3' },
   { card: 'qua-tai-ffmpeg-1911', tep: 'apps/xuong-video/src/lib/xuong-video/xuat-chay.ts', cam: "run('ffmpeg',", vi: 'ffmpeg xuất / đo trên box3 không chạy NI 0 cạnh web — đi qua ffmpegNhe (nice 10) (etp:qua-tai-ffmpeg-xuat 19/11/2026: tải 14,3, swap 7,8 MB/s)' },

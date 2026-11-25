@@ -10,6 +10,8 @@ import AppKit
 let coMat = CommandLine.arguments.contains("--mat")
 // --nhanh: Vision mức .fast (~25× nhanh, bắt ~63% chữ) — kiem-thoai.doc dùng để dò khung nào có phụ đề MỚI rồi chỉ đọc .accurate những khung đó (07/11/2026)
 let nhanh = CommandLine.arguments.contains("--nhanh")
+// ANE đã treo một lần trong lượt → các ảnh sau đọc thẳng bằng CPU, không chờ lại 15 giây mỗi ảnh (26/11/2026: 105 khung × 15 giây = quá hạn 600 giây của kiem-thoai, phim 57545 không cắt được)
+var aneTreo = false
 for duong in CommandLine.arguments.dropFirst() where duong != "--mat" && duong != "--nhanh" {
     var chu: [String] = []; var khung: [[Any]] = []; var mat: [[Any]] = []; var duPhong = false
     guard let im = NSImage(contentsOfFile: duong), let cg = im.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
@@ -25,15 +27,16 @@ for duong in CommandLine.arguments.dropFirst() where duong != "--mat" && duong !
         //   chạy .accurate ở luồng phụ, chờ tối đa 15 giây; quá hạn → đọc lại bằng CPU mức .fast (đo 2 giây) + kêu to ở stderr + "du_phong": true trong JSON
         var lan = 0; var loi: Error? = nil; var fdKq: [VNFaceObservation]? = nil
         let xong = DispatchSemaphore(value: 0)
-        Thread.detachNewThread {
+        if !aneTreo { Thread.detachNewThread {
             while true {
                 do { try VNImageRequestHandler(cgImage: cg, options: [:]).perform(coMat ? [yc, fq] : [yc]); break }
                 catch { lan += 1; if lan >= 60 { loi = error; break }; Thread.sleep(forTimeInterval: 3) }
             }
             xong.signal()
-        }
-        if xong.wait(timeout: .now() + 15) == .timedOut {
-            FileHandle.standardError.write("doc-chu: ⚠ Neural Engine không trả lời sau 15 giây ở \(duong) — đọc dự phòng bằng CPU mức .fast (bắt ít chữ hơn)\n".data(using: .utf8)!)
+        } }
+        if aneTreo || xong.wait(timeout: .now() + 15) == .timedOut {
+            if !aneTreo { FileHandle.standardError.write("doc-chu: ⚠ Neural Engine không trả lời sau 15 giây ở \(duong) — đọc dự phòng bằng CPU mức .fast (bắt ít chữ hơn) cho ảnh này và mọi ảnh sau trong lượt\n".data(using: .utf8)!) }
+            aneTreo = true
             let yd = VNRecognizeTextRequest(); yd.recognitionLevel = .fast; yd.usesCPUOnly = true; yd.recognitionLanguages = yc.recognitionLanguages
             // dò mặt cũng chạy CPU (25/11/2026: dự phòng bỏ mặt → "mat": [] im lặng, bên gọi tưởng khung không có người, ghép logo chết max() rỗng)
             let fd = VNDetectFaceCaptureQualityRequest(); fd.usesCPUOnly = true

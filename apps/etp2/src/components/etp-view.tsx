@@ -146,6 +146,7 @@ const RoiSo = ({ r }: { r: number | null | undefined }) => {
   return <span style={{ color: r == null || r === 0 ? MO : r > 0 ? 'var(--neon-lime, #4ade80)' : `rgba(248,113,113,${(0.45 + 0.55 * am).toFixed(2)})`, fontWeight: r != null && r <= -90 ? 800 : r != null && r <= -50 ? 600 : 400, fontVariantNumeric: 'tabular-nums' }}>{r == null ? '—' : `${r > 0 ? '+' : ''}${r}%`}</span>; };
 const Tien = ({ v }: { v: number }) => <KeToan v={v} />;
 /** cột ROI tổng (#1853): cộng số trọn đời của nhiều camp (dòng phim / dòng tổng) + chữ rê chi · thu · lãi */
+const roiKyTitle = (s: SoTien, tenKy: string) => (s.chi || s.thu ? `${tenKy.toLowerCase()}: chi ${usd(s.chi)} · thu ${usd(s.thu)} · lãi ${usd(s.thu - s.chi)}` : 'chưa chi trong kỳ');
 const roiTongTitle = (s?: SoTien) => (s && (s.chi || s.thu) ? `trọn đời: chi ${usd(s.chi)} · thu ${usd(s.thu)} · lãi ${usd(s.thu - s.chi)}` : 'chưa chi');
 const LaiCot = ({ s }: { s: SoTien }) => <KeToan v={s.thu - s.chi} mau={mauLai(s.thu - s.chi)} />;   // trong CỘT bảng / lưới
 const Lai = ({ s }: { s: SoTien }) => { const v = s.thu - s.chi; return <span style={{ color: Math.abs(v) < 0.005 ? MO : mauLai(v), fontVariantNumeric: 'tabular-nums' }}>{usd(v)}</span>; };   // trong câu / thẻ số
@@ -2714,13 +2715,17 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
       sortValue: (c) => Math.round((tongChi.get(c.camp_id) ?? 0) * 100) / 100, total: (rs) => <Tien v={rs.reduce((a, c) => a + (tongChi.get(c.camp_id) ?? 0), 0)} /> },
     { key: 'lai', header: `Lãi ${tenKy.toLowerCase()}`, width: 124, title: `lãi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <LaiCot s={laiKy(c)} />, sortValue: (c) => Math.round(laiDai(c) * 100) / 100,
       total: (rs) => <LaiCot s={rs.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 })} /> },
+    // ROI TRONG KỲ (#1855 anh 25/11/2026 "Thêm cột ROI trong kỳ"): cùng nguồn laiKy với cột Chi / Lãi kỳ; dòng phim / dòng tổng = ROI của tổng chi-thu cộng lại; chi / thu / lãi gập vào chữ rê
+    { key: 'roi_ky', header: `ROI ${tenKy.toLowerCase()}`, width: 88, title: `ROI ${tenKy.toLowerCase()} (theo chu kỳ đang chọn) — rê xem chi · thu · lãi; chi dưới $0.30 thì để trống`,
+      cellTitle: (c) => roiKyTitle(laiKy(c), tenKy), cell: (c) => <Roi s={laiKy(c)} />, sortValue: (c) => roiOf(laiKy(c)) ?? -1e9,
+      total: (rs) => { const s = rs.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 }); return <span title={roiKyTitle(s, tenKy)}><Roi s={s} /></span>; } },
     // ROI TỔNG — TRỌN ĐỜI CAMP (#1853 anh 25/11/2026 "Thêm cột ROI tổng thể toàn camp"): mọi ngày từ lúc lên + hôm nay, không theo kỳ; dòng phim / dòng tổng = ROI của tổng chi-thu cộng lại; chi / thu / lãi gập vào chữ rê
     { key: 'roi_tong', header: 'ROI tổng', width: 76, title: 'ROI trọn đời camp (mọi ngày từ lúc lên, gồm hôm nay) — không theo kỳ đang chọn; rê xem chi · thu · lãi; chi dưới $0.30 thì để trống',
       cellTitle: (c) => roiTongTitle(tronSo.get(c.camp_id)), cell: (c) => { const t = tronSo.get(c.camp_id); return t ? <Roi s={t} /> : null; }, sortValue: (c) => { const t = tronSo.get(c.camp_id); return t ? roiOf(t) ?? -1e9 : -1e9; },
       total: (rs) => { const s = tronCong(rs); return <span title={roiTongTitle(s)}><Roi s={s} /></span>; } },
     // CỘT ĐỆM (không tiêu đề, không số): mọi cột có bề rộng cố định → khoảng thừa của bảng dồn ra mép phải, số liệu xếp sát nhau (anh 29/10/2026 "cho gọn lại")
     { key: 'dem', header: '', align: 'left', cell: () => null },
-  ] as DataColumn<CampEtpKho>[]).map((k) => (['lai_nay', 'chi', 'tong_chi', 'lai', 'roi_tong'].includes(k.key) || cotNgay.some((x) => x.key === k.key) ? { ...k, cell: (c: CampEtpKho, i: number) => (c.sx?.khoi ? null : k.cell(c, i)) } : k));   // dòng KHỐI chưa có camp → ô tiền trống, không in $0.00 (anh 25/11/2026)
+  ] as DataColumn<CampEtpKho>[]).map((k) => (['lai_nay', 'chi', 'tong_chi', 'lai', 'roi_ky', 'roi_tong'].includes(k.key) || cotNgay.some((x) => x.key === k.key) ? { ...k, cell: (c: CampEtpKho, i: number) => (c.sx?.khoi ? null : k.cell(c, i)) } : k));   // dòng KHỐI chưa có camp → ô tiền trống, không in $0.00 (anh 25/11/2026)
   // KT ĐANG SINH / SẴN SÀNG theo phim (anh 29/10/2026 kế hoạch KT cho phim đang chạy): bản kể chuyện VideoExpress trong etp.thu_vien chưa thành creative
   const ktCua = useMemo(() => new Map((du.thuVien ?? []).filter(tvChuaCr).map((v) => [v.content_id, v.tv as string])), [du.thuVien]);
   const nhomCua = useMemo(() => new Map(du.phims.map((x) => [x.content_id, x.nhom_goc])), [du.phims]);

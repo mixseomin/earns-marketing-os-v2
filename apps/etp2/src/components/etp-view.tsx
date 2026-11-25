@@ -2512,7 +2512,7 @@ function SuaRoas({ c }: { c: CampEtpKho }) {
     style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, border: `1px solid ${trung(v) || hoi === v ? MAU_ROAS : 'var(--line)'}`, background: hoi === v ? 'var(--bg-2)' : 'transparent', color: trung(v) || hoi === v ? MAU_ROAS : 'var(--fg-1)', cursor: 'pointer', fontVariantNumeric: 'tabular-nums' }}>{v.toFixed(1)}</button>;
   return <span style={{ position: 'relative', flex: 'none' }}>
     <button ref={neo} type="button" data-nut="sua-roas" disabled={dang} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBao(null); setHoi(null); setMo((m) => !m); }}
-      title={`ROAS level ${hien ?? '—'} — bấm để sửa${chua ? ' (máy lên camp đúng mức anh chọn)' : ' (camp chưa chạy: máy tạo camp mới đúng mức, giữ giờ chạy)'}`}
+      title={`ROAS level ${hien ?? '—'} — bấm để sửa${chua ? ' (máy lên camp đúng mức anh chọn)' : ' (camp chưa chạy: máy tạo camp mới đúng mức, giữ giờ chạy)'}${bao?.chu ? `\nvừa đổi: ${bao.chu}` : ''}`}
       style={{ fontSize: 11, lineHeight: 1, padding: 0, border: 'none', background: 'transparent', color: MAU_ROAS, fontWeight: 700, fontVariantNumeric: 'tabular-nums', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}>
       {dang ? '…' : hien != null ? hien.toFixed(1) : '—'}</button>{/* #1864 chỉ số gạch chân, bỏ ✎ + viền (anh "Chỉ cần hiện số có gạch chân là hiểu có thể edit") */}
     <AnchoredPopover anchorRef={neo} open={mo} onClose={() => { setMo(false); setHoi(null); }}>
@@ -2528,8 +2528,12 @@ function SuaRoas({ c }: { c: CampEtpKho }) {
           </div></div> : null}
       </div>
     </AnchoredPopover>
-    {bao ? <span role={bao.loi ? 'alert' : 'status'} onClick={(e) => { e.stopPropagation(); setBao(null); }} style={{ position: 'absolute', top: '100%', left: 0, zIndex: 30, width: 260, marginTop: 2, padding: 6, borderRadius: 4, fontSize: 11, whiteSpace: 'normal', cursor: 'pointer',
-      ...(bao.loi ? { border: '1px solid #ef4444', background: '#2a1215', color: '#fca5a5' } : { border: '1px solid #22c55e', background: '#0f2a18', color: '#86efac' }) }}>{bao.loi ?? bao.chu}</span> : null}</span>;
+    {/* #1868 đổi xong KHÔNG hiện ô xanh: ô cũ position:absolute trong dòng cây bị cắt còn mỗi "creative #…" (anh "hiện cái chữ gì kia").
+        Đổi đạt → số tự đổi + câu kết quả vào chữ hover của số; chỉ LỖI mới nổi ô đỏ, qua AnchoredPopover (cổng ra body, không bị dòng cắt). */}
+    <AnchoredPopover anchorRef={neo} open={!!bao?.loi} onClose={() => setBao(null)}>
+      <span data-o="loi-sua-roas" role="alert" onClick={(e) => { e.stopPropagation(); setBao(null); }} style={{ display: 'block', width: 260, padding: 6, borderRadius: 4, fontSize: 11, whiteSpace: 'normal', cursor: 'pointer',
+        border: '1px solid #ef4444', background: '#2a1215', color: '#fca5a5' }}>{bao?.loi}</span>
+    </AnchoredPopover></span>;
 }
 
 function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp, moPhim, onTimDoi, khiTimTrong, hl }: { hl?: Set<number> | null; onTimDoi?: (q: string) => void; khiTimTrong?: React.ReactNode; moCamp?: (id: number) => void; moPhim?: (k: string) => void; camps: CampEtpKho[]; hang?: CampEtpKho[]; du: DuLieuEtp; hep?: boolean; laiKy: (c: CampEtpKho) => SoTien; tenKy: string; moCr?: (cr: number, e: React.MouseEvent, camp?: number) => void; dongCr?: () => void }) {

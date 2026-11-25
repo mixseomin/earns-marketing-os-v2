@@ -13,8 +13,15 @@ def lay(url, ref=None):
     return urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=40).read()
 def sach(u): return u.replace("\\u0026", "&").replace("\\u002F", "/").replace("\\/", "/").rstrip("\\")
 
-def video_trong(html):
-    """link mp4 của tập đang mở trên trang (NetShort cfcdn · DramaBox hwvideo…narrowv3.mp4)"""
+def video_trong(html, u=""):
+    """link mp4 của tập đang mở trên trang (NetShort cfcdn · DramaBox hwvideo…narrowv3.mp4).
+    u = link trang tập: trang tập N của dramaboxdb chứa CẢ link mp4 tập 1 lẫn link tập N (25/11/2026 Bugatti #85055: tập 2, 3 tải ra y hệt tập 1)
+    → chỉ nhận link mang mã chương của chính tập đó (mp4 trước, không có thì HLS m3u8)."""
+    ch = re.search(r"/(\d+)_Episode-\d+", u or "")
+    if ch and "dramaboxdb.com" in u:
+        ds = [sach(m) for m in re.findall(r'https?:(?:\\u002F|\\?/){2}[^"\s]*dramaboxdb\.com[^"\s]+?\.(?:mp4|m3u8)\?[^"\s]+', html) if f"/{ch.group(1)}" in sach(m)]
+        ds.sort(key=lambda x: ".m3u8" in x)
+        if ds: return ds[0]
     for m in re.findall(r'https?:(?:\\u002F|\\?/){2}cfcdn\.netshort\.com[^"\s]+', html): return sach(m)
     for m in re.findall(r'https?:(?:\\u002F|\\?/){2}[^"\s]*dramaboxdb\.com[^"\s]+?\.mp4\?[^"\s]+', html): return sach(m)
     for m in re.findall(r'"video_url":"(https?:[^"]+?\.m3u8)"', html): return sach(m)   # ReelShort (crazymaplestudios HLS, 720p — 21/10/2026)
@@ -131,7 +138,7 @@ def main(goc, ra, so=3):
             # tập HỎNG (07/11/2026: HP tap01 80386 tải dở từ 06/11, moov atom not found → mọi lượt sau đổ ở ffprobe): cất sang .hong rồi tải lại
             os.replace(ra_tap, ra_tap + ".hong"); print(f"tap {n}: tep cu hong — tai lai", file=sys.stderr)
         html = html1 if n == 1 else lay(u).decode("utf-8", "ignore")
-        v = video_trong(html)
+        v = video_trong(html, u)
         if not v: print(f"tap {n}: khong co video (khoa / het tap mien phi)", file=sys.stderr); het = True; break
         # tải vào .part, kiểm đọc được rồi mới đổi tên: tải bị giết giữa chừng không bao giờ để lại tapNN.mp4 dở cho lượt sau dùng lại
         tam = ra_tap + ".part"

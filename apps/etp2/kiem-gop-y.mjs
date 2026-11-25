@@ -518,7 +518,7 @@ const LUAT = [
   { card: '1762', tep: 'apps/etp2/src/lib/etp-nb.ts', mot: 'export const bayGioVn = ', vi: 'một hàm giờ VN lúc này cho giá trị sẵn của ô giờ' },
   { card: '1767', tep: 'apps/etp2/src/lib/etp-chay.ts', mot: 'export const choDuyet = ', vi: 'một định nghĩa trạng thái Chờ duyệt (dòng ⏳ xếp hàng) cho mọi màn etp2' },
   { card: '1767', tep: 'apps/etp2/src/lib/etp-chay.ts', co: '!choDuyet(c) && !choGio(c', vi: 'dòng chờ duyệt không bị tính là Đang chạy' },
-  { card: '1767', tep: 'apps/etp2/src/components/etp-view.tsx', co: "m('duyet', 'Chờ duyệt'", vi: 'ô Lọc có mục Chờ duyệt' },
+  { card: '1767', tep: 'apps/etp2/src/components/etp-view.tsx', co: "m('duyet', 'Chờ lên camp'", vi: 'ô Lọc có mục Chờ lên camp (tên đổi từ Chờ duyệt, anh 25/11/2026)' },
   { card: '1767', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<CayCamp camps={camps} hang={hangLoc} hl={hlCamp}', vi: 'dòng chờ duyệt đi qua bộ lọc trước khi vào cây camp (#1781: ô bật 🖍 tự rời bộ lọc, các ô khác vẫn lọc)' },
   { card: '1767', tep: 'apps/etp2/src/components/etp-view.tsx', cam: '[...con.ds, ...du.hangCr]', vi: 'không nối thẳng dòng chờ duyệt vào cây bỏ qua bộ lọc' },
   { card: '1769', tep: 'apps/etp2/src/components/etp-noi.tsx', co: "TRO.cham = e.pointerType !== 'mouse';", vi: 'ghi loại con trỏ cuối (chạm / chuột) trước mouseover giả của điện thoại' },

@@ -1,21 +1,22 @@
 'use client';
 // M7 — VIỆC THEO PHÒNG (dữ liệu cty /api/agents: nguoi + phien + viec): mỗi phòng một dòng, đếm việc theo trạng thái.
+// Kẹt = người kẹt (tiến trình treo / lỗi) + card góp ý kẹt của kỹ sư phòng đó (lib/card-ket.ts) — phòng có kẹt luôn đứng đầu (anh 25/11/2026).
 // Người: đang làm / kẹt / rảnh / tắt (trạng thái thật lúc này) · Lượt kỹ sư: đã sửa / không sửa / cần anh (Hôm nay hoặc 7 ngày) · Việc máy: bật / tắt / lỗi.
 // tra-repo-ok: bảng dán keo nội bộ trên DataTable nhà, không phải khối logic mới.
 import { useMemo, useState } from 'react';
 import { DataTable, type DataColumn } from '@/components/ui';
 import { useShallowParam } from '@/lib/url-shallow';
-import type { Agent, PhienDoi, ViecMay } from '@/lib/cty-agents-kieu';
+import type { Agent, CardKet, PhienDoi, ViecMay } from '@/lib/cty-agents-kieu';
 import { ThanhO, cotTheoRong, useKhungO } from '@/components/home/khung-o';
 
 const khongDau = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').toLowerCase();
 const ngayVN = (iso: string) => new Date(Date.parse(iso) + 7 * 3600_000).toISOString().slice(0, 10);
 
 type Hang = { id: string; ten: string; nguoi: number; lam: number; ket: number; ranh: number; tat: number;
-  sua: number; khong: number; canAnh: number; khac: number; mayBat: number; mayTat: number; mayLoi: number };
-type So = Exclude<keyof Hang, 'id' | 'ten'>;
+  sua: number; khong: number; canAnh: number; khac: number; mayBat: number; mayTat: number; mayLoi: number; ketDs: string[] };
+type So = Exclude<keyof Hang, 'id' | 'ten' | 'ketDs'>;
 
-export function PhongViec({ ds, phien, may }: { ds: Agent[]; phien: PhienDoi[]; may: ViecMay[] }) {
+export function PhongViec({ ds, phien, may, cardKet = [], loiCardKet = null }: { ds: Agent[]; phien: PhienDoi[]; may: ViecMay[]; cardKet?: CardKet[]; loiCardKet?: string | null }) {
   const rong = useKhungO();
   const [khoang, datKhoang] = useShallowParam('agfk', '');
   const [tim, setTim] = useState('');
@@ -26,14 +27,14 @@ export function PhongViec({ ds, phien, may }: { ds: Agent[]; phien: PhienDoi[]; 
     const lay = (id: string | null, ten: string | null) => {
       const k = id || '_';
       let h = m.get(k);
-      if (!h) { h = { id: k, ten: ten || (id ? id : 'Chưa gắn phòng'), nguoi: 0, lam: 0, ket: 0, ranh: 0, tat: 0, sua: 0, khong: 0, canAnh: 0, khac: 0, mayBat: 0, mayTat: 0, mayLoi: 0 }; m.set(k, h); }
+      if (!h) { h = { id: k, ten: ten || (id ? id : 'Chưa gắn phòng'), nguoi: 0, lam: 0, ket: 0, ranh: 0, tat: 0, sua: 0, khong: 0, canAnh: 0, khac: 0, mayBat: 0, mayTat: 0, mayLoi: 0, ketDs: [] }; m.set(k, h); }
       return h;
     };
     const phongCua = new Map<string, Agent>();
     for (const a of ds) {
       phongCua.set(a.id, a);
       const h = lay(a.phong, a.phongTen); h.nguoi++;
-      if (a.tt.ket.length) h.ket++;
+      if (a.tt.ket.length) { h.ket++; h.ketDs.push(`${a.ten}: ${a.tt.ket.join(', ')}`); }
       if (a.tt.kieu === 'lam') h.lam++; else if (a.tt.kieu === 'ranh') h.ranh++; else h.tat++;
     }
     for (const p of trongKhoang) {
@@ -45,8 +46,17 @@ export function PhongViec({ ds, phien, may }: { ds: Agent[]; phien: PhienDoi[]; 
       if (v.hong) h.mayLoi++;
       if (v.bat) h.mayBat++; else h.mayTat++;
     }
-    return [...m.values()].sort((a, b) => b.nguoi - a.nguoi || a.ten.localeCompare(b.ten, 'vi'));
-  }, [ds, trongKhoang, may]);
+    // card góp ý kẹt → kỹ sư đang được chờ (việc đã chuyển) hoặc kỹ sư nói cuối → phòng của người đó; không ra người thì vào dòng "Chưa gắn phòng"
+    const theoTen = new Map(ds.map((a) => [khongDau(a.ten), a]));
+    for (const c of cardKet) {
+      const giu = c.cho.map((id) => phongCua.get(id)).filter((a): a is Agent => !!a);
+      const ai = giu.length ? giu : c.ten && theoTen.get(khongDau(c.ten)) ? [theoTen.get(khongDau(c.ten))!] : [];
+      const nhan = `#${c.id} ${c.tieuDe}${c.treo ? ' (Đang làm quá trần, không phiên nào chạy)' : ''}${ai.length ? ` · ${ai.map((a) => a.ten).join(', ')}` : ` · hòm ${c.hom}`}`;
+      const phong = ai.length ? [...new Map(ai.map((a) => [a.phong, a])).values()] : [null];
+      for (const a of phong) { const h = lay(a?.phong ?? null, a?.phongTen ?? null); h.ket++; h.ketDs.push(nhan); }
+    }
+    return [...m.values()].sort((a, b) => b.ket - a.ket || b.nguoi - a.nguoi || a.ten.localeCompare(b.ten, 'vi'));
+  }, [ds, trongKhoang, may, cardKet]);
   const hien = tim ? hang.filter((h) => khongDau(h.ten).includes(khongDau(tim))) : hang;
   const tong = (k: So) => hang.reduce((t, h) => t + h[k], 0);
 
@@ -60,7 +70,8 @@ export function PhongViec({ ds, phien, may }: { ds: Agent[]; phien: PhienDoi[]; 
     { key: 'ten', uu: 1, header: 'Phòng', align: 'left', sortValue: (h) => h.ten, cell: (h) => <span className="ag-mot-dong" title={h.ten}>{h.ten}</span> },
     c('nguoi', 'Người', 'Số người trong phòng', 1),
     c('lam', 'Đang làm', 'Người đang làm việc lúc này', 1),
-    c('ket', 'Kẹt', 'Người đang kẹt (việc treo / lỗi)', 1, true),
+    { ...c('ket', 'Kẹt', 'Người kẹt (tiến trình treo / lỗi) + card góp ý kẹt (broken / Đang làm quá trần)', 1, true),
+      cell: (h) => (h.ket ? <span className="ag-xau" title={h.ketDs.join('\n')}>{h.ket}</span> : <span className="ag-mo">·</span>) },
     c('ranh', 'Rảnh', 'Người đang rảnh', 2),
     c('tat', 'Tắt', 'Người đang tắt / chưa chạy', 3),
     c('sua', 'Đã sửa', 'Lượt kỹ sư kết thúc bằng đã sửa', 1),
@@ -73,9 +84,9 @@ export function PhongViec({ ds, phien, may }: { ds: Agent[]; phien: PhienDoi[]; 
   ];
   return <div className="ag-o">
     <ThanhO tim={tim} setTim={setTim} goiYTim="Tìm phòng…"
-      dem={<span title="Người: trạng thái lúc này · Lượt: theo khoảng đang chọn · Máy: trạng thái lúc này">{hang.length} phòng · {tong('lam')} làm · <b>{tong('ket')} kẹt</b> · {tong('canAnh')} cần anh · {tong('mayLoi')} máy lỗi</span>}
+      dem={<span title="Người: trạng thái lúc này · Lượt: theo khoảng đang chọn · Máy: trạng thái lúc này">{hang.length} phòng · {tong('lam')} làm · <b>{tong('ket')} kẹt</b>{loiCardKet ? <span className="ag-xau" title={loiCardKet}> (lỗi đọc card kẹt: {loiCardKet.slice(0, 80)})</span> : null} · {tong('canAnh')} cần anh · {tong('mayLoi')} máy lỗi</span>}
       chinh={{ nhan: 'Lượt', v: khoang, doi: datKhoang, ds: [{ v: '', nhan: 'Hôm nay', so: phien.filter((p) => p.batDau && ngayVN(p.batDau) === nay).length }, { v: '7', nhan: '7 ngày', so: phien.length }] }} />
-    {hien.length ? <DataTable rows={hien} columns={cotTheoRong(cot, rong)} getRowKey={(h) => h.id} persistKey="ag-phong-viec" minWidth={0} locTuDong={false} timNgoai giuCot fixedLayout pageSize={50} defaultSort={[{ key: 'nguoi', dir: 'desc' }]} />
+    {hien.length ? <DataTable rows={hien} columns={cotTheoRong(cot, rong)} getRowKey={(h) => h.id} persistKey="ag-phong-viec-ket" minWidth={0} locTuDong={false} timNgoai giuCot fixedLayout pageSize={50} defaultSort={[{ key: 'ket', dir: 'desc' }]} rowStyle={(h) => (h.ket ? { boxShadow: 'inset 3px 0 0 #f87171' } : undefined)} />
       : <div className="ag-mo ag-trong">Không có phòng nào khớp.</div>}
   </div>;
 }

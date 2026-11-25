@@ -29,3 +29,5 @@ export type LenhAgent =
   | { lenh: 'model'; id: string; model: string }
   | { lenh: 'lich'; muc: string; lich: Lich }
   | { lenh: 'ca'; id: string; ca: string; diem_danh: string };
+/** card góp ý kẹt (đọc thẳng DB mos2, lib/card-ket.ts) — cho là id kỹ sư đang được chờ (việc đã chuyển), ten là tên kỹ sư nói cuối */
+export type CardKet = { id: number; hom: string; tieuDe: string; treo: boolean; cho: string[]; ten: string | null };

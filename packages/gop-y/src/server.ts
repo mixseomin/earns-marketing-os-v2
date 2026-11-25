@@ -21,7 +21,7 @@ export type GopYCuaToi = {
 };
 export type Kq = { ok: boolean; error?: string };
 export type { DemGopY } from './dem';
-export { demTuDs } from './dem';
+export { demTuDs, TRAN_DANG_LAM_MS } from './dem';
 /** Luật riêng của app (vd mos2: team ETP gửi được, lọc card theo nguồn etp, admin thấy card máy tạo, trạng thái qua setBacklinkSite). */
 export type TuyChon = {
   /** app đã tự xét quyền gửi (thay luật mặc định admin-only) */

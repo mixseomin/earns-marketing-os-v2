@@ -25,7 +25,8 @@ import { SteamsoloLangPanel } from '@/components/steamsolo-lang-panel';
 import { MailwizzListsPanel } from '@/components/mailwizz-lists-panel';
 import { ThuVienTab } from '@/components/thu-vien-tab';
 import { docAgents } from '@/lib/cty-agents';
-import type { Agent, DuPhien, PhongSoDo, SoAgents, SuKien, ViecMay, ViecNen } from '@/lib/cty-agents-kieu';
+import { docCardKet } from '@/lib/card-ket';
+import type { Agent, CardKet, DuPhien, PhongSoDo, SoAgents, SuKien, ViecMay, ViecNen } from '@/lib/cty-agents-kieu';
 import { LoiCty } from '@/components/agents/chung';
 import { SoAgentsW } from '@/components/agents/so';
 import { BangAgents } from '@/components/agents/bang';
@@ -104,9 +105,10 @@ async function AgViec() {
 async function AgPhien() { const [r, ten] = await Promise.all([docAgents<DuPhien>('phien'), tenAgents()]); return r.ok ? <PhienAgents du={r.du} tenNguoi={ten} /> : <LoiCty loi={r.loi} />; }
 async function AgSuKien() { const [r, ten] = await Promise.all([docAgents<{ ds: SuKien[] }>('su-kien'), tenAgents()]); return r.ok ? <SuKienAgents ds={r.du.ds} tenNguoi={ten} /> : <LoiCty loi={r.loi} />; }
 async function AgPhongViec() {
-  const [n, p, v] = await Promise.all([docAgents<{ ds: Agent[] }>('nguoi'), docAgents<DuPhien>('phien'), docAgents<{ may: { ds: ViecMay[] } }>('viec')]);
+  const [n, p, v, k] = await Promise.all([docAgents<{ ds: Agent[] }>('nguoi'), docAgents<DuPhien>('phien'), docAgents<{ may: { ds: ViecMay[] } }>('viec'),
+    docCardKet().then((ds) => ({ ds, loi: null as string | null }), (e: unknown) => ({ ds: [] as CardKet[], loi: String((e as Error)?.message || e) }))]);
   if (!n.ok) return <LoiCty loi={n.loi} />;
-  return <PhongViec ds={n.du.ds} phien={p.ok ? p.du.ds : []} may={v.ok ? v.du.may.ds : []} />;
+  return <PhongViec ds={n.du.ds} phien={p.ok ? p.du.ds : []} may={v.ok ? v.du.may.ds : []} cardKet={k.ds} loiCardKet={k.loi} />;
 }
 async function AgSoDo() { const r = await docAgents<{ phong: PhongSoDo[] }>('so-do'); return r.ok ? <SoDoAgents phong={r.du.phong} /> : <LoiCty loi={r.loi} />; }
 

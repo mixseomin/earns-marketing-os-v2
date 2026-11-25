@@ -789,7 +789,7 @@ const LUAT = [
   { card: '1852', tep: 'apps/etp2/src/components/etp-view.tsx', co: "{ key: 'tong_chi', group: 'chi', header: 'tổng'", vi: 'cây camp có cột Tổng đã chi trọn đời (từ #1856 là cột "tổng" trong nhóm Chi)' },
   { card: '1852', tep: 'apps/etp2/src/components/etp-view.tsx', co: "for (const r of du.soNgay) m.set(r.c, (m.get(r.c) ?? 0) + r.chi)", vi: 'Tổng đã chi cộng mọi ngày trong sổ, không theo kỳ' },
   { card: '1847', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', mot: "export const SU_DUYET = 'etp-duyet-cr'", vi: 'bấm Duyệt / Loại phát tín hiệu đổi trạng thái ngay, không đợi tải lại bảng' },
-  { card: '1847', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: 'bam(cr, () => duyetChoAnh(cr, hoi), hoi)', vi: 'form Duyệt / Loại báo kèm duyệt hay loại cho tín hiệu' },
+  { card: '1847', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: 'bam(cr, () => duyetChoAnh(cr, hoi, chu), hoi)', vi: 'form Duyệt / Loại báo kèm duyệt hay loại cho tín hiệu' },
   { card: '1847', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "x.duyet === false ? { chu: '✕ Đã loại'", vi: 'thẻ chờ duyệt: creative bị loại ghi Đã loại, không ghi Chờ lên camp' },
   { card: '1847', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'window.addEventListener(SU_DUYET, f)', vi: 'trang camp nghe tín hiệu và đổi dòng ⏸ ngay lúc bấm' },
   { card: '1847', tep: 'apps/etp2/src/components/etp-view.tsx', co: "daLoaiCr(c) ? { chu: '✕ Đã loại'", vi: 'ô trạng thái có trạng thái Đã loại' },

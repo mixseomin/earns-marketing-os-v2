@@ -16,6 +16,7 @@ import { loiThuongMau } from '@/lib/etp-mau-loi';
 import { FilterChips, useMediaViewer } from '@/components/ui';
 import { DO, XANH } from './etp-doi-thu';
 import { KhungPhimCam } from './etp-phim-cam';
+import { coChuot } from '@/lib/co-chuot';
 
 const BUOC: [string, string][] = [['nang_cap', 'Chờ nâng cấp mẫu'], ['cho', 'Chờ máy'], ['trang_phim', 'Trang phim'], ['tai_tap', 'Tải tập'], ['chon_khung', 'Chọn khung'], ['ve_mau', 'Vẽ mẫu'], ['giong', 'Giọng'], ['video', 'Video'], ['thu_vien', 'Thư viện'], ['creative', 'Tải creative'], ['xong', 'Xong']];
 const tenBuoc = (b: string) => BUOC.find(([k]) => k === b)?.[1] ?? 'Bước khác';
@@ -51,7 +52,7 @@ function SinhLai({ ma, cid, cho }: { ma: string; cid: number; cho: boolean }) {
       style={{ fontSize: 12, padding: '4px 12px', borderRadius: 6, border: '1px solid #c084fc', background: 'transparent', color: '#c084fc', cursor: 'pointer' }}>↻ Sinh lại{cho ? ' (thêm lý do)' : ''}</button>
       : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 10, borderRadius: 8, border: '1px solid #c084fc' }}>
         <div style={{ color: MO_SO, fontSize: 12 }}>Bản này chưa đạt ở đâu? Máy nâng cấp mẫu theo đúng lý do này (so với QC đối thủ của mẫu) rồi mới dựng bản mới.</div>
-        <textarea value={ly} onChange={(e) => setLy(e.target.value)} rows={3} autoFocus placeholder="vd: chữ tên phim cắt mép trái; nhãn WATCH MORE nhỏ và đè trán; phong cách chưa giống ad đối thủ"
+        <textarea value={ly} onChange={(e) => setLy(e.target.value)} rows={3} autoFocus={coChuot()} placeholder="vd: chữ tên phim cắt mép trái; nhãn WATCH MORE nhỏ và đè trán; phong cách chưa giống ad đối thủ"
           style={{ width: '100%', resize: 'vertical', fontSize: 12.5, padding: 8, borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)' }} />
         <div style={{ display: 'flex', gap: 8 }}>
           <button type="button" disabled={gui || ly.trim().length < 5} onClick={() => void nop()} style={{ fontSize: 12, padding: '4px 14px', borderRadius: 6, border: 'none', background: '#9333ea', color: '#fff', cursor: gui ? 'wait' : 'pointer', opacity: gui || ly.trim().length < 5 ? 0.5 : 1 }}>{gui ? 'đang gửi…' : 'Gửi lý do + sinh lại'}</button>

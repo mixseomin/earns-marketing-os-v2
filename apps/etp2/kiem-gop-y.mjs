@@ -883,5 +883,14 @@ if (readFileSync(join(GOC, 'apps/etp2/src/lib/etp-dang.json'), 'utf8') !== readF
     if (o.x + o.w > so.cot || o.y + o.h > so.hang) loi.push(`template ${ma}: ô ${o.ma} tràn lưới (${o.x}+${o.w} / ${o.y}+${o.h} trong ${so.cot}×${so.hang})`);
     for (const b of t.o.slice(i + 1)) if (o.x < b.x + b.w && b.x < o.x + o.w && o.y < b.y + b.h && b.y < o.y + o.h) loi.push(`template ${ma}: ${o.ma} chồng ${b.ma}`);
   } }
+// TỰ FOCUS (anh #1502 01/11 + #1872 25/11/2026 "Ko tự focus vào đây": ô Nhận xét hộp Duyệt cr bật bàn phím iPhone) — mọi autoFocus trong etp2
+// phải qua coChuot() (chỉ máy có chuột). Ngoại lệ duy nhất: ô ĐỔI TÊN mở ra do chính người bấm "đổi tên" (gõ là ý định).
+{ const { readdirSync, statSync } = await import('node:fs');
+  const DOI_TEN = { 'apps/etp2/src/components/etp-tong2.tsx': 1, 'apps/etp2/src/components/ui/entity-picker.tsx': 1 };
+  const di = (d) => readdirSync(join(GOC, d)).flatMap((t) => { const p = `${d}/${t}`; return statSync(join(GOC, p)).isDirectory() ? di(p) : /\.tsx$/.test(t) ? [p] : []; });
+  for (const p of di('apps/etp2/src')) {
+    const tron = (readFileSync(join(GOC, p), 'utf8').match(/\bautoFocus(?=\s*[/>\n]|\s+[a-zA-Z{])|\bautoFocus=\{(?![^}]*coChuot\(\))(?!searchAutoFocus\})[^}]*\}/g) || []).length;
+    if (tron > (DOI_TEN[p] || 0)) loi.push(`#1872 ${p}: ${tron} ô tự focus không qua coChuot() — trên điện thoại bật bàn phím che màn`);
+  } }
 if (loi.length) { console.error(`✗ góp ý etp2 bị quay về bản cũ (${loi.length}):\n${loi.join('\n')}`); process.exit(1); }
 console.log(`✓ kiem-gop-y etp2: ${LUAT.length} điều kiện giữ nguyên`);

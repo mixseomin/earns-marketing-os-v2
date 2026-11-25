@@ -15,6 +15,7 @@
 import { type ReactNode } from 'react';
 import { urlVoiParam } from '@/lib/url-mo-tab';
 import { Segmented } from './segmented';
+import { coChuot } from '@/lib/co-chuot';
 
 // usePaged + Pager nằm ở gói dùng chung @mos2/bang (DataTable của mọi app dùng chung) — xuất lại để chỗ gọi cũ giữ nguyên.
 export { usePaged, Pager } from '@mos2/bang/phan-trang';
@@ -28,7 +29,7 @@ export function SearchInput({ value, onChange, placeholder = 'Tìm…', width = 
       <span style={{ position: 'absolute', left: 8, fontSize: 12, color: 'var(--fg-4)', pointerEvents: 'none' }}>🔍</span>
       <input
         value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} autoComplete="off"
-        autoFocus={autoFocus}
+        autoFocus={autoFocus && coChuot()}
         style={{ padding: '5px 9px 5px 26px', fontSize: 12, borderRadius: 6, background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--fg-1)', width, outline: 'none' }}
       />
       {value && (

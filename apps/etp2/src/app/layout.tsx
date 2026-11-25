@@ -8,6 +8,7 @@ import { readTablePrefs } from '@/lib/table-prefs';
 import { getCurrentUser } from '@/lib/auth';
 import { GopYMos2 } from '@/components/gop-y-mos2';
 import { EtpDrawerHost } from '@/components/etp-drawer-host';
+import { TuNapBanMoi } from '@/components/tu-nap-ban-moi';
 
 export const metadata: Metadata = { title: 'ETP2 · camp', robots: { index: false, follow: false } };
 export const viewport = { width: 'device-width', initialScale: 1, maximumScale: 1, viewportFit: 'cover' as const };
@@ -25,6 +26,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <TablePrefsProvider value={tablePrefs}>
           {children}
           <EtpDrawerHost />
+          <TuNapBanMoi />
           {u?.role === 'admin' && <GopYMos2 />}
         </TablePrefsProvider>
       </body>

@@ -823,6 +823,7 @@ const LUAT = [
   { card: 'roas-dan-2511', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: 'from etp.ke_cr where creative_id = ${cr} limit 1', cam: "'--roas', String(BANG_LUAT.hoi_cho.roas)", vi: 'lenCampCr đọc mức + khuôn từ etp.ke_cr, cấm cứng hoi_cho ROAS 1 (anh 25/11/2026 "cái nào cũng roas 1 à")' },
   { card: 'roas-dan-2511', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: "from etp.ke_cr where creative_id = ${id} and nguon = 'sổ len_cr_roas'", cam: "khoa = 'len_cr_roas') roas", vi: 'thẻ chờ duyệt + ▶ Lên đọc etp.ke_cr: mỗi creative hiện đúng mức sẽ lên' },
   { card: 'roas-dan-2511', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'from etp.ke_cr k where k.creative_id = h.creative_id', vi: 'hàng chờ lên camp hiện mức dàn từ etp.ke_cr' },
+  { card: 'khoa-the-2511', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: 'useState<ReadonlySet<number>>(() => new Set())', cam: 'disabled={dang != null} onClick={() => setHoi(true)}', vi: 'nút Duyệt / Loại khoá riêng từng thẻ — bấm một thẻ không khoá thẻ khác (anh 25/11/2026 "Bấm xong là đéo duyệt cái khác đc nữa")' },
   { card: 'khung-7-22-2511', tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: '"len_gio": [7, 22]', vi: 'sổ luật etp2: khung lên 07h + 22h VN' },
   { card: 'khung-7-22-2511', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"len_gio": [7, 22]', vi: 'sổ luật chung (nhan-ban đọc tệp này): khung lên 07h + 22h VN' },
 ];

@@ -30,9 +30,23 @@ export default function NhungGopY() {
     const trang = new URLSearchParams(location.search).get('trang') || '';
     if (/^https?:\/\//.test(trang)) w.__trangGopY = () => trang;
     let goc = '*'; try { goc = new URL(trang).origin; } catch { /* không có trang → không trả lời ai */ }
+    // 📷 Chụp trang trong hòm (ImageAttach) → trang ngoài ẩn hòm, chụp trang thật, hiện lại hòm rồi trả 'gop-y:anh-chup' (ảnh hoặc lỗi)
+    // → ảnh về đúng ô đính kèm vừa bấm. Một lượt chụp một lúc; trang ngoài không trả lời trong 90 s thì báo lỗi, không treo.
+    let choChup: { xong: (a: string) => void; loi: (e: Error) => void; hen: ReturnType<typeof setTimeout> } | null = null;
+    if (goc !== '*') (w as { __chupNgoaiGopY?: () => Promise<string> }).__chupNgoaiGopY = () => new Promise<string>((xong, loi) => {
+      if (choChup) { loi(new Error('đang chụp dở')); return; }
+      choChup = { xong, loi, hen: setTimeout(() => { choChup = null; loi(new Error('trang không trả ảnh')); }, 90_000) };
+      window.parent.postMessage({ loai: 'gop-y:chup' }, goc);
+    });
     const nhan = (e: MessageEvent) => {
       if (goc === '*' || e.origin !== goc || e.source !== window.parent) return;
-      const d = (e.data || {}) as { loai?: string; trang?: string; nguCanh?: string; anh?: string | null; anhThem?: string[] };
+      const d = (e.data || {}) as { loai?: string; trang?: string; nguCanh?: string; anh?: string | null; anhThem?: string[]; loi?: string };
+      if (d.loai === 'gop-y:anh-chup') {
+        const c = choChup; if (!c) return;
+        choChup = null; clearTimeout(c.hen);
+        if (typeof d.anh === 'string' && d.anh.startsWith('data:image/')) c.xong(d.anh); else c.loi(new Error(String(d.loi || 'đã huỷ').slice(0, 160)));
+        return;
+      }
       if (d.loai !== 'gop-y:mo') return;
       // iframe được nút chuẩn NẠP SẴN từ lúc trang mở → trang một-trang (studio2…) đã đổi URL; card phải mang URL lúc bấm, không phải lúc nạp
       if (typeof d.trang === 'string') { try { if (new URL(d.trang).origin === goc) { const t = d.trang.slice(0, 2000); w.__trangGopY = () => t; } } catch { /* URL hỏng → giữ ?trang= */ } }

@@ -217,6 +217,14 @@ export function ImageAttach({ value, onChange, max = 6, upload, xemAnh, xoaAnh, 
 
   // "Chụp trang" — capture the screen/tab via the native picker, grab one frame.
   const capture = async () => {
+    // HÒM NHÚNG (/nhung/gop-y trên trang tĩnh — worlds, castle…): nhờ trang ngoài chụp — nó ẩn hòm, chụp đúng trang đang xem, rồi mở lại hòm kèm ảnh
+    // (chụp từ trong iframe thì ngăn hòm che mất nửa trang). Ảnh trả về đúng ô đính kèm vừa bấm (form góp ý hay ô trả lời).
+    const ngoai = (window as unknown as { __chupNgoaiGopY?: () => Promise<string> }).__chupNgoaiGopY;
+    if (ngoai) {
+      setStatus({ ok: true, text: '📷 Đang chụp trang…' });
+      try { await pushDataUrls([await ngoai()]); } catch (e) { setStatus({ ok: false, text: `Chưa chụp được trang: ${(e as Error)?.message || 'đã huỷ'} — thử lại, hoặc Ctrl+V / Chọn file` }); }
+      return;
+    }
     try {
       const md = navigator.mediaDevices as MediaDevices & { getDisplayMedia?: (c: unknown) => Promise<MediaStream> };
       if (!md?.getDisplayMedia) { setStatus({ ok: false, text: 'Trình duyệt không hỗ trợ chụp màn hình' }); return; }

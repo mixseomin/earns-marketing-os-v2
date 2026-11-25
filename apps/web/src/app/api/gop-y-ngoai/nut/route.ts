@@ -42,9 +42,39 @@ const JS = `(() => {
     if (d.loai === 'gop-y:san-sang') { sanSang = true; guiMo(); }
     if (d.loai === 'gop-y:dong') dong();
     if (d.loai === 'gop-y:dem') { dem = d; to(); }
+    if (d.loai === 'gop-y:chup') chup();
   });
+  // 📷 CHỤP TRANG TRONG LUỒNG GÓP Ý (anh 25/11/2026): nút 💬 mở thẳng hòm, không hỏi chụp; muốn kèm ảnh thì bấm 📷 Chụp trang trong hòm →
+  // ẩn hòm, chụp trang đang xem (khung canvas của trang nếu có __chupKhungTrang, không thì chọn tab hiện tại), hiện lại hòm kèm ảnh.
+  let dangChup = false;
+  const doi = (ms) => new Promise((r) => setTimeout(r, ms));
+  const nho = (src, w, h) => { const k = Math.min(1, 1600 / Math.max(w, h)), c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k); c.getContext('2d').drawImage(src, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.85); };
+  async function chupTab() {
+    const md = navigator.mediaDevices;
+    if (!md || !md.getDisplayMedia) throw new Error('trình duyệt không hỗ trợ chụp màn hình');
+    const st = await md.getDisplayMedia({ video: { displaySurface: 'browser' }, audio: false, preferCurrentTab: true, selfBrowserSurface: 'include' });
+    try {
+      const v = document.createElement('video'); v.muted = true; v.srcObject = st; await v.play();
+      await doi(400);   // khung picker vừa đóng — chờ trang vẽ lại
+      return nho(v, v.videoWidth, v.videoHeight);
+    } finally { st.getTracks().forEach((t) => t.stop()); }
+  }
+  async function chup() {
+    if (dangChup || !khung) return;
+    dangChup = true;
+    let anh = null, loi = '';
+    hien(false);
+    try {
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      try { anh = window.__chupKhungTrang ? window.__chupKhungTrang() : null; } catch (e) { console.warn('[gop-y] chụp khung trang lỗi', e); }
+      if (!(typeof anh === 'string' && anh.startsWith('data:image/'))) anh = await chupTab();
+    } catch (e) { loi = (e && e.message) || 'đã huỷ'; anh = null; }
+    dangChup = false;
+    if (dangMo) { hien(true); try { khung.focus(); } catch (e) {} }
+    khung.contentWindow.postMessage({ loai: 'gop-y:anh-chup', anh, loi }, GOC);
+  }
   // NÚT CHUẨN (packages/gop-y/src/nut.ts, anh 25/11/2026): AI đang làm → sáng nhấp nhô · có việc kẹt → chấm tròn đỏ góc · chờ ý kiến → số đỏ.
-  // Số do hòm trong iframe đếm (60 giây một lần) rồi gửi 'gop-y:dem'; tô mọi nút [data-gop-y-mo] / [data-gop-y-nut] (castle·worlds bỏ data-gop-y-mo để mở qua menu).
+  // Số do hòm trong iframe đếm (60 giây một lần) rồi gửi 'gop-y:dem'; tô mọi nút [data-gop-y-mo] / [data-gop-y-nut] (nút tự gắn bằng moGopYMos2 thì khai data-gop-y-nut).
   let dem = null;
   const css = document.createElement('style'); css.textContent = __GY_NUT_CSS__; document.head.appendChild(css);
   function to() {

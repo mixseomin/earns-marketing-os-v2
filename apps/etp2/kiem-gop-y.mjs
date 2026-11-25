@@ -643,7 +643,9 @@ const LUAT = [
   { card: '1788', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'const sd = ngay.map((d) => p.all.reduce(', vi: 'không quay về dòng phim chỉ cộng camp lọt bộ lọc' },
   // anh 24/11/2026 (mẫu KneDraQ - DE - 03 "dạng AT nhưng mở rộng thành kiểu ảnh động"): mẫu ảnh động = khung AI chuyển động + logo gốc + nút CTA hiện ở giây 1,5
   { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', mot: 'DONG = {"dt_anh_dong_logo"}', vi: 'máy dựng có mẫu ảnh động' },
-  { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'clip, v = chuyen_dong(nen, tm, cid, ma, b); vnd += v; giay = dung_dong(clip, chu, mp3, out)', vi: 'mẫu ảnh động đi đường AI chuyển động, ₫ cộng vào sổ' },
+  { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'clip, v = chuyen_dong(nen, tm, cid, ma, b); vnd += v; nhip = None', vi: 'mẫu ảnh động đi đường AI chuyển động, ₫ cộng vào sổ' },
+  { card: 'cta-nay', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'giay = dung_dong(clip, chu, mp3, out, nhip)', vi: 'nút CTA nảy đúng lúc giọng đọc câu CTA (anh 25/11/2026)' },
+  { card: 'giong-phim', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'kg, ng = AT.giong_phim(p, _NHO[cid].get("giong")', vi: 'giọng theo phim + chủ đề phim, không dùng một giọng chung (anh 25/11/2026)' },
   { card: 'anh-dong', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'fade=in:st={DONG_HIEN}:d=0.4:alpha=1', vi: 'logo + nút hiện ở giây 1,5, không hiện từ đầu' },
   { card: 'anh-dong', tep: 'apps/etp2/src/lib/etp-mau-cr.json', co: '"ma": "dt_anh_dong_logo"', vi: 'sổ mẫu có mục Ảnh động logo gốc + CTA' },
   { card: 'anh-dong', tep: 'apps/etp2/src/lib/etp-dang.json', co: '"dang": "ảnh động", "ma": "AD"', vi: 'bộ lọc Loại có dạng AD ảnh động (anh 24/11/2026 "Thêm vào đây")' },

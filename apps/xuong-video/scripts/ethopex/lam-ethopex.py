@@ -158,7 +158,7 @@ def tat_loat(ids, luat, ai, t7=False, ep=False, bo=False):
               f"hôm nay ROI {roi(nay, c):+.0f}%" if (roi(nay, c) or -1e9) > ROI_GIU else
               f"2 ngày ROI {roi(hai, c):+.0f}%" if (roi(hai, c) or -1e9) > 0 else
               f"cộng dồn ROI {roi(tong, c):+.0f}%" if (roi(tong, c) or -1e9) > 0 else None)
-        if ly and not ep and not bam_tay(ai): kq["giu"][c] = ly   # ep: anh lệnh tắt cả danh sách (anh 26/10/2026 với luật T7: không giữ camp "hôm nay đang lãi")
+        if ly and not ep: kq["giu"][c] = ly   # ep: anh lệnh tắt cả danh sách (anh 26/10/2026 với luật T7: không giữ camp "hôm nay đang lãi")
         else: kq["gui"].append(c)
     cb = giu_cam_bien(kq["gui"], ds, ai, bo, xep=lambda c: (roi(nay, c) or -1e9, roi(hai, c) or -1e9))   # --ep không bỏ được cảm biến, chỉ --bo-cam-bien
     kq["giu"].update(cb); kq["gui"] = [c for c in kq["gui"] if c not in cb]
@@ -190,6 +190,10 @@ def main(a):
     # _loc + _du_tang) cách đó vài phút. Lệnh tăng KHÔNG chấm lại cổng bằng số cả ngày (du_don): hai cách đo lệch nhau ở ca sát ngưỡng → 23 lần / 7 ngày máy xếp tăng
     # rồi chính lệnh tăng chặn "vừa tăng — chờ" (rà 12/11/2026, anh "không thể lỗi ở bất kỳ khâu nào"). Khoá sau giảm, nhịp thang phiên (nghỉ 60 phút), mức, trần vẫn chặn.
     du_luat = "--du-luat" in a and str(ai or "").startswith("máy tự tăng")
+    # ANH TỰ BẤM NÚT (etp2 / Telegram) = LỆNH TRỰC TIẾP cho MỌI việc: bỏ mọi chặn mềm của máy (tuổi, tiêu, lãi, nhịp, khoá sau giảm, nhịp giảm,
+    # lịch giờ, tắt quá 24 giờ) — MỘT chỗ, mọi nhánh đọc ep / bo_nhip / tay. Chỉ cổng cứng CONG.kiem (phim cấm, camp đội) còn chặn. Anh 25/11/2026.
+    tay = bam_tay(ai)
+    if tay: ep = bo_nhip = True
     bo_cb = "--bo-cam-bien" in a   # anh lệnh tắt nốt cả camp cảm biến giá chợ (sổ luật phanh_cho.cam_bien)
     a = [x for i, x in enumerate(a) if x not in ("--luat", "--ai", "--ep", "--bo-nhip", "--du-luat", "--bo-cam-bien") and (i == 0 or a[i - 1] not in ("--luat", "--ai"))]
     if a[0] == "tat-loat":   # tat-loat <id,id,…> --luat … --ai … [--t7]
@@ -219,7 +223,7 @@ def main(a):
             # camp tạm dừng chỉ được hạ về SÀN $1 (08/11/2026: 2 bản dup bộ 4 PAUSED kẹt ở $3 của AB01 vì lệnh giảm từ chối camp tạm dừng — bật lại sẽ chạy $3)
             if truoc["tt"] != "ACTIVE" and ns != 1: raise ValueError(f"camp đang {truoc['tt']}, chỉ hạ về $1")
             if ns >= float(truoc["ns"] or 0): raise ValueError(f"camp đang ${truoc['ns']} ≤ ${ns}, không phải giảm")
-            ly = NT.chan_giam(lambda p: api(p), cid)
+            ly = None if ep else NT.chan_giam(lambda p: api(p), cid)
             if ly: raise ValueError(ly)
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": cid, "source_payload": {"daily_budget": ns}}})
             ok = lambda s: float(s["ns"] or 0) == ns
@@ -235,7 +239,7 @@ def main(a):
                 raise ValueError(f"camp đã {truoc['tt']}")
             # CHẶN TẮT CAMP LÃI (anh 22/10/2026: "luật vẫn là luật. Camp nào lãi hơn 20% thì bật lại" — con tắt nhầm #66052/#66055/#65714 vì phân loại
             # theo số chụp lúc 09:50, doanh thu về trễ). Đọc ROI cộng dồn MỚI NHẤT ngay lúc tắt; > 20% thì từ chối, trừ --ep (anh lệnh đích danh).
-            lai = None if ep or bam_tay(ai) else dang_lai(cid, t7=(luat or "").startswith("T7"))
+            lai = None if ep else dang_lai(cid, t7=(luat or "").startswith("T7"))
             if lai: raise ValueError(f"không tắt: {lai}")
             cb = giu_cam_bien([cid], {int(c["id"]): c for c in api("/api/v1/campaigns?page_size=2000")["data"]}, ai, bo_cb)
             if cb: raise ValueError(f"không tắt: {cb[cid]}")
@@ -246,7 +250,7 @@ def main(a):
         elif viec == "bat":   # bật lại camp đã tắt — chỉ khi anh lệnh (vd 22/10/2026 "camp nào lãi hơn 20% thì bật lại")
             if truoc["tt"] == "ACTIVE": raise ValueError("camp đã ACTIVE")
             # camp đang tạm dừng vì LỊCH GIỜ (etp.lich_tat): không bật giữa khung TẮT — apps/etp/lich-gio.py tự bật khi tới khung BẬT (≤ 10 phút sau mốc)
-            tt_bat = CONG.truc_tiep("bat", [cid])   # LỆNH TRỰC TIẾP của anh: miễn khung lịch giờ + luật tắt quá 24 giờ (anh 20/11/2026 09:35); phim cấm / camp đội vẫn chặn ở kiem
+            tt_bat = tay or CONG.truc_tiep("bat", [cid])   # LỆNH TRỰC TIẾP của anh: miễn khung lịch giờ + luật tắt quá 24 giờ (anh 20/11/2026 09:35); phim cấm / camp đội vẫn chặn ở kiem
             if tt_bat and q(f"delete from etp.lich_tat where camp_id = {cid} returning camp_id"): kq["lich"] = "bỏ khỏi lịch giờ — lệnh trực tiếp của anh"
             elif q(f"select 1 from etp.lich_tat where camp_id = {cid}"):
                 kq.update(ok=True, sau=truoc, loi=None, lich="đang tạm dừng theo lịch giờ — lịch tự bật lại khi tới khung BẬT"); ghi_nhat_ky(kq, luat, ai); print(json.dumps(kq, ensure_ascii=False)); return

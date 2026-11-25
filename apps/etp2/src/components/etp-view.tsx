@@ -35,7 +35,7 @@ import { quetPhimEtp } from '@/lib/actions/etp-phim';
 import { docGioNgay, type SoGio } from '@/lib/actions/etp-gio';
 import { NutLichPhim, PHA_HT } from '@/components/etp-lich-phim';
 import { DongHoSx, FormChayDong, MAU as MAU_DONG, NUT_SX, TabDong, xuLy } from '@/components/etp-dong';
-import { chiRe, DongMoc, HoverChu, KhungNoi, ReThe, useNoi, type Moc, type Noi, type TheNoi } from '@/components/etp-noi';
+import { chiRe, DongMoc, HoverChu, KhungNoi, laCham, ReThe, useNoi, type Moc, type Noi, type TheNoi } from '@/components/etp-noi';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { Tong2 } from '@/components/etp-tong2';
@@ -2074,7 +2074,7 @@ function LoaiPhim({ ds, lai }: { ds: CampEtpKho[]; lai: (c: CampEtpKho) => numbe
 const soO = (v: number | null, s?: SoTien, rong = '·') => (v != null ? `${v}%` : s && s.chi > 0 ? `$${s.chi.toFixed(2)}` : rong);
 const KIEU_CHON: React.CSSProperties = { fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit' };   // ô chọn lọc / kỳ — một kiểu
 // ô ROI một ngày của cây camp — CẤP MODULE (audit 27/10/2026: khai trong hàm dựng thì mỗi lần vẽ là một loại component mới, React gắn lại mọi ô)
-const O0 = ({ v, t, cot, s }: { v: number | null; t: string; cot: string; s?: SoTien }) => <span data-cot={cot} data-cot-can="giua" title={v == null && s && s.chi > 0 ? `${t}: chi ${usd(s.chi)} · thu ${usd(s.thu)} — chưa đủ $0.30 để tính ROI` : t} style={{ fontSize: 10, width: 38, textAlign: 'center', padding: '1px 0', borderRadius: 4, fontVariantNumeric: 'tabular-nums',
+const O0 = ({ v, t, cot, s, the }: { v: number | null; t: string; cot: string; s?: SoTien; the?: boolean }) => <span data-cot={cot} data-cot-can="giua" title={the ? undefined : v == null && s && s.chi > 0 ? `${t}: chi ${usd(s.chi)} · thu ${usd(s.thu)} — chưa đủ $0.30 để tính ROI` : t} style={{ fontSize: 10, width: 38, textAlign: 'center', padding: '1px 0', borderRadius: 4, fontVariantNumeric: 'tabular-nums',
   background: v == null ? 'transparent' : v >= 50 ? 'rgba(34,197,94,.15)' : v >= 0 ? 'rgba(245,158,11,.15)' : 'rgba(239,68,68,.15)', color: v == null ? 'var(--fg-3)' : v >= 50 ? '#4ade80' : v >= 0 ? '#f59e0b' : '#f87171' }}>{soO(v, s)}</span>;
 // GỘP BIỂU ĐỒ VÀO NHÓM NGÀY (anh 27/10/2026 "gộp sang 1 nhóm"): mỗi ô ROI ngày mang luôn cột lãi/lỗ của chính ngày đó (trên dương, dưới âm, cao theo ngày lớn nhất của dòng) —
 // bỏ cột biểu đồ riêng; s = số ngày đó, max = |lãi| lớn nhất của dòng, mo = hôm nay (đang chạy, nhạt)
@@ -2089,7 +2089,8 @@ const MAU_CHI_NS = '#60a5fa';
 // = chi ngày ÷ số camp có chi; gọn chữ để vừa ô 38px ($0.69 · $12.3 · $123); số đủ + phép chia nằm ở chữ rê
 const tienGon = (x: number) => `$${x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2)}`;
 const O = ({ v, t, cot, s, max, mo, nhom, n, bac, gio, ns }: { v: number | null; t: string; cot: string; s?: SoTien; max?: { p: number; n: number }; mo?: boolean; nhom?: boolean; n?: number; bac?: DuLieuEtp['lsBac'][number]; gio?: GioO; ns?: number }) => {
-  if (s == null || max == null) return <O0 v={v} t={t} cot={cot} s={s} />;
+  const coThe = !!(s && (bac?.length || (gio && s.chi > 0)));   // #1875: ô có thẻ ngày — chip trơn (điện thoại qua · nay) cũng mở thẻ như PC
+  if (s == null || max == null) { const o0 = <O0 v={v} t={t} cot={cot} s={s} the={coThe} />; return coThe && s ? <ONgay bac={bac} d={{ t, v, s, ns, n }} gio={s.chi > 0 ? gio : undefined}>{o0}</ONgay> : o0; }
   // cột camp NHỎ hơn cột phim (góp ý #1485 anh 29/10/2026 "cột ROI của camp bé hơn cột ROI của phim"): phim cao 22 · rộng đủ ô, camp cao 15 · hẹp hơn
   const H = nhom ? 22 : 15, le = nhom ? 3 : 8, tong = max.p + max.n, y0 = tong > 0 ? Math.round((H * max.p) / tong) : H;   // y0 = khoảng từ đỉnh xuống đường 0
   const lai = s.thu - s.chi, h = tong > 0 ? Math.max(lai ? 2 : 0, Math.round((Math.abs(lai) / tong) * H)) : 0, mau = v == null ? 'var(--fg-3)' : v >= 50 ? '#4ade80' : v >= 0 ? '#f59e0b' : '#f87171';
@@ -2134,7 +2135,7 @@ function DauNgay({ d }: { d: DuNgay }) {
 // bấm cũng mở ngay (cùng khuôn etp-logs / etp-phanh-cho: điện thoại không có rê chuột); bấm trong thẻ (portal nổi bọt lên đây) thì bỏ qua
 function ONgay({ bac, d, gio, children }: { bac?: DuLieuEtp['lsBac'][number]; d: DuNgay; gio?: GioO; children: React.ReactNode }) {
   const noi = useNoi<{ id: 0 }>();
-  return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => { if (e.currentTarget.contains(e.target as Node)) noi.moNgay({ id: 0 }, e); }} style={{ display: 'contents' }}>
+  return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => { if (laCham()) noi.bam({ id: 0 }, e); else if (e.currentTarget.contains(e.target as Node)) noi.moNgay({ id: 0 }, e); }} style={{ display: 'contents' }}>   {/* #1875: chạm ô ngày trên điện thoại mở thẻ ngày như PC, không lan lên mở ngăn camp / phim */}
     {children}
     {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={400} cao={360} noi={noi}><div style={{ width: 400, maxWidth: '92vw', maxHeight: 420, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
       <DauNgay d={d} />
@@ -2646,7 +2647,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
         </span>
         {(() => { const sd = ngayHien.map((d) => so.get(c.camp_id)?.get(d)), mx = coQua ? undefined : maxLai([...sd, c.nay]);
           return <>{ngayHien.map((d, i) => <O key={d} cot={`roi-${ngay.indexOf(d)}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={mx} bac={bacO(c.camp_id, d)} gio={{ camps: [c.camp_id], ngay: d }} />)}
-            {coQua ? <O cot="roi-qua" v={roi(c.qua)} t="ROI hôm qua" s={c.qua} /> : null}<O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} ns={c.ngan_sach} max={mx} mo={!coQua} bac={bacO(c.camp_id, du.nay)} gio={{ camps: [c.camp_id], ngay: du.nay }} /></>; })()}
+            {coQua ? <O cot="roi-qua" v={roi(c.qua)} t={`ROI hôm qua ${ngay.at(-1)!.slice(8, 10)}/${ngay.at(-1)!.slice(5, 7)}`} s={c.qua} bac={bacO(c.camp_id, ngay.at(-1)!)} gio={{ camps: [c.camp_id], ngay: ngay.at(-1)! }} /> : null}<O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} ns={c.ngan_sach} max={mx} mo={!coQua} bac={bacO(c.camp_id, du.nay)} gio={{ camps: [c.camp_id], ngay: du.nay }} /></>; })()}
         <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><LaiCot s={laiC} /></span>
       </div>) : (
       <div className="dong" data-camp-dong={c.camp_id} style={{ display: 'grid', gridTemplateColumns: LUOI_CAY, columnGap: 4, alignItems: 'center', padding: '3px 0 3px 12px', fontSize: 12, borderTop: '1px solid var(--line)',
@@ -2868,12 +2869,12 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
             <span /><span>Phim → camp</span><span style={{ textAlign: 'right' }} title="tuổi camp tính bằng ngày từ lúc tạo">tuổi</span><span>ngân sách</span><span title="luật camp sắp chạm — chip đặc: máy luật đã xếp làm · viền nét đứt: sắp chạm · rê vào xem điều kiện">luật</span><span>creative · điểm chấm</span><span>loại</span>
             {coLich ? <span title="lịch giờ 07h · 08h–12h · 13h–19h · 20h–06h (xanh chạy, đỏ tắt, ⏸ đang dừng theo lịch)">lịch giờ</span> : null}<span />
           </span>)}
-        {(() => { const tg = tongNgay(camps, true), tq =camps.reduce((a, c) => ({ chi: a.chi + c.qua.chi, thu: a.thu + c.qua.thu }), { chi: 0, thu: 0 });
-          const o = (nhan: React.ReactNode, cot: string, t: string, sx: SoTien, st?: React.CSSProperties) => <span key={cot} data-cot={cot} data-cot-can="giua" title={t} style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.2, ...st }}>
-            {nhan}{hep ? <O0 v={roi(sx)} t={`${t} — tổng cả tài khoản (mọi camp có chi, kể cả camp đã tắt)`} cot={`${cot}-tong`} s={sx} /> : null}</span>;
-          return <>{ngayHien.map((d) => { const i = ngay.indexOf(d); return o(<NgayNhan d={d} />, `roi-${i}`, `ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)}`, tg[i]!); })}
-            {coQua ? o('qua', 'roi-qua', 'ROI hôm qua', tq) : null}
-            {o('nay', 'roi-nay', 'ROI hôm nay', tg[ngay.length]!, { color: '#60a5fa', fontWeight: 600, background: hep ? undefined : 'rgba(59,130,246,.12)', borderRadius: '4px 4px 0 0' })}</>; })()}
+        {(() => { const tg = tongNgay(camps, true), dt = hep ? demCamp(camps, true) : [], idTk = hep ? idPhim(camps, true) : [];   // #1875: chip tổng trên điện thoại = cả tài khoản, chạm mở thẻ ngày như ô PC
+          const o = (nhan: React.ReactNode, cot: string, t: string, i: number, st?: React.CSSProperties) => <span key={cot} data-cot={cot} data-cot-can="giua" title={hep ? undefined : t} style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.2, ...st }}>
+            {nhan}{hep ? <O v={roi(tg[i]!)} t={`${t} — tổng cả tài khoản (mọi camp có chi, kể cả camp đã tắt)`} cot={`${cot}-tong`} s={tg[i]!} n={dt[i]} gio={{ camps: idTk, ngay: ngay[i] ?? du.nay }} /> : null}</span>;
+          return <>{ngayHien.map((d) => { const i = ngay.indexOf(d); return o(<NgayNhan d={d} />, `roi-${i}`, `ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)}`, i); })}
+            {coQua ? o('qua', 'roi-qua', `ROI hôm qua ${ngay.at(-1)!.slice(8, 10)}/${ngay.at(-1)!.slice(5, 7)}`, ngay.length - 1) : null}
+            {o('nay', 'roi-nay', 'ROI hôm nay', ngay.length, { color: '#60a5fa', fontWeight: 600, background: hep ? undefined : 'rgba(59,130,246,.12)', borderRadius: '4px 4px 0 0' })}</>; })()}
         <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }} title={`lãi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`}>lãi {tenKy.toLowerCase()}
           {hep ? <LaiCot s={camps.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 })} /> : null}</span>
       </div>
@@ -2903,7 +2904,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
             {(() => { const sd = tongNgay(p.all);   // #1788: cả phim, kể cả camp ngoài bộ lọc
               const sn = sd[ngay.length]!, mx = coQua ? undefined : maxLai([...ngayHien.map((d) => sd[ngay.indexOf(d)]), sn]), dc = demCamp(p.all);
               return <>{ngayHien.map((d) => ngay.indexOf(d)).map((i) => <O key={i} cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả phim ${ngay[i]!.slice(8, 10)}/${ngay[i]!.slice(5, 7)}`} s={sd[i]} max={mx} n={dc[i]} gio={{ camps: idPhim(p.all), ngay: ngay[i]! }} />)}
-                {coQua ? <O cot="roi-qua" v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.qua.chi, thu: a.thu + c.qua.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm qua" /> : null}<O cot="roi-nay" v={roi(sn)} t="ROI cả phim hôm nay" s={coQua ? undefined : sn} max={mx} mo n={coQua ? undefined : dc[ngay.length]} ns={p.all.filter((c) => c.trang_thai === 'ACTIVE').reduce((a, c) => a + c.ngan_sach, 0)} gio={{ camps: idPhim(p.all), ngay: du.nay }} /></>; })()}
+                {coQua ? <O cot="roi-qua" v={roi(sd[ngay.length - 1])} t={`ROI cả phim hôm qua ${ngay.at(-1)!.slice(8, 10)}/${ngay.at(-1)!.slice(5, 7)}`} s={sd[ngay.length - 1]} n={dc[ngay.length - 1]} gio={{ camps: idPhim(p.all), ngay: ngay.at(-1)! }} /> : null}<O cot="roi-nay" v={roi(sn)} t="ROI cả phim hôm nay" s={sn} max={mx} mo n={dc[ngay.length]} ns={p.all.filter((c) => c.trang_thai === 'ACTIVE').reduce((a, c) => a + c.ngan_sach, 0)} gio={{ camps: idPhim(p.all), ngay: du.nay }} /></>; })()}
             <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><LaiCot s={p.all.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 })} /></span>
           </summary>
           {/* NHANH (anh 27/10/2026 "load chậm quá"): phần gập KHÔNG dựng — trước dựng sẵn mọi camp của mọi phim = 9 MB HTML, 776 biểu đồ */}

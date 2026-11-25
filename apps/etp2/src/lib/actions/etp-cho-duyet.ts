@@ -5,7 +5,7 @@
 
 import { openSync, readFileSync } from 'node:fs';
 import { execFile, spawn } from 'node:child_process';
-import { envVe, xinVeTay, xinVeTrucTiep } from '@/lib/etp-ve';
+import { envVe, xinVeTrucTiep } from '@/lib/etp-ve';
 import { docNhatKyLen, gioVnIso, moNhatKyLen } from '@/lib/etp-nhat-ky-len';
 import { THEO_LICH, chayLuc, chuGio, daQua, gioVn } from '@/lib/etp-nb';   // giờ VN dùng chung với nhân bản ★ ROAS bài cũ (etp-tay.ts)
 import { sql } from 'drizzle-orm';
@@ -174,8 +174,7 @@ export async function lenNgayCr(cr: number, gio?: string | null, o?: { roas: num
   const L = await lenhNb(cr, gio, o); if ('loi' in L) return L;
   const id = Math.trunc(Number(cr)), { ro, g, lenh } = L;
   const dg = docNhatKyLen(id).gui; if (dg) return { canh: `đã gửi lệnh lên lúc ${gioVnIso(dg)} giờ VN, máy đang tạo camp — chờ xong, không gửi lần hai` };   // #1770: dòng "đang lên" bấm lại không nhân đôi camp
-  const v = L.lich ? await xinVeTay('tao_camp', { content: L.content, ai: `anh (etp2 ${me.email})` }).then((ma) => ma ? { ma } : { loi: 'Máy gác chưa cho lên camp theo lịch lúc này (không cấp quyền thao tác). Thử lại sau ít phút, hoặc dùng ▶ Lên ngay nếu cần chạy luôn.' })
-    : await xinVeTrucTiep('tao_camp', { content: L.content, lenh, ns: ro.ns });   // theo lịch = vé thao tác thường (nhan-ban không ép chạy ngay); ▶ Lên ngay / hẹn giờ = vé trực tiếp
+  const v = await xinVeTrucTiep('tao_camp', { content: L.content, lenh, ns: ro.ns });   // ⏱ theo lịch / ▶ Lên ngay / hẹn giờ đều là anh bấm = vé trực tiếp (anh 25/11/2026 "fix tất cả nút thủ công"); giờ chạy vẫn khung cố định gio_len của nhan-ban
   if (!('ma' in v)) return v;
   const log = moNhatKyLen(id, `anh (etp2 ${me.email})`);   // #1770: dòng gửi → bảng hiện "đang lên" ngay
   spawn('python3', [...L.args, '--that', '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();

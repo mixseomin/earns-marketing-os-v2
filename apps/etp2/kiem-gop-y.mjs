@@ -545,7 +545,7 @@ const LUAT = [
   { card: '1770', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: 'gui: docNhatKyLen(id).gui', vi: 'LẶP: lenNgayCr trả giờ máy chủ ghi dòng gửi cho trình duyệt' },
   { card: '1770', tep: 'apps/etp2/src/lib/etp-dang-len-tam.ts', co: 'if (lucDu && Date.parse(lucDu) >= t) return null;', vi: 'LẶP: bộ số máy chủ dựng sau lúc gửi thì số thật thắng (hỏng nhanh về lại chờ duyệt)' },
   { card: '1772', tep: 'apps/etp2/src/components/etp-len-gio.tsx', mot: 'onClick={() => bam(THEO_LICH)}', vi: 'khung ▶ Lên có đúng một nút ⏱ Lên theo lịch' },
-  { card: '1772', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: "L.lich ? await xinVeTay('tao_camp'", vi: 'lên theo lịch xin vé thường (không vé trực tiếp) → nhan-ban lich_len quyết giờ' },
+  { card: '1772', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', cam: "L.lich ? await xinVeTay('tao_camp'", vi: 'lên theo lịch cũng là anh bấm → vé trực tiếp (25/11/2026: vé thường bị khoá mùa lễ); giờ vẫn khung cố định gio_len' },
   { card: '1772', tep: 'apps/etp2/src/components/etp-view.tsx', cam: "laMoi ? null : <button onClick={() => setChay('lich')}", vi: 'ngăn Nhân bản: creative mới không bị giấu chip theo lịch' },
   { card: '1772', tep: 'apps/etp2/src/components/etp-view.tsx', co: "g = chay === 'lich' ? THEO_LICH :", vi: 'creative mới chọn theo lịch thì gửi đúng theo lịch, không thành chạy ngay' },
   { card: '1772', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'xt_lich = xem_truoc and "--theo-lich" in a', vi: 'xem trước theo lịch chạy khô đúng đường lịch' },
@@ -754,6 +754,14 @@ const LUAT = [
   { card: '1844', tep: 'apps/etp2/src/lib/etp-ban.ts', co: 'etp.diem_cham d where d.creative_id', vi: 'giọng lùi về sổ điểm chạm cho bản dựng trước 25/11' },
   { card: '1845', tep: 'apps/etp2/src/components/etp-view.tsx', co: "m('kehoach', 'Đang lên kế hoạch',", vi: 'ô Lọc nhóm trạng thái: Đang lên kế hoạch không mang biểu tượng như các mục cùng nhóm' },
   { card: '1845', tep: 'apps/etp2/src/components/etp-view.tsx', cam: "m('kehoach', '📝", vi: 'không thêm lại biểu tượng 📝 vào mục lọc trạng thái' },
+  // NÚT TAY = LỆNH TRỰC TIẾP (anh 25/11/2026 bấm "↑ Tăng lên $2" bị khoá mùa lễ trả về, "fix tất cả nút thủ công"): mọi nút anh bấm tăng / bật / nhân bản / lên camp xin vé TRỰC TIẾP
+  { card: 'nut-tay-2511', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "await xinVeTrucTiep(lenh[0] as 'tang' | 'bat', { camp: campId,", vi: 'nút tăng / bật (Bậc ngân sách) = vé trực tiếp, miễn mùa lễ / phanh' },
+  { card: 'nut-tay-2511', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', cam: "xinVeTay(lenh[0]", vi: 'không quay lại vé tay cho tăng / bật' },
+  { card: 'nut-tay-2511', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', cam: "ves.push((await xinVeTay('nhan_ban'", vi: '★ ROAS theo lịch không quay lại vé tay' },
+  { card: 'nut-tay-2511', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "const vt = await xinVeTrucTiep('nhan_ban', { camp: campId, lenh: `anh bấm etp2: nhân bản ${x.kieu}", vi: 'nhân bản thường / thang / sang bộ = vé trực tiếp' },
+  { card: 'nut-tay-2511', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: "const vt = await xinVeTrucTiep('tao_camp', { content: x.content_id,", vi: 'nút lên camp creative (Sản xuất) = vé trực tiếp, cấp trước khi ghi dòng đang lên' },
+  { card: 'nut-tay-2511', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', cam: "xinVeTay(", vi: 'etp-dong không còn vé tay' },
+  { card: 'nut-tay-2511', tep: 'apps/etp/cong.py', co: 'truc_tiep(viec, [x for x in (camp_id, goc) if x], ct): return None', vi: 'vé trực tiếp nhân bản (gắn camp gốc) miễn phanh trong kiem (goc=)' },
 ];
 
 const loi = [];

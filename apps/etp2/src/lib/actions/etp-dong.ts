@@ -13,7 +13,7 @@ import type { TieuChi } from '@/lib/etp-chan';
 import { chuLich } from '@/lib/etp-khung';
 import { dangChay } from '@/lib/etp-chay';
 import { DS_DANG } from '@/lib/etp-dang';
-import { envVe, xinVeTay } from '@/lib/etp-ve';
+import { envVe, xinVeTrucTiep } from '@/lib/etp-ve';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 
 export type LoaiNoiDung = { ma: string; ten: string; dang: string; mo_ta: string; cach: string; gia: string; thoi_gian: string; chay: boolean; khoa?: string;
@@ -302,8 +302,11 @@ export async function lenCampCr(dongId: number, creativeId: number): Promise<{ o
   const lang = x.lang === 'es' ? 'es' : 'en';
   const ten = `${id > 0 ? `dp${id}` : 'tay'} ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - cr moi #${cr}`;   // spawn không qua shell — chỉ giữ chữ ASCII cho tên camp
   const dir = `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/xuong-video/scripts/ethopex`;
+  const vt = await xinVeTrucTiep('tao_camp', { content: x.content_id, lenh: `anh bấm etp2: lên camp creative #${cr} (Sản xuất)`, ns: BANG_LUAT.hoi_cho.ns });   // anh bấm = LỆNH TRỰC TIẾP (anh 25/11/2026 "fix tất cả nút thủ công")
+  if ('loi' in vt) return { loi: vt.loi };
+  if ('canh' in vt) return { loi: `⚠ ${vt.canh}` };
+  const ve = vt.ma;
   const log = moNhatKyLen(cr, `anh (etp2 ${me.email})`);   // #1770: dòng gửi → bảng hiện "đang lên" ngay
-  const ve = await xinVeTay('tao_camp', { content: x.content_id, ai: `anh (etp.on.tc ${me.email})` });   // vé thao tác tay (anh 18/11/2026) — phanh chợ chỉ miễn lệnh mang vé
   spawn('python3', ['nhan-ban.py', String(KHUON[lang]), '--roas', String(BANG_LUAT.hoi_cho.roas), '--ns', String(BANG_LUAT.hoi_cho.ns), '--tay',   // ★ ROAS mặc định hoi_cho (anh 24/11/2026 "Từ giờ mặc định là roas")
     '--bo', x.bo ?? '', '--creative', String(cr), '--content', String(x.content_id), '--ten', ten, '--that',   // giờ chạy do nhan-ban.lich_len quyết (anh 05/11/2026: ngoài 07–12h VN hẹn 07:00 hôm sau)
     '--luat', `anh bấm lên camp creative #${cr} (etp.on.tc › Sản xuất)`, '--ai', `anh (etp.on.tc ${me.email})`], { cwd: dir, detached: true, stdio: ['ignore', log, log], env: envVe(ve) }).unref();

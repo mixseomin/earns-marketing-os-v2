@@ -522,7 +522,8 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         ly_cam = phim_cam([camp_id] if camp_id else (), [ct] if ct else ())
         if ly_cam: return ly_cam
         # LỆNH TRỰC TIẾP CỦA ANH (anh 20/11/2026 09:35): vé loai 'truc_tiep' (CLI --ve-truc-tiep, đã cảnh báo một lần lúc cấp) miễn MỌI phanh phía sau — chỉ phim cấm (trên) và camp đội chặn
-        if not ngoai and truc_tiep(viec, [camp_id] if camp_id else (), ct): return None
+        # nhân bản truyền camp_id=None + goc=<camp gốc>: vé trực tiếp của nút etp2 gắn camp GỐC → khớp cả goc (25/11/2026: trước chỉ khớp camp_id → vé nhân bản tay không miễn phanh)
+        if not ngoai and truc_tiep(viec, [x for x in (camp_id, goc) if x], ct): return None
         ly_lc = luat_cu_chan(viec, [camp_id] if camp_id else (), ct)   # LUẬT CŨ DỪNG (anh 22/11/2026) — luật máy trước 20/11 không lên camp mới / nhân bản nữa
         if ly_lc: return ly_lc
         ng = _q(f"select coalesce(nhom_goc, '') from etp.phim where content_id = {int(ct)}") if ct else ''

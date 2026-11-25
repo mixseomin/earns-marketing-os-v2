@@ -52,7 +52,15 @@ export async function campTay(campId: number, viec: 'bat' | 'tat' | 'ns', o: { n
     lenh = [o.ns! > o.nsDang! ? 'tang' : 'giam', String(campId), String(o.ns)];
   } else lenh = [viec, String(campId)];
   const luat = `tay etp2: ${viec === 'ns' ? `$${o.nsDang} → $${o.ns}` : viec === 'tat' ? 'tắt' : 'bật'}${o.ghi ? ` · ${o.ghi.slice(0, 120)}` : ''}${o.ep ? ' · ép' : ''}`;
-  const ve = lenh[0] === 'tang' || lenh[0] === 'bat' ? await xinVeTay(lenh[0] as 'tang' | 'bat', { camp: campId, ai: AI }) : null;   // giảm / tắt không cần vé (luôn qua cửa)
+  // ANH BẤM TĂNG / BẬT = LỆNH TRỰC TIẾP (anh 25/11/2026 bấm "↑ Tăng lên $2" bị khoá mùa lễ trả về): vé cong.py --ve-truc-tiep --ngay như ▶ Lên — miễn MỌI phanh
+  // (mùa lễ, phanh chợ, nhịp tăng, khoá sau giảm, nắp ROI 3 ngày…), chỉ còn phim cấm / camp đội / giới hạn Ethopex; phanh bị bỏ qua thì Telegram ⚡ báo. Giảm / tắt không cần vé.
+  let ve: string | null = null;
+  if (lenh[0] === 'tang' || lenh[0] === 'bat') {
+    const v = await xinVeTrucTiep(lenh[0] as 'tang' | 'bat', { camp: campId, lenh: `anh bấm etp2: ${luat}`, ns: viec === 'ns' ? o.ns : null });
+    if ('loi' in v) return { loi: v.loi };
+    if ('canh' in v) return { loi: `⚠ ${v.canh}` };   // --ngay không trả canh; phòng khi cong.py đổi
+    ve = v.ma;
+  }
   const ra = await chay(['lam-ethopex.py', ...lenh, '--luat', luat, '--ai', AI, ...(o.ep ? ['--ep', '--bo-nhip'] : [])], 170_000, ve);
   const k = dongJson<{ ok?: boolean; loi?: string | null; truoc?: { ns: unknown; tt: unknown }; sau?: { ns: unknown; tt: unknown }; lich?: string }>(ra);
   if (!k) return { loi: `máy không trả kết quả: ${ra.trim().slice(-200) || '(trống)'}` };
@@ -101,9 +109,8 @@ export async function nhanBanTay(campId: number, x: KieuNb, ghi?: string): Promi
     const chuChay = g ? chuGio(g) : truc ? 'chạy ngay' : chayLuc();
     const ves: string[] = [];
     for (const r of muc) {
-      if (!truc) { ves.push((await xinVeTay('nhan_ban', { camp: campId, ai: AI })) ?? ''); continue; }
-      // chạy ngay / đặt giờ = LỆNH TRỰC TIẾP của anh (vé cong.py --ve-truc-tiep): phanh đang áp thì lần đầu cảnh báo, bấm lại trong 30 phút là lên
-      const v = await xinVeTrucTiep('nhan_ban', { camp: campId, lenh: `anh bấm etp2: nhân bản ★ ROAS ${r} bài cũ của #${campId} · $${x.ns} · ${chuGio(g)}${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, ns: x.ns });
+      // MỌI lượt anh bấm (theo lịch / chạy ngay / đặt giờ) = LỆNH TRỰC TIẾP (anh 25/11/2026 "fix tất cả nút thủ công"): vé cong.py --ve-truc-tiep --ngay miễn mọi phanh; giờ vẫn theo khung cố định gio_len
+      const v = await xinVeTrucTiep('nhan_ban', { camp: campId, lenh: `anh bấm etp2: nhân bản ★ ROAS ${r} bài cũ của #${campId} · $${x.ns} · ${truc ? chuGio(g) : chuChay}${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, ns: x.ns });
       if ('canh' in v) return { loi: `⚠ Phanh đang áp: ${v.canh} — bấm Tạo camp lại trong 30 phút là máy bỏ qua phanh và lên` };
       if ('loi' in v) return { loi: v.loi };
       ves.push(v.ma);
@@ -115,7 +122,11 @@ export async function nhanBanTay(campId: number, x: KieuNb, ghi?: string): Promi
     await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản ★ ROAS ${ten} · $${x.ns}${muc.length > 1 ? ' mỗi camp' : ''} · ${chuChay}` });
     return { ok: true, chu: `đã gửi máy ${muc.length > 1 ? `${muc.length} camp ★ ROAS ${muc.join(' / ')} (chạy nối tiếp)` : `camp ★ ROAS ${muc[0]}`} · $${x.ns}${muc.length > 1 ? ' mỗi camp' : ''} · bài cũ của #${campId} · camp mới ${chuChay} · kết quả ghi nhật ký luật` };
   }
-  const ve = await xinVeTay('nhan_ban', { camp: campId, ai: AI });   // vé thao tác tay (anh 18/11/2026): phanh chợ chỉ miễn lệnh mang vé
+  // anh bấm nhân bản = LỆNH TRỰC TIẾP (anh 25/11/2026 "fix tất cả nút thủ công" — trước vé 'tay' không miễn mùa lễ / nắp ROI / trần ngày)
+  const vt = await xinVeTrucTiep('nhan_ban', { camp: campId, lenh: `anh bấm etp2: nhân bản ${x.kieu} #${campId}${x.ns != null ? ` · $${x.ns}` : ''}${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, ns: x.ns ?? null });
+  if ('loi' in vt) return { loi: vt.loi };
+  if ('canh' in vt) return { loi: `⚠ ${vt.canh}` };
+  const ve = vt.ma;
   spawn('python3', ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that', '--luat', `tay etp2: nhân bản ${x.kieu} — ANH CHỊU TRÁCH NHIỆM, máy không chặn${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, '--ai', AI],
     { cwd: DIR, detached: true, stdio: ['ignore', log, log], env: envVe(ve) }).unref();
   await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản ${x.kieu === 'thuong' ? 'thường' : x.kieu === 'thang' ? `thang $${x.ns}` : `sang bộ ${x.bo}`}${x.kieu !== 'thang' && x.ns != null ? ` · $${x.ns}` : ''}` });

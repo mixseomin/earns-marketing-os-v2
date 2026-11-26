@@ -214,7 +214,7 @@ def xoa(that):
             k = _khoa(u)
             if k and c: tv_cr[k] = int(c)
     ds = chon_xoa(tep, ref, nhom, tv_cr, chet)
-    mat = sorted({c for k in ds for c in (ref.get(k) or ref.get(_goc_mp4(k)) or set())} | {tv_cr[k] for k in ds if k in tv_cr})
+    mat = sorted({c for k in ds for c in (ref.get(k) or ref.get(_goc_mp4(k)) or set())} | {tv_cr[k] for k in ds if nhom.get(k) == "tv_da_len" and k in tv_cr})   # thư viện đã loại / mồ côi: creative không đọc tệp đó → không tính mất tệp
     print(f"creative chết (mọi camp tắt + trước 20/11): {len(chet)} · xoá {len(ds)} tệp {sum(tep[k][0] for k in ds)/1e9:.1f} GB / R2 {sum(v[0] for v in tep.values())/1e9:.1f} GB · creative mất tệp {len(mat)}", flush=True)
     if not that or not ds: return True
     if not set(mat) <= chet: raise SystemExit(f"DỪNG: {len(set(mat) - chet)} creative mất tệp không nằm trong tập chết")

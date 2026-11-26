@@ -1878,4 +1878,5 @@ export const LUAT = [
   { card: 'roas-dan-2611', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: 'select etp.muc_roas(', cam: 'hoi_cho.roas', vi: 'lên creative từ dòng phim dàn mức ngoài khối ke_cr' },
   { card: 'roas-dan-2611', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'etp.muc_roas(r.content_id', cam: 'hoi_cho.roas', vi: 'hàng chờ hiện mức sẽ lên' },
   { card: 'roas-dan-2611', tep: 'apps/etp2/src/components/etp-dong.tsx', co: '★ ROAS ${CHU_DAN}', cam: 'RO.roas', vi: 'nút không hứa ROAS cứng' },
+  { card: 'mien-roas-2611', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'raise ChanLuat(f"bài đăng {sid} của camp gốc #{goc_id} mang miền', cam: 'raise ValueError(f"bài đăng {sid} của camp gốc', vi: '★ ROAS nhân bản gốc bài miền cũ = luật chặn (ok NULL), không đếm là lệnh roas lỗi (26/11/2026 #110239)' },
 ];

@@ -588,7 +588,8 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
         # CẤM DÙNG LẠI CREATIVE CŨ (anh 25/11/2026 "Mỗi camp mới đều phải có creative mới !! Cấm dùng lại … nhân bản thì clone post đang viral"): bỏ nhánh 22/11
         # "gốc không có bài đăng → dùng lại creative + content của gốc". ★ ROAS nhân bản = clone bài đăng của gốc (đúng miền lên camp), không có bài thì không lên.
         if not moi and re.fullmatch(r"\d+_\d+", sid) and mien_goc(goc_id, a) != MIEN_LEN:
-            raise ValueError(f"bài đăng {sid} của camp gốc #{goc_id} mang miền {mien_goc(goc_id, a) or 'chưa biết'} ≠ {MIEN_LEN} — không clone (creative cũ cấm dùng lại, anh 25/11/2026)")
+            # LUẬT CHẶN, không phải lỗi máy (26/11/2026: plan 22h có #110239 / #109261 bài miền maybic.com → ValueError bị đếm "lệnh roas lỗi", kêu cảnh báo) — cùng lớp dòng 771 đường thường
+            raise ChanLuat(f"bài đăng {sid} của camp gốc #{goc_id} mang miền {mien_goc(goc_id, a) or 'chưa biết'} ≠ {MIEN_LEN} — không clone (creative cũ cấm dùng lại, anh 25/11/2026)")
         if moi:   # ★ ROAS creative mới: ad = creative mới (đăng bài mới, như camp mới thường) — khuôn chỉ cho cấu hình
             return d, ten, moi["content"], {
                 "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo) if bo else None,
@@ -597,7 +598,7 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
                     "ads": [{"content_id": moi["content"], "creative_id": moi["creative"], "facebook_page_id": page, "domain": MIEN_LEN,
                              "source_payload": {"name": ten, "status": "ACTIVE"}}]}]}}
         if not re.fullmatch(r"\d+_\d+", sid): raise ValueError(f"camp gốc #{goc_id} không có mã bài đăng (effective_object_story_id) để dùng lại")
-        if bo and str(bo) != str(bo_cua_camp(c)): raise ValueError("camp ROAS dùng bài đăng của camp gốc → phải cùng bộ tài khoản / Page với camp gốc")
+        if bo and str(bo) != str(bo_cua_camp(c)): raise ChanLuat("camp ROAS dùng bài đăng của camp gốc → phải cùng bộ tài khoản / Page với camp gốc")
         return d, ten, a.get("content_id"), {
             "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo) if bo else None,
             "external_account_id": ext,

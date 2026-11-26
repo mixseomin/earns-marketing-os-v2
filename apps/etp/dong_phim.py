@@ -809,6 +809,7 @@ def luat_cu():
 
 def mo_doi_lai():
     if time.time() - DOI_LAI[0] < 600 or dung_camp_moi() or luat_cu(): return
+    if "CC" in gac_dang(): return   # CC gác (anh 21/11 + 26/11/2026 "ko sx cc/ct", gac_dang) → không tự xếp dòng CC mỗi 24 giờ rồi để vòng sau dừng
     con = (SX[0].get("kho") or {}).get("con")
     if SX[0].get("phanh") or (con is not None and con <= 0): return   # sản xuất theo chợ (anh 18/11/2026): phanh / đủ ~1 ngày chỗ lên → không xếp dòng mở rộng
     DOI_LAI[0] = time.time()

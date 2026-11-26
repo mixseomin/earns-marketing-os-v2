@@ -1861,4 +1861,9 @@ export const LUAT = [
   { card: 'luot2-2611', tep: 'packages/db/migrations/0479_etp_luot2.sql', co: 'create or replace view etp.cr_lan_dung', vi: 'chỉ số đếm số lần creative được dùng (gốc + bản lượt 2)' },
   { card: 'luot2-2611', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'etp.cr_lan_dung', vi: 'etp2 đọc số lần dùng creative' },
   { card: 'luot2-2611', tep: 'apps/etp/luot2.py', co: 'if v["phim"] not in phim: ra.append(v); phim.add(v["phim"])', vi: 'lượt 2 chạy song song chỉ giữa các phim khác nhau (cùng phim bị nhan-ban chặn khi camp trước chưa đồng bộ)' },
+  { card: '1877', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'RS_GIO, RS_CHI, RS_ROI = 15, 0.1, 0.1', cam: 'RS_GIO, RS_CHI = 15, 0.5', vi: 'luật RS: chi < $0.1 hoặc ROI < 0.1% (anh 26/11/2026 #1877)' },
+  { card: '1877', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if not rs_tat(a): continue', vi: 'vòng tắt RS và dòng luật trên trang đọc chung một hàm rs_tat' },
+  { card: '1877', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'RS_NGUONG, rs_tat(_as)]]', vi: 'ô Ngưỡng / Đạt của dòng RS trên cây camp lấy từ RS_NGUONG + rs_tat' },
+  { card: '1877', tep: 'apps/web/src/lib/etp-bang-luat.json', co: 'chi &lt; $0.1 (chưa tiêu) hoặc ROI &lt; 0.1%', vi: 'sổ luật chung ghi ngưỡng RS mới' },
+  { card: '1877', tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: 'chi &lt; $0.1 (chưa tiêu) hoặc ROI &lt; 0.1%', vi: 'sổ luật etp2 ghi ngưỡng RS mới' },
 ];

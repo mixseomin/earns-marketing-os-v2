@@ -1103,10 +1103,14 @@ except Exception as e:
 _rl = {int(x[0] or 0) for x in tat_roas + tat_r0}; tang30 = [x for x in tang30 if int(x[0] or 0) not in _rl]   # một camp một quyết định: RL thắng ★ ROAS thắng → $30
 # RS — ★ ROAS LÊN KHUNG 22H, SÁNG ĐẦU ÂM HOẶC CHƯA TIÊU (anh 26/11/2026: "Camp roas lên ở khung 22h (như hqua) đến 7h sáng tới mà âm hoặc chưa tiêu tắt luôn";
 # đo cả đội 21/10–24/11: ★ ROAS không chi 2 ngày đầu 257 camp, chỉ 3 camp về sau có chi; âm ngày đầu thì ngày kế −16%): camp ★ ROAS đang bật, giờ hẹn chạy
-# (etp.camp.lich) rơi vào khung tối (≥ RS_GIO giờ UTC = 22h VN) của ngày Ethopex VỪA KHÉP → xét đúng số ngày đó (22h → 07:00 VN): chi < $RS_CHI hoặc thu < chi
+# (etp.camp.lich) rơi vào khung tối (≥ RS_GIO giờ UTC = 22h VN) của ngày Ethopex VỪA KHÉP → xét đúng số ngày đó (22h → 07:00 VN): rs_tat (chi < $RS_CHI hoặc ROI < RS_ROI%)
 # → máy tắt luôn mọi khung giờ, không báo trước (sổ luật: ngay + moi_khung). Chỉ xét MỘT lần — trong ngày ngay sau đêm lên; qua ngày đó camp về RL / R0 / L4.
 # KHÔNG đi qua AB08 (lệnh "tắt luôn"). Camp hẹn 07:00 sáng không thuộc luật này.
-RS_GIO, RS_CHI = 15, 0.5
+# Ngưỡng anh đổi 26/11/2026 (#1877 "Luật này phải đổi là chi < 0.1$ hoặc 0.1%"): chi < $0.1 hoặc ROI < 0.1% (trước: chi < $0.5 hoặc thu < chi).
+# rs_tat(a) là MỘT chỗ giữ luật — vòng tắt, dòng luật trên trang (Ngưỡng / Đạt) và chữ in đều đọc từ đây.
+RS_GIO, RS_CHI, RS_ROI = 15, 0.1, 0.1
+rs_tat = lambda a: a["chi"] < RS_CHI or (a["thu"] - a["chi"]) < a["chi"] * RS_ROI / 100
+RS_NGUONG = f"chi < ${RS_CHI:g} hoặc ROI < {RS_ROI:g}%"
 tat_rs = []
 try:
     if _ROAS & _bat:
@@ -1116,8 +1120,8 @@ try:
         for cid in sorted(_rs_camp & _ROAS & _bat):
             if int(cid) in _rl: continue
             a = _rs_so.get(cid) or _rs_so.get(str(cid)) or {"chi": 0.0, "thu": 0.0}; c = _cmr.get(cid) or {}
-            if a["chi"] >= RS_CHI and a["thu"] >= a["chi"]: continue
-            _ly = f"chưa tiêu (chi ${a['chi']:.2f} < ${RS_CHI:g})" if a["chi"] < RS_CHI else f"âm · ROI {roi(a):+.0f}%"
+            if not rs_tat(a): continue
+            _ly = f"chưa tiêu (chi ${a['chi']:.2f} < ${RS_CHI:g})" if a["chi"] < RS_CHI else f"ROI {roi(a):+.1f}% < {RS_ROI:g}%"
             tat_rs.append((cid, f"#{(c.get('name') or '')[:80]} · lên khung 22h {_rs_ngay[8:10]}/{_rs_ngay[5:7]}, tới 07:00: chi ${a['chi']:.2f} · thu ${a['thu']:.2f} · lãi ${a['thu'] - a['chi']:+.2f} · {_ly} → TẮT (luật RS: ★ ROAS lên 22h, sáng đầu âm hoặc chưa tiêu)"))
 except Exception as e:
     loi_may.append((0, f"luật RS (ROAS lên 22h sáng đầu âm / chưa tiêu) lỗi: {str(e)[:80]}"))
@@ -1457,8 +1461,8 @@ def _xet_luat():
                     "tat_r0" if int(cid) in vao["tat_r0"] else None, tien=1))
                 if int(cid) in globals().get("_rs_camp", set()):
                     _as = (globals().get("_rs_so") or {}).get(cid) or (globals().get("_rs_so") or {}).get(str(cid)) or {"chi": 0.0, "thu": 0.0}
-                    ls.append(L("rs", "RS · ROAS lên 22h, sáng đầu", f"Camp ★ ROAS hẹn chạy khung 22h VN: tới 07:00 sáng (ngày Ethopex đầu vừa khép) chi < ${RS_CHI:g} hoặc thu < chi → máy tắt luôn mọi khung giờ (anh 26/11/2026). Chỉ xét trong ngày ngay sau đêm lên.",
-                        [["Đêm đầu chi / thu", f"${_as['chi']:.2f} / ${_as['thu']:.2f}", f"chi < ${RS_CHI:g} hoặc thu < chi", _as["chi"] < RS_CHI or _as["thu"] < _as["chi"]]],
+                    ls.append(L("rs", "RS · ROAS lên 22h, sáng đầu", f"Camp ★ ROAS hẹn chạy khung 22h VN: tới 07:00 sáng (ngày Ethopex đầu vừa khép) {RS_NGUONG} → máy tắt luôn mọi khung giờ (anh 26/11/2026). Chỉ xét trong ngày ngay sau đêm lên.",
+                        [["Đêm đầu chi / thu", f"${_as['chi']:.2f} / ${_as['thu']:.2f}", RS_NGUONG, rs_tat(_as)]],
                         "tat_rs" if int(cid) in vao["tat_rs"] else None))
                 ns = float(a.get("budget") or 0); du30 = [n[cid] for n in (ngay3 if "ngay3" in globals() else []) if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]
                 r30 = roi({"chi": sum(x["chi"] for x in du30), "thu": sum(x["thu"] for x in du30)}) if du30 else None
@@ -1692,7 +1696,7 @@ in_ = lambda tieu, ds, rong="(không)": (print(tieu), print("\n".join("  " + s f
 print(f"Giờ VN {vn:%H:%M %d/%m} · khung tăng ngân sách ~21h / ~24h / 8h: " + ("ĐANG TRONG KHUNG" if trong else f"mốc kế ~{int(moc) % 24}h") + " (ngân sách còn thấp $1–3 thì chưa cần canh giờ; không thu lại sau khung)")
 in_("CẦN TẮT — OFF (camp ≥ 7 ngày, tiêu > $10 từ trước tới nay, ROI < −50%) — MÁY TẮT (báo trước một nhịp):", tat_l)
 in_(f"LUẬT RL (camp ★ ROAS, 2 ngày đã khép đều lỗ, cộng chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}%) — BÁO TRƯỚC MỘT NHỊP RỒI MÁY TỰ TẮT:", tat_roas, "(không)")
-in_(f"LUẬT RS (camp ★ ROAS hẹn chạy khung 22h VN, tới 07:00 sáng chi < ${RS_CHI:g} hoặc thu < chi) — MÁY TẮT LUÔN, mọi khung giờ:", tat_rs, "(không)")
+in_(f"LUẬT RS (camp ★ ROAS hẹn chạy khung 22h VN, tới 07:00 sáng {RS_NGUONG}) — MÁY TẮT LUÔN, mọi khung giờ:", tat_rs, "(không)")
 in_(f"LUẬT G10 (chỉ còn cho ★ ROAS, camp thường L0 tắt trước — ngân sách > ${G10_NS}, 3 ngày đã khép ROI < {G10_ROI}%) — MÁY HẠ THẲNG VỀ ${G10_DICH}:", g10, "(không)")
 in_(f"LUẬT G10 — ĐÃ HẠ VỀ ${G10_DICH}, {G10_THEO} NGÀY SAU VẪN ROI < {G10_ROI}% — BÁO TRƯỚC MỘT NHỊP RỒI MÁY TỰ TẮT:", tat_g10, "(không)")
 in_(f"A/B AB08 — ★ ROAS chạm RL / G10 bước 2, nhánh thử GIỮ ở ${G10_DICH} (không tắt):", ab_giu, "(không)")

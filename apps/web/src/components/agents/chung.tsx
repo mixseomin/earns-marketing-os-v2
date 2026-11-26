@@ -124,13 +124,13 @@ export function SuaModel({ id, model, soul, admin, goi = [] }: { id: string; mod
   const ten = model.replace(/^[a-z]+:/, '').replace(/\bqua:\w+/g, '').trim() || 'không';
   if (!admin) return <span className="ag-model" title={`${model}\n${tuyenModel(model).chu}`}><NhanTuyen m={model} /> {ten}</span>;
   const ds = [...new Set([model, soul, ...goi].map((x) => x.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  const muc = [{ v: '', nhan: `— về dòng SOUL (${soul || 'không'})` }, ...ds.map((m) => { const t = tuyenModel(m); return { v: m, nhan: `${t.icon} ${m} · ${t.chu}` }; })];
+  const muc = [{ v: '', nhan: `— về dòng SOUL (${soul || 'không'})` }, ...ds.map((m) => { const t = tuyenModel(m); return { v: m, nhan: `${t.icon} ${m.replace(/^[a-z-]+:/, '')}` }; })];
   const tv = tuyenModel(v || soul);
   return <>
     <button ref={nut} type="button" className="ag-model ag-lich-nut" title={`${model}\n${tuyenModel(model).chu}${soul && soul !== model ? `\nSOUL: ${soul}` : ''}\nBấm để đổi`} onClick={() => setMo((m) => !m)}><NhanTuyen m={model} /> {ten}</button>
     <AnchoredPopover anchorRef={nut} open={mo} onClose={() => { setMo(false); boLoi(); }}>
-      <div className="hm-loc-pop ag-sua">
-        <label>Mô hình <ChonTim value={v.trim()} ds={muc} onChange={setV} zIndex={4000} style={{ minWidth: 280, maxWidth: 360 }} /></label>
+      <div className="hm-loc-pop ag-sua ag-sua-model">
+        <label>Mô hình<ChonTim value={v.trim()} ds={muc} onChange={setV} zIndex={4000} style={{ width: '100%' }} /></label>
         <small className="ag-mo">{tv.icon} {v.trim() ? tv.chu : `về SOUL — ${tv.chu || 'không'}`}</small>
         <div className="ag-sua-nut"><button type="button" className="hm-chip on" disabled={dang} onClick={() => chay({ lenh: 'model', id, model: v.trim() }, () => setMo(false))}>{dang ? 'Đang lưu…' : 'Lưu'}</button>
           <button type="button" className="hm-chip" onClick={() => setMo(false)}>Huỷ</button></div>

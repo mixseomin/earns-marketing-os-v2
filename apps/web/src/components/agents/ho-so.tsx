@@ -32,7 +32,7 @@ export function NganAgent() {
           <span className="hm-thanh-gian" />
           {dang && <small className="ag-mo">đang làm mới…</small>}
         </header>
-        <div className="ag-hs-tt"><ChuTT t={a.tt} />{a.tt.vua?.ket && <small className="ag-mo" title={a.tt.vua.ket}> · vừa: {a.tt.vua.ket.slice(0, 120)}</small>}</div>
+        <div className="ag-hs-tt"><ChuTT t={a.tt} />{a.tt.vua?.ket && <small className="ag-mo" title={a.tt.vua.ket}> · vừa: {a.tt.vua.ket.replace(/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z/g, (s) => gioVN(s)).slice(0, 120)}</small>}</div>
         <StatsStrip minColWidth={120} cards={[
           { key: 'model', label: 'Mô hình', value: <SuaModel id={a.id} model={a.model} soul={a.modelSoul} admin={admin} /> },
           { key: 'tu', label: 'Tự làm', value: a.nhip.coNut ? <NutBat bat={a.nhip.bat} admin={admin} lenh={a.nhip.muc.startsWith('nguoi:') ? { lenh: 'may', muc: a.nhip.muc, bat: !a.nhip.bat } : { lenh: 'nhip', id: a.id, bat: !a.nhip.bat }} /> : '—', sub: a.nhip.tanSuat },

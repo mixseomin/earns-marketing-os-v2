@@ -3200,7 +3200,7 @@ const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
 const KIEU_HH: Record<string, { chu: string; nen: string; ten: string }> = { kien: { chu: 'K', nen: '#2563eb', ten: 'kiểu Kiên — chữ riêng từng phim (chu-kieu.json), link search.com' }, dol: { chu: 'D', nen: '#ea580c', ten: 'kiểu Dol — chữ form chung (form-chu.json), link info.com' } };
 function KieuCr({ cr }: { cr: CreativeEtpKho | null | undefined }) {
   if (!cr?.kieu) return null; const k = KIEU_HH[cr.kieu] ?? { chu: cr.kieu.slice(0, 1).toUpperCase(), nen: '#6b7280', ten: `kiểu ${cr.kieu}` };
-  return <span data-o="cr-kieu" title={k.ten} style={{ position: 'absolute', top: 2, left: 2, minWidth: 16, height: 16, padding: '0 3px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 3, background: k.nen, color: '#fff', fontSize: 11, fontWeight: 800, lineHeight: 1, boxShadow: '0 0 0 1.5px #fff, 0 1px 3px rgba(0,0,0,.5)', pointerEvents: 'auto', cursor: 'help' }}>{k.chu}</span>;
+  return <span data-o="cr-kieu" title={k.ten} style={{ position: 'absolute', top: 2, left: 2, minWidth: 11, height: 11, padding: '0 2px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 2, background: k.nen, color: '#fff', fontSize: 8.5, fontWeight: 700, lineHeight: 1, opacity: 0.75, boxShadow: '0 0 0 1px rgba(255,255,255,.7)',   /* anh 26/11/2026 "cho chữ bé hơn, mờ hơn chút" */ pointerEvents: 'auto', cursor: 'help' }}>{k.chu}</span>;
 }
 function LanDung({ cr, order }: { cr: CreativeEtpKho | null | undefined; order?: number }) {
   if (!cr || !(cr.lan_dung > 0)) return null;

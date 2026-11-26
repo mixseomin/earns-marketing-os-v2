@@ -20,6 +20,12 @@ export const du = (ten) => join(PUB, 'du-lieu', `${LAU}-${ten}.json`);
 export function docLau() {
   const D = JSON.parse(readFileSync(join(PUB, 'du-lieu', `${LAU}.json`), 'utf8')), S = existsSync(du('sua')) ? JSON.parse(readFileSync(du('sua'), 'utf8')) : {};
   for (const k of D.khoi) if (Array.isArray(S[k.id]?.ngoai) && S[k.id].ngoai.length >= 3) { k.ngoaiGoc = k.ngoai; k.ngoai = [S[k.id].ngoai]; }
+  // y hệt ns.js dsKhoi: dich_x / dich_z rồi phong (quanh trung bình đỉnh vòng mở) — thiếu thì máy đo nhìn mặt bằng khác trang (Viereckturm phong 0.85, 26/11/2026)
+  for (const k of D.khoi) { const e = S[k.id] || {}, tg = { ...k.tags, ...e }, dx = +tg.dich_x || 0, dz = +tg.dich_z || 0, f = +tg.phong || 0; if (!dx && !dz && !(f > 0)) continue;
+    let v = k.ngoai[0].map((p) => [+p[0], +p[1]]); if (v.length > 1 && v[0][0] === v.at(-1)[0] && v[0][1] === v.at(-1)[1]) v.pop();
+    v = v.map(([x, z]) => [x + dx, z + dz]);
+    if (f > 0) { const cx = v.reduce((s, p) => s + p[0], 0) / v.length, cz = v.reduce((s, p) => s + p[1], 0) / v.length; v = v.map(([x, z]) => [cx + (x - cx) * f, cz + (z - cz) * f]); }
+    k.ngoaiGoc ??= k.ngoai; k.ngoai = [[...v, v[0]], ...k.ngoai.slice(1)]; }
   return D;
 }
 const PW = process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs';

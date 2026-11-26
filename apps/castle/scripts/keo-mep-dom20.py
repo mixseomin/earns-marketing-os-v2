@@ -114,6 +114,10 @@ for id_, e in KQ.items():
     vk = [[round(float(p[0]), 2), round(float(p[1]), 2)] for p in MOI[id_]]; vk.append(vk[0])
     RA[id_] = {'ngoai': vk, 'ly_do_mep': f'máy đo {datetime.date.today()} (scripts/keo-mep-dom20.py, không AI): mép tường DOM20 chính thức Bavaria (20 cm, CC BY 4.0; dời OSM → DOM20 ({DX:+g}, {DZ:+g}) m) '
                f'lệch mặt bằng OSM — {cach}; dương = mép thật nằm ngoài. Mặt bằng OSM gốc: ?mat=osm'}
+    # mặt bằng đo là bản ĐÃ dời / phóng (dsKhoi áp như trang) → "ngoai" ghi ra đã mang sẵn phép đó; để nguyên phong / dich thì trang áp lần hai
+    tg = next(k['tags'] for k in TAT if k['id'] == id_)
+    if float(tg.get('phong') or 0) > 0 and float(tg['phong']) != 1: RA[id_]['phong'] = '1'
+    if float(tg.get('dich_x') or 0) or float(tg.get('dich_z') or 0): RA[id_].update(dich_x='0', dich_z='0')
 
 print(f'{"khối":18s} {"tên":12s} cạnh  lát  lệch   đều  việc')
 for r in BAO: print(f'{r[0]:18s} {r[1][:12]:12s} {r[2]:4d} {r[3]:4d} {r[4]:+5.2f} {r[5]:5.0%}  {r[6]}')

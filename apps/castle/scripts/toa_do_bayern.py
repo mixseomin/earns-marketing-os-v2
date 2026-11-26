@@ -21,6 +21,15 @@ def canh(E, N):  # nhận cả mảng numpy
 def o20(E, N): return int((5269000 - N) / 0.2), int((E - 631000) / 0.2)
 def o1(E, N): return int(5269000 - N), int(E - 631000)
 PUB = BY.parent.parent / 'public/du-lieu'
+def bien(v, tg):  # y hệt ns.js dsKhoi: dời dich_x / dich_z rồi phóng "phong" quanh trung bình đỉnh vòng mở — thiếu bước này máy đo nhìn mặt bằng
+    # khác trang (26/11/2026: Viereckturm phong 0.85 → trang dựng 7,7 m, máy đo 9 m, kéo mép đo trên bản không phải bản đang hiện)
+    v = [list(map(float, p)) for p in v]
+    if len(v) > 1 and v[0] == v[-1]: v = v[:-1]
+    dx, dz = float(tg.get('dich_x') or 0), float(tg.get('dich_z') or 0)
+    if dx or dz: v = [[x + dx, z + dz] for x, z in v]
+    f = float(tg.get('phong') or 0)
+    if f > 0: cx, cz = sum(p[0] for p in v) / len(v), sum(p[1] for p in v) / len(v); v = [[cx + (x - cx) * f, cz + (z - cz) * f] for x, z in v]
+    return v + [v[0]]
 def dsKhoi(lau='neuschwanstein'):
     """Mặt bằng khối ĐÚNG như trang dựng (ns.js): khối OSM thô + ghi đè "ngoai" trong <lâu>-sua.json (keo-mep-dom20.py ghi) + khối them/ chỉ có trong sua.
     Trước đây mỗi máy Python đọc thẳng <lâu>.json['khoi'] → sửa mặt bằng ở sua.json thì trang đổi mà máy đo vẫn nhìn mặt bằng cũ.
@@ -28,11 +37,13 @@ def dsKhoi(lau='neuschwanstein'):
     D = json.loads((PUB / f'{lau}.json').read_text()); SUA = json.loads((PUB / f'{lau}-sua.json').read_text()); ra = []
     for k in D['khoi']:
         e = SUA.get(k['id']) or {}; v = e['ngoai'] if isinstance(e.get('ngoai'), list) and len(e['ngoai']) >= 3 else k['ngoai'][0]
-        ra.append({'id': k['id'], 'v': v, 'tags': {**(k.get('tags') or {}), **{a: str(b) for a, b in e.items() if not a.startswith('ly_do') and a != 'ngoai'}}, 'them': False})
+        tg = {**(k.get('tags') or {}), **{a: str(b) for a, b in e.items() if not a.startswith('ly_do') and a != 'ngoai'}}
+        ra.append({'id': k['id'], 'v': bien(v, tg), 'tags': tg, 'them': False})
     co = {k['id'] for k in D['khoi']}
     for id_, e in SUA.items():
         if id_ not in co and isinstance(e, dict) and isinstance(e.get('ngoai'), list) and len(e['ngoai']) >= 3:
-            ra.append({'id': id_, 'v': e['ngoai'], 'tags': {a: str(b) for a, b in e.items() if not a.startswith('ly_do') and a != 'ngoai'}, 'them': True})
+            tg = {a: str(b) for a, b in e.items() if not a.startswith('ly_do') and a != 'ngoai'}
+            ra.append({'id': id_, 'v': bien(e['ngoai'], tg), 'tags': tg, 'them': True})
     return ra
 if __name__ == '__main__':  # tự kiểm: đi rồi về phải trùng; độ dời phải là số so-dom20 đo
     import numpy as np
@@ -40,4 +51,7 @@ if __name__ == '__main__':  # tự kiểm: đi rồi về phải trùng; độ d
         E, N = EN(x, z); a, b = canh(np.array(E), np.array(N)); assert abs(a - x) < 1e-6 and abs(b - z) < 1e-6, (x, z, a, b)
     E1, _ = EN(1, 0); E0_, _ = EN(0, 0); assert 0.99 < E1 - E0_ < 1.0, E1 - E0_
     K = dsKhoi(); assert K and all(len(k['v']) >= 3 for k in K)
+    r = bien([[0, 0], [4, 0], [4, 2], [0, 2], [0, 0]], {'dich_x': '1', 'phong': '0.5'})  # dời 1 m đông rồi thu nửa quanh tâm (3, 1)
+    assert r == [[2, 0.5], [4, 0.5], [4, 1.5], [2, 1.5], [2, 0.5]], r
+    assert bien([[0, 0], [1, 0], [0, 1]], {}) == [[0, 0], [1, 0], [0, 1], [0, 0]]
     print(f'✓ {len(K)} khối (đã áp ghi đè sua.json) · đi–về trùng · dời OSM → DOM20 = ({DX:+g}, {DZ:+g}) m theo {_f.name}')

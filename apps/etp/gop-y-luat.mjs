@@ -163,7 +163,7 @@ export const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', co: 'nut_tu = L if _nt == "cuoi" else float(_nt)', vi: 'nút CTA có thể chỉ hiện ở thẻ cuối (nút giả #62014)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/may-sinh-ke-chuyen.mjs', co: 'if (!so.dang && so.lam_lai?.length)', vi: 'máy sinh làm lại bản KT bị chấm chặn' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thu-vien-len.py', co: 'env={**os.environ, "ETP_KHONG_CAT": "1"}', vi: 'đưa thư viện lên creative không chạy quét Drive (giữ chân máy sinh > 36 phút)' },
-  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thu-vien-len.py', co: 'l = next((k for i, k in enumerate(kq) if i not in da and str(k.get("content_id")) == str(x["content_id"])), {})', vi: 'thư viện → creative khớp theo phim (len.json không có den — khớp độ dài làm tạo trùng)' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thu-vien-len.py', co: 'or next((k for i, k in enumerate(kq) if i not in da and not k.get("tv") and str(k.get("content_id")) == str(x["content_id"])), {})', vi: 'thư viện → creative khớp theo tv rồi theo phim (len.json không có den — khớp độ dài làm tạo trùng)' },
   { card: 0, tep: 'packages/db/migrations/0431_etp_cho_len_v.sql', co: "when co_camp_phim and not (dang in ('kể chuyện', 'ảnh tĩnh') and phim_chay and not co_dang)", vi: 'nhịp ethopex lên camp KT cho phim đang chạy' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ROAS_LAI = 75;', vi: 'ngưỡng lên ROAS = lãi 30 ngày $75 (máy luật)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if a["thu"] - a["chi"] >= ROAS_LAI:', vi: 'đủ lên ROAS chỉ xét lãi 30 ngày' },
@@ -1909,4 +1909,8 @@ export const LUAT = [
   { card: 'r15-gan-2711', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if len(dk) <= tien + 1: lo = False', vi: 'thẻ luật chỉ một điều kiện mà hỏng nó là Xa, không phải Gần' },
   { card: 'r15-gan-2711', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '["Hôm nay thu", f"${_a15[\'thu\']:.2f}", f"< chi', vi: 'thẻ R15 tách hai dòng: chi ≥ $1 và thu < chi' },
   { card: 'r15-gan-2711', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'lo=_a15["thu"] < _a15["chi"]', vi: 'camp R15 đang lãi trong ngày không bao giờ hiện Gần' },
+  { card: 'cho-len-2711', tep: 'apps/xuong-video/scripts/ethopex/len-creative.py', co: 'lo, moi, ra_cho = CL.loc(lo, ma)', vi: 'bản dựng mới vào etp.cho_len chờ anh duyệt, không gửi bulk-jobs (anh 27/11/2026 "show ra tao duyệt xong mởi bắt đầu gửi lên đó")' },
+  { card: 'cho-len-2711', tep: 'apps/etp/dong_phim.py', co: 'def cho_len_chay():', vi: 'chỉ bản anh đã Duyệt mới được máy dòng phim tải lên Ethopex' },
+  { card: 'cho-len-2711', tep: 'apps/etp2/src/components/etp-view.tsx', co: "{tab === 'camp' && !laNguoi ? <ChoLenEtho /> : null}", vi: 'ô Chờ lên Ethopex hiện trên tab Camp để anh xem + duyệt' },
+  { card: 'cho-len-2711', tep: 'apps/etp2/src/lib/actions/etp-cho-len.ts', co: "where id = ${n} and trang_thai in ('cho', 'duyet') returning id", vi: 'Duyệt chỉ chạm bản còn chờ, không lên lại bản đã lên / đã bỏ' },
 ];

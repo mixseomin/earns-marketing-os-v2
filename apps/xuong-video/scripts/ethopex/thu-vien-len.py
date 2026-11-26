@@ -15,10 +15,20 @@ ids = [int(x) for x in sys.argv[1:] if x.isdigit()]
 if not ids: sys.exit(__doc__)
 rows = json.loads(sql(f"select coalesce(json_agg(row_to_json(v)), '[]') from (select id, content_id, dang, lang, ten, video, giay, creative_id, trang_thai, ghi, chu_qc->>'chu_dau' chu_dau, coalesce((chu_qc->>'lop_free')::boolean, false) lop_free from etp.thu_vien where id in ({','.join(map(str, ids))})) v") or "[]")
 lo, tm = [], os.path.join(C, "thu-vien"); os.makedirs(tm, exist_ok=True)
+# CỔNG CHỜ ANH DUYỆT TRƯỚC KHI LÊN (anh 27/11/2026, cho_len.py): bản đang chờ thì không tải lại video mỗi nhịp; bản anh bỏ / đã lên thì ghi đúng trạng thái
+cl = {}
+for l in sql(f"select 'tv' || substr(khoa, 3) || chr(9) || trang_thai || chr(9) || coalesce(creative_id::text, '') || chr(9) || id from etp.cho_len where khoa in ({','.join(repr(f'tv{i}') for i in ids)})").splitlines():
+    k_, t_, c_, i_ = (l.split("\t") + ["", "", "", ""])[:4]; cl[k_] = (t_, c_, i_)
 moi = 0   # số creative vừa tạo → gọi đồng bộ kho ngay (anh 25/11/2026: tìm #114887 trên etp2 "Không dòng nào khớp" vì kho etp.creative chờ nhịp 10 phút)
 for r in rows:
     if r["creative_id"]: print(f"tv{r['id']}: đã là creative #{r['creative_id']} — bỏ qua"); continue
     if r["trang_thai"] != "san_sang" or not r["video"]: print(f"tv{r['id']}: trạng thái {r['trang_thai']} — chỉ đưa bản sẵn sàng"); continue
+    t_, c_, i_ = cl.get(f"tv{r['id']}", ("", "", ""))
+    if t_ in ("cho", "dang_len"): print(f"⏸ tv{r['id']}: chờ anh duyệt trước khi lên (etp2 › Camp › Chờ lên #{i_}{' — đang lên' if t_ == 'dang_len' else ''})"); continue
+    if t_ == "bo": print(f"✗ tv{r['id']}: anh bỏ ở etp2 › Chờ lên #{i_}"); continue
+    if t_ == "da_len" and c_:
+        sql(f"update etp.thu_vien set creative_id = {int(c_)}, trang_thai = 'da_len', cap_nhat = now() where id = {r['id']} and creative_id is null")
+        print(f"✓ tv{r['id']} → creative #{c_} (đã lên sau khi anh duyệt, Chờ lên #{i_})"); continue
     f = os.path.join(tm, f"tv{r['id']}.mp4")
     subprocess.run(["curl", "-sSfL", "-o", f, r["video"]], check=True)
     lo.append({"tv": r["id"], "content_id": r["content_id"], "lang": r["lang"] or "en", "ten": r["ten"], "tu": 0, "den": round(float(r["giay"] or 0), 1), "file": f, "lo": "tv", "dang": r["dang"] or "kể chuyện", "goi_y": r.get("ghi") or "",   # goi_y: ghi chú bản dựng (vd "PO.5") → len-creative chọn đúng công thức trong sổ mẫu
@@ -40,13 +50,14 @@ for gi, (dang, lo) in enumerate(nhom.items()):
     # mỗi phim một bản trong lô thì chỉ cần phim; nhiều bản cùng phim thì lấy lần lượt theo thứ tự, không dùng lại một dòng kết quả hai lần
     da = set()
     for x in lo:
-        l = next((k for i, k in enumerate(kq) if i not in da and str(k.get("content_id")) == str(x["content_id"])), {})
+        l = next((k for i, k in enumerate(kq) if i not in da and k.get("tv") == x["tv"]), None) or next((k for i, k in enumerate(kq) if i not in da and not k.get("tv") and str(k.get("content_id")) == str(x["content_id"])), {})
         if l: da.add(kq.index(l))
         cr = l.get("creative_id")
         if cr and l.get("ok", True) and not l.get("loi"):
             sql(f"update etp.thu_vien set creative_id = {int(cr)}, trang_thai = 'da_len', cap_nhat = now() where id = {x['tv']}")
             print(f"✓ tv{x['tv']} → creative #{cr} (chấm Sạch thì nhịp ethopex tự lên camp KT $1 — anh 29/10/2026)")
             moi += 1
+        elif l.get("cho_anh"): print(f"⏸ tv{x['tv']}: chờ anh duyệt trước khi lên — {l.get('loi')}")
         else: print(f"✗ tv{x['tv']}: {l.get('loi') or 'không tạo được creative'}")
 if moi:   # creative mới vào kho etp.creative ngay → etp2 (Chờ duyệt / tìm số) hiện trong ~2 phút, không chờ nhịp 10 phút
     subprocess.run(["ssh", B, "systemctl start --no-block etp-dong-bo"], capture_output=True)

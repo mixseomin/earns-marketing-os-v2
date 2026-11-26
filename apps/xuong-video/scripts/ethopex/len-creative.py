@@ -57,8 +57,22 @@ def main(lo_f, ma, dang):
         ra = os.path.join(C, "ra", ma); os.makedirs(ra, exist_ok=True)
         json.dump([{"content_id": x.get("content_id"), "creative_id": None, "lang": x.get("lang"), "ok": False, "loi": x["loi"]} for x in chan], open(f"{ra}/len.json", "w"), ensure_ascii=False, indent=1)
         sys.exit(SM.ly_do(dang))
-    for x in lo: x["ten_tep"] = f"{ma}-{x.get('lo', 'x')}-{os.path.basename(x['file'])}"
-    ra = os.path.join(C, "ra", ma); os.makedirs(ra, exist_ok=True); json.dump(lo, open(f"{ra}/lo.json", "w"), ensure_ascii=False, indent=1)
+    # CỔNG CHỜ ANH DUYỆT TRƯỚC KHI LÊN (anh 27/11/2026: "sau này creative khi duyệt thì ko gửi lên etho. Phải show ra tao duyệt xong mới bắt đầu gửi lên đó!"):
+    # bản mới chỉ đẩy kho lấy link xem rồi vào etp.cho_len 'cho' (etp2 › Camp › Chờ lên); chỉ bản anh đã Duyệt mới tới bulk-jobs — cho_len.py
+    import cho_len as CL
+    lo, moi, ra_cho = CL.loc(lo, ma)
+    ra_cho += [{"camp_cu": x.get("camp"), "content_id": x.get("content_id"), "creative_id": None, "lang": x.get("lang"), "lo": x.get("lo", ma), "ten": x.get("ten"), "ok": False, "loi": x["loi"]} for x in chan]
+    if not lo and not moi:
+        ra = os.path.join(C, "ra", ma); os.makedirs(ra, exist_ok=True); json.dump(ra_cho, open(f"{ra}/len.json", "w"), ensure_ascii=False, indent=1)
+        return print(f"không bản nào lên — {sum(1 for o in ra_cho if o.get('cho_anh'))} bản chờ anh duyệt (etp2 › Camp › Chờ lên)")
+    try: return _len(lo, moi, ra_cho, ma, dang)
+    except BaseException as e: CL.nha(lo, e); raise
+
+def _len(lo, moi, ra_cho, ma, dang):
+    import soat_doan as SD, cho_len as CL
+    sys.path.insert(0, os.path.join(D, "..", "..", "..", "etp")); import so_mau as SM
+    for x in lo + moi: x["ten_tep"] = f"{ma}-{x.get('lo', 'x')}-{os.path.basename(x['file'])}"
+    ra = os.path.join(C, "ra", ma); os.makedirs(ra, exist_ok=True); json.dump(lo + moi, open(f"{ra}/lo.json", "w"), ensure_ascii=False, indent=1)
     # 1. kho
     sh(f"ssh {B} 'mkdir -p /var/lib/ethopex/creative/{ma}'")
     # ĐẨY SONG SONG 12 LUỒNG (27/10/2026): mạng nhà đẩy được 254 Mbps nhưng MỘT luồng TCP tới box3 (Đức, trễ ~220 ms) chỉ ~1 Mbit/s →
@@ -72,7 +86,7 @@ def main(lo_f, ma, dang):
             if subprocess.run(lenh, capture_output=True).returncode == 0: return
             time.sleep(5 * (lan + 1))
         raise RuntimeError(f"đẩy {x['file']} lỗi 3 lần")
-    with ThreadPoolExecutor(8) as ex: list(ex.map(day, lo))
+    with ThreadPoolExecutor(8) as ex: list(ex.map(day, lo + moi))
     r = sh(f"""ssh {B} 'cd /var/lib/ethopex/creative/{ma} && for f in {ma}-*.mp4; do b=${{f%.mp4}}; ffmpeg -v error -y -ss 2 -i $f -frames:v 1 -q:v 3 $b.jpg; ffmpeg -v error -y -sseof -1.5 -i $f -frames:v 1 -q:v 3 tc-$b.jpg; echo "$b|$(ffprobe -v error -show_entries format=duration -of csv=p=0 $f)|$(kho phat $f ethopex thanh-pham $f | tail -1)|$(kho phat $b.jpg ethopex thanh-pham $b.jpg | tail -1)|$(kho phat tc-$b.jpg ethopex thanh-pham tc-$b.jpg | tail -1)"; kho cat $f ethopex thanh-pham $f >/dev/null 2>&1 || echo "kho-cat-loi $f" >&2; done'""", timeout=3600)
     # CẤT DRIVE NGAY (sm94 21/11/2026, R2 142 GB / ngưỡng 50): mp4 vừa đăng chép luôn sang Drive kho-may/ethopex/thanh-pham/<YYYY-MM>/ — CÙNG đường dẫn
     # tương đối với R2 (kho cat và kho phat cùng lấy tháng UTC lúc chạy), nên gỡ khỏi R2 sau này chỉ là xoá bản R2, kéo lại thì chép ngược đúng khoá.
@@ -83,6 +97,11 @@ def main(lo_f, ma, dang):
     goc = {os.path.dirname(v[2]) for v in anh.values() if v[2].startswith("http")}
     if len(goc) != 1: raise RuntimeError(f"kho phat không trả đúng một thư mục cho lô {ma}: {sorted(goc) or r.stderr[-200:]}")
     GOC = goc.pop()
+    if moi: ra_cho += CL.ghi_cho(moi, anh, ma, dang)   # bản mới: có link xem trên kho → vào hàng chờ anh duyệt, DỪNG ở đây (không chữ QC, không bulk-jobs)
+    if not lo:
+        json.dump(ra_cho, open(f"{ra}/len.json", "w"), ensure_ascii=False, indent=1)
+        return print(f"{CL.DAU}: {len(moi)} bản vào hàng chờ — mở etp2 › Camp › Chờ lên để xem + Duyệt; chưa gửi Ethopex")
+    json.dump(lo, open(f"{ra}/lo.json", "w"), ensure_ascii=False, indent=1)   # chu-qc chỉ viết chữ cho bản đi tiếp
     XG.bao("day", ma, "đẩy video lên kho xong · viết chữ QC", 0, len(lo), ep=True)
     # 2. chữ QC
     ids = ",".join(sorted({str(x["content_id"]) for x in lo}))
@@ -174,8 +193,9 @@ EOF'""", timeout=3600)
     cap = [f"{x['camp']}:{x['creative_id']}" for x in lo if not x.get("loi") and x.get("camp") and x.get("creative_id")]
     if cap: print(sh(f"ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 ghi-cta-thay.py --camp {' '.join(cap)}'").stdout.strip())
     out = [{"camp_cu": x.get("camp"), "content_id": x["content_id"], "creative_id": x.get("creative_id"), "lang": x["lang"], "lo": x.get("lo", ma),
-            "ten": f"{x.get('lo', ma)} {ascii_(x['ten'])} {x['lang'].upper()} - {dang} {int(x['tu'])}-{int(x['den'])}s {ma}", "ok": not x.get("loi"), "loi": x.get("loi"), "mau": x.get("mau")} for x in lo]
-    out += [{"camp_cu": x.get("camp"), "content_id": x.get("content_id"), "creative_id": None, "lang": x.get("lang"), "lo": x.get("lo", ma), "ten": x.get("ten"), "ok": False, "loi": x["loi"]} for x in chan]
+            "ten": f"{x.get('lo', ma)} {ascii_(x['ten'])} {x['lang'].upper()} - {dang} {int(x['tu'])}-{int(x['den'])}s {ma}", "ok": not x.get("loi"), "loi": x.get("loi"), "mau": x.get("mau"), "tv": x.get("tv")} for x in lo]
+    CL.xong(lo, out)   # bản đã duyệt → 'da_len' + creative + cham_duyet ok (không bắt duyệt lần hai)
+    out += ra_cho
     json.dump(out, open(f"{ra}/len.json", "w"), ensure_ascii=False, indent=1)
     # TỰ CHẤM CREATIVE MỚI (anh 25/10/2026: "các creative mới từ giờ có bước chấm tự động"): xếp hàng etp.cham_hang → Worker Cloudflare etp-cham chấm (mỗi phút).
     # CHỈ CHẤM — không chặn lên camp (anh: "chưa áp dụng vào camp hay rule nào hết").
@@ -202,7 +222,7 @@ EOF'""", timeout=3600)
         t = o[k:k + 16]; fc = "".join(f"[{i}]" for i in range(len(t))) + f"xstack=inputs={len(t)}:layout=" + "|".join(f"{(i % 4) * 300}_{(i // 4) * 534}" for i in range(len(t))) + ":fill=black"
         f = f"{ra}/review-cta-{k // 16 + 1}.jpg"; subprocess.run(["ffmpeg", "-v", "error", "-y"] + sum([["-i", p] for p in t], []) + ["-filter_complex", fc, f], check=True)
         print("TỜ REVIEW (iMac):", f)
-    for o in out: print(o["ok"], o["creative_id"], o["camp_cu"], o["ten"][:70], o["loi"] or "")
+    for o in out: print(o.get("ok"), o.get("creative_id"), o.get("camp_cu"), str(o.get("ten") or "")[:70], o.get("loi") or "")
     # CẤT LÊN DRIVE (anh 28/10/2026 "phải lưu lên drive chứ? Sao cứ lưu hết ở iMac"): lô vừa lên xong = sự kiện cất — mọi tệp video / tiếng đã nằm yên ≥ 24 giờ
     # trong ~/.cache/ethopex chuyển sang Drive htuan82 (gdrive:ethopex-cache), giữ đường dẫn; cần lại thì dam_bao / keo_thu_muc tự kéo về. Mọi luồng (phim mới, sửa CTA,
     # thay creative bị từ chối, đợt phim mới) đều lên qua đây → một chỗ cất, không dựng vòng chạy theo giờ.

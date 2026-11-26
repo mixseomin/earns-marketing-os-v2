@@ -325,12 +325,14 @@ def b_creative(d, truoc):
     if not cr:   # lượt đầu: tải MỘT đoạn (luật một camp mỗi lần, anh 03/11/2026)
         doan = ((truoc.get("soat") or {}).get("doan") or [])[:1]
         if not doan: return "loi", "bước soát không để lại đoạn sạch", None
+        if (n := cl_phim(d)[0]): return cl_cho(n)
         ma = f"dp{d['id']}l{tr.get('lan') or 1}"; lf = os.path.join(C, "ra", f"dp{d['id']}", f"len-{ma}.json")
         json.dump([{**x, "lo": f"dp{d['id']}"} for x in doan], open(lf, "w"), ensure_ascii=False)
         rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "len-creative.py"), lf, ma, DG.KHONG_DAU[LOAI[CC2]] if d.get("loai") == CC2 else "canh cuoi", "--da-soat"], dict(BUOC)["creative"] - 300, {"ETP_KHONG_CAT": "1"})
         lj = os.path.join(C, "ra", ma, "len.json")
         kq = json.load(open(lj)) if os.path.exists(lj) else []
         x = next((y for y in kq if y.get("ok") and y.get("creative_id")), None)
+        if not x and any(y.get("cho_anh") for y in kq): return cl_cho(sum(1 for y in kq if y.get("cho_anh")))
         if not x:
             g = " ".join(str(y.get("loi")) for y in kq) or out[-300:]
             return ("loi" if rc == -9 or not kq or LK.ky_thuat(g) is not False else "dung"), f"tải creative không ra: {g[:300]}", None
@@ -351,17 +353,33 @@ def cho_anh(ids):
     if not ids: return set()
     return {int(x) for x in sql(f"select creative_id from etp.cham_cong where creative_id in ({','.join(map(str, ids))}) and coalesce(cho_duyet, '') <> '' and duoc_len is not true").split()}
 
+# CHỜ ANH DUYỆT TRƯỚC KHI LÊN (anh 27/11/2026 "creative khi duyệt thì ko gửi lên etho. Phải show ra tao duyệt xong mới bắt đầu gửi lên"): len-creative giữ bản mới ở
+# etp.cho_len 'cho' (cổng cho_len.py). Bước creative còn bản chờ của phim (tạo từ lúc có dòng) → đứng 'cho', KHÔNG chạy lại / KHÔNG sinh mới / KHÔNG loại bản;
+# anh Duyệt → máy dòng phim (cho_len_chay) tải lên → lượt sau nhận creative từ cho_len.creative_id.
+CL_DAU = "⏸"
+def cl_phim(d, dang=None, mau=None):
+    """→ (số bản phim này đang chờ anh / chờ máy tải, creative đã lên qua cổng) — chỉ bản tạo từ lúc có dòng; dang / mau (ghi thư viện 'mẫu:<mã> ') lọc thêm"""
+    w = f"c.content_id = {int(d['content_id'])} and c.tao >= (select tao_luc from etp.dong_phim where id = {int(d['id'])})" + (f" and c.dang = {s(dang)}" if dang else "")
+    if mau: w += f" and exists (select 1 from etp.thu_vien t where c.khoa = 'tv' || t.id and t.ghi like {s('mẫu:' + mau + ' %')})"
+    try: r = sql(f"select count(*) filter (where c.trang_thai in ('cho', 'duyet', 'dang_len')) || chr(9) || coalesce(string_agg(c.creative_id::text, ' ' order by c.id) filter (where c.trang_thai = 'da_len' and c.creative_id is not null), '') from etp.cho_len c where {w}")
+    except Exception: return 0, []   # bảng chưa có
+    a = (r.split("\t") + [""])[:2]
+    return int(a[0] or 0), [int(x) for x in a[1].split()]
+def cl_cho(n): return "cho", f"{n} bản chờ anh duyệt trước khi lên Ethopex (etp2 › Camp › Chờ lên)", None
+
 def b_creative_lt(d, truoc):
     """LT: tải MỌI đoạn sạch (mỗi tập một creative) → chờ chấm hết → xong khi còn ≥ 1 creative được lên"""
     tr = (d.get("buoc") or {}).get("creative") or {}; ds = (tr.get("ket_qua") or {}).get("ds")
     if not ds:
         doan = (truoc.get("soat") or {}).get("doan") or []
         if not doan: return "loi", "bước soát không để lại đoạn sạch", None
+        if (n := cl_phim(d)[0]): return cl_cho(n)
         ma = f"dp{d['id']}lt"; lf = os.path.join(C, "ra", f"dp{d['id']}", f"len-{ma}.json")
         json.dump([{**x, "lo": f"dp{d['id']}"} for x in doan], open(lf, "w"), ensure_ascii=False)
         rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "len-creative.py"), lf, ma, DG.KHONG_DAU[LOAI[CC2]] if d.get("loai") == CC2 else "tap nguyen", "--da-soat"], dict(BUOC)["creative"] - 300, {"ETP_KHONG_CAT": "1"})
         lj = os.path.join(C, "ra", ma, "len.json"); kq = json.load(open(lj)) if os.path.exists(lj) else []
         ds = [y for y in kq if y.get("ok") and y.get("creative_id")]
+        if not ds and any(y.get("cho_anh") for y in kq): return cl_cho(sum(1 for y in kq if y.get("cho_anh")))
         if not ds:
             g = " ".join(str(y.get("loi")) for y in kq) or out[-300:]
             return ("loi" if rc == -9 or not kq or LK.ky_thuat(g) is not False else "dung"), f"tải creative không ra: {g[:300]}", None
@@ -426,13 +444,17 @@ def b_creative_khoi(d):
     ids = [int(x["creative_id"]) for x in kq0.get("ds") or []]
     loai = {int(x) for x in sql(f"select u.creative_id from etp.cham_duyet u join etp.creative r using (creative_id) where not u.ok and r.content_id = {cid}").split() if x.isdigit()}
     ids = [c for c in ids if c not in loai][:len(muc)]
+    n_cl, cr_cl = cl_phim(d, mau=ma)
+    if cr_cl:   # bản anh duyệt đã lên qua cổng — dung-mau không ghi được creative lúc dựng (bản còn chờ) → ghi bù vào sổ mẫu để cr_mau_moi thấy
+        sql(f"update etp.mau_dung set creative_ids = coalesce(creative_ids, '{{}}') || array(select unnest(array[{','.join(map(str, cr_cl))}]) except select unnest(coalesce(creative_ids, '{{}}'))) where mau = {s(ma)} and content_id = {cid}")
     if len(ids) < len(muc): ids += cr_mau_moi(ma, cid, set(ids) | loai)[:len(muc) - len(ids)]
+    if len(ids) < len(muc) and n_cl: return "cho", f"mẫu {ma}: {n_cl} bản chờ anh duyệt trước khi lên Ethopex (etp2 › Camp › Chờ lên) — không dựng thêm", ({"ds": [{"creative_id": c} for c in ids]} if ids else None)
     if len(ids) < len(muc):
         rc, out = chay_tien_trinh(d["id"], "creative", [os.path.expanduser("~/.venvs/poster-mau/bin/python"), os.path.join(E, "dung-mau.py"), ma, str(cid), "--ban", str(len(muc) - len(ids))], dict(BUOC)["creative"] - 120)
         ids += cr_mau_moi(ma, cid, set(ids) | loai)[:len(muc) - len(ids)]
         # dung-mau chưa xong vì CHỜ (Ethopex đang sinh trang / link tập 1) → 'cho', lượt sau tự dựng tiếp; ssh tới box3 rớt (exit 255) → 'loi' để đường lỗi mạng thử lại.
         # Trước đây cả hai thành 'dung' → 10/10 dòng AD 26/11/2026 dừng hẳn chỉ vì chờ link tập / một lần ssh rớt.
-        hk = "cho" if "trang_phim · cho" in out else "loi" if rc == -9 or "exit status 255" in out else "dung"
+        hk = "cho" if "trang_phim · cho" in out or CL_DAU in out else "loi" if rc == -9 or "exit status 255" in out else "dung"
         if not ids: return hk, f"dựng mẫu {ma} không ra creative: {out[-300:]}", None
         if len(ids) < len(muc): return hk, f"mẫu {ma}: mới có {len(ids)}/{len(muc)} creative riêng cho {len(muc)} mức ★ ROAS — {out[-240:]}", {"ds": [{"creative_id": c} for c in ids]}
     sql(f"update etp.dong_phim set creative_id = {ids[0]} where id = {d['id']}")
@@ -485,6 +507,9 @@ def b_creative_at(d):
     tr = (d.get("buoc") or {}).get("creative") or {}; kq0 = tr.get("ket_qua") or {}
     ids = [int(x["creative_id"]) for x in kq0.get("ds") or []] or ([int(kq0["creative_id"])] if kq0.get("creative_id") else [])
     if not ids:
+        n_cl, ids = cl_phim(d, dang=LOAI[d["loai"]])
+        if n_cl and not ids: return cl_cho(n_cl)
+    if not ids:
         # DÙNG LẠI BẢN SẴN SÀNG TRƯỚC KHI SINH MỚI (anh 15/11/2026 "rất nhiều camp chờ đang ko thể sx … fix triệt để"): 09–15/11 cổng chữ sau chặn oan lớp Free →
         # mỗi lần FIX sinh lại 3 bản (giọng + ảnh AI) trong khi bản cũ vẫn nằm thư viện "sẵn sàng" — 2.178 bản PO + 87 AT, 133 phim. Bản sẵn sàng chưa thành creative
         # của đúng phim + dạng (≤ 7 ngày, mới nhất trước, tối đa AT_BAN) → thu-vien-len (cùng đường anh-tinh gọi ở cuối) · đưa lên không ra creative nào thì loại
@@ -494,6 +519,7 @@ def b_creative_at(d):
         if san:
             rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "thu-vien-len.py"), *san], HAN_RIENG[(d["loai"], "creative")] - 120)
             ids = [int(x) for x in dict.fromkeys(re.findall(r"→ creative #(\d+)", out))]
+            if not ids and CL_DAU in out: return cl_cho(out.count(CL_DAU))   # bản chờ anh duyệt ≠ hỏng: không loại, không sinh mới
             if not ids:
                 ly = (re.findall(r"✗ tv\d+: (.+)", out) or [out[-200:]])[-1][:200]
                 sql(f"update etp.thu_vien set trang_thai = 'loai', ghi = coalesce(ghi, '') || {s(' · máy dòng phim: dùng lại không ra creative — ' + ly)}, cap_nhat = now() where id in ({','.join(san)}) and creative_id is null")
@@ -501,6 +527,7 @@ def b_creative_at(d):
     if not ids:
         rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, TINH[d["loai"]][0]), str(d["content_id"]), *TINH[d["loai"]][1], "--ban", str(AT_BAN)], HAN_RIENG[(d["loai"], "creative")] - 120)
         ids = [int(x) for x in dict.fromkeys(re.findall(r"→ creative #(\d+)", out))]
+        if not ids and CL_DAU in out: return cl_cho(out.count(CL_DAU))
         if not ids:
             j = next((json.loads(l) for l in out.splitlines() if l.startswith("{") and '"content_id"' in l), None) or {}
             g = j.get("loi") or out[-300:]
@@ -1098,6 +1125,23 @@ def xem_hang():
         except Exception as e: print(f"[{time.strftime('%H:%M:%S')}] xem trước bản soạn lỗi: {type(e).__name__}: {str(e)[:300]}", flush=True)
     XEM_HANG["th"] = threading.Thread(target=chay, daemon=True); XEM_HANG["th"].start()
 
+# TẢI BẢN ANH ĐÃ DUYỆT (etp.cho_len 'duyet' → cho_len.py len → len-creative → 'da_len'): mỗi phút trong một luồng, một lượt một lúc. Nhật ký ~/Library/Logs/ethopex/cho-len.log
+CL_HANG = {"luot": 0.0, "th": None}
+def cho_len_chay():
+    if SX[0].get("khan") or time.time() - CL_HANG["luot"] < 60 or (CL_HANG["th"] and CL_HANG["th"].is_alive()): return
+    CL_HANG["luot"] = time.time()
+    try: n = int(sql("select count(*) from etp.cho_len where trang_thai = 'duyet'") or 0)
+    except Exception: return
+    if not n: return
+    def chay():
+        print(f"[{time.strftime('%H:%M:%S')}] cổng chờ lên: {n} bản anh duyệt → tải lên Ethopex", flush=True)
+        try:
+            with open(os.path.expanduser("~/Library/Logs/ethopex/cho-len.log"), "a") as f:
+                rc = subprocess.run(["python3", os.path.join(E, "cho_len.py"), "len"], stdout=f, stderr=subprocess.STDOUT, timeout=3600).returncode
+            print(f"[{time.strftime('%H:%M:%S')}] cổng chờ lên: xong lượt (mã thoát {rc})", flush=True)
+        except Exception as e: print(f"[{time.strftime('%H:%M:%S')}] cổng chờ lên lỗi: {type(e).__name__}: {str(e)[:300]}", flush=True)
+    CL_HANG["th"] = threading.Thread(target=chay, daemon=True); CL_HANG["th"].start()
+
 def tu_kiem():
     p = {"phanh": "chờ phanh nhả: PHANH CHỢ: x", "du_tru": [7]}
     assert cho_phanh(p, {"content_id": 1}, "poster") == p["phanh"] and cho_phanh(p, {"content_id": 1}, "camp") == p["phanh"] and cho_phanh(p, {"content_id": 1}, "chay") is None, "phanh: bước sản xuất + camp chờ, bước chờ camp chạy giữ nguyên"
@@ -1187,6 +1231,8 @@ def main(a):
         except Exception as e: print(f"hàng máy dựng theo mẫu lỗi: {str(e)[:160]}", flush=True)
         try: xem_hang()
         except Exception as e: print(f"xem trước bản soạn lỗi: {str(e)[:160]}", flush=True)
+        try: cho_len_chay()
+        except Exception as e: print(f"cổng chờ lên lỗi: {str(e)[:160]}", flush=True)
         time.sleep(10)
 
 if __name__ == "__main__": main(sys.argv[1:])

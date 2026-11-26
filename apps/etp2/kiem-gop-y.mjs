@@ -12,6 +12,8 @@ const LUAT = [
   { card: 0, tep: 'apps/etp2/src/lib/actions/etp-dong.ts', mot: 'export async function doiGac(', vi: 'gác / mở ghi etp.cau_hinh.gac_dang + gac_dang_ly (lý do), không sửa mã' },
   { card: 0, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', cam: 'anh 08/11/2026 ưu tiên poster động', vi: 'chữ gác đọc lý do từ DB, không viết cứng lý do cũ' },
   { card: 0, tep: 'apps/etp/dong_phim.py', co: "khoa = 'gac_dang_ly'", vi: 'máy dòng phim ghi lý do dừng đọc từ gac_dang_ly' },
+  { card: 1893, tep: 'apps/etp2/src/components/etp-view.tsx', co: "data-camp-dong={c.camp_id} data-cho-gio={choGio(c) ? '' : undefined} onClick={bamDong}", vi: 'cây điện thoại: dòng camp chờ giờ chạy được đánh dấu từ cùng choGio (anh 26/11/2026 #1893 "Camp nào chờ giờ chạy trên mobile thì mờ đi")' },
+  { card: 1893, tep: 'apps/etp2/src/components/etp-view.tsx', mot: ".etp-cay .dong[data-cho-gio]>[data-cot],.etp-cay .dong[data-cho-gio]>.o-camp>*:not([data-cot=\"cham\"]){opacity:.4}", vi: 'dòng chờ giờ trên điện thoại mờ mọi ô trừ chấm trạng thái (giờ hẹn) — như #1881 trên máy tính' },
   { card: 1891, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "{ key: 'dem', header: ''", vi: 'cây Camp không còn cột đệm trống cuối bảng sau nhóm Chi (anh 26/11/2026 #1891 "Bỏ ko chắp vá đoạn thừa này")' },
   { card: 1880, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{chay === 'lich' ? <b data-nb-gio-that=\"\"", vi: 'ngăn nhân bản: chọn "theo lịch" là giờ camp thực sự chạy hiện thẳng cạnh nút (anh 26/11/2026 "show giờ thực sự chạy ở đây"), không chỉ trong chữ rê' },
   { card: 1880, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'theo lịch lên camp → <b data-nb-gio-that="">{chayLucGon()}</b>', vi: 'bản không bid cũng hiện giờ thực sự chạy' },

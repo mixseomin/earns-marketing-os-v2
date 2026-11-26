@@ -3,7 +3,7 @@
 len-creative.py là đường DUY NHẤT gọi bulk-jobs → cổng đặt ở đó, mọi người gọi (dòng phim, thư viện, sửa CTA, dựng lại logo…) cùng đi qua:
   bản MỚI        → vẫn đẩy kho (R2) để có link xem, ghi etp.cho_len 'cho', KHÔNG tạo creative · len.json: ok False, cho_anh True
   'cho'          → chờ tiếp, không đẩy lại
-  'duyet'        → nhận ('dang_len', một máy một lần) → đi tiếp bulk-jobs; xong → 'da_len' + creative_id + ket (dòng len.json)
+  'duyet'        → nhận ('dang_len', một máy một lần) + kiểu chữ anh chọn (cột kieu: kien mặc định / dol — chu-qc.py tạo đúng chữ đó) → đi tiếp bulk-jobs; xong → 'da_len' + creative_id + ket (dòng len.json)
   'da_len'       → trả lại đúng dòng len.json cũ (không tạo lần hai)
   'bo'           → anh bỏ
 Anh xem + Duyệt / Bỏ ở etp2 › Camp › Chờ lên (apps/etp2/src/lib/actions/etp-cho-len.ts).
@@ -47,7 +47,7 @@ def loc(lo, ma):
     ks = ",".join(s(x["_khoa"]) for x in lo)
     _sql(f"update etp.cho_len set trang_thai = 'duyet', cap_nhat = now(), loi = 'lượt lên trước bị cắt giữa chừng' where trang_thai = 'dang_len' and cap_nhat < now() - interval '{KET_TREO}' and khoa in ({ks})")
     r = {}
-    for l in (_sql(f"select row_to_json(t) from (select id, khoa, trang_thai, creative_id, ket, video, loi, cap_nhat < now() - interval '{LOI_NGHI}' cu from etp.cho_len where khoa in ({ks})) t") or "").splitlines():
+    for l in (_sql(f"select row_to_json(t) from (select id, khoa, trang_thai, creative_id, ket, video, loi, kieu, cap_nhat < now() - interval '{LOI_NGHI}' cu from etp.cho_len where khoa in ({ks})) t") or "").splitlines():
         if l.strip(): v = json.loads(l); r[v["khoa"]] = v
     di, moi, ra = [], [], []
     for x in lo:
@@ -60,6 +60,7 @@ def loc(lo, ma):
             n = _sql(f"update etp.cho_len set trang_thai = 'dang_len', cap_nhat = now() where id = {v['id']} and trang_thai = 'duyet' returning id")
             if n.strip():
                 x["_cho_len"] = v["id"]
+                x["kieu"] = v.get("kieu") or "kien"   # kiểu chữ anh chọn lúc duyệt (etp2 Chờ lên, mặc định Kiên) → chu-qc.py tạo đúng chữ đó
                 if not x["file"].startswith("box3:") and not os.path.exists(x["file"]):   # tệp gốc đã dọn → kéo bản đã đẩy kho (đúng tệp anh xem)
                     os.makedirs(os.path.join(C, "cho-len"), exist_ok=True); f = os.path.join(C, "cho-len", f"cl{v['id']}.mp4")
                     subprocess.run(["curl", "-sSfL", "-o", f, v["video"]], check=True); x["file"] = f
@@ -122,6 +123,7 @@ def tu_kiem():
     assert khoa({"file": "box3:/x/y.mp4"}) == "p:box3:/x/y.mp4" and khoa({"file": "/x", "khoa_cho": "m:ab"}) == "m:ab"
     d = dong_cho({"content_id": 1, "lang": "en", "ten": "t", "lo": "l"}, "ma"); assert d["ok"] is False and d["cho_anh"] and LY in d["loi"]
     m = _muc({"file": "f", "ten_tep": "x", "_khoa": "k", "loi": "e", "tv": 3}); assert m == {"file": "f", "tv": 3}
+    cq = open(os.path.join(D, "chu-qc.py")).read(); assert 'x.get("kieu")' in cq and "def chu_theo_kieu" in cq, "chu-qc.py phải tạo chữ theo kiểu anh chọn ở Chờ lên"
     src = open(os.path.join(D, "len-creative.py")).read()
     for k in ("CL.loc(", "CL.ghi_cho(", "CL.xong("): assert k in src, f"len-creative.py thiếu {k} — cổng chờ anh duyệt bị gỡ"
     assert src.index("CL.loc(") < src.index("bulk-jobs\",json"), "cổng chờ duyệt phải đứng trước bulk-jobs"

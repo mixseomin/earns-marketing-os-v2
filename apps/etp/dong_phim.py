@@ -459,13 +459,15 @@ def b_creative_khoi(d):
         if len(ids) < len(muc): return hk, f"mẫu {ma}: mới có {len(ids)}/{len(muc)} creative riêng cho {len(muc)} mức ★ ROAS — {out[-240:]}", {"ds": [{"creative_id": c} for c in ids]}
     sql(f"update etp.dong_phim set creative_id = {ids[0]} where id = {d['id']}")
     kq = {"creative_id": ids[0], "ds": [{"creative_id": c, "roas": muc[i]} for i, c in enumerate(ids)]}
-    # TỶ LỆ K : D (anh 26/11/2026 "tạo creative mới theo 2 cách lên camp để thử" · 27/11/2026 "chọn loại form text kiểu K nhiều hơn"): CG.la_k — 3 K / 1 D
-    # theo mức ★ ROAS (K = chữ Kiên của phim, link search.com · D = form Dol, info.com). Áp TRƯỚC máy chấm / Chờ duyệt để anh duyệt đúng chữ sẽ lên.
-    # Dòng đã chia theo luật nửa-nửa cũ (kq0 có "k", chưa có "tl") giữ nguyên — không đổi chữ của bản đã qua duyệt. Phim chưa có chữ Kiên → cả khối D.
+    # KIỂU CHỮ (anh 27/11/2026 "Sinh kiểu Kiên là default và có option chọn sang Dol"): mặc định K (chữ Kiên của phim, search.com — CG.la_k); bản đi qua
+    # etp2 › Chờ lên giữ ĐÚNG kiểu anh chọn lúc duyệt (etp.cho_len.kieu; chu-qc.py đã tạo đúng chữ đó) — không áp K lên bản anh chọn D.
+    # Dòng đã chia theo luật cũ (kq0 có "k", "tl" khác CG.TL_KD) giữ nguyên K/D cho creative đã có — không đổi chữ bản đã qua duyệt. Phim chưa có chữ Kiên → cả khối D.
     cu = "k" in kq0 and kq0.get("tl") != CG.TL_KD
-    k_ds = ([c for i, c in enumerate(ids) if i % 2 == 1] if cu else [c for i, c in enumerate(ids) if CG.la_k(i, len(ids))]) if chu_kien(cid) else []
-    if k_ds and sorted(kq0.get("k") or []) != sorted(k_ds):
-        if h := ap_kien(d, {"creative": {"sach": [{"creative_id": c} for c in k_ds]}}): return h[0], h[1], kq
+    k_cu, ids_cu = set(kq0.get("k") or []), {int(x["creative_id"]) for x in kq0.get("ds") or []}
+    kieu_cl = {int(a): b for a, b in (l.split(chr(9)) for l in sql(f"select creative_id, kieu from etp.cho_len where creative_id in ({','.join(map(str, ids))})").splitlines() if chr(9) in l)}
+    k_ds = [c for i, c in enumerate(ids) if ((c in k_cu) if cu and c in ids_cu else kieu_cl.get(c, "kien" if CG.la_k(i, len(ids)) else "dol") == "kien")] if chu_kien(cid) else []
+    if k_ds and not set(k_ds) <= k_cu:
+        if h := ap_kien(d, {"creative": {"sach": [{"creative_id": c} for c in k_ds if c not in k_cu]}}): return h[0], h[1], kq
     kq["k"] = k_ds
     if not cu: kq["tl"] = CG.TL_KD
     r = {int(l.split(chr(9))[0]): (l.split(chr(9))[1:] + ["", ""])[:2] for l in sql(f"""select r.creative_id, coalesce(r.lang, 'en'), coalesce(g.duoc_len::text, '')

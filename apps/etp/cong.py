@@ -11,11 +11,11 @@ kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=F
 Dùng trong script khác: sys.path.insert(0, '/opt/earns-marketing-os-v2/apps/etp'); import cong; ly = cong.kiem('tang', cid, 15, 10)"""
 import json, os, subprocess, datetime as dt
 TANG = {"tang", "bat", "nhan_ban", "tao_camp"}
-# TỶ LỆ K : D CỦA KHỐI CREATIVE (anh 27/11/2026 "Tao cần chọn loại form text kiểu K nhiều hơn"; trước là nửa K nửa D từ 26/11):
-# xếp theo mức ★ ROAS, mỗi 4 creative một D (vị trí 0, 4, 8… = mức thấp nhất làm đối chứng), còn lại K; khối 1–2 creative toàn K. Một nguồn cho
-# dong_phim.b_creative_khoi (áp chữ) và bao-plan.kd_dong (K/D dự kiến). Phim chưa có chữ Kiên (chu-kieu.json) → cả khối D, không tự viết chữ.
-TL_KD = 2
-def la_k(i, n): return not (n >= 3 and i % 4 == 0)
+# KIỂU CHỮ MẶC ĐỊNH CỦA KHỐI CREATIVE (anh 27/11/2026 "Sinh kiểu Kiên là default và có option chọn sang Dol" — thay 3 K : 1 D cùng ngày, trước nữa nửa-nửa 26/11):
+# mọi creative K (chữ Kiên của phim, search.com); D (form Dol, info.com) CHỈ khi anh chọn D lúc duyệt ở etp2 › Camp › Chờ lên (etp.cho_len.kieu).
+# Một nguồn cho dong_phim.b_creative_khoi (áp chữ) và bao-plan.kd_dong (K/D dự kiến). Phim chưa có chữ Kiên (chu-kieu.json) → D, không tự viết chữ.
+TL_KD = 3
+def la_k(i, n): return True
 # NẮP NGÂN SÁCH THEO ROI 3 NGÀY KHÉP — một nguồn với máy luật (sổ luật chung apps/web/src/lib/etp-bang-luat.json nap_tang; Dol 09/11/2026, anh duyệt: chỉ lần tăng mới)
 _BL = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web", "src", "lib", "etp-bang-luat.json")))
 _BAC = [x for x in _BL["thang"] if x <= 20]
@@ -712,8 +712,7 @@ def ns_tao(body):
     return None, tran
 
 def _tu_kiem():
-    assert [la_k(i, 4) for i in range(4)] == [False, True, True, True] and all(la_k(i, 2) for i in range(2)) and la_k(0, 1)
-    assert sum(la_k(i, 8) for i in range(8)) == 6 and sum(la_k(i, 3) for i in range(3)) == 2
+    assert all(la_k(i, n) for n in (1, 2, 4, 8) for i in range(n)), "mặc định mọi creative kiểu Kiên — D chỉ khi anh chọn ở Chờ lên"
     global PC_CHAN
     assert len(set(MUC_ROAS)) >= 3 and all(0.9 <= m <= 1.4 for m in MUC_ROAS) and "roas" not in _BL["hoi_cho"], "dàn mức ★ ROAS: ≥ 3 mức trong 0.9–1.4, không còn mức cứng hoi_cho.roas (anh 26/11/2026)"
     assert sql_muc_roas("12") == f"select etp.muc_roas(12, array[{_MUC_TXT}]::numeric[], {DAN_NGAY})" and muc_roas(5, lambda s: "1.1") == 1.1

@@ -65,6 +65,18 @@ _F = json.load(open(os.path.join(D, "..", "..", "..", "etp", "form-chu.json"))) 
 FORM_CHU = {"call_to_action": _F["call_to_action"], "link_url": _F["link_url"],
             "asset_spec": {"primaryTexts": _F["primaryTexts"], "headlines": _F["headlines"], "descriptions": _F["descriptions"]}}
 
+# KIỂU CHỮ (anh 27/11/2026 "Sinh kiểu Kiên là default và có option chọn sang Dol"): bản qua etp2 › Chờ lên mang x["kieu"] anh chọn lúc duyệt.
+#   kien → bộ chữ CÙNG phim trong apps/etp/chu-kieu.json + link "_link_url" của kiểu (search.com) — đúng chữ anh thấy trên thẻ; dol → FORM_CHU.
+#   Không có x["kieu"] (đường cũ) → dol như trước. Chọn kien mà sổ chưa có chữ phim → DỪNG (không lặng lẽ đổi sang D, không tự viết).
+_K = json.load(open(os.path.join(D, "..", "..", "..", "etp", "chu-kieu.json")))
+def chu_theo_kieu(x):
+    kieu = x.get("kieu") or "dol"
+    if kieu == "dol": return FORM_CHU
+    b = (_K.get(kieu) or {}).get(str(int(x["content_id"])))
+    if not b: raise SystemExit(f"phim {x['content_id']}: anh chọn kiểu {kieu} nhưng apps/etp/chu-kieu.json chưa có chữ phim này — không tạo creative")
+    return {"call_to_action": _F["call_to_action"], "link_url": (_K.get(kieu) or {}).get("_link_url") or _F["link_url"],
+            "asset_spec": {"primaryTexts": b["primaryTexts"], "headlines": b["headlines"], "descriptions": b["descriptions"]}}
+
 def main(lo, tsv, ma_lo, goc_url, ra, ten_tsv=None, dang="phim dai"):
     ten_tsv = ten_tsv if ten_tsv and ten_tsv != "-" else None   # "-" = không có danh sách tên kho (để truyền được tham số dang)
     if ten_tsv:   # danh sách tên phim kho (vd ethopex_uu_tien) để nhận QC ghép nhầm
@@ -108,7 +120,7 @@ def main(lo, tsv, ma_lo, goc_url, ra, ten_tsv=None, dang="phim dai"):
             print(f"⚠ {cid} {ten}: spy không có QC nào → primary text dự phòng, người duyệt soát chữ", file=sys.stderr)
         f = x.get("ten_tep") or os.path.basename(x["file"])   # tên tệp trên kho có thể khác tệp máy (kho phat <tep> … <ten>)
         items.append({"name": f"{ma_lo} {ten} {nn.upper()} - {dang} {int(x['tu'])}-{int(x['den'])}s", "content_id": int(cid), "creative_type": "single_video", "traffic_source": "facebook",
-                      "status": "active", "image_url": [], "video_url": [f"{goc_url.rstrip('/')}/{f}"], **FORM_CHU})
+                      "status": "active", "image_url": [], "video_url": [f"{goc_url.rstrip('/')}/{f}"], **chu_theo_kieu(x)})
     json.dump(items, open(ra, "w"), ensure_ascii=False, indent=1)
     for i in items: print(i["content_id"], "|", i["call_to_action"], "|", i["asset_spec"]["headlines"][0][:50], "|", i["asset_spec"]["primaryTexts"][0][:110])
 

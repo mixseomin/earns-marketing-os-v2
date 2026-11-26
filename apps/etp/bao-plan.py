@@ -52,7 +52,7 @@ def de_xuat(so, cho, co_k):
     return k, min(cho, TRAN_CAMP), can, ghi
 
 def kd_dong(loai, so_camp, co_k):
-    """hàm thuần: K/D dự kiến của một dòng phim, khớp dong_phim.b_creative_khoi (CG.la_k: 3 K / 1 D khi phim có chữ Kiên) — CC2 luôn K"""
+    """hàm thuần: K/D dự kiến của một dòng phim, khớp dong_phim.b_creative_khoi (CG.la_k: mặc định toàn K khi phim có chữ Kiên, D chỉ khi anh chọn ở Chờ lên) — CC2 luôn K"""
     n = int(so_camp or 0)
     if loai == "CC2": return f"K:{n}"
     k = sum(CG.la_k(i, n) for i in range(n)) if co_k else 0
@@ -74,7 +74,7 @@ def tu_kiem():
     assert de_xuat({"K": (1.0, 3.0), "D": (9.0, 10.0)}, 9, True)[0] == "D"                   # kiểu chi < $2 không đem so khi kiểu kia đủ chi
     assert "số mỏng" in de_xuat({"D": (5.0, 6.0)}, 3, True)[3]
     assert all(any("K/D" in x for x in c) for c in (COT_HIEU_SUAT, COT_DA_XEP, COT_DE_XUAT, COT_DONG)) and all(any("bộ tk" in x.lower() for x in c) for c in (COT_HIEU_SUAT, COT_DA_XEP, COT_CHO, COT_DE_XUAT, COT_DONG))
-    assert kd_dong("AD", 4, True) == "K:3 D:1" and kd_dong("AD", 2, True) == "K:2" and kd_dong("AD", 4, False) == "D:4" and kd_dong("CC2", 2, True) == "K:2" and kd_dong("AD", 0, True) == "—"
+    assert kd_dong("AD", 4, True) == "K:4" and kd_dong("AD", 2, True) == "K:2" and kd_dong("AD", 4, False) == "D:4" and kd_dong("CC2", 2, True) == "K:2" and kd_dong("AD", 0, True) == "—"
     print("bao-plan tự kiểm: đạt")
 
 def chay(n):

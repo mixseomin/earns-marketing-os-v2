@@ -42,6 +42,7 @@ const RevenueCalendar = dynamic(() => import('@/components/revenue-calendar').th
 const SoChinhHome = dynamic(() => import('@/components/home/so-chinh-home').then((m) => m.SoChinhHome));
 const DeliverabilityCard = dynamic(() => import('@/components/deliverability-card').then((m) => m.DeliverabilityCard));
 const MayDangView = dynamic(() => import('@/components/may-dang-view').then((m) => m.MayDangView));
+const Etp2O = dynamic(() => import('@/components/home/etp2-o'));   // widget etp2 (H9–H19): mã etp2 chỉ tải khi màn có ô đó
 const MaySxView = dynamic(() => import('@/components/may-sx-view').then((m) => m.MaySxView));
 
 /** ngữ cảnh chung của một lượt xem — đọc từ URL, cùng tên tham số với trang chủ cũ (?p ?days ?ky ?tv) */
@@ -151,6 +152,18 @@ export const VE: Record<MaWidget, Ve> = {
   H6: () => <EthopexKhoi chi="cho" />,
   H7: () => <EthopexKhoi chi="test" />,
   H8: () => <EthopexKhoi chi="luat" />,
+  // H9–H19 — vẽ bằng mã Tổng quan 2 của etp2 (components/home/etp2-o.tsx), khoá = mã widget trong sổ apps/etp2/src/lib/etp-widget.json
+  H9: () => <Etp2O ma="nam_nhanh" />,
+  H10: () => <Etp2O ma="nguoi" />,
+  H11: () => <Etp2O ma="nha_thua" />,
+  H12: () => <Etp2O ma="tk" />,
+  H13: () => <Etp2O ma="gio_nhiet" />,
+  H14: () => <Etp2O ma="luy_ke" />,
+  H15: () => <Etp2O ma="luat" />,
+  H16: () => <Etp2O ma="phan_bo" />,
+  H17: () => <Etp2O ma="thi_truong" />,
+  H18: () => <Etp2O ma="phim_moi" />,
+  H19: () => <Etp2O ma="thanh_pho" />,
   I1: () => <SocialKhoi chi="suc" />,
   I2: () => <SocialKhoi chi="pheu" />,
   I3: () => <SocialKhoi chi="ratien" />,

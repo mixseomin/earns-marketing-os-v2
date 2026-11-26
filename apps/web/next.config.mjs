@@ -6,7 +6,7 @@ const ETP2 = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../etp2
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   webpack: (config, { webpack }) => {
-    config.resolve.alias = { ...config.resolve.alias, '@etp2/thanh-pho': path.join(ETP2, 'components/etp-tong2-widget.tsx') };
+    config.resolve.alias = { ...config.resolve.alias, '@etp2/thanh-pho': path.join(ETP2, 'components/etp-tong2-widget.tsx'), '@etp2/tong2': path.join(ETP2, 'components/etp-tong2-widget.tsx') };
     config.plugins.push(new webpack.NormalModuleReplacementPlugin(/^@\//, (r) => {
       if (r.context && path.resolve(r.context).startsWith(ETP2)) r.request = path.join(ETP2, r.request.slice(2));
     }));

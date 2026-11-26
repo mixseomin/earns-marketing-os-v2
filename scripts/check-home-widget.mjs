@@ -32,7 +32,7 @@ export function kiem(so, ve, tabTrang, cacTep = tepWidget(ve)) {
   const tabs = [...khoiTab.matchAll(/\{ key: '([a-z0-9_]+)'/g)].map((m) => m[1]);
   const khoiW = so.slice(so.indexOf('export const WIDGET = {'), so.indexOf('} as const satisfies'));
   // mỗi widget khai đúng một trong hai: tab (thay tab nào của trang chủ cũ) hoặc nguon (mảnh nhúng từ app khác — hiện chỉ 'cty')
-  const NGUON = ['cty'];
+  const NGUON = ['cty', 'etp2'];
   const moi = [...khoiW.matchAll(/^\s+([A-Z]\d+): \{(.*)$/gm)].map((m) => ({ ma: m[1], tab: (m[2].match(/\btab: '([a-z0-9_]+)'/) || [])[1], nguon: (m[2].match(/\bnguon: '([a-z0-9_]+)'/) || [])[1] }));
   for (const w of moi) {
     if (!w.tab === !w.nguon) loi.push(`widget ${w.ma} phải khai đúng một trong hai: tab hoặc nguon`);

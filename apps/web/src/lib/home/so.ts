@@ -12,8 +12,9 @@ export const NHOM: Record<NhomWidget, string> = { A: 'Toàn cảnh', B: 'Campaig
  *  rong: ruột là BẢNG RỘNG nhiều cột — bố cục dựng sẵn phải cho nó ô rộng ≥ RONG_BANG cột (anh 20/11/2026: bảng cũ cho vào ô hẹp "bị kẹp kích thước");
  *  nhiều bảng rộng cùng màn thì xếp thành tab trong MỘT ô trọn bề ngang, không chia đôi màn. scripts/check-home-widget.mjs chặn bố cục sai.
  *  nguon: 'cty' — widget KHÔNG thay tab nào của trang chủ cũ mà đọc DỮ LIỆU của cty.on.tc qua cổng /api/agents (lib/cty-agents.ts) rồi tự vẽ (components/agents/*).
+ *  nguon: 'etp2' — widget Tổng quan 2 của etp2.on.tc, dùng chung MÃ VẼ etp2 qua alias @etp2/tong2 (components/home/etp2-o.tsx), không chép, không nhúng trang.
  *  CẤM nhúng nguyên trang app khác vào ô (anh 20/11/2026) — scripts/check-home-widget.mjs luật 6 chặn. Mỗi widget khai đúng một trong hai: tab hoặc nguon. */
-export type WidgetSo = { ten: string; moTa: string; mac: [number, number]; ngu?: ('p' | 'days' | 'ky')[]; tuDe?: true; ghi?: true; rong?: true; tab?: string; nguon?: 'cty';
+export type WidgetSo = { ten: string; moTa: string; mac: [number, number]; ngu?: ('p' | 'days' | 'ky')[]; tuDe?: true; ghi?: true; rong?: true; tab?: string; nguon?: 'cty' | 'etp2';
   /** ngày giờ widget vào sổ (ISO) — bố cục đã lưu TRƯỚC mốc này mà thiếu widget thì lúc đọc tự chèn thành tab vào ô chứa widget cùng ô ở bố cục dựng sẵn (lib/home/bo-cuc.ts), không ghi đè bản lưu */
   moi?: string };
 export const RONG_BANG = 32;
@@ -54,6 +55,18 @@ export const WIDGET = {
   H6: { ten: 'Phim chờ test', moTa: 'hàng chờ lên camp', mac: [16, 28], tab: 'ethopex' },
   H7: { ten: 'Lên test', moTa: 'mỗi ngày: camp mới · phim mới · còn bật / đã tắt · ROI lứa camp', mac: [24, 32], tab: 'ethopex' },
   H8: { ten: 'Sổ luật Ethopex', moTa: 'các luật đang áp cho camp', mac: [24, 32], tab: 'ethopex' },
+  // H9–H19 — WIDGET TỔNG QUAN 2 CỦA etp2.on.tc (anh 26/11/2026 "thêm các widget mới giống widget của etp2"): mã vẽ + số dùng chung với etp2, mã etp2 ghi trong moTa
+  H9: { ten: 'Nắm nhanh', moTa: 'lãi hôm qua · nhịp hôm nay so với cùng giờ hôm qua · người tụt mạnh nhất · tài khoản cần xem · luật nhịp tới (etp2)', mac: [48, 16], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
+  H10: { ten: 'Người', moTa: 'từng người trong 7 ngày: chi, lãi, ROI ▲▼ so kỳ trước, camp bật, đường ROI (etp2)', mac: [20, 20], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
+  H11: { ten: 'Nhà thua đội ở đâu', moTa: 'phim nhà và đội cùng chạy 7 ngày đã khép mà đội có ROI tốt hơn (etp2)', mac: [20, 16], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
+  H12: { ten: 'Tài khoản QC', moTa: 'mỗi tài khoản một ô theo người: màu = ROI, viền đỏ = có cờ (etp2)', mac: [28, 32], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
+  H13: { ten: 'Bản đồ giờ', moTa: 'ngày × giờ VN 14 ngày, màu = ROI giờ đó của nhà + đội (etp2)', mac: [48, 28], rong: true, nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
+  H14: { ten: 'Luỹ kế hôm nay', moTa: 'lãi cộng dồn theo giờ: hôm nay so với hôm qua và TB 7 ngày (etp2)', mac: [24, 24], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
+  H15: { ten: 'Luật máy', moTa: 'thẻ luật máy nhịp tới + việc máy đã làm theo từng luật (etp2)', mac: [20, 32], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
+  H16: { ten: 'Phân bổ ngân sách', moTa: 'ngân sách camp đang bật so với trần ngày, từng nhóm so với mục tiêu (etp2)', mac: [48, 32], rong: true, nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
+  H17: { ten: 'Thị trường', moTa: 'CPM / CPC / ROI từng ngày Ethopex — lịch nhiệt tháng + dự đoán (etp2)', mac: [48, 48], rong: true, nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
+  H18: { ten: 'Phim mới', moTa: 'phim nhà theo tuần bắt đầu chạy: thử · đủ thử · thắng · tiền thử / phim thắng (etp2)', mac: [28, 48], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
+  H19: { ten: 'Thành phố phim', moTa: 'mỗi phim nhà đang chạy = một toà 3D, cửa sổ = camp — khối nặng, tự tải khi mở (etp2)', mac: [32, 64], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
   I1: { ten: 'Sức khoẻ đăng', moTa: 'máy đăng có đều không, lỡ lượt nào', mac: [16, 36], tab: 'social' },
   I2: { ten: 'Phễu social', moTa: 'lượt xem → về site → sang shop → đơn', mac: [16, 28], tuDe: true, tab: 'social' },
   I3: { ten: 'Góc đang ra tiền', moTa: 'góc nào đang kiếm hoa hồng', mac: [16, 28], tuDe: true, tab: 'social' },
@@ -107,6 +120,8 @@ export const MAN: Man[] = [
   { id: 'camp', ten: 'Campaign', kh: 'CP', nhom: 'Campaign và tiền', o: o([['A1', 0, 0, 48, 10], ['A2', 0, 10, 10, 62], ['B1', 10, 10, 38, 62]]) },
   { id: 'hatang', ten: 'Hạ tầng phủ', kh: 'HT', nhom: 'Campaign và tiền', o: o([['B2', 0, 0, 48, 40, ['B3']], ['B4', 0, 40, 24, 32], ['B5', 24, 40, 24, 32]]) },
   { id: 'tien', ten: 'Tiền', kh: 'TI', nhom: 'Campaign và tiền', o: o([['C1', 0, 0, 32, 34], ['C3', 32, 0, 16, 34], ['C2', 0, 34, 48, 26, ['C4']], ['C5', 0, 60, 48, 12]]) },
+  // TỔNG QUAN Ethopex (anh 26/11/2026 "tạo 1 page trên group Ethopex là Tổng quan"): theo template "Sáng nay" của etp2, widget còn lại xếp thành tab
+  { id: 'etptq', ten: 'Tổng quan', kh: 'TQ', nhom: 'Ethopex', o: o([['H9', 0, 0, 48, 16], ['H10', 0, 16, 20, 28, ['H11', 'H15']], ['H12', 20, 16, 28, 28, ['H14', 'H18']], ['H13', 0, 44, 48, 28, ['H16', 'H17', 'H19', 'H3']]]) },
   { id: 'etp', ten: 'Ethopex vận hành', kh: 'EV', nhom: 'Ethopex', o: o([['H1', 0, 0, 48, 13], ['H2', 0, 13, 48, 59, ['H3', 'H6']]]) },
   { id: 'etp2', ten: 'Ethopex phân tích', kh: 'EP', nhom: 'Ethopex', o: o([['H5', 0, 0, 48, 38, ['H7']], ['H4', 0, 38, 28, 34], ['H8', 28, 38, 20, 34]]) },
   { id: 'social', ten: 'Social toàn cảnh', kh: 'SO', nhom: 'Social', o: o([['I2', 0, 0, 16, 26], ['I4', 16, 0, 16, 26], ['I3', 32, 0, 16, 26], ['I9', 0, 26, 48, 46, ['I1']]]) },

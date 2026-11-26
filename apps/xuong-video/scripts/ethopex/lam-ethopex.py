@@ -239,7 +239,7 @@ def main(a):
                 raise ValueError(f"camp đã {truoc['tt']}")
             # CHẶN TẮT CAMP LÃI (anh 22/10/2026: "luật vẫn là luật. Camp nào lãi hơn 20% thì bật lại" — con tắt nhầm #66052/#66055/#65714 vì phân loại
             # theo số chụp lúc 09:50, doanh thu về trễ). Đọc ROI cộng dồn MỚI NHẤT ngay lúc tắt; > 20% thì từ chối, trừ --ep (anh lệnh đích danh).
-            lai = None if ep else dang_lai(cid, t7=(luat or "").startswith("T7"))
+            lai = None if ep else dang_lai(cid, t7=(luat or "").startswith(("T7", "R15")))
             if lai: raise ValueError(f"không tắt: {lai}")
             cb = giu_cam_bien([cid], {int(c["id"]): c for c in api("/api/v1/campaigns?page_size=2000")["data"]}, ai, bo_cb)
             if cb: raise ValueError(f"không tắt: {cb[cid]}")

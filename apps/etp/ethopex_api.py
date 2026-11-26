@@ -330,7 +330,8 @@ def phan_loai(duong, body):
         roas = sp.get("bid_strategy") == "LOWEST_COST_WITH_MIN_ROAS"
         bai = bool(ads) and all(str(a.get("effective_object_story_id") or "").strip() and a.get("creative_id") is None for a in ads)
         thay = int(m.group(1)) if m else None
-        return [{"viec": "nhan_ban" if goc else "tao_camp", "camp_id": None, "goc": goc or thay, "thay_id": thay, "content_id": ct, "cts": cts, "ns": sp.get("daily_budget"), "roas": roas,
+        crs = sorted({int(a["creative_id"]) for a in ads if str(a.get("creative_id") or "").isdigit()})   # creative tải lại URL trên Meta — kho_xoa chặn
+        return [{"viec": "nhan_ban" if goc else "tao_camp", "camp_id": None, "goc": goc or thay, "thay_id": thay, "content_id": ct, "cts": cts, "crs": crs, "ns": sp.get("daily_budget"), "roas": roas,
                  "loai": "roas" if roas else "thang" if re.search(r"\(thang \$", ten) else "bai_cu" if bai else "thay" if thay else None, "ten": ten[:200]}]
     if duong.endswith("/campaigns/update") and isinstance(body, dict) and isinstance(body.get("campaign"), dict):
         cp = body["campaign"]; ns = _js(cp.get("source_payload")).get("daily_budget")
@@ -376,6 +377,10 @@ def cua(duong, body):
         cu = camp_cu([l["camp_id"]]) if v != "tat" and l.get("camp_id") else set()   # chỉ camp BỊ GHI; tạo camp mới từ khuôn cũ (▶ Lên etp2, nhan-ban <khuôn>) không chạm camp cũ → vẫn đi
         if cu and not CG.truc_tiep(v, sorted(cu), l.get("content_id")):   # camp trước 20/11: chỉ tạm dừng / lệnh trực tiếp của anh (anh 23/11/2026)
             ly = f"camp #{', #'.join(map(str, sorted(cu)))} tạo trước {MOC_CU_CHU} — dừng triệt để, máy không {v} (anh 23/11/2026)"
+            _ghi_cua(l, False, ly); raise ChanCua(f"cửa API chặn {v}: {ly}")
+        mat = l.get("crs") and _q(f"select string_agg(creative_id::text, ', #') from etp.kho_xoa where creative_id in ({','.join(map(str, l['crs']))})")
+        if mat:   # tệp creative đã xoá khỏi R2 (anh 26/11/2026) — Meta tải lại URL sẽ 404; dùng bài post cũ (effective_object_story_id) vẫn đi
+            ly = f"creative #{mat} đã xoá tệp khỏi kho R2 (camp tắt trước 20/11) — lên lại thì dựng creative mới"
             _ghi_cua(l, False, ly); raise ChanCua(f"cửa API chặn {v}: {ly}")
         if v not in CG.TANG: ra.append((l, None)); continue
         ids = [x for x in (l.get("camp_id"), l.get("goc")) if x]

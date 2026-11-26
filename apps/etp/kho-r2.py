@@ -4,6 +4,9 @@
 #   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; python3 apps/etp/kho-r2.py do
 #   … python3 apps/etp/kho-r2.py ds <nhom>      → khoá R2 (kho/ethopex/…) của nhóm, mỗi dòng một tệp
 #   … python3 apps/etp/kho-r2.py chuyen <nhom> … → CHÉP nhóm sang Drive kho-may/ethopex/<cùng khoá> + đối kích thước (không xoá R2)
+#   … python3 apps/etp/kho-r2.py xoa [--that]    → XOÁ HẲN khỏi R2 (không cất Drive, anh 26/11/2026): tệp chỉ thuộc creative mà MỌI camp (nhà + đội) đã tắt và tạo trước 20/11,
+#                                                  + nhóm chết (tv_bo, tv_mo_coi, tp_mo_coi, tp_tu_choi) + thư viện đã lên của creative chết; bản Drive cùng khoá vào thùng rác Drive.
+#                                                  Ghi etp.kho_xoa TRƯỚC khi xoá → cửa API chặn lên camp mới bằng creative mất tệp. Không --that = chỉ đo.
 #   python3 apps/etp/kho-r2.py --tu-kiem        → tự kiểm phần phân nhóm (không cần mạng)
 # Gốc sự thật "còn đọc": video_url / thumbnail_url / image_url của MỌI creative trên Ethopex + etp.creative.video/anh. Meta tải lại URL
 # mỗi lần camp/ad mới dùng creative (external_creative_id rỗng), nên creative còn có thể nhân bản thì tệp của nó phải ở R2.
@@ -174,8 +177,57 @@ def tu_kiem():
     if d != [None, None, "thu-vien/a.mp4", None]: sai.append(("_dong_chuyen", d, "cta/khác không đi, giữ đường tương đối"))
     c = chon_ds(ra, ["tv_bo", "tp_tu_choi", "tv_mo_coi"])
     if c != sorted([G+"thu-vien/a.mp4", G+"thanh-pham/2026-11/y.mp4", G+"thu-vien/d.mp4"]): sai.append(("chon_ds", c, "đủ 3 nhóm, một danh sách đã xếp"))
+    x = chon_xoa(tep, {**ref, G+"thanh-pham/2026-11/u.mp4": {5, 1}}, ra, {G+"thu-vien/b.mp4": 4}, chet={2, 3, 4, 5})   # z {3,4} chết hết · y {2} chết · u {5,1} còn 1 sống · b thư viện của 4 chết
+    if x != sorted([G+"thanh-pham/2026-11/y.mp4", G+"thanh-pham/2026-11/z.mp4", G+"thanh-pham/2026-11/w.mp4", G+"thu-vien/a.mp4", G+"thu-vien/b.mp4", G+"thu-vien/d.mp4"]):
+        sai.append(("chon_xoa", x, "creative chết hết + nhóm chết + thư viện của creative chết; giữ cta / creative còn sống / tệp mới"))
     for s in sai: print("SAI", *s)
-    print(f"kho-r2 tự kiểm: {len(mong) + 4 - len(sai)}/{len(mong) + 4} đạt"); return not sai
+    print(f"kho-r2 tự kiểm: {len(mong) + 5 - len(sai)}/{len(mong) + 5} đạt"); return not sai
+
+MOC_TAT = "2026-11-19 17:00:00+00"   # 00:00 20/11/2026 giờ VN — camp tạo trước mốc này + đã tắt thì creative của nó không còn giữ tệp (anh 26/11/2026)
+NHOM_CHET = ("tv_bo", "tv_mo_coi", "tp_mo_coi", "tp_tu_choi")
+
+def chet_ids():   # creative có camp, MỌI camp (etp.camp ∪ etp.camp_ngoai) PAUSED và tạo trước MOC_TAT; camp thiếu ngày tạo → coi là còn sống
+    return {int(c) for (c,) in _psql(f"""select creative_id from (select creative_id, trang_thai, tao from etp.camp union all select creative_id, trang_thai, tao from etp.camp_ngoai) x
+        where creative_id is not null group by 1 having bool_and(trang_thai = 'PAUSED') and bool_and(tao is not null and tao < '{MOC_TAT}')""")}
+
+def chon_xoa(tep, ref, nhom, tv_cr, chet):
+    """khoá R2 xoá được: mọi creative trỏ tới đều chết · nhóm chết · thư viện đã lên của creative chết. Giọng CTA không bao giờ."""
+    ra = []
+    for k in tep:
+        f = os.path.basename(k)
+        if not k.startswith(GOC) or f.endswith(".mp3") or f.startswith("cta-"): continue
+        cr = ref.get(k) or ref.get(_goc_mp4(k)) or set()
+        if (cr and cr <= chet) or (not cr and nhom.get(k) in NHOM_CHET) or (nhom.get(k) == "tv_da_len" and tv_cr.get(k) in chet): ra.append(k)
+    return sorted(ra)
+
+def _rclone_env():
+    return dict(os.environ, RCLONE_CONFIG_KHOR2_TYPE="s3", RCLONE_CONFIG_KHOR2_PROVIDER="Cloudflare", RCLONE_CONFIG_KHOR2_NO_CHECK_BUCKET="true",
+                RCLONE_CONFIG_KHOR2_ACCESS_KEY_ID=os.environ["R2_ACCESS_KEY_ID"], RCLONE_CONFIG_KHOR2_SECRET_ACCESS_KEY=os.environ["R2_SECRET_ACCESS_KEY"],
+                RCLONE_CONFIG_KHOR2_ENDPOINT=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com")
+
+def xoa(that):
+    tep, ref, tv, nong, tu_choi = nap()
+    nhom, chet = phan_loai(tep, ref, tv, nong, tu_choi, time.time()), chet_ids()
+    tv_cr = {}
+    for v, a, c in _psql("select coalesce(video,''), coalesce(anh,''), coalesce(creative_id::text,'') from etp.thu_vien"):
+        for u in (v, a):
+            k = _khoa(u)
+            if k and c: tv_cr[k] = int(c)
+    ds = chon_xoa(tep, ref, nhom, tv_cr, chet)
+    mat = sorted({c for k in ds for c in (ref.get(k) or ref.get(_goc_mp4(k)) or set())} | {tv_cr[k] for k in ds if k in tv_cr})
+    print(f"creative chết (mọi camp tắt + trước 20/11): {len(chet)} · xoá {len(ds)} tệp {sum(tep[k][0] for k in ds)/1e9:.1f} GB / R2 {sum(v[0] for v in tep.values())/1e9:.1f} GB · creative mất tệp {len(mat)}", flush=True)
+    if not that or not ds: return True
+    if not set(mat) <= chet: raise SystemExit(f"DỪNG: {len(set(mat) - chet)} creative mất tệp không nằm trong tập chết")
+    for i in range(0, len(mat), 2000):   # ghi sổ TRƯỚC khi xoá: cửa API chặn ngay từ lúc này
+        _psql("insert into etp.kho_xoa (creative_id, ly) values " + ",".join(f"({c}, 'camp tắt trước 20/11 — xoá tệp R2')" for c in mat[i:i + 2000]) + " on conflict do nothing")
+    ff = f"/tmp/kho-r2-xoa-{os.getpid()}.txt"
+    with open(ff, "w") as o: o.write("\n".join(k[len(GOC):] for k in ds) + "\n")
+    with open(ff + ".cr", "w") as o: o.write("\n".join(map(str, mat)) + "\n")
+    e = _rclone_env()
+    r = subprocess.run(["rclone", "delete", f"khor2:{os.environ['R2_BUCKET']}/{GOC}", "--files-from", ff, "--fast-list", "--checkers", "32", "--log-level", "ERROR"], env=e, text=True, timeout=6 * 3600)
+    d = subprocess.run(["rclone", "delete", DRIVE_DICH, "--files-from", ff, "--fast-list", "--checkers", "8", "--log-level", "ERROR"], env=e, text=True, timeout=6 * 3600)   # bản Drive cùng khoá → thùng rác Drive
+    print(f"R2 xoá mã {r.returncode} · Drive (thùng rác) mã {d.returncode} · danh sách tệp {ff} · creative {ff}.cr")
+    return r.returncode == 0
 
 def chon_ds(ra, nhoms):   # khoá thuộc bất kỳ nhóm nào trong nhoms, xếp tăng
     return sorted(k for k, n in ra.items() if n in set(nhoms))
@@ -185,6 +237,7 @@ if __name__ == "__main__":
     if a[:1] == ["--tu-kiem"]: sys.exit(0 if tu_kiem() else 1)
     if a[:1] == ["do"]: do(); sys.exit(0)
     if a[:1] == ["chuyen"]: sys.exit(0 if chuyen(a[1:]) else 1)
+    if a[:1] == ["xoa"]: sys.exit(0 if xoa("--that" in a) else 1)
     if a[:1] == ["ds"] and len(a) >= 2 and all(n in NHOM for n in a[1:]):   # nhiều nhóm một lần nạp (máy chuyển lạnh cty gọi ds <5 nhóm an toàn>)
         tep, ref, tv, nong, tu_choi = nap()
         for k in chon_ds(phan_loai(tep, ref, tv, nong, tu_choi, time.time()), a[1:]): print(k)

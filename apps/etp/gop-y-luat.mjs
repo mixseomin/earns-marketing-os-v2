@@ -1879,4 +1879,9 @@ export const LUAT = [
   { card: 'roas-dan-2611', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'etp.muc_roas(r.content_id', cam: 'hoi_cho.roas', vi: 'hàng chờ hiện mức sẽ lên' },
   { card: 'roas-dan-2611', tep: 'apps/etp2/src/components/etp-dong.tsx', co: '★ ROAS ${CHU_DAN}', cam: 'RO.roas', vi: 'nút không hứa ROAS cứng' },
   { card: 'mien-roas-2611', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'raise ChanLuat(f"bài đăng {sid} của camp gốc #{goc_id} mang miền', cam: 'raise ValueError(f"bài đăng {sid} của camp gốc', vi: '★ ROAS nhân bản gốc bài miền cũ = luật chặn (ok NULL), không đếm là lệnh roas lỗi (26/11/2026 #110239)' },
+  { card: 'r2-xoa-2611', tep: 'apps/etp/kho-r2.py', co: 'having bool_and(trang_thai = \'PAUSED\') and bool_and(tao is not null and tao < \'{MOC_TAT}\')', vi: 'xoá R2 chỉ creative mà MỌI camp (nhà + đội) đã tắt và tạo trước 20/11 (anh 26/11/2026)' },
+  { card: 'r2-xoa-2611', tep: 'apps/etp/kho-r2.py', co: 'MOC_TAT = "2026-11-19 17:00:00+00"', vi: 'mốc 00:00 20/11 giờ VN' },
+  { card: 'r2-xoa-2611', tep: 'apps/etp/kho-r2.py', co: 'if (cr and cr <= chet) or (not cr and nhom.get(k) in NHOM_CHET)', vi: 'tệp còn một creative sống trỏ tới thì giữ' },
+  { card: 'r2-xoa-2611', tep: 'apps/etp/kho-r2.py', co: '# ghi sổ TRƯỚC khi xoá: cửa API chặn ngay từ lúc này', vi: 'etp.kho_xoa ghi trước lệnh rclone delete' },
+  { card: 'r2-xoa-2611', tep: 'apps/etp/ethopex_api.py', co: 'from etp.kho_xoa where creative_id in', vi: 'cửa API chặn lên camp mới bằng creative đã xoá tệp R2' },
 ];

@@ -7,6 +7,7 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1891, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "{ key: 'dem', header: ''", vi: 'cây Camp không còn cột đệm trống cuối bảng sau nhóm Chi (anh 26/11/2026 #1891 "Bỏ ko chắp vá đoạn thừa này")' },
   { card: 1880, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{chay === 'lich' ? <b data-nb-gio-that=\"\"", vi: 'ngăn nhân bản: chọn "theo lịch" là giờ camp thực sự chạy hiện thẳng cạnh nút (anh 26/11/2026 "show giờ thực sự chạy ở đây"), không chỉ trong chữ rê' },
   { card: 1880, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'theo lịch lên camp → <b data-nb-gio-that="">{chayLucGon()}</b>', vi: 'bản không bid cũng hiện giờ thực sự chạy' },
   { card: 1880, tep: 'apps/etp2/src/lib/etp-nb.ts', co: 'return `${chayLucGon(now)} (${khungLen()})`;', vi: 'giờ gọn và chữ đầy đủ cùng một hàm tính giờ (gioLen) — không hai nguồn lệch nhau' },

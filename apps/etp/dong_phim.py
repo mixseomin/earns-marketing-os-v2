@@ -337,7 +337,16 @@ def b_creative(d, truoc):
     c += [""] * (3 - len(c))   # psql .strip() cắt tab cuối khi chan_boi / cho_duyet rỗng — đừng đọc thành "chưa chấm" (03/11/2026: dòng #1 chờ oan 30 phút)
     if c[0] == "": return "cho", f"creative #{cr} đã tải — chờ máy chấm (etp.cham_hang)", tr["ket_qua"]
     if c[0] == "true": return "xong", f"creative #{cr} chấm sạch", tr["ket_qua"]
-    return "dung", f"creative #{cr} bị cổng chấm {'giữ chờ người duyệt' if len(c) > 2 and c[2] else 'chặn'}: {c[1][:200]}", tr["ket_qua"]
+    if len(c) > 2 and c[2]: return "cho", f"creative #{cr} chờ anh duyệt (etp2 › Chờ duyệt)", tr["ket_qua"]
+    return "dung", f"creative #{cr} bị cổng chấm chặn: {c[1][:200]}", tr["ket_qua"]
+
+# CHỜ ANH DUYỆT ≠ BỊ CHẶN (26/11/2026): creative cổng chấm giữ ở tab Chờ duyệt etp2 (cham_cong.cho_duyet) trước đây trả 'dung' "bị cổng chấm chặn / giữ" →
+# dòng dừng hẳn + câu khớp HET_NL → máy coi phim hết nguyên liệu, chuyển dạng khác. Nay: còn creative chờ anh duyệt thì bước đứng 'cho', anh ✅ là chạy tiếp.
+def cho_anh(ids):
+    """creative trong ids đang chờ anh duyệt (cho_duyet có, chưa được lên)"""
+    ids = [int(x) for x in ids]
+    if not ids: return set()
+    return {int(x) for x in sql(f"select creative_id from etp.cham_cong where creative_id in ({','.join(map(str, ids))}) and coalesce(cho_duyet, '') <> '' and duoc_len is not true").split()}
 
 def b_creative_lt(d, truoc):
     """LT: tải MỌI đoạn sạch (mỗi tập một creative) → chờ chấm hết → xong khi còn ≥ 1 creative được lên"""
@@ -358,7 +367,8 @@ def b_creative_lt(d, truoc):
     c = dict(l.split("\t")[:2] for l in sql(f"select creative_id, coalesce(duoc_len::text, '') from etp.cham_cong where creative_id in ({ids})").splitlines() if "\t" in l)
     if any(c.get(str(x["creative_id"]), "") == "" for x in ds): return "cho", f"{len(ds)} creative đã tải — chờ máy chấm ({sum(1 for v in c.values() if v)} / {len(ds)} xong)", {"ds": ds}
     sach = [x for x in ds if c.get(str(x["creative_id"])) == "true"]
-    if not sach: return "dung", f"cả {len(ds)} creative bị cổng chấm chặn / giữ", {"ds": ds}
+    if not sach and (ca := cho_anh([x["creative_id"] for x in ds])): return "cho", f"{len(ca)}/{len(ds)} creative chờ anh duyệt (etp2 › Chờ duyệt)", {"ds": ds}
+    if not sach: return "dung", f"cả {len(ds)} creative bị cổng chấm chặn", {"ds": ds}
     return "xong", f"{len(sach)}/{len(ds)} creative chấm sạch: " + ", ".join(f"#{x['creative_id']}" for x in sach), {"ds": ds, "sach": sach}
 
 # MỖI MỨC ROAS MỘT CREATIVE MỚI (anh 25/11/2026 "ở mức level 0.9, 1.0, 1.1 của từng phim. Mỗi mức đó cần 1 creative riêng mới để ko cạnh tranh nhau"):
@@ -414,6 +424,7 @@ def b_creative_khoi(d):
     if len(r) < len(ids): return "cho", f"creative mẫu {ma} {ten} đã tạo — chờ đồng bộ kho etp", kq
     if any(v[1] == "" for v in r.values()): return "cho", f"creative mẫu {ma} {ten} — chờ máy chấm", kq
     bi = [c for c in ids if r[c][1] != "true"]
+    if bi and set(bi) <= cho_anh(bi): return "cho", f"creative mẫu {ma} {', '.join(f'#{c}' for c in bi)} chờ anh duyệt (etp2 › Chờ duyệt)", kq
     if bi: return "dung", f"creative mẫu {ma} {', '.join(f'#{c}' for c in bi)} bị cổng chấm chặn — mỗi mức ★ ROAS cần một creative sạch riêng", kq
     kq["sach"] = [{"creative_id": c, "lang": r[c][0], "roas": muc[i]} for i, c in enumerate(ids)]
     return "xong", f"{len(ids)} creative mẫu {ma} chấm sạch, mỗi mức một cái: " + " · ".join(f"★{muc[i]} #{c} {'K' if c in k_ds else 'D'}" for i, c in enumerate(ids)) + ("" if k_ds else " · cả khối D: phim chưa có chữ Kiên"), kq

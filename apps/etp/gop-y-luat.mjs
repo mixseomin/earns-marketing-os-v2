@@ -1913,6 +1913,7 @@ export const LUAT = [
   { card: 'r15-gan-2711', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if len(dk) <= tien + 1: lo = False', vi: 'thẻ luật chỉ một điều kiện mà hỏng nó là Xa, không phải Gần' },
   { card: 'r15-gan-2711', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '["Hôm nay thu", f"${_a15[\'thu\']:.2f}", f"< chi', vi: 'thẻ R15 tách hai dòng: chi ≥ $1 và thu < chi' },
   { card: 'r15-gan-2711', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'lo=_a15["thu"] < _a15["chi"]', vi: 'camp R15 đang lãi trong ngày không bao giờ hiện Gần' },
+  { card: 'k-nhieu-2711', tep: 'apps/etp/dong_phim.py', co: 'CG.la_k(i, len(ids))', vi: 'khối creative chia K : D theo CG.la_k (3 K / 1 D) — không quay về nửa K nửa D cho dòng mới' },
   { card: 'cho-len-2711', tep: 'apps/xuong-video/scripts/ethopex/len-creative.py', co: 'lo, moi, ra_cho = CL.loc(lo, ma)', vi: 'bản dựng mới vào etp.cho_len chờ anh duyệt, không gửi bulk-jobs (anh 27/11/2026 "show ra tao duyệt xong mởi bắt đầu gửi lên đó")' },
   { card: 'cho-len-2711', tep: 'apps/etp/dong_phim.py', co: 'def cho_len_chay():', vi: 'chỉ bản anh đã Duyệt mới được máy dòng phim tải lên Ethopex' },
   { card: 'cho-len-2711', tep: 'apps/etp2/src/components/etp-view.tsx', co: "{tab === 'camp' && !laNguoi ? <ChoLenEtho /> : null}", vi: 'ô Chờ lên Ethopex hiện trên tab Camp để anh xem + duyệt' },

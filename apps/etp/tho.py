@@ -67,7 +67,9 @@ def cat(v):
     d, cid, lo = v["du_lieu"], str(v["content_id"]), v["lo"]
     tm = os.path.join(N, cid); ra = os.path.join(C, "ra", lo, f"p-{cid}"); os.makedirs(ra, exist_ok=True)
     # luôn gọi tai-tap: tự dùng lại tập có sẵn, tải tập thiếu, đã dò hết (dấu tap-het) thì trả ngay — luật nằm MỘT chỗ ở tai-tap.da_het
-    os.makedirs(tm, exist_ok=True); subprocess.run(["python3", os.path.join(E, "tai-tap.py"), d.get("url", ""), tm, str(TAP_TOI_DA)], capture_output=True, text=True, timeout=1500)   # tải HẾT tập miễn phí (tai-tap dừng ở tập khoá đầu tiên)
+    os.makedirs(tm, exist_ok=True); rt = subprocess.run(["python3", os.path.join(E, "tai-tap.py"), d.get("url", ""), tm, str(TAP_TOI_DA)], capture_output=True, text=True, timeout=1500)   # tải HẾT tập miễn phí (tai-tap dừng ở tập khoá đầu tiên)
+    # phim NetShort không phải tiếng Anh mà chưa gắn được phụ đề (#1899, 27/11/2026) → KHÔNG cắt từ tập tiếng Anh trơn, kêu đúng câu tai-tap nói
+    if rt.returncode and "phụ đề" in rt.stderr: return [], "tải tập: " + [x for x in rt.stderr.strip().splitlines() if "phụ đề" in x][-1][-250:]
     if not any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm)): return [], "không tải được tập miễn phí"
     # thiếu poster thì cat-cuoi-lo đổ Errno 2 sau khi đã tốn công ghép phim (07/11/2026 VPS #270 #273) → dừng sớm, lỗi kỹ thuật → máy khác làm
     if not (os.path.exists(os.path.join(tm, "poster.jpg")) and os.path.getsize(os.path.join(tm, "poster.jpg")) > 2000): return [], "không tải được poster"

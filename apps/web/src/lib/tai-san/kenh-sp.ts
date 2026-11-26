@@ -5,15 +5,28 @@ import { sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DANG_BAI } from '@/lib/dang-bai';
+import type { CoHoi, KhoDangKenh } from '../../../../xuong-video/src/lib/xuong-video/prompt-opus';
 import { changVideo, suaLaiGiaiDoan,lichKenhHs, yTuongTuSinh, soTheoPlaylist, tinhSoKenh, tomNenDang, type NenSo, type DangLam, type HoSoKenhLich, type KenhSp, type NguoiLaSo, type SoKenh, type SoNgayKenh, type TapCho } from './kenh-sp-tinh';
 
-/** Đọc một tệp JSON của máy làm tập (apps/xuong-video/scripts/lich-su/<tệp>) — cwd của web có thể là gốc repo hoặc apps/web. */
-function docTepLichSu<T>(tep: string): T | null {
+/** Đọc một tệp JSON trong apps/xuong-video (đường tương đối từ gốc app) — cwd của web có thể là gốc repo hoặc apps/web. */
+function docTepXv<T>(tep: string): T | null {
   for (const goc of [process.cwd(), join(process.cwd(), '..'), join(process.cwd(), '../..')]) {
-    try { return JSON.parse(readFileSync(join(goc, 'apps/xuong-video/scripts/lich-su', tep), 'utf8')) as T; } catch { /* thử gốc khác */ }
+    try { return JSON.parse(readFileSync(join(goc, 'apps/xuong-video', tep), 'utf8')) as T; } catch { /* thử gốc khác */ }
   }
-  console.warn(`kenh-sp: không đọc được apps/xuong-video/scripts/lich-su/${tep}`);
+  console.warn(`kenh-sp: không đọc được apps/xuong-video/${tep}`);
   return null;
+}
+/** Đọc một tệp JSON của máy làm tập (apps/xuong-video/scripts/lich-su/<tệp>). */
+const docTepLichSu = <T,>(tep: string): T | null => docTepXv<T>(`scripts/lich-su/${tep}`);
+
+/** Ý TƯỞNG KÊNH (widget D7 màn /home?man=kenh): sổ cơ hội kênh của studio (scripts/du-lieu/thu-vien/dang-kenh.json › co_hoi — MỘT nguồn với trang thư viện studio)
+ *  + trung vị lượt xem đã đo của dạng (ds[].cum) + tên kênh đang có (so-kenh.json). null = không đọc được tệp (widget kêu lỗi). */
+export function docYTuongKenh(): { ds: (CoHoi & { trungVi: number | null })[]; luc: string | null; tenKenh: Record<string, string> } | null {
+  const kho = docTepXv<KhoDangKenh & { dat_luc?: string }>('scripts/du-lieu/thu-vien/dang-kenh.json');
+  if (!kho?.co_hoi) return null;
+  const tv = new Map(kho.ds.map((d) => [d.id, Math.max(0, ...(d.cum ?? []).map((c) => c.trung_vi ?? 0)) || null]));
+  const tenKenh = Object.fromEntries(Object.entries(soKenh()).map(([ma, k]) => [ma, (k as { ten?: string }).ten ?? ma]));
+  return { ds: kho.co_hoi.map((c) => ({ ...c, trungVi: c.dang ? tv.get(c.dang) ?? null : null })), luc: kho.dat_luc ?? kho.co_hoi_luc ?? null, tenKenh };
 }
 /** Hồ sơ kênh của máy làm tập (kenh.json — MỘT nguồn với việc nền chay-kenh.mjs): lich_tap + gio_tap + playlist theo mã máy. */
 function hoSoKenh(): Record<string, HoSoKenhLich> {

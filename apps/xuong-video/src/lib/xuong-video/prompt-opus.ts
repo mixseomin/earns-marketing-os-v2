@@ -16,7 +16,9 @@ export type DangKenh = { id: string; ten: string; mo_ta: string; khop: string; c
 /** Cơ hội kênh xếp hạng (anh 02/11/2026 "liệt kê mọi cơ hội, cái top lên đầu") — dang trỏ DangKenh.id để lấy số đo nhu cầu. */
 /** Khuôn kịch bản rút từ mổ đối thủ (B1 kế hoạch kênh) — kênh mẫu, dạng video + nhịp, công thức tiêu đề, luật. */
 export type KhuonKichBan = { nguon: string; kenh_mau: string[]; dang: { ten: string; nhip: string[] }[]; cong_thuc_tieu_de: string[]; luat: string[] };
-export type CoHoi = { hang: number; ten: string; dang: string | null; bang_chung_tien: string; dung_code: string; kiem_tien: string; trang_thai?: string; khuon?: KhuonKichBan };
+/** dat: ý tưởng này đặt vào đâu — kênh đang có (mã máy so-kenh.json hoặc tên kênh) thêm playlist · kênh mới dự kiến · không đăng kênh (bán / chạy QC) · gác. mos2 /home?man=kenh (widget D7) đọc cùng tệp. */
+export type DatCoHoi = { kieu: 'kenh_co' | 'kenh_moi' | 'khong_dang' | 'gac'; kenh?: string; playlist?: string; ghi?: string };
+export type CoHoi = { hang: number; ten: string; dang: string | null; bang_chung_tien: string; dung_code: string; kiem_tien: string; trang_thai?: string; khuon?: KhuonKichBan; dat?: DatCoHoi };
 export type KhoDangKenh = { nguon: string; han_ngay: number; ds: DangKenh[]; co_hoi?: CoHoi[]; co_hoi_luc?: string; mo_hinh_saga?: { tom_tat: string; buoc: string[]; nguon: string } };
 let huaDang: Promise<KhoDangKenh> | null = null;
 export const taiDangKenh = (): Promise<KhoDangKenh> => (huaDang ??= import('../../../scripts/du-lieu/thu-vien/dang-kenh.json').then((m) => (m.default ?? m) as KhoDangKenh));

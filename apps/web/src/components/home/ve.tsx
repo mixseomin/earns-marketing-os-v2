@@ -20,6 +20,7 @@ import { AwarenessFunnelPanel } from '@/components/awareness-funnel-panel';
 import { AiUsageCard } from '@/components/ai-usage-card';
 import { TaiSanMaTran, TaiSanShop, TaiSanSo, TaiSanVideoNgan, TaiSanWeb, kySocial } from '@/components/tai-san-tab';
 import { KenhNoiDungTab } from '@/components/kenh-noi-dung-tab';
+import { KenhYTuong } from '@/components/kenh-y-tuong';
 import { SeoMotSite } from '@/components/seo-tab';
 import { SteamsoloLangPanel } from '@/components/steamsolo-lang-panel';
 import { MailwizzListsPanel } from '@/components/mailwizz-lists-panel';
@@ -136,6 +137,7 @@ export const VE: Record<MaWidget, Ve> = {
   D4: (n) => <TaiSanVideoNgan ky={kySocial(n.ky)} />,
   D5: (n) => <TaiSanMaTran ky={kySocial(n.ky)} />,
   D6: (n) => <KenhNoiDungTab ky={n.ky} anKy />,
+  D7: () => <KenhYTuong />,
   E1: () => <SeoMotSite />,
   E2: () => <SteamsoloLangPanel />,
   F1: () => <MailwizzListsPanel />,

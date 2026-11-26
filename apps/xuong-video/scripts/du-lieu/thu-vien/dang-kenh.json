@@ -720,6 +720,12 @@
      "Hình: bản đồ + người que / nhân vật phẳng dựng bằng code, nền ảnh thật bản đồ cổ (luật nền ảnh thật), không cần video AI",
      "Một chủ đề = một Shorts (mồi, dừng ở khúc ngoặt) + một video dài (trả lời đủ) — Shorts dẫn sang video dài"
     ]
+   },
+   "dat": {
+    "kieu": "kenh_co",
+    "kenh": "yesterdays-news-tonight",
+    "playlist": "Big Stories · Worst Deals · Borders Gone Wrong…",
+    "ghi": "đang chạy"
    }
   },
   {
@@ -728,7 +734,12 @@
    "dang": "cach_hoat_dong",
    "bang_chung_tien": "Hume Health, Rise Science, Guardio mua ads dạng \"explained\"",
    "dung_code": "3D Three.js bổ đôi, sơ đồ động",
-   "kiem_tien": "YouTube ads + affiliate sản phẩm được giải thích"
+   "kiem_tien": "YouTube ads + affiliate sản phẩm được giải thích",
+   "dat": {
+    "kieu": "kenh_moi",
+    "kenh": "Cách hoạt động",
+    "playlist": "Bổ đôi đồ vật / cơ thể (3D cắt lớp)"
+   }
   },
   {
    "hang": 3,
@@ -736,7 +747,12 @@
    "dang": "so_sanh",
    "bang_chung_tien": "Kênh kiểu \"Real Data\" sống bằng ads",
    "dung_code": "Biểu đồ đua, vật thể xếp cạnh nhau",
-   "kiem_tien": "YouTube ads; dữ liệu công khai, mỗi ngày một tập"
+   "kiem_tien": "YouTube ads; dữ liệu công khai, mỗi ngày một tập",
+   "dat": {
+    "kieu": "kenh_moi",
+    "kenh": "Số liệu",
+    "playlist": "So sánh nước / kích thước / tốc độ / giá"
+   }
   },
   {
    "hang": 4,
@@ -744,7 +760,13 @@
    "dang": "vat_ly",
    "bang_chung_tien": "Thuần organic, đỉnh 47,8 triệu lượt (Rec Ninja)",
    "dung_code": "Dễ nhất: đổi tham số là ra video mới, không lời, mọi nước xem được",
-   "kiem_tien": "Shorts fund / ads; nhận gia công đua bi theo yêu cầu; kênh phụ chạy song song kênh 1"
+   "kiem_tien": "Shorts fund / ads; nhận gia công đua bi theo yêu cầu; kênh phụ chạy song song kênh 1",
+   "dat": {
+    "kieu": "kenh_moi",
+    "kenh": "Mô phỏng vật lý",
+    "playlist": "Bóng thoát vòng · đua bi · cát rơi",
+    "ghi": "không lời, mọi nước xem được"
+   }
   },
   {
    "hang": 5,
@@ -752,7 +774,12 @@
    "dang": "toan_hoc",
    "bang_chung_tien": "Brilliant trả affiliate",
    "dung_code": "Manim / canvas",
-   "kiem_tien": "Affiliate Brilliant + ads; khán giả hẹp hơn"
+   "kiem_tien": "Affiliate Brilliant + ads; khán giả hẹp hơn",
+   "dat": {
+    "kieu": "kenh_moi",
+    "kenh": "Cách hoạt động",
+    "playlist": "Toán trực quan"
+   }
   },
   {
    "hang": 6,
@@ -760,7 +787,12 @@
    "dang": "what_if",
    "bang_chung_tien": "Kurzgesagt bán hàng, sách",
    "dung_code": "Được nhưng cần nhiều hình minh hoạ",
-   "kiem_tien": "Ads + hàng hoá; chủ đề hữu hạn hơn"
+   "kiem_tien": "Ads + hàng hoá; chủ đề hữu hạn hơn",
+   "dat": {
+    "kieu": "kenh_moi",
+    "kenh": "Cách hoạt động",
+    "playlist": "Nếu… thì sao?"
+   }
   },
   {
    "hang": 7,
@@ -768,7 +800,11 @@
    "dang": "lofi",
    "bang_chung_tien": "Lofi Girl bán hàng, nhạc",
    "dung_code": "Một cảnh lặp dùng hàng giờ",
-   "kiem_tien": "Ads trên stream dài; cần nhạc sạch bản quyền, chỗ đã chật"
+   "kiem_tien": "Ads trên stream dài; cần nhạc sạch bản quyền, chỗ đã chật",
+   "dat": {
+    "kieu": "gac",
+    "ghi": "cần nhạc sạch bản quyền, thị trường đã chật"
+   }
   },
   {
    "hang": 8,
@@ -776,7 +812,12 @@
    "dang": null,
    "bang_chung_tien": "Doanh nghiệp trả ~10 vạn yên/clip (bài trong kho Opus); 369 prompt motion",
    "dung_code": "Thứ kho Opus mạnh nhất",
-   "kiem_tien": "Bán dịch vụ, hoặc dựng quảng cáo cho dự án nhà (Ethopex, shop) — giảm tiền video AI ngay"
+   "kiem_tien": "Bán dịch vụ, hoặc dựng quảng cáo cho dự án nhà (Ethopex, shop) — giảm tiền video AI ngay",
+   "dat": {
+    "kieu": "khong_dang",
+    "kenh": "Ethopex / shop nhà",
+    "ghi": "chạy quảng cáo, không đăng kênh"
+   }
   },
   {
    "hang": 9,
@@ -784,7 +825,12 @@
    "dang": null,
    "bang_chung_tien": "Không đo bằng YouTube được",
    "dung_code": "101 prompt game / tương tác",
-   "kiem_tien": "Playable ads cho app nhà, hoặc game web gắn ads"
+   "kiem_tien": "Playable ads cho app nhà, hoặc game web gắn ads",
+   "dat": {
+    "kieu": "khong_dang",
+    "kenh": "App nhà",
+    "ghi": "playable ads / game web gắn ads"
+   }
   },
   {
    "hang": 10,
@@ -792,7 +838,152 @@
    "dang": "mo_hinh_tp",
    "bang_chung_tien": "Không",
    "dung_code": "Được",
-   "kiem_tien": "Bỏ — nhu cầu ~0"
+   "kiem_tien": "Bỏ — nhu cầu ~0",
+   "dat": {
+    "kieu": "gac",
+    "ghi": "bỏ — nhu cầu ~0"
+   }
+  },
+  {
+   "hang": 11,
+   "ten": "Địa lý \"vì sao\" (vì sao biên giới / thủ đô / đảo nằm ở đó)",
+   "dang": "lich_su",
+   "bang_chung_tien": "Cùng cụm lượt xem lịch sử (History Matters, RealLifeLore)",
+   "dung_code": "Bản đồ SVG phóng, tô vùng",
+   "kiem_tien": "YouTube Partner + hướng về PWA lịch sử",
+   "dat": {
+    "kieu": "kenh_co",
+    "kenh": "yesterdays-news-tonight",
+    "playlist": "Địa lý vì sao"
+   }
+  },
+  {
+   "hang": 12,
+   "ten": "Tuyến đường lịch sử (Con đường tơ lụa, hành trình thám hiểm, tuyến thương mại)",
+   "dang": "lich_su",
+   "bang_chung_tien": "Cùng cụm lượt xem lịch sử",
+   "dung_code": "Đường đi vẽ dần trên bản đồ + mốc thời gian",
+   "kiem_tien": "YouTube Partner",
+   "dat": {
+    "kieu": "kenh_co",
+    "kenh": "yesterdays-news-tonight",
+    "playlist": "Tuyến đường"
+   }
+  },
+  {
+   "hang": 13,
+   "ten": "Cây triều đại / gia phả hoàng tộc",
+   "dang": "lich_su",
+   "bang_chung_tien": "Cùng cụm lượt xem lịch sử; nối playlist Royal Gossip Desk",
+   "dung_code": "Cây nút mọc dần, ảnh chân dung",
+   "kiem_tien": "YouTube Partner",
+   "dat": {
+    "kieu": "kenh_co",
+    "kenh": "yesterdays-news-tonight",
+    "playlist": "Cây triều đại"
+   }
+  },
+  {
+   "hang": 14,
+   "ten": "Kinh tế theo thời gian (đua thanh GDP, giá vàng, dân số)",
+   "dang": "so_sanh",
+   "bang_chung_tien": "Kênh kiểu Data Is Beautiful sống bằng ads",
+   "dung_code": "Biểu đồ đua thanh từ dữ liệu công khai",
+   "kiem_tien": "YouTube ads; mỗi ngày một tập",
+   "dat": {
+    "kieu": "kenh_moi",
+    "kenh": "Số liệu",
+    "playlist": "Đua thanh kinh tế"
+   }
+  },
+  {
+   "hang": 15,
+   "ten": "Phóng thang đo (từ hạt bụi tới vũ trụ, từ 1 đồng tới tỷ đô)",
+   "dang": "so_sanh",
+   "bang_chung_tien": "Video \"scale comparison\" hàng chục triệu lượt",
+   "dung_code": "Camera phóng liên tục, vật thể xếp cạnh nhau",
+   "kiem_tien": "YouTube ads",
+   "dat": {
+    "kieu": "kenh_moi",
+    "kenh": "Số liệu",
+    "playlist": "Phóng thang đo"
+   }
+  },
+  {
+   "hang": 16,
+   "ten": "Du lịch có lộ trình (đường đi trên bản đồ + giá phòng thật)",
+   "dang": null,
+   "bang_chung_tien": "Lượt tìm \"itinerary\" + bài trang ratesbyroom",
+   "dung_code": "Bản đồ tuyến + thẻ giá",
+   "kiem_tien": "Affiliate phòng / eSIM",
+   "dat": {
+    "kieu": "kenh_co",
+    "kenh": "ratesbyroom-scam-or-real",
+    "playlist": "Lộ trình"
+   }
+  },
+  {
+   "hang": 17,
+   "ten": "Câu đố bản đồ (đoán nước, đoán thủ đô qua hình)",
+   "dang": null,
+   "bang_chung_tien": "Thẻ câu đố đang có ở Front Porch",
+   "dung_code": "Bản đồ SVG che tên + đếm ngược",
+   "kiem_tien": "Bán sách câu đố Front Porch",
+   "dat": {
+    "kieu": "kenh_co",
+    "kenh": "Front Porch Puzzles",
+    "playlist": "Câu đố bản đồ"
+   }
+  },
+  {
+   "hang": 18,
+   "ten": "Bầu trời / lá số theo mốc (trăng, sao nghịch hành tháng này)",
+   "dang": null,
+   "bang_chung_tien": "Kênh Astrolas đang chạy",
+   "dung_code": "Bầu trời vẽ bằng code từ lịch thiên văn",
+   "kiem_tien": "Kéo người về app Astrolas",
+   "dat": {
+    "kieu": "kenh_co",
+    "kenh": "astrolas",
+    "playlist": "Timing: What's Coming"
+   }
+  },
+  {
+   "hang": 19,
+   "ten": "Video lá số cá nhân (dựng riêng cho từng người mua)",
+   "dang": null,
+   "bang_chung_tien": "Bán kèm báo cáo Astrolas",
+   "dung_code": "Cùng máy dựng bầu trời, thay dữ liệu người",
+   "kiem_tien": "Bán theo đơn",
+   "dat": {
+    "kieu": "khong_dang",
+    "kenh": "Astrolas",
+    "ghi": "sản phẩm bán, không đăng kênh"
+   }
+  },
+  {
+   "hang": 20,
+   "ten": "Chữ chạy theo giọng (kinetic typography trích dẫn / bài nói)",
+   "dang": null,
+   "bang_chung_tien": "Chưa đo",
+   "dung_code": "Chữ động theo mốc giọng",
+   "kiem_tien": "Ads",
+   "dat": {
+    "kieu": "gac",
+    "ghi": "chưa có nguồn nội dung riêng"
+   }
+  },
+  {
+   "hang": 21,
+   "ten": "Ngụ ngôn tranh vẽ",
+   "dang": null,
+   "bang_chung_tien": "Chưa đo",
+   "dung_code": "Tranh phẳng + giọng kể",
+   "kiem_tien": "Ads",
+   "dat": {
+    "kieu": "gac",
+    "ghi": "cần nhiều hình minh hoạ, để sau"
+   }
   }
  ],
  "mo_hinh_saga": {
@@ -804,5 +995,6 @@
    "Sản phẩm = PWA (pwa.sagastory.me): chuyện lịch sử ngắn + câu đố, upsell \"Video Stories\""
   ],
   "nguon": "Mã funnel go.kittysites.dev/s9wrbmvj + SpyPro trang 1118010178067195, đọc 02/11/2026"
- }
+ },
+ "dat_luc": "2026-11-27"
 }

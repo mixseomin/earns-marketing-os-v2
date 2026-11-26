@@ -631,7 +631,8 @@ def mot(p, xem, kieu, ban=1):
                 r = sh("ssh", B, f"{XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(out)} --content={cid} --dang='{DANG}' --nguon={NGUON} --lang={lang} --chi-vnd={kq['vnd']} --ghi='{ghi}' --them{' --lop-free' if k.get('free') else ''}", han=600)   # --them: mỗi bản một dòng thư viện
                 if r.returncode != 0: raise RuntimeError(f"thư viện: {(r.stderr or r.stdout)[-200:]}")
                 kq["tv"] = int(sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{DANG}' and nguon = '{NGUON}' and creative_id is null order by id desc limit 1") or 0)
-                if KHUNG_CHI and kq["tv"]: sql(f"insert into etp.cho_anh_duyet (tv_id, ghi) values ({kq['tv']}, 'khung chỉ định --anh') on conflict do nothing")   # anh 22/11/2026: creative khung chỉ định chờ anh duyệt trên etp2 › Camp (0460)
+                # MỌI bản ảnh tĩnh chờ anh duyệt trên etp2 › Camp (0460) — anh 22/11/2026 cho khung chỉ định --anh; 26/11/2026 "SX Creative nào cần để tao duyệt" → mọi bản
+                if kq["tv"]: sql(f"insert into etp.cho_anh_duyet (tv_id, ghi) values ({kq['tv']}, '{'khung chỉ định --anh' if KHUNG_CHI else 'ảnh tĩnh máy dựng'}') on conflict do nothing")
                 ghi_khung(tm, DANG, k)
             ra.append(kq)
         except Exception as e:

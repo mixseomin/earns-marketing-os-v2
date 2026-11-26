@@ -254,8 +254,7 @@ export async function docEtp(ng?: string, nhe = false): Promise<DuLieuEtp> {
   if (!nhe) return d;
   // etp2 09/11/2026 "sửa load chậm": creative (2,6 MB / 3.475 dòng) bản nhẹ chỉ giữ creative của camp + thư viện bản nhẹ; đủ bộ tải bù khi mở tab Creative / Thư viện
   const tv = d.thuVien.filter(tvCay), crCan = new Set<number>([...d.camps.map((c) => c.creative_id), ...(d.hangCr ?? []).map((c) => c.creative_id), ...tv.map((v) => v.creative_id)].filter((x): x is number => x != null));
-  return { ...d, nhe: true, pheu: [], diemCham: {}, dangSx: [], thuVien: tv, creatives: d.creatives.filter((c) => crCan.has(c.creative_id)),
-    cham: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { ...c, lop: {}, diem: {}, ly_do: {}, khung: {} }])) };
+  return { ...d, nhe: true, pheu: [], diemCham: {}, dangSx: [], thuVien: tv, creatives: d.creatives.filter((c) => crCan.has(c.creative_id)) }; // cham.lop/diem/ly_do/khung đã rỗng từ câu SQL (nhe → null::jsonb)
 }
 // nhe: bản nhẹ (trang camp) không kéo lop/diem/ly_do/khung của etp.cham — ~24 MB jsonb, ~0,55 giây (đo 26/11/2026); tab Creative lấy qua taiNangEtp (bản đủ)
 async function docEtpDu(ng?: string, nhe = false): Promise<DuLieuEtp> {

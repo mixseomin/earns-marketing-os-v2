@@ -2620,7 +2620,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
             {/* chỉ mã + điểm chấm (anh 28/10/2026 #1465 "chỉ cần ID đủ… show thêm điểm số"); đoạn giây ở hover */}
             {/* #1555 (anh 10/11/2026 "ẩn thông tin này, cần thì hover"): mã creative không in ra ô — rê ô mới thấy */}
             {/* SỐ LẦN CREATIVE ĐƯỢC DÙNG (anh 26/11/2026): số camp đã lên của creative này tính cả bản lượt 2 cùng video; L2 = camp này chạy bản lượt 2 */}
-            {cr && cr.lan_dung > 0 ? <span data-o="cr-lan-dung" title={`creative này đã được dùng ${cr.lan_dung} lần (số camp đã lên, tính cả bản lượt 2 cùng video)${cr.luot === 2 ? ' — đây là LƯỢT 2: camp lượt 1 bị luật RS tắt, lên lại kiểu chữ còn lại ở tài khoản khác' : ''}`} style={{ order: 8, fontSize: 10.5, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'help', color: cr.luot === 2 ? '#f59e0b' : 'var(--fg-3, #999)' }}>dùng {cr.lan_dung}{cr.luot === 2 ? ' · L2' : ''}</span> : null}
+            <LanDung cr={cr} order={8} />
             {(() => { const n = giongHet(c); return n ? <span title={`camp này được nhân bản GIỐNG HỆT ${n} lần (cùng creative cr #${c.creative_id}, mọi cấp con, kể cả bản đã tắt)`} style={{ order: 9, marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: 'var(--fg-1, #eee)' }}>×{n}</span> : null; })()}
             {(() => { const ch = c.creative_id ? du.cham[c.creative_id] : undefined; return ch ? <span title="điểm chấm nội dung Meta · AFS (thang 10, cao = an toàn; xanh ≥ 8, vàng 5–7, đỏ < 5)" style={{ fontSize: 10.5 }}><span style={{ color: mauDiem(ch.meta) }}>M{ch.meta ?? '–'}</span> <span style={{ color: mauDiem(ch.afs) }}>A{ch.afs ?? '–'}</span></span> : <span style={{ fontSize: 10.5, color: 'var(--fg-3, #777)' }}>chưa chấm</span>; })()}</span>); };
   const Dong = ({ c, cap }: { c: CampEtpKho; cap: number }) => {
@@ -3182,6 +3182,11 @@ function NutLenCamp({ du, gon }: { du: DuLieuEtp; gon: boolean }) {
 }
 type QuyenXem = { vai: 'chu' | 'admin' | 'nguoi'; sua: number | null; het?: string | null; cheDo?: CheDoLuat | null };
 const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
+/** SỐ LẦN CREATIVE ĐƯỢC DÙNG (anh 26/11/2026) — MỘT bản cho ô creative của bảng Camp và cột 'Lần dùng' của bảng Creative. */
+function LanDung({ cr, order }: { cr: CreativeEtpKho | null | undefined; order?: number }) {
+  if (!cr || !(cr.lan_dung > 0)) return null;
+  return <span data-o="cr-lan-dung" title={`creative này đã được dùng ${cr.lan_dung} lần (số camp đã lên, tính cả bản lượt 2 cùng video)${cr.luot === 2 ? ' — đây là LƯỢT 2: camp lượt 1 bị luật RS tắt, lên lại kiểu chữ còn lại ở tài khoản khác' : ''}`} style={{ order, fontSize: 10.5, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'help', color: cr.luot === 2 ? '#f59e0b' : 'var(--fg-3, #999)' }}>dùng {cr.lan_dung}{cr.luot === 2 ? ' · L2' : ''}</span>;
+}
 export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp = [] }: { du: DuLieuEtpGui; chiXem?: boolean; quyen?: QuyenXem; /** lệnh tay chờ áp (actions/etp-tay docChoAp) */ choAp?: ChoAp[]; /** mã phiên bản dữ liệu (lib/etp-phien) — tự làm mới chỉ khi đổi */ phien?: string; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string; ro?: string; ab?: string; /** kỳ số liệu (?k=) */ k?: string; /** #1781 chỉ tô sáng theo ô lọc (?hl=1) */ hl?: string } }) {
   // TỰ TẢI LẠI KHI CÓ BẢN MỚI (anh 04/11/2026 "nút này đâu ở tab phim" — tab mở từ trước deploy chạy giao diện cũ): hỏi /etp/ban mỗi phút, mã bản dựng khác lúc nạp → tải lại
   // ngay khi không có form / ngăn đang mở (không làm mất chữ đang gõ)
@@ -3531,6 +3536,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     { key: 'id', header: 'Creative', align: 'left', cell: (r) => <span style={{ whiteSpace: 'nowrap' }}>#{r.creative_id} <span style={{ fontSize: 11, color: r.cta_dat ? 'var(--neon-lime,#4ade80)' : '#ffb74d' }}>{r.cta_dat ? 'CTA đạt' : 'CTA cũ'}</span>{r.tu_choi ? <span style={{ fontSize: 11, color: '#f87171' }}> · Meta từ chối</span> : null}</span>, sortValue: (r) => r.creative_id },
     { key: 'phim', header: 'Phim · đoạn', align: 'left', width: 260, cell: (r) => <PhimO anh={anh(r.creative_id)} ten={r.phim ?? '—'} phu={`${r.dang ?? ''} ${r.tu != null ? `${Math.round(r.tu)}–${Math.round(r.den ?? 0)}s` : ''}`} video={r.video} />, sortValue: (r) => r.phim ?? '' },
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (r) => <span style={{ fontSize: 12 }}>{tl(r.the_loai)}</span>, sortValue: (r) => r.the_loai ?? '' },
+    { key: 'lan', header: 'Lần dùng', title: 'số lần creative này được dùng = số camp đã lên, tính cả bản lượt 2 cùng video · L2 = bản lượt 2 (camp lượt 1 bị luật RS tắt)', cell: (r) => <LanDung cr={r} />, sortValue: (r) => r.lan_dung ?? 0 },
     { key: 'camp', header: 'Camp chạy', title: `⚔ = số camp đang chạy cùng ĐOẠN (gộp bản CTA cũ + bản sửa) — trần ${tranT} (điểm bão hoà)`, cell: (r) => <span>{r.chay}/{r.camp}{r.cung_doan > 1 ? <span style={{ marginLeft: 4, color: r.cung_doan > tranT ? '#ffb74d' : 'var(--fg-2)' }}>⚔{r.cung_doan}</span> : null}</span>, sortValue: (r) => r.chay },
     ...soCot<CreativeEtpKho>('nay', (r) => r.nay), ...soCot<CreativeEtpKho>('qua', (r) => r.qua), ...(khNay ? [] : soCot<CreativeEtpKho>('kh', (r) => crKh.get(r.creative_id) ?? KHONG)),
     { key: 'tuoi', header: 'Tuổi (ngày)', title: 'số NGÀY từ camp đầu tiên dùng creative — bão hoà thường sau vài ngày · lọc 🔍 > 2 = hơn 2 ngày', cell: (r) => tuoiChu(tuoiNgay(r.ngay_dau)), sortValue: (r) => tuoiLoc(tuoiNgay(r.ngay_dau)) },

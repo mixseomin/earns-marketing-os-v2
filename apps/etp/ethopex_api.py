@@ -60,6 +60,36 @@ def lech_tao(duong, body):
     if isinstance(body, (str, bytes)): body = json.loads(body)
     ds = body if isinstance(body, list) else (body["items"] if isinstance(body, dict) and isinstance(body.get("items"), list) else [body])
     return [str(x.get("name") or "?")[:60] if isinstance(x, dict) else "?" for x in ds if not (isinstance(x, dict) and dung_form(x))]
+_LINK_MOI = re.compile(r"^https?://\S+$")
+def chua_duyet(duong, body, q=None):
+    """CHỜ ANH DUYỆT TRƯỚC KHI LÊN (anh 27/11/2026: "sau này creative khi duyệt thì ko gửi lên etho. Phải show ra tao duyệt xong mởi bắt đầu gửi lên đó !").
+    Cửa đọc trên CHÍNH lệnh tạo creative (/creatives, /creatives/bulk-jobs): mỗi bản mang video MỚI (link chưa thuộc creative nào trong etp.creative) phải có một dòng
+    etp.cho_len 'dang_len' cùng phim (cho_len.py nhận sau khi anh bấm ✓ Duyệt ở etp2 › Camp › Chờ lên). Bản sao cùng video của creative ĐÃ có (ap-form-chu ban_nha)
+    không phải bản dựng mới → qua. Đường cũ (cây chung chưa có cho_len.py) gửi thẳng → chặn ở đây. Đọc lỗi → chặn. → lý do chặn hoặc None."""
+    if body is None or not _TAO_CR.match(duong.split("?")[0]): return None
+    q = q or _q
+    if isinstance(body, (str, bytes)): body = json.loads(body)
+    ds = body if isinstance(body, list) else (body["items"] if isinstance(body, dict) and isinstance(body.get("items"), list) else [body])
+    can, link, tep_x = {}, set(), []
+    for x in ds:
+        if not isinstance(x, dict): return "bản không phải đối tượng JSON"
+        v = x.get("video_url"); v = json.loads(v) if isinstance(v, str) and v.strip().startswith("[") else ([v] if isinstance(v, str) and v else (v or []))
+        a = x.get("image_url"); a = json.loads(a) if isinstance(a, str) and a.strip().startswith("[") else ([a] if isinstance(a, str) and a else (a or []))
+        tep = [str(t) for t in (v or a) if t]
+        if not tep or not all(_LINK_MOI.match(t) for t in tep): return f"bản {str(x.get('name') or '?')[:40]!r} không có link video / ảnh đọc được"
+        if not str(x.get("content_id") or "").isdigit(): return f"bản {str(x.get('name') or '?')[:40]!r} thiếu phim"
+        tep_x.append((int(x["content_id"]), tep)); link.update(tep)
+    try:
+        sl = lambda t: "'" + t.replace("'", "''") + "'"
+        cu = set(q(f"select distinct video from etp.creative where video in ({','.join(map(sl, sorted(link)))})").split())
+        for c, tep in tep_x:
+            if not all(t in cu for t in tep): can[c] = can.get(c, 0) + 1
+        if not can: return None
+        co = {int(a): int(b) for a, b in (l.split("|") for l in q(f"select content_id || '|' || count(*) from etp.cho_len where trang_thai = 'dang_len' and content_id in ({','.join(map(str, can))}) group by content_id").split() if "|" in l)}
+    except Exception as e: return f"không đọc được etp.cho_len / etp.creative ({type(e).__name__}) — chặn cho an toàn"
+    thieu = {c: n - co.get(c, 0) for c, n in can.items() if n > co.get(c, 0)}
+    if thieu: return "phim " + ", ".join(f"#{c} ({n} bản)" for c, n in sorted(thieu.items())) + " chưa được anh duyệt ở etp2 › Camp › Chờ lên Ethopex"
+    return None
 _LOC = re.compile(r'\\*"locales\\*"\s*:\s*\[\s*\\*"?\d')
 def co_ngon_ngu(body):
     """lệnh mang targeting.locales khác rỗng ở bất kỳ tầng nào (dict lồng hay source_payload là chuỗi JSON) → True. Luật cố định anh 24/11/2026 (khuôn Kiên)."""
@@ -509,6 +539,8 @@ def api(duong, body=None, timeout=90):
     if ly_pc: raise ChanCua(f"cửa API chặn lên / gắn creative: {ly_pc} — không gửi {duong}")
     _lt = lech_tao(duong, body)   # CHỮ CREATIVE MỚI = FORM, không ngoại lệ (lech_tao — anh 24/11/2026 cấm tự viết chữ QC)
     if _lt: raise CamLechForm(f"{len(_lt)} creative mang chữ khác form (apps/etp/form-chu.json), vd {_lt[0]!r} — máy không tự viết chữ QC, không gửi {duong}")
+    _cd = chua_duyet(duong, body)   # CHỜ ANH DUYỆT (anh 27/11/2026) — bản dựng mới chỉ lên sau ✓ Duyệt ở etp2 › Camp › Chờ lên (cho_len.py), mọi đường kể cả cây cũ
+    if _cd: raise ChanCua(f"cửa API chặn lên creative: {_cd} — không gửi {duong}")
     if body is not None and isinstance(body, dict) and duong.endswith("/campaigns/update"):   # đặt lại ngân sách camp VỪA TẠO (Ethopex không nhận lúc tạo) → không vượt trần lúc tạo
         cp = body.get("campaign") or {}; cid = int(cp.get("campaign_id") or 0); ns = (cp.get("source_payload") or {}).get("daily_budget")
         if cid in _TRAN_TAO and ns is not None and float(ns) > _TRAN_TAO[cid]:
@@ -662,6 +694,22 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
         assert len(_gui_that) == _n0, f"chữ tự viết lọt tới Ethopex: {_gui_that[_n0:]}"
         assert lech_tao("/api/v1/creatives/bulk-jobs", [_fm, _fm]) == [] and lech_tao("/api/v1/creatives/12/x", _tv) == [] and lech_tao("/api/v1/creatives", None) == []
         print("chặn đúng: tạo creative chữ khác form (đơn / bulk-jobs items / mảng trần / CTA lệch) — không lệnh nào tới Ethopex; đúng form qua cửa")
+        # CHỜ ANH DUYỆT (anh 27/11/2026): bản video mới chưa có dòng cho_len 'dang_len' → chặn (đơn / items / mảng trần, kể cả 2 bản khi chỉ 1 dòng duyệt);
+        # bản sao cùng video creative đã có (ban_nha) qua; có dòng dang_len đủ số thì qua; đọc lỗi → chặn
+        _n0 = len(_gui_that); _vm = "https://pub-x.r2.dev/arb/tu-kiem-chua-duyet.mp4"; _bm = {**_fm, "name": "TU KIEM CHUA DUYET", "content_id": 1, "video_url": [_vm]}
+        for _d, _b in [("/api/v1/creatives", _bm), ("/api/v1/creatives/bulk-jobs", {"items": [_bm]}), ("/api/v1/creatives/bulk-jobs", [_bm])]:
+            try: api(_d, _b); raise SystemExit(f"LỌT CHƯA DUYỆT: {_d}")
+            except ChanCua as e: assert "chưa được anh duyệt" in str(e), e
+        assert len(_gui_that) == _n0, f"creative chưa duyệt lọt tới Ethopex: {_gui_that[_n0:]}"
+        _q1 = lambda co: (lambda s: "" if "from etp.creative" in s else co)
+        assert chua_duyet("/api/v1/creatives/bulk-jobs", [_bm], q=_q1("1|1")) is None, "có dòng dang_len phải qua"
+        assert "#1 (1 bản)" in (chua_duyet("/api/v1/creatives/bulk-jobs", [_bm, {**_bm}], q=_q1("1|1")) or ""), "2 bản / 1 dòng duyệt phải chặn"
+        assert chua_duyet("/api/v1/creatives/bulk-jobs", [_bm], q=lambda s: _vm if "from etp.creative" in s else "") is None, "bản sao video creative đã có phải qua"
+        assert "chặn cho an toàn" in chua_duyet("/api/v1/creatives", _bm, q=lambda s: (_ for _ in ()).throw(RuntimeError("x"))), "đọc lỗi phải chặn"
+        assert chua_duyet("/api/v1/creatives/12", _bm) is None and chua_duyet("/api/v1/creatives", None) is None
+        _vc = _q("select video from etp.creative where video like 'http%' order by creative_id desc limit 1")
+        if _vc: assert chua_duyet("/api/v1/creatives/bulk-jobs", [{**_bm, "video_url": [_vc]}]) is None, f"bản sao video thật {_vc} phải qua"
+        print("chặn đúng: creative video mới chưa anh duyệt (đơn / items / mảng trần / thừa bản) — không lệnh nào tới Ethopex; có dòng dang_len hoặc bản sao video cũ qua")
         # PHIM CẤM — LÊN / GẮN CREATIVE (anh 19/11/2026, phá thử phim 167292 The Dragon's Silly Captive, sổ thật): tạo creative (bulk-jobs / đơn) · gắn creative vào ad
         # của camp phim cấm · creative của phim cấm gắn vào ad bất kỳ · tạo camp · nhân bản camp phim cấm → chặn, vé không miễn, không lệnh nào tới Ethopex
         _P = 167292

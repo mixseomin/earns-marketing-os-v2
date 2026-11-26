@@ -1913,4 +1913,5 @@ export const LUAT = [
   { card: 'cho-len-2711', tep: 'apps/etp/dong_phim.py', co: 'def cho_len_chay():', vi: 'chỉ bản anh đã Duyệt mới được máy dòng phim tải lên Ethopex' },
   { card: 'cho-len-2711', tep: 'apps/etp2/src/components/etp-view.tsx', co: "{tab === 'camp' && !laNguoi ? <ChoLenEtho /> : null}", vi: 'ô Chờ lên Ethopex hiện trên tab Camp để anh xem + duyệt' },
   { card: 'cho-len-2711', tep: 'apps/etp2/src/lib/actions/etp-cho-len.ts', co: "where id = ${n} and trang_thai in ('cho', 'duyet') returning id", vi: 'Duyệt chỉ chạm bản còn chờ, không lên lại bản đã lên / đã bỏ' },
+  { card: 'cho-len-2711', tep: 'apps/etp/ethopex_api.py', co: '_cd = chua_duyet(duong, body)', vi: 'cửa API box3 chặn mọi lệnh tạo creative video mới chưa có dòng cho_len dang_len (kể cả đường cũ ở cây chung)' },
 ];

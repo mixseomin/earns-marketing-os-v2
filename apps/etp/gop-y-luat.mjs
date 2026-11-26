@@ -1916,6 +1916,7 @@ export const LUAT = [
   { card: 'kieu-duyet-2711', tep: 'apps/etp/dong_phim.py', co: 'kieu_cl.get(c, "kien" if CG.la_k(i, len(ids)) else "dol") == "kien"', vi: 'khối creative giữ đúng kiểu chữ anh chọn ở Chờ lên (etp.cho_len.kieu), mặc định K — không áp K lên bản anh chọn D (anh 27/11/2026 "Sinh kiểu Kiên là default và có option chọn sang Dol")' },
   { card: 'kieu-duyet-2711', tep: 'apps/etp/cong.py', co: 'def la_k(i, n): return True', vi: 'mặc định mọi creative kiểu Kiên, D chỉ khi anh chọn' },
   { card: 'kieu-duyet-2711', tep: 'apps/xuong-video/scripts/ethopex/chu-qc.py', co: '**chu_theo_kieu(x)', vi: 'creative tạo đúng chữ kiểu anh chọn lúc duyệt (K = chu-kieu.json, D = form-chu.json)' },
+  { card: 'kieu-duyet-2711', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "dong('Chữ chính', t.f_chinh, undefined, undefined, true)", vi: 'ô Chờ anh duyệt hiện trọn chữ QC (xuống hàng), không cắt một hàng' },
   { card: 'kieu-duyet-2711', tep: 'apps/etp2/src/components/etp-cho-len.tsx', co: 'data-cho-len-kieu', vi: 'thẻ Chờ lên hiện chữ QC sẽ lên + nút đổi K / D để anh duyệt cả chữ' },
   { card: 'cho-len-2711', tep: 'apps/xuong-video/scripts/ethopex/len-creative.py', co: 'lo, moi, ra_cho = CL.loc(lo, ma)', vi: 'bản dựng mới vào etp.cho_len chờ anh duyệt, không gửi bulk-jobs (anh 27/11/2026 "show ra tao duyệt xong mởi bắt đầu gửi lên đó")' },
   { card: 'cho-len-2711', tep: 'apps/etp/dong_phim.py', co: 'def cho_len_chay():', vi: 'chỉ bản anh đã Duyệt mới được máy dòng phim tải lên Ethopex' },

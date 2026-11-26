@@ -27,9 +27,10 @@ const ANH_W = 'clamp(104px, 30vw, 162px)';   // #1861: ảnh thẻ chờ duyệt
 function TomTl({ x }: { x: ChoDuyet }) {
   if (x.tlLoi) return <div role="alert" style={{ color: '#fca5a5' }}>Không dựng được camp dự kiến: {x.tlLoi}</div>;
   const t = x.tl; if (!t) return null;
-  const dong = (nhan: string, gt: string | null | undefined, tieu?: string, mau?: string) => <div style={{ display: 'flex', gap: 6, minWidth: 0 }} title={tieu ?? gt ?? ''}>
+  // tron = chữ QC hiện trọn, xuống hàng (anh 27/11/2026 "Khi duyệt creative thì cũng duyệt cả nội dung text luôn") — các dòng thông số vẫn một hàng
+  const dong = (nhan: string, gt: string | null | undefined, tieu?: string, mau?: string, tron = false) => <div style={{ display: 'flex', gap: 6, minWidth: 0 }} title={tieu ?? gt ?? ''}>
     <span style={{ flex: 'none', width: 62, color: 'var(--fg-3, #888)' }}>{nhan}</span>
-    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: mau ?? (gt ? 'inherit' : 'var(--fg-3, #888)') }}>{gt || '—'}</span></div>;
+    <span style={{ minWidth: 0, ...(tron ? { whiteSpace: 'pre-wrap', wordBreak: 'break-word' } : { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }), color: mau ?? (gt ? 'inherit' : 'var(--fg-3, #888)') }}>{gt || '—'}</span></div>;
   const nuoc = t.g_so_nuoc ? `${t.g_so_nuoc} nước${t.g_loai_nuoc ? ` · loại ${t.g_so_loai ?? ''}` : ''}` : (t.g_nuoc ?? null);
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: 11.5, borderTop: '1px solid var(--line)', paddingTop: 4, marginTop: 2 }}>
     {/* #1844 "show thêm kiểu giọng áp dụng với loại creative này": giọng đọc lúc dựng (giongCr — ghi thư viện, lùi về sổ điểm chạm); người đọc + cách đọc ở rê chuột */}
@@ -44,9 +45,9 @@ function TomTl({ x }: { x: ChoDuyet }) {
     {dong('Tên miền', t.a_mien)}
     {dong('Lịch', t.g_lich)}
     {dong('CTA · link', [t.f_cta, t.f_link].filter(Boolean).join(' · ') || null)}
-    {dong('Chữ chính', t.f_chinh)}
-    {dong('Tiêu đề', t.f_tieu)}
-    {dong('Mô tả', t.f_mo_ta)}
+    {dong('Chữ chính', t.f_chinh, undefined, undefined, true)}
+    {dong('Tiêu đề', t.f_tieu, undefined, undefined, true)}
+    {dong('Mô tả', t.f_mo_ta, undefined, undefined, true)}
     {t.ke_thieu ? <div style={{ color: '#f87171' }}>{t.ke_thieu}</div> : null}
   </div>;
 }

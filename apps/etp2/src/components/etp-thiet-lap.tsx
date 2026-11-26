@@ -18,6 +18,7 @@ function noiCot<T extends CampCo>(k: DataColumn<T>, lay: (r: DongTl) => T | unde
   return { ...k, cell: (r, i) => { const c = lay(r); return c ? k.cell(c, i) : trong; },
     cellTitle: k.cellTitle && ((r, i) => { const c = lay(r); return c ? k.cellTitle!(c, i) : undefined; }),
     onCellClick: k.onCellClick && ((r, i) => { const c = lay(r); if (c) k.onCellClick!(c, i); }),
+    cellRowStyle: k.cellRowStyle && ((r, i) => { const c = lay(r); return c ? k.cellRowStyle!(c, i) : undefined; }),   // #1881 ô camp chờ giờ chạy mờ cả khi mượn sang bảng Thiết lập
     sortValue: k.sortValue && ((r) => { const c = lay(r); return c ? k.sortValue!(c) : null; }),
     total: k.total && ((rs, o) => k.total!(rs.map(lay).filter((c): c is T => !!c), o)) };
 }

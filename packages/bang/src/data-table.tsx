@@ -38,6 +38,7 @@ export interface DataColumn<T> {
   width?: number | string;
   cell: (row: T, index: number) => ReactNode;
   cellTitle?: (row: T, index: number) => string | undefined; // per-cell tooltip
+  cellRowStyle?: (row: T, index: number) => CSSProperties | undefined; // kiểu riêng ô này theo dòng (vd làm mờ ô của dòng chờ giờ chạy mà ô trạng thái vẫn rõ — etp2 #1881)
   onCellClick?: (row: T, index: number) => void;             // click THIS cell (stops row propagation)
   total?: (rows: T[], o?: { tong?: boolean }) => ReactNode;     // if ANY column sets this, a totals row renders · o.tong = dòng Tổng cuối bảng (không phải dòng nhóm)
   // Sort: set this → header becomes clickable, cycles ↑asc → ↓desc → off. Return the comparable
@@ -1130,7 +1131,7 @@ export function DataTable<T>({
                     title={rowTitle?.(row)}>
                   {(fullRow?.(row, i) ? visible.slice(0, 1) : visible).map((c, ci) => (
                     <td key={c.key} colSpan={ci === 0 && fullRow?.(row, i) ? visible.length : undefined}
-                        style={cellStyle(c, c.onCellClick ? { cursor: 'pointer' } : undefined, ci)}
+                        style={cellStyle(c, c.onCellClick || c.cellRowStyle ? { ...(c.onCellClick ? { cursor: 'pointer' } : {}), ...c.cellRowStyle?.(row, i) } : undefined, ci)}
                         title={c.cellTitle?.(row, i)}
                         onClick={c.onCellClick ? (e) => { e.stopPropagation(); c.onCellClick!(row, i); } : undefined}>
                       {tree && ci === 0 ? (

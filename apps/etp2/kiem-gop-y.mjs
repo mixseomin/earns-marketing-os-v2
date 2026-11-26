@@ -873,6 +873,9 @@ const LUAT = [
   { card: '1867', tep: 'apps/etp2/src/components/etp-camp-cau-hinh.tsx', co: '<DeBaiQc.Provider value={de}>{xemTruoc}</DeBaiQc.Provider>', vi: 'Ad preview trong ngăn camp nhận CTA / chữ / tên miền / Page từ chính khối cấu hình (#1867 khung ghi Learn more trong khi cấu hình WATCH_MORE)' },
   { card: '1867', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: 'const b = useMemo(() => deLen(goc, de), [goc, de]);', vi: 'KhungBaiQc đè giá trị cấu hình lên bài đọc từ creative (#1867)' },
   { card: '1867', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: "a_page_ten: S(r.pten), a_page_anh: S(r.panh)", vi: 'khối cấu hình trả tên + ảnh Page để khung xem trước hiện đúng Page (#1867)' },
+  // CAMP CHỜ GIỜ CHẠY MỜ (anh 26/11/2026 #1881 "Chờ giờ chạy : thì các phần này mờ đi")
+  { card: '1881', tep: 'apps/etp2/src/components/etp-view.tsx', co: "k.key === 'tt' ? k : { ...k, cellRowStyle: (c: CampEtpKho) => (choGio(c) ? { opacity: 0.4 }", vi: 'cây camp: dòng camp hẹn giờ chưa chạy mờ mọi ô, chỉ ô TT (giờ hẹn + ⏸) rõ' },
+  { card: '1881', tep: 'packages/bang/src/data-table.tsx', co: '...c.cellRowStyle?.(row, i)', vi: 'bảng chung áp kiểu riêng từng ô theo dòng (cellRowStyle)' },
   // TRẠNG THÁI ✎ SỬA LẠI (anh 25/11/2026 #1863 "Thêm 1 status là Sửa lại !!")
   { card: '1863', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "data-o=\"nut-sua-lai\"", vi: 'thẻ chờ duyệt có nút thứ ba ✎ Sửa lại bên cạnh Duyệt / Loại' },
   { card: '1863', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "duyetChoAnh(cr, false, chu, true), 'sua')", vi: 'xác nhận Sửa lại gửi cờ sửa lại, không gửi như Duyệt' },

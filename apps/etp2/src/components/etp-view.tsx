@@ -2843,7 +2843,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
       sortValue: (c) => Math.round((tongChi.get(c.camp_id) ?? 0) * 100) / 100, total: (rs) => <Tien v={rs.reduce((a, c) => a + (tongChi.get(c.camp_id) ?? 0), 0)} /> },
     // CỘT ĐỆM (không tiêu đề, không số): mọi cột có bề rộng cố định → khoảng thừa của bảng dồn ra mép phải, số liệu xếp sát nhau (anh 29/10/2026 "cho gọn lại")
     { key: 'dem', header: '', align: 'left', cell: () => null },
-  ] as DataColumn<CampEtpKho>[]).map((k) => (['lai_nay', 'chi', 'tong_chi', 'lai', 'roi_ky', 'roi_tong'].includes(k.key) || cotNgay.some((x) => x.key === k.key) ? { ...k, cell: (c: CampEtpKho, i: number) => (c.sx?.khoi ? null : k.cell(c, i)) } : k));   // dòng KHỐI chưa có camp → ô tiền trống, không in $0.00 (anh 25/11/2026)
+  ] as DataColumn<CampEtpKho>[]).map((k) => (['lai_nay', 'chi', 'tong_chi', 'lai', 'roi_ky', 'roi_tong'].includes(k.key) || cotNgay.some((x) => x.key === k.key) ? { ...k, cell: (c: CampEtpKho, i: number) => (c.sx?.khoi ? null : k.cell(c, i)) } : k)).map((k) => (k.key === 'tt' ? k : { ...k, cellRowStyle: (c: CampEtpKho) => (choGio(c) ? { opacity: 0.4 } : undefined) }));   // dòng KHỐI chưa có camp → ô tiền trống, không in $0.00 (anh 25/11/2026) · #1881 anh 26/11/2026 "Chờ giờ chạy thì các phần này mờ đi": camp hẹn giờ chưa chạy → mọi ô mờ, chỉ ô TT (giờ hẹn + ⏸) giữ rõ
   // KT ĐANG SINH / SẴN SÀNG theo phim (anh 29/10/2026 kế hoạch KT cho phim đang chạy): bản kể chuyện VideoExpress trong etp.thu_vien chưa thành creative
   const ktCua = useMemo(() => new Map((du.thuVien ?? []).filter(tvChuaCr).map((v) => [v.content_id, v.tv as string])), [du.thuVien]);
   const nhomCua = useMemo(() => new Map(du.phims.map((x) => [x.content_id, x.nhom_goc])), [du.phims]);

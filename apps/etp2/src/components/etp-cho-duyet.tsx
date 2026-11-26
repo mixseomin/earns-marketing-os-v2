@@ -12,6 +12,7 @@ import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import { CHU_DAN } from '@/lib/etp-ke-cr';
 import { MO_TA_GIONG, maGiong, tenGiong } from '@/lib/etp-dang';
 import { coChuot } from '@/lib/co-chuot';
+import { BadgeDangNgan, BadgeKieu } from '@/components/etp-so';
 
 const nut: React.CSSProperties = { fontSize: 12, padding: '3px 10px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' };
 const GIAI = 'chưa duyệt thì máy không lên camp. ✓ Duyệt = creative rời ô này, thành dòng ⏳ xếp hàng ở bảng camp bên dưới; giờ chạy theo lịch. ✕ Loại = không bao giờ lên.';
@@ -175,7 +176,7 @@ export function ChoDuyetCr() {
       {xn ? <Drawer onClose={() => setNgan(null)} width={1080} padding={14}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap', marginBottom: 10 }}>
           <b style={{ fontSize: 15 }}>{xn.phim ?? `phim #${xn.content_id}`}</b>
-          <span style={{ color: 'var(--fg-2)', fontSize: 12 }}>{(xn.lang ?? '?').toUpperCase()} · cr #{xn.creative_id} · {xn.dang ?? ''} · {kieu(xn.roas)}</span>
+          <span style={{ color: 'var(--fg-2)', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 5 }}>{(xn.lang ?? '?').toUpperCase()} · cr #{xn.creative_id} <BadgeDangNgan d={xn.dang} /> <BadgeKieu k={xn.kieu} /> · {kieu(xn.roas)}</span>
           {xn.duyet == null ? <span style={{ marginLeft: 'auto' }}><NutDuyet cr={xn.creative_id} roas={xn.roas} lich={xn.tl?.g_lich ?? null} dk={!!du.dungKhan} dang={dang.has(xn.creative_id)} bam={bam} /></span> : null}
         </div>
         <div style={{ marginBottom: 8 }}><TrangThaiCr x={xn} dk={!!du.dungKhan} /></div>
@@ -200,7 +201,8 @@ export function ChoDuyetCr() {
                 <div role="button" tabIndex={0} title="bấm để mở ngăn camp dự kiến (đủ Campaign / Ad set / Ad như trang Ethopex)" onClick={() => setNgan(x.creative_id)} onKeyDown={(e) => { if (e.key === 'Enter') setNgan(x.creative_id); }}
                   style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.phim ?? ''}>{x.phim ?? `phim #${x.content_id}`} <span style={{ color: '#60a5fa', fontWeight: 400 }}>↗ chi tiết</span></div>
-                <div style={{ color: 'var(--fg-2)' }}>{(x.lang ?? '?').toUpperCase()} · cr #{x.creative_id} · {x.dang ?? ''}</div>
+                {/* #1895 anh 26/11/2026 "Hiện Badge thể loại ở đây cho gọn. Và badge loại camp K/D": dạng = badge ngắn (sổ dạng), K/D = kiểu link camp dự kiến */}
+                <div style={{ color: 'var(--fg-2)', display: 'flex', alignItems: 'center', gap: 5 }}>{(x.lang ?? '?').toUpperCase()} · cr #{x.creative_id} <BadgeDangNgan d={x.dang} /> <BadgeKieu k={x.kieu} /></div>
                 <div style={{ color: 'var(--fg-3, #888)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.ghi}>{x.ghi}</div>
                 {x.diem_thap ? <div style={{ color: '#fbbf24' }} title={`tiêu chí chấm ≤ 4: ${x.diem_thap} — duyệt thì người duyệt thắng điểm (0443)`}>⚠ điểm thấp: {x.diem_thap.slice(0, 40)}</div> : null}
                 <TomTl x={x} />

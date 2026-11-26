@@ -19,7 +19,7 @@ const KIEU_LINK: Map<string, string> = (() => { const m = new Map<string, string
   const form = doc('form-chu.json'); if (form?.link_url) m.set(String(form.link_url).toLowerCase(), 'dol');
   for (const [k, v] of Object.entries(doc('chu-kieu.json') ?? {})) { const l = (v as { _link_url?: string } | null)?._link_url; if (!k.startsWith('_') && l) m.set(l.toLowerCase(), k); }
   if (!m.size) console.error('[etp-doc] KHÔNG đọc được apps/etp/form-chu.json / chu-kieu.json (cwd ' + process.cwd() + ') — huy hiệu K/D trống'); return m; })();
-const kieuCr = (link: unknown): string | null => { const l = String(link ?? '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, ''); return l ? KIEU_LINK.get(l) ?? null : null; };
+export const kieuCr = (link: unknown): string | null => { const l = String(link ?? '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, ''); return l ? KIEU_LINK.get(l) ?? null : null; };
 
 // chữ --luat trong nhật ký máy → tên luật theo SỔ LUẬT CHUNG (regex nhat_ky của từng khoá); không khớp luật nào thì lấy tên lý do trước ' (' / ' —' / ' ·'
 const NHAT_KY_LUAT = Object.values(BANG_LUAT.khoa).flatMap((v) => {

@@ -23,5 +23,16 @@ export function KeToan({ v, mau }: { v: number; mau?: string }) {
 export { DS_DANG, MAU_DANG, MA_DANG, DANG_DONG, dangTheoTen, tenGiong, type MucDang } from '@/lib/etp-dang';
 import { tenGiong as tenGiong_, maGiong } from '@/lib/etp-dang';
 import { MAU_DANG, MA_DANG } from '@/lib/etp-dang';
+import type { CSSProperties } from 'react';
+// KIỂU LÊN CAMP K/D (anh 26/11/2026 #1895) — MỘT badge cho cây creative + thẻ chờ duyệt; kiểu tính từ link camp ở máy chủ (etp-doc kieuCr).
+export const KIEU_HH: Record<string, { chu: string; nen: string; ten: string }> = {
+  kien: { chu: 'K', nen: '#2563eb', ten: 'kiểu Kiên — chữ riêng từng phim, link search.com' },
+  dol: { chu: 'D', nen: '#ea580c', ten: 'kiểu Dol — chữ form chung, link info.com' },
+};
+export const BadgeKieu = ({ k, style }: { k: string | null | undefined; style?: CSSProperties }) => {
+  if (!k) return null;
+  const h = KIEU_HH[k] ?? { chu: k.slice(0, 1).toUpperCase(), nen: '#6b7280', ten: `kiểu ${k}` };
+  return <span data-o="cr-kieu" title={h.ten} style={{ minWidth: 11, height: 11, padding: '0 2px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 2, background: h.nen, color: '#fff', fontSize: 8.5, fontWeight: 700, lineHeight: 1, cursor: 'help', ...style }}>{h.chu}</span>;
+};
 export const BadgeDangNgan = ({ d, ban, giong }: { d: string | null; ban?: string | null; giong?: string | null }) => (d ? <span title={`loại creative: ${d}${ban ? ` · bản ${ban}` : ''}${giong ? ` · giọng ${tenGiong_(giong)}` : ''}`} style={{ fontSize: 9, fontWeight: 700, padding: '0 4px', borderRadius: 4, marginLeft: 5, letterSpacing: '0.03em', color: MAU_DANG[d] ?? 'var(--fg-2)', border: `1px solid ${(MAU_DANG[d] ?? '#888')}66` }}>{ban ?? MA_DANG[d] ?? d.slice(0, 2).toUpperCase()}{giong ? `.${maGiong(giong)}` : ''}</span> : null);
 export const BadgeDang = ({ d, ngan, ban, giong }: { d: string | null; ngan?: boolean; ban?: string | null; giong?: string | null }) => (d ? <span title={`loại creative: ${d}${ban ? ` · bản ${ban}` : ''}${giong ? ` · giọng ${tenGiong_(giong)}` : ''}`} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 9, whiteSpace: 'nowrap', color: MAU_DANG[d] ?? 'var(--fg-2)', border: `1px solid ${(MAU_DANG[d] ?? '#888')}66`, background: `${MAU_DANG[d] ?? '#888'}1a` }}>{ngan ? ban ?? MA_DANG[d] ?? d : ban ? `${d} ${ban}` : d}{giong ? `.${maGiong(giong)}` : ''}</span> : null);

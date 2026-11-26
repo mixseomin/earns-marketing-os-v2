@@ -19,6 +19,7 @@ import { laKhung } from '@/lib/etp-khung';
 import { giongCr } from '@/lib/etp-ban';
 import { DAN_NGAY, KHUON_CR, MUC_DAN_SQL, keCr, tenCampCr } from '@/lib/etp-ke-cr';
 import { docThietLap, type KeTl } from '@/lib/actions/etp-thiet-lap';
+import { kieuCr } from '@/lib/etp-doc';
 
 export type ChoDuyet = {
   creative_id: number; content_id: number | null; phim: string | null; lang: string | null; dang: string | null; video: string | null; anh: string | null;
@@ -30,6 +31,7 @@ export type ChoDuyet = {
   /** camp DỰ KIẾN (lib/etp-ke-cr keCr) — ngăn camp đọc lại bằng docThietLap([], [ke]) */ ke: KeTl | null;
   /** tóm tắt camp dự kiến để REVIEW ngay trên thẻ (anh 25/11/2026 "nhất là các thông tin về ngôn ngữ, targeting,... form text rất quan trọng") — ô = mã docThietLap, giá trị đã mở khỏi `chung` */
   tl: Record<string, string | null> | null; tlLoi: string | null;
+  /** KIỂU LÊN CAMP K/D của camp dự kiến (#1895 anh 26/11/2026 "badge loại camp K/D") — link camp dự kiến (tl.f_link) đối chiếu cùng sổ chữ với huy hiệu góc ảnh (etp-doc kieuCr) */ kieu: string | null;
 };
 /** ô thiết lập hiện trên thẻ duyệt (cùng mã trường ngăn camp etp-camp-cau-hinh) */
 const O_THE = ['c_ten', 'ke_khuon', 'ke_thieu', 'c_bo', 'c_tk', 'c_ns', 'g_roas', 'g_lich', 'g_nuoc', 'g_so_nuoc', 'g_loai_nuoc', 'g_so_loai', 'g_ngon_ngu', 'g_tuoi', 'g_gioi',
@@ -71,9 +73,9 @@ export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean 
     if (!tl || 'loi' in tl) return null; const d = tl.dong.find((r) => r.ke_cha === -cr); if (!d) return null;
     return Object.fromEntries(O_THE.map((k) => { const v = d[k]; return [k, v == null ? null : typeof v === 'number' && k !== 'ke_khuon' ? (tl.chung[v] ?? null) : String(v)]; }));
   };
-  return { ds: ds.map((x) => { const cr = Number(x.creative_id);
+  return { ds: ds.map((x) => { const cr = Number(x.creative_id); const t = tom(cr);
     return { ...x, creative_id: cr, camp_id: x.camp_id == null ? null : Number(x.camp_id), nhat_ky: x.duyet && !x.camp_id ? nhatKy(cr) : null,
-      ke: ke.get(cr) ?? null, tl: tom(cr), tlLoi: tl && 'loi' in tl ? tl.loi : null, nx: nxCua(x.content_id) }; }), dungKhan: !!dk?.v };
+      ke: ke.get(cr) ?? null, tl: t, kieu: kieuCr(t?.f_link), tlLoi: tl && 'loi' in tl ? tl.loi : null, nx: nxCua(x.content_id) }; }), dungKhan: !!dk?.v };
 }
 
 /** ✓ Duyệt → ghi duyệt + lên ★ ROAS mặc định (hoi_cho, anh 24/11/2026); ✕ Loại → ghi loại. Phanh đang bật (dừng khẩn…): duyệt = XẾP HÀNG, máy tự lên camp ở nhịp đầu phanh nhả

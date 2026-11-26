@@ -20,7 +20,7 @@ import { useDangLenTam } from '@/lib/etp-dang-len-tam';   // #1770: dấu "đang
 import { NS_ROAS_CHIP, NS_ROAS_KHOANG, NS_TAY_CHIP, NS_TAY_KHOANG, ROAS_BA, ROAS_CAP, ROAS_MUC, THEO_LICH, chayLuc, chayLucGon, khungLen } from '@/lib/etp-nb';   // mức bid / ngân sách nhân bản ★ ROAS — cùng sổ với server (etp-tay.ts)
 import type { TrangPhim } from '@/lib/etp-doc';
 import { moXet, type DuLieuEtpGui } from '@/lib/etp-xet-gon';
-import { Dem, KeToan, tienKT, mauLai, MAU_DANG, MA_DANG, BadgeDang, BadgeDangNgan } from '@/components/etp-so';
+import { Dem, KeToan, tienKT, mauLai, MAU_DANG, MA_DANG, BadgeDang, BadgeDangNgan, BadgeKieu } from '@/components/etp-so';
 import { CAM_CHAN, nguonCam } from '@/lib/etp-phim-cam';
 import { NHOM_QC, cotQc, BieuDoQc } from '@/components/etp-qc-trang';   // card etp:qc-adsense-camp-2311
 import { gopQc, chuoiQc, type DongQc, type GopQc } from '@/lib/qc-trang';
@@ -3241,10 +3241,9 @@ const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
 const chuLanDung = (cr: CreativeEtpKho | null | undefined): string => !cr || !(cr.lan_dung > 0) ? '' : `creative này đã được dùng ${cr.lan_dung} lần (số camp FB đã thật sự chạy — có chi tiền; camp tạo ra mà bị dừng trước khi chạy không tính; tính cả bản lượt 2 cùng video)${cr.luot === 2 ? ' — đây là LƯỢT 2: camp lượt 1 bị luật RS tắt, lên lại kiểu chữ còn lại ở tài khoản khác' : ''}`;
 /** HUY HIỆU KIỂU LÊN CAMP ở góc trên trái ảnh creative (anh 26/11/2026 "kiểu Kiên (K) và Dol (D)… thêm chữ này vào đây ở vị trí góc này, cho màu khác và rõ ràng"):
  *  K = xanh dương (chữ chu-kieu.json, link search.com) · D = cam (chữ form-chu.json, link info.com); kiểu lạ → chữ cái đầu, nền xám. Nguồn: CreativeEtpKho.kieu (etp-doc kieuCr). */
-const KIEU_HH: Record<string, { chu: string; nen: string; ten: string }> = { kien: { chu: 'K', nen: '#2563eb', ten: 'kiểu Kiên — chữ riêng từng phim (chu-kieu.json), link search.com' }, dol: { chu: 'D', nen: '#ea580c', ten: 'kiểu Dol — chữ form chung (form-chu.json), link info.com' } };
+// Badge dùng chung BadgeKieu (etp-so, #1895 — thẻ chờ duyệt cũng in) — ở đây chỉ đặt vị trí góc ảnh.
 function KieuCr({ cr }: { cr: CreativeEtpKho | null | undefined }) {
-  if (!cr?.kieu) return null; const k = KIEU_HH[cr.kieu] ?? { chu: cr.kieu.slice(0, 1).toUpperCase(), nen: '#6b7280', ten: `kiểu ${cr.kieu}` };
-  return <span data-o="cr-kieu" title={k.ten} style={{ position: 'absolute', top: 2, left: 2, minWidth: 11, height: 11, padding: '0 2px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 2, background: k.nen, color: '#fff', fontSize: 8.5, fontWeight: 700, lineHeight: 1, opacity: 0.75, boxShadow: '0 0 0 1px rgba(255,255,255,.7)',   /* anh 26/11/2026 "cho chữ bé hơn, mờ hơn chút" */ pointerEvents: 'auto', cursor: 'help' }}>{k.chu}</span>;
+  return <BadgeKieu k={cr?.kieu} style={{ position: 'absolute', top: 2, left: 2, opacity: 0.75, boxShadow: '0 0 0 1px rgba(255,255,255,.7)', /* anh 26/11/2026 "cho chữ bé hơn, mờ hơn chút" */ pointerEvents: 'auto' }} />;
 }
 function LanDung({ cr }: { cr: CreativeEtpKho | null | undefined }) {
   if (!cr || !(cr.lan_dung > 0)) return null;

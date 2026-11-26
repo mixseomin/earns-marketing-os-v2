@@ -20,7 +20,7 @@ export function SoAgentsW({ du, cardKet = [] }: { du: SoAgents; cardKet?: CardKe
     { key: 'vm', label: 'Việc máy bật', value: `${du.viecMayBat}/${du.viecMay}`, sub: du.viecMayLoi ? <span style={{ color: '#f87171' }}>{du.viecMayLoi} lỗi</span> : 'không lỗi',
       onClick: du.viecMayLoi ? () => datVt('loi') : undefined, title: 'Timer và cron trên box3, box1 (máy dò mỗi 10 phút)' },
     { key: 'chi', label: `Chi API T${du.thang}`, value: tien(du.chiThang), sub: du.luotThang != null ? `${du.luotThang.toLocaleString('vi-VN')} lời gọi` : 'không nối được DB', title: 'Tiền gọi mô hình qua cổng của cty, tháng lịch này (sổ ai_usage)' },
-    { key: 'phien', label: 'Phiên CLI hôm nay', value: du.phienNay, sub: tien(du.usdPhienNay), title: 'Phiên Claude Code của kỹ sư CLI, giá niêm yết API — khác nguồn với Chi API' },
+    { key: 'phien', label: 'Phiên CLI hôm nay', value: du.phienNay, sub: `chi thật ${tien(du.usdPhienNay)}${du.goiPhienNay != null ? ` · gói ${tien(du.goiPhienNay)}` : ''}`, title: 'Phiên Claude Code của kỹ sư CLI · chi thật = tiền cổng AI trừ thật · gói = giá niêm yết API của phiên chạy gói, không phải tiền chi thêm' },
   ];
   return <StatsStrip cards={cards} minColWidth={92} />;
 }

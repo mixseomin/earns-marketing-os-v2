@@ -10,13 +10,13 @@ export type Agent = {
   chi: number | null; luot: number | null; tran: number | null;
 };
 export type SoAgents = { nhanSu: number; cli: number; api: number; nguoi: number; lam: number; ket: number; ranh: number; tat: number;
-  viecMay: number; viecMayBat: number; viecMayLoi: number; chiThang: number | null; luotThang: number | null; thang: number; phienNay: number; usdPhienNay: number };
+  viecMay: number; viecMayBat: number; viecMayLoi: number; chiThang: number | null; luotThang: number | null; thang: number; phienNay: number; usdPhienNay: number; goiPhienNay?: number | null };
 export type ViecMay = { id: string; ten: string; ma: string; may: string; loai: string; nguoi: string | null; nguoiTen: string | null; phong: string | null; phongTen: string | null; chuaGan: boolean;
   lich: string; lichMo: Lich | null; lichLien: boolean; choAp: boolean; loiAp: string | null; apSau: string; cuoi: string | null; tiep: string | null; ket: string; maThoat: string | null; hong: boolean; bat: boolean; khoa: string | null };
 export type ViecNen = { nhan: string; ten: string; may: string; nguoi: string | null; kieu: string; lich: string; lichMo: Lich | null; choAp: boolean; loiAp: string | null;
   tatSo: boolean; tatLyDo: string | null; ghiChu: string | null; cuoi: string | null; ket: string | null; dang: boolean; loi: boolean; tiep: string | null };
-export type PhienDoi = { id: string; nguoi: string; batDau: string | null; giay: number | null; viec: string; ket: string | null; luotGoi: number; vao: number; ra: number; usd: number | null; model: string[] };
-export type Khoang = { phien: number; vao: number; ra: number; usd: number; chuaTinh: number };
+export type PhienDoi = { id: string; nguoi: string; batDau: string | null; giay: number | null; viec: string; ket: string | null; luotGoi: number; vao: number; ra: number; usd: number | null; goi?: number | null; model: string[] };
+export type Khoang = { phien: number; vao: number; ra: number; usd: number; goi?: number; chuaTinh: number };
 export type DuPhien = { tom: { homNay: Khoang; bayNgay: Khoang; tatCa: Khoang }; soKySu: number; ds: PhienDoi[]; hong: string[]; vndUsd: number };
 export type SuKien = { ts: string; luot: string | null; loai: string; tu: string | null; toi: string | null; tom: string };
 export type PhongSoDo = { id: string; ten: string; nguoi: { id: string; ten: string; chucDanh: string; vai: string; loai: string; kieu: TT['kieu']; ket: boolean; viec: string | null }[] };

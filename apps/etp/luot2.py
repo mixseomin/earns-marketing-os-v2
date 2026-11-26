@@ -175,8 +175,8 @@ def _tu_kiem():
     assert [v["cr"] for v in lo(h, 2)] == [1, 3] and [v["cr"] for v in lo(h, 3)] == [1, 3, 4] and [v["cr"] for v in lo(h[:2], 2)] == [1] and lo([], 2) == [], "một lô không có hai dòng cùng phim"
     assert trong_khung(7) and trong_khung(20) and not trong_khung(21) and not trong_khung(6) and not trong_khung(23)
     r = {"duoc": True, "chan": "", "la_l2": False, "bo": "1", "lang": "es"}; co = lambda k: True
-    assert L2["duyet"] == ["kien"], "anh 26/11/2026: camp kiểu K chờ duyệt, kiểu Dol không cần khi creative đã qua duyệt"
-    assert xep(r, "dol", co)[:3] == ("cho_duyet", "kien", "2") and xep({**r, "bo": "2"}, "kien", co) == ("dang", "dol", "1", None), "kiểu còn lại + bộ khác; đích kien chờ anh duyệt"
+    assert L2.get("duyet", []) == [], "anh 26/11/2026 13:30: bỏ duyệt camp K — lượt 2 đi thẳng"
+    assert xep(r, "dol", co)[:3] == ("dang", "kien", "2") and xep({**r, "bo": "2"}, "kien", co) == ("dang", "dol", "1", None), "kiểu còn lại + bộ khác; đích kien chờ anh duyệt"
     assert xep({**r, "la_l2": True}, "dol", co)[0] == "bo", "không có lượt 3"
     assert xep({**r, "duoc": False, "chan": "người duyệt loại"}, "dol", co)[0] == "bo", "bản gốc bị loại thì không lên lại"
     assert xep(r, None, co)[0] == "bo" and xep(r, "dol", lambda k: False)[0] == "bo", "chữ lệch sổ / phim chưa có chữ kiểu đích → bỏ, không tự viết"

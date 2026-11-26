@@ -45,7 +45,6 @@ import { NenLam } from '@/components/etp-tu-van';
 import { TabInsight } from '@/components/etp-insight';
 import { TabLogs } from '@/components/etp-logs';
 import { ChoDuyetCr, NutDuyetCr, SU_DUYET, SUA_MAU, type SuDuyet, type ChonDuyet } from '@/components/etp-cho-duyet';
-import { ChoDuyetLuot2 } from '@/components/etp-luot2-duyet';
 import { NutLenGio, OGioVn } from '@/components/etp-len-gio';
 import { keCr } from '@/lib/etp-ke-cr';
 import { doiRoasCamp, dsCrMoiCamp, hoanCr, lenNgayCr, suaRoasCr } from '@/lib/actions/etp-cho-duyet';
@@ -3893,7 +3892,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       </div>
       {gon ? thanhTren : null}
       {tab === 'camp' && !laNguoi ? <ChoDuyetCr /> : null}
-      {tab === 'camp' && !laNguoi ? <ChoDuyetLuot2 /> : null}   {/* camp lượt 2 kiểu K chờ anh duyệt (anh 26/11/2026) — components/etp-luot2-duyet.tsx */}   {/* creative máy giữ chờ anh duyệt (anh 22/11/2026) — components/etp-cho-duyet.tsx */}
+      {/* creative máy giữ chờ anh duyệt (anh 22/11/2026) — components/etp-cho-duyet.tsx */}
       {tab === 'tong' ? (   /* TỔNG QUAN = lưới widget (anh 11/11/2026 "Tổng quan 2 giờ thay thế luôn tổng quan… xoá Tổng quan cũ"); số theo quyền cắt ở máy chủ (actions/etp-tong2.ts, etp-quyen.ts) */
         <Tong2 laChu={!chiXem} ky={khK} ve={{ bieu_do_ngay: (k) => bieuDoNgay(k.cao), bang_ngay: () => bangNgay, nen_lam: () => <NenLam ds={du.tuVan ?? []} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} />, ...veTach }} dau={Object.fromEntries(Object.keys(veTach).map((k) => [k, DAU_TACH]))} />
       ) : tab === 'roas' ? (

@@ -63,9 +63,9 @@
         "ve": "Mia lịch bài persona: thêm đúng MỘT đề Reel cắt cảnh 9s FREE vào mau/may/mia-reel-*.json rồi --nap-nguon + --slug dựng bài. Không --sinh-kho (19/11/2026)."
       },
       "giochap-van-khan": {
-        "lenh": "iMac: /Users/htuan/Me/earns/giochap-ios/Tools/van-khan/nap-may.sh --ngay 120",
+        "lenh": "ssh root@167.233.241.16 'cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/nap-lich-van-khan.mts --ngay 120'",
         "vnd_de": 0,
-        "ve": "Lịch văn khấn theo ngày âm (Tools/van-khan/lich-dang.mjs) → ios-chung/noi-dung/nap-may.sh → nap-may.mts trên box3: nạp xv_may_video + đẩy video đã dựng sẵn lên R2. 0₫, không gọi AI. Cửa sổ đăng 3 ngày trước ngày cúng nên chạy lại không sinh trùng; bài ngoài cửa sổ thì Phòng Nội dung tính là chưa tới hạn, không phải thiếu."
+        "ve": "Lịch văn khấn theo ngày âm, chạy TRONG box3 trên mã đã lên qua GHA (scripts/nap-lich-van-khan.mts + lõi lich-am-van-khan.mjs + du-lieu / anh-nguon JSON) — trước đây tính lịch ở iMac rồi rsync/scp sang box3 nên kỹ sư không chạy được. Nạp xv_may_video; video lấy URL R2 có sẵn trong sổ, KHÔNG tải mp4 từ Mac. 0₫, không gọi AI. Bài vào sổ ở dạng lưu trữ (luu_tru) vì chuẩn Phòng Nội dung bắt goc.id + hook.qc từ spy mà lịch không có — nhả lưu trữ là quyết định của anh. --xem in lịch, không ghi DB."
       }
     }
   }

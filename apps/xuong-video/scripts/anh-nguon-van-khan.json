@@ -1,0 +1,51 @@
+{
+ "_ve": "Ảnh nền thật (Pexels) cho video văn khấn. Rút từ giochap-ios Tools/van-khan/anh-nguon.json — chỉ giữ trường src (URL ảnh) theo mã video: lịch nạp dùng làm nen_url của bài.",
+ "ram-mung-1": {
+  "src": "https://images.pexels.com/photos/12700449/pexels-photo-12700449.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "gio": {
+  "src": "https://images.pexels.com/photos/5592408/pexels-photo-5592408.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "ram-thang-7": {
+  "src": "https://images.pexels.com/photos/20533635/pexels-photo-20533635.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "giao-thua": {
+  "src": "https://images.pexels.com/photos/2800041/pexels-photo-2800041.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "mung-1-tet": {
+  "src": "https://images.pexels.com/photos/36341080/pexels-photo-36341080.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "hoa-vang": {
+  "src": "https://images.pexels.com/photos/36159732/pexels-photo-36159732.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "ram-gieng": {
+  "src": "https://images.pexels.com/photos/34224305/pexels-photo-34224305.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "than-tai": {
+  "src": "https://images.pexels.com/photos/33845710/pexels-photo-33845710.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "thanh-minh": {
+  "src": "https://images.pexels.com/photos/33200061/pexels-photo-33200061.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "ong-tao": {
+  "src": "https://images.pexels.com/photos/11632278/pexels-photo-11632278.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "le-chua": {
+  "src": "https://images.pexels.com/photos/27274700/pexels-photo-27274700.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "index": {
+  "src": "https://images.pexels.com/photos/15268384/pexels-photo-15268384.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "lich-am": {
+  "src": "https://images.pexels.com/photos/39335277/pexels-photo-39335277.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "ram-mung-1-0": {
+  "src": "https://images.pexels.com/photos/11551314/pexels-photo-11551314.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "ram-mung-1-2": {
+  "src": "https://images.pexels.com/photos/16249952/pexels-photo-16249952.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ },
+ "ram-mung-1-3": {
+  "src": "https://images.pexels.com/photos/40375321/pexels-photo-40375321.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+ }
+}

@@ -1,0 +1,340 @@
+{
+ "_ve": "Rút gọn từ giochap-ios web/app/du-lieu.json (lõi Giỗ Chạp) — chỉ giữ phần lịch văn khấn cần: holidays (dịp + quy tắc ngày âm) và prayers (bài khấn: sắm lễ + số bước). Nguồn đầy đủ ở /Users/htuan/Me/earns/giochap-ios/web/app/du-lieu.json.",
+ "holidays": [
+  {
+   "group": "tet",
+   "groupTitle": "Lễ Tết lớn",
+   "id": "tet",
+   "name": "Tết Nguyên đán",
+   "on": true,
+   "prayer": "mung-1-tet",
+   "rule": {
+    "d": 1,
+    "k": "lunar",
+    "m": 1
+   }
+  },
+  {
+   "group": "tet",
+   "groupTitle": "Lễ Tết lớn",
+   "id": "hoa-vang",
+   "name": "Lễ hoá vàng (mùng 3 Tết)",
+   "on": true,
+   "prayer": "hoa-vang",
+   "rule": {
+    "d": 3,
+    "k": "lunar",
+    "m": 1
+   }
+  },
+  {
+   "group": "dangian",
+   "groupTitle": "Lễ dân gian",
+   "id": "than-tai",
+   "name": "Vía Thần Tài",
+   "on": true,
+   "prayer": "than-tai",
+   "rule": {
+    "d": 10,
+    "k": "lunar",
+    "m": 1
+   }
+  },
+  {
+   "group": "tet",
+   "groupTitle": "Lễ Tết lớn",
+   "id": "ram-gieng",
+   "name": "Rằm tháng Giêng (Tết Nguyên tiêu)",
+   "on": true,
+   "prayer": "ram-gieng",
+   "rule": {
+    "d": 15,
+    "k": "lunar",
+    "m": 1
+   }
+  },
+  {
+   "group": "phat",
+   "groupTitle": "Ngày Phật giáo",
+   "id": "quan-am-2",
+   "name": "Vía Quan Âm (đản sinh)",
+   "on": false,
+   "prayer": "le-chua",
+   "rule": {
+    "d": 19,
+    "k": "lunar",
+    "m": 2
+   }
+  },
+  {
+   "group": "dangian",
+   "groupTitle": "Lễ dân gian",
+   "id": "han-thuc",
+   "name": "Tết Hàn thực",
+   "on": true,
+   "prayer": "ram-mung-1",
+   "rule": {
+    "d": 3,
+    "k": "lunar",
+    "m": 3
+   }
+  },
+  {
+   "group": "tet",
+   "groupTitle": "Lễ Tết lớn",
+   "id": "gio-to",
+   "name": "Giỗ Tổ Hùng Vương",
+   "on": true,
+   "prayer": null,
+   "rule": {
+    "d": 10,
+    "k": "lunar",
+    "m": 3
+   }
+  },
+  {
+   "group": "tet",
+   "groupTitle": "Lễ Tết lớn",
+   "id": "thanh-minh",
+   "name": "Tiết Thanh minh (tảo mộ)",
+   "on": true,
+   "prayer": "thanh-minh",
+   "rule": {
+    "deg": 15,
+    "k": "term",
+    "m": 4
+   }
+  },
+  {
+   "group": "phat",
+   "groupTitle": "Ngày Phật giáo",
+   "id": "phat-dan",
+   "name": "Lễ Phật đản",
+   "on": true,
+   "prayer": "le-chua",
+   "rule": {
+    "d": 15,
+    "k": "lunar",
+    "m": 4
+   }
+  },
+  {
+   "group": "tet",
+   "groupTitle": "Lễ Tết lớn",
+   "id": "doan-ngo",
+   "name": "Tết Đoan ngọ",
+   "on": true,
+   "prayer": "ram-mung-1",
+   "rule": {
+    "d": 5,
+    "k": "lunar",
+    "m": 5
+   }
+  },
+  {
+   "group": "phat",
+   "groupTitle": "Ngày Phật giáo",
+   "id": "quan-am-6",
+   "name": "Vía Quan Âm (thành đạo)",
+   "on": false,
+   "prayer": "le-chua",
+   "rule": {
+    "d": 19,
+    "k": "lunar",
+    "m": 6
+   }
+  },
+  {
+   "group": "tet",
+   "groupTitle": "Lễ Tết lớn",
+   "id": "vu-lan",
+   "name": "Rằm tháng Bảy (Vu Lan)",
+   "on": true,
+   "prayer": "ram-thang-7",
+   "rule": {
+    "d": 15,
+    "k": "lunar",
+    "m": 7
+   }
+  },
+  {
+   "group": "tet",
+   "groupTitle": "Lễ Tết lớn",
+   "id": "trung-thu",
+   "name": "Tết Trung thu",
+   "on": true,
+   "prayer": "ram-mung-1",
+   "rule": {
+    "d": 15,
+    "k": "lunar",
+    "m": 8
+   }
+  },
+  {
+   "group": "phat",
+   "groupTitle": "Ngày Phật giáo",
+   "id": "quan-am-9",
+   "name": "Vía Quan Âm (xuất gia)",
+   "on": false,
+   "prayer": "le-chua",
+   "rule": {
+    "d": 19,
+    "k": "lunar",
+    "m": 9
+   }
+  },
+  {
+   "group": "dangian",
+   "groupTitle": "Lễ dân gian",
+   "id": "ha-nguyen",
+   "name": "Rằm tháng Mười (Tết Hạ nguyên)",
+   "on": true,
+   "prayer": "ram-mung-1",
+   "rule": {
+    "d": 15,
+    "k": "lunar",
+    "m": 10
+   }
+  },
+  {
+   "group": "dangian",
+   "groupTitle": "Lễ dân gian",
+   "id": "dong-chi",
+   "name": "Tiết Đông chí",
+   "on": false,
+   "prayer": null,
+   "rule": {
+    "deg": 270,
+    "k": "term",
+    "m": 12
+   }
+  },
+  {
+   "group": "tet",
+   "groupTitle": "Lễ Tết lớn",
+   "id": "ong-tao",
+   "name": "Ông Công ông Táo",
+   "on": true,
+   "prayer": "ong-tao",
+   "rule": {
+    "d": 23,
+    "k": "lunar",
+    "m": 12
+   }
+  },
+  {
+   "group": "tet",
+   "groupTitle": "Lễ Tết lớn",
+   "id": "tat-nien",
+   "name": "Tất niên, giao thừa (30 Tết)",
+   "on": true,
+   "prayer": "giao-thua",
+   "rule": {
+    "k": "last"
+   }
+  }
+ ],
+ "prayers": [
+  {
+   "id": "ram-mung-1",
+   "offerings": [
+    "Hương, đèn nến, hoa tươi, đĩa hoa quả, trầu cau, chén nước sạch",
+    "Nhà nào cúng mặn thì thêm mâm cơm (xôi, gà, giò) và chén rượu",
+    "Vàng mã (tuỳ nhà)"
+   ],
+   "so_buoc": 5
+  },
+  {
+   "id": "gio",
+   "offerings": [
+    "Hương, hoa tươi, đèn nến, quả cau lá trầu",
+    "Ngũ quả, trà, rượu",
+    "Mâm cơm: xôi, gà luộc, canh và các món người mất lúc sinh thời ưa thích",
+    "Vàng mã (tuỳ nhà)"
+   ],
+   "so_buoc": 5
+  },
+  {
+   "id": "ram-thang-7",
+   "offerings": [
+    "Lễ thần linh, gia tiên: hương, hoa, đèn nến, ngũ quả, mâm cơm mặn hoặc chay, trầu cau, rượu",
+    "Mâm chúng sinh ngoài trời: cháo loãng, gạo muối, bỏng ngô, bánh kẹo, hoa quả, nước",
+    "Quần áo giấy, tiền vàng (tuỳ nhà)"
+   ],
+   "so_buoc": 4
+  },
+  {
+   "id": "giao-thua",
+   "offerings": [
+    "Mâm ngoài trời: hương, hoa, đèn nến, ngũ quả, gà luộc, xôi, bánh chưng, rượu, trầu cau, mũ áo và vàng mã cho quan Hành khiển",
+    "Mâm trong nhà: hương, hoa, ngũ quả, bánh chưng, xôi, gà luộc, giò chả, rượu, trà, mứt Tết"
+   ],
+   "so_buoc": 3
+  },
+  {
+   "id": "mung-1-tet",
+   "offerings": [
+    "Hương, hoa tươi, đèn nến, ngũ quả, trầu cau",
+    "Mâm cỗ Tết: bánh chưng, xôi, gà luộc, giò chả, canh, rượu, trà, mứt",
+    "Vàng mã (tuỳ nhà)"
+   ],
+   "so_buoc": 3
+  },
+  {
+   "id": "hoa-vang",
+   "offerings": [
+    "Hương, hoa, đèn nến, ngũ quả, trầu cau, rượu, trà",
+    "Mâm cơm mặn hoặc chay: xôi, gà luộc, canh, giò chả, bánh chưng",
+    "Vàng mã, tiền giấy để hoá sau khi khấn"
+   ],
+   "so_buoc": 3
+  },
+  {
+   "id": "ram-gieng",
+   "offerings": [
+    "Hương, hoa, đèn nến, ngũ quả",
+    "Mâm cơm mặn hoặc chay: xôi, chè trôi nước, gà luộc, canh",
+    "Rượu, trà, trầu cau"
+   ],
+   "so_buoc": 5
+  },
+  {
+   "id": "than-tai",
+   "offerings": [
+    "Hương, hoa tươi, đèn nến, ngũ quả",
+    "Lễ mặn: heo quay hoặc thịt luộc, tôm cua (tuỳ nhà); hoặc lễ chay",
+    "Rượu, nước, trầu cau",
+    "Vàng thỏi, tiền vàng (tuỳ nhà)"
+   ],
+   "so_buoc": 4
+  },
+  {
+   "id": "thanh-minh",
+   "offerings": [
+    "Ra mộ: tiền vàng, hương đèn, trầu cau, hoa quả, đồ cúng chay hoặc mặn",
+    "Cuốc, xẻng nhỏ, khăn để dọn cỏ, đắp đất",
+    "Tại nhà: xôi, gà luộc, canh măng hoặc đồ chay; hoặc hoa quả, trà, bánh kẹo"
+   ],
+   "so_buoc": 5
+  },
+  {
+   "id": "ong-tao",
+   "offerings": [
+    "Hương, hoa, đèn nến, ngũ quả",
+    "Mũ ông Công (2 mũ ông, 1 mũ bà), áo, hài bằng giấy",
+    "Cá chép (sống để phóng sinh sau lễ, hoặc cá giấy)",
+    "Mâm cỗ mặn hoặc chay, trầu cau, rượu"
+   ],
+   "so_buoc": 5
+  },
+  {
+   "id": "le-chua",
+   "offerings": [
+    "Lễ chay: hương, hoa tươi, oản, quả chín",
+    "Sớ (nếu có) đặt trên mâm lễ",
+    "Không đặt lễ mặn lên ban Phật"
+   ],
+   "so_buoc": 4
+  }
+ ]
+}

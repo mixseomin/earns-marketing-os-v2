@@ -72,8 +72,12 @@ def main():
     try:
         import roas_doi; rd = roas_doi.chay(xem)
     except Exception as e: rd = {"loi": f"{type(e).__name__}: {str(e)[:200]}"}
+    # LƯỢT 2 CHO CREATIVE RS TẮT (anh 26/11/2026, apps/etp/luot2.py — sổ luật luot2): kiểu chữ còn lại, tài khoản khác, hẹn khung 22h kế; ngoài khung chỉ ghi sổ
+    try:
+        import luot2; l2 = luot2.chay(xem)
+    except Exception as e: l2 = {"loi": f"{type(e).__name__}: {str(e)[:200]}"}
     ds, ly = ke_hoach()
-    if ly or xem: print(json.dumps({"ok": True, "ke_hoach": ds, "ly": ly, "hoi_cho": hc, "lenh_cho": lc, "roas_doi": rd}, ensure_ascii=False, default=str)); return
+    if ly or xem: print(json.dumps({"ok": True, "ke_hoach": ds, "ly": ly, "hoi_cho": hc, "lenh_cho": lc, "roas_doi": rd, "luot2": l2}, ensure_ascii=False, default=str)); return
     ra = []
     for v in ds:
         luat = f"{LUAT} {v['bo']} · phim #{v['phim']} 7 ngày {v['r7']}% · 3 ngày {v['r3']}% · gốc #{v['goc']}"
@@ -83,6 +87,6 @@ def main():
             k = json.loads((r.stdout.strip().splitlines() or ["{}"])[-1])
         except Exception as e: k = {"ok": False, "loi": str(e)[:200]}
         ra.append({**v, "ok": bool(k.get("ok")), "moi": k.get("moi"), "loi": k.get("loi")})
-    print(json.dumps({"ok": True, "da": ra, "hoi_cho": hc, "lenh_cho": lc, "roas_doi": rd}, ensure_ascii=False, default=str))
+    print(json.dumps({"ok": True, "da": ra, "hoi_cho": hc, "lenh_cho": lc, "roas_doi": rd, "luot2": l2}, ensure_ascii=False, default=str))
 
 if __name__ == "__main__": main()

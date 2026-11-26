@@ -1853,4 +1853,11 @@ export const LUAT = [
   { card: 'cr-moi-2511', tep: 'apps/etp/ethopex_api.py', co: 'def creative_cu(cr):', vi: 'camp mới chỉ lên creative chưa từng có camp (anh 25/11/2026 "Cấm dùng lại")' },
   { card: 'cr-moi-2511', tep: 'apps/etp/ethopex_api.py', co: 'camp mới phải creative mới, nhân bản thì clone bài đăng', vi: 'cửa API chặn creative cũ ở mọi đường tạo camp' },
   { card: 'cr-moi-2511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'nhân bản chỉ clone bài đăng, creative cũ cấm dùng lại', cam: 'moi = {"creative": a["creative_id"], "content": a["content_id"]}', vi: 'nhân bản / ★ ROAS nhân bản = clone bài đăng; không đăng lại creative của camp gốc' },
+  { card: 'luot2-2611', tep: 'apps/etp/cong.py', co: 'def luot2_dang(cts, q=None):', vi: 'lượt 2: cổng chỉ-lên-theo-lệnh chỉ mở cho phim có dòng sổ etp.luot2 đang chờ (anh 26/11/2026)' },
+  { card: 'luot2-2611', tep: 'apps/etp/cong.py', co: 'if viec == "bat" and camp_id and str(int(camp_id)) in (q or _q)(SQL_RS_TAT).split(): return LY_RS_TAT', vi: 'camp RS tắt không bật lại (anh 26/11/2026 "Ko đc bật lại camp đã tắt kia")' },
+  { card: 'luot2-2611', tep: 'apps/etp/nuoi_bo.py', co: 'import luot2; l2 = luot2.chay(xem)', vi: 'luật lượt 2 chạy trong nhịp worker có sẵn, không timer riêng' },
+  { card: 'luot2-2611', tep: 'apps/etp/luot2.py', co: 'if r["la_l2"]: return "bo", None, None, "đã là bản lượt 2 — không có lượt 3"', cam: '"--tay"', vi: 'lượt 2 một lần mỗi creative, đi qua đủ cổng nhan-ban (không --tay)' },
+  { card: 'luot2-2611', tep: 'apps/etp/luot2.py', co: 'bo = L2["bo"].get(str(r["bo"] or ""))', vi: 'lượt 2 lên ở bộ tài khoản khác theo sổ, không tự chọn tài khoản' },
+  { card: 'luot2-2611', tep: 'packages/db/migrations/0479_etp_luot2.sql', co: 'create or replace view etp.cr_lan_dung', vi: 'chỉ số đếm số lần creative được dùng (gốc + bản lượt 2)' },
+  { card: 'luot2-2611', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'etp.cr_lan_dung', vi: 'etp2 đọc số lần dùng creative' },
 ];

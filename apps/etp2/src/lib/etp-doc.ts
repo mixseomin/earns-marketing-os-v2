@@ -49,7 +49,9 @@ export type CampEtpKho = { camp_id: number; /** miền trang đích của ad (Et
   /** ROAS goal thật đang đặt trên Ethopex (Ad Set) + bid strategy cấp campaign — camp ROAS ★ (migration 0339) */
   roas: number | null; chien_luoc: string | null };
 export type CreativeEtpKho = { creative_id: number; content_id: number | null; phim: string | null; the_loai: string | null; dang: string | null; ban: string | null; giong: string | null; doan: string | null; tu: number | null; den: number | null;
-  lang: string | null; cta_dat: boolean; tu_choi: string | null; video: string | null; anh: string | null; camp: number; chay: number; cung_doan: number; thang: SoTien; qua: SoTien; nay: SoTien; ngay_dau: string | null;
+  lang: string | null; cta_dat: boolean; tu_choi: string | null; video: string | null; anh: string | null; camp: number; chay: number; cung_doan: number;
+  /** SỐ LẦN CREATIVE ĐƯỢC DÙNG (anh 26/11/2026 "thêm chỉ số đếm số lần creative đc sử dụng"): số camp đã lên của creative gốc + bản lượt 2 của nó (view etp.cr_lan_dung); luot = 2 khi đây là bản lượt 2 (apps/etp/luot2.py) */
+  lan_dung: number; luot: number; thang: SoTien; qua: SoTien; nay: SoTien; ngay_dau: string | null;
   /** tab Creative › Soát (anh 25/10/2026: "chỉ số review từng creative về mọi tiêu chí"): soát 18+ cả phim · soát từng đoạn (máy / người, chờ soát) · trạng thái phát của Meta ở các camp */
   s18: { ok: boolean; ghi: string; luc: string } | null; sd: { ok: boolean; ghi: string; luc: string } | null; sd_cho: boolean; giao: string[] };
 export type PhimEtpKho = { content_id: number; ten: string | null; the_loai: string | null; bo: string | null; locale: string | null; nguon: string | null; creative: number; camp: number; chay: number;
@@ -282,7 +284,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   // 'unhandled rejection' khi một câu trước đó đã ném và câu này không còn ai đợi.
   const som = <T,>(p: Promise<T>): Promise<T> => { p.catch(() => {}); return p; };
   const qSoat = som(Promise.all([run<{ ten: string; gia_tri: Record<string, { ok?: boolean; ghi?: string; luc?: string }> | null }>(sql`select ten, gia_tri from xv_khoa_ngoai where ten in ('ethopex_soat_18', 'ethopex_soat_doan', 'ethopex_cho_soat', 'ethopex_quet', 'ethopex_can_goc_moi', 'ethopex_cho_dung_lai', 'ethopex_xuong')`)]));
-  const qCrInfo = som(run<Record<string, unknown>>(sql`select creative_id, tu, den, lang, cta_dat, tu_choi, video, anh from etp.creative`));
+  const qCrInfo = som(run<Record<string, unknown>>(sql`select r.creative_id, r.tu, r.den, r.lang, r.cta_dat, r.tu_choi, r.video, r.anh, coalesce(d.lan_dung, 0) lan_dung, coalesce(d.luot, 1) luot from etp.creative r left join etp.cr_lan_dung d using (creative_id)`));
   const qAnhCr = som(run<{ c: number; a: string | null; v: string | null }>(sql`select creative_id c, anh a, video v from etp.anh_cr where anh is not null or video is not null`));
   const qPhInfo = som(run<Record<string, unknown>>(sql`select content_id, ten, the_loai, bo, locale, nguon, nhom_goc, case when thu_vong = 'cat' then thu_luc end moc, thu_vong, thu_ly from etp.phim`));
   // sổ phim cấm (cùng sổ cong.phim_cam) — đọc nguyên sổ, không lọc phim nào (anh 19/11/2026)
@@ -569,7 +571,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     if (c.creative_id == null) continue;
     const i = crInfo.get(c.creative_id) ?? {};
     const x = crMap.get(c.creative_id) ?? { creative_id: c.creative_id, content_id: c.content_id, phim: c.phim, the_loai: c.the_loai, dang: c.dang, ban: c.ban, giong: c.giong, doan: c.doan, tu: i.tu == null ? null : n(i.tu), den: i.den == null ? null : n(i.den),
-      lang: (i.lang as string) ?? null, cta_dat: !!i.cta_dat, tu_choi: (i.tu_choi as string) ?? null, video: (i.video as string) || anhCr.get(c.creative_id)?.v || null, anh: (i.anh as string) || anhCr.get(c.creative_id)?.a || null, camp: 0, chay: 0, cung_doan: c.cung_doan,
+      lang: (i.lang as string) ?? null, cta_dat: !!i.cta_dat, tu_choi: (i.tu_choi as string) ?? null, video: (i.video as string) || anhCr.get(c.creative_id)?.v || null, anh: (i.anh as string) || anhCr.get(c.creative_id)?.a || null, camp: 0, chay: 0, cung_doan: c.cung_doan, lan_dung: n(i.lan_dung ?? 0), luot: n(i.luot ?? 1),
       thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, ngay_dau: null,
       s18: c.content_id ? dongS(s18[String(c.content_id)]) : null, sd: c.doan ? dongS(sDoan[c.doan]) : null, sd_cho: !!(c.doan && choSoat[c.doan]), giao: [] as string[] };
     if (c.giao) x.giao.push(c.giao);
@@ -676,11 +678,11 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   // + creative dòng CHỜ ANH DUYỆT (hangCr): chưa camp nên không vào crMap từ cs — thiếu thì ô creative trống (anh 22/11/2026 "Tao cần xem cả creative !!")
   const thieu = [...new Set([...cham.map((r) => n(r.creative_id)), ...phot.map((r) => n(r.creative_id)), ...hangCr.map((c) => c.creative_id!)])].filter((id) => id && !crMap.has(id));
   if (thieu.length) {
-    const ds = await run<Record<string, unknown>>(sql`select c.creative_id, c.content_id, p.ten phim, p.the_loai, c.dang, ${banCr('c.creative_id', 'c.dang')} ban, ${giongCr('c.creative_id')} giong, c.doan, c.tu, c.den, c.lang, c.cta_dat, c.tu_choi, c.video, coalesce(nullif(c.anh, ''), (select a.anh from etp.anh_cr a where a.creative_id = c.creative_id)) anh
-      from etp.creative c left join etp.phim p on p.content_id = c.content_id where c.creative_id = any(${`{${thieu.join(',')}}`}::int[])`);
+    const ds = await run<Record<string, unknown>>(sql`select c.creative_id, c.content_id, p.ten phim, p.the_loai, c.dang, ${banCr('c.creative_id', 'c.dang')} ban, ${giongCr('c.creative_id')} giong, c.doan, c.tu, c.den, c.lang, c.cta_dat, c.tu_choi, coalesce(d.lan_dung, 0) lan_dung, coalesce(d.luot, 1) luot, c.video, coalesce(nullif(c.anh, ''), (select a.anh from etp.anh_cr a where a.creative_id = c.creative_id)) anh
+      from etp.creative c left join etp.phim p on p.content_id = c.content_id left join etp.cr_lan_dung d on d.creative_id = c.creative_id where c.creative_id = any(${`{${thieu.join(',')}}`}::int[])`);
     for (const i of ds) crMap.set(n(i.creative_id), { creative_id: n(i.creative_id), content_id: i.content_id == null ? null : n(i.content_id), phim: (i.phim as string) ?? null, the_loai: (i.the_loai as string) ?? null,
       dang: (i.dang as string) ?? null, ban: (i.ban as string) ?? null, giong: (i.giong as string) ?? null, doan: (i.doan as string) ?? null, tu: i.tu == null ? null : n(i.tu), den: i.den == null ? null : n(i.den), lang: (i.lang as string) ?? null, cta_dat: !!i.cta_dat,
-      tu_choi: (i.tu_choi as string) ?? null, video: (i.video as string) ?? null, anh: (i.anh as string) ?? null, camp: 0, chay: 0, cung_doan: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 },
+      tu_choi: (i.tu_choi as string) ?? null, video: (i.video as string) ?? null, anh: (i.anh as string) ?? null, camp: 0, chay: 0, cung_doan: 0, lan_dung: n(i.lan_dung ?? 0), luot: n(i.luot ?? 1), thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 },
       ngay_dau: null, s18: null, sd: null, sd_cho: false, giao: [] });
   }
   const abSo = await qAbSo;

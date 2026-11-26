@@ -324,6 +324,19 @@ LY_LUAT_CU = f"LUẬT CŨ DỪNG: luật máy thử phim / lên camp mới có t
 # NGUỒN LỆNH MỚI (từ LUAT_CU_MOC trở đi): lenh_cho = hàng lệnh chờ của anh (20/11 lenh_cho + 22/11 len_cr_roas, apps/etp/lenh_cho.chay_script đặt);
 # roas_doi = nhân đôi ★ ROAS lãi qua đêm (anh 22/11/2026 "Làm luôn", apps/etp/roas_doi.nb đặt)
 NGUON_MOI = ("lenh_cho", "roas_doi")
+NGUON_MOI += ("luot2",)   # luot2 = lượt 2 cho creative RS tắt (anh 26/11/2026, apps/etp/luot2.nb đặt)
+# LƯỢT 2 (anh 26/11/2026: "Các creative này sẽ được lên camp mới ở khung giờ 22h tiếp ngay sau đó với kiểu lên camp còn lại … Hãy tạo tiếp rule này"):
+# luật anh lệnh đích danh → cổng "chỉ lên theo lệnh" mở cho ĐÚNG phim đang có dòng sổ etp.luot2 tt 'dang' và chỉ khi tiến trình do luot2.py gọi; đọc sổ lỗi = không mở.
+def luot2_dang(cts, q=None):
+    if os.environ.get("ETP_NGUON") != "luot2": return False
+    try:
+        ds = [int(c) for c in cts if c]
+        return bool(ds) and all((q or _q)(f"select count(*) from etp.luot2 where content_id = {c} and tt = 'dang'") not in ("", "0") for c in ds)
+    except Exception: return False
+# CAMP RS TẮT KHÔNG BẬT LẠI (anh 26/11/2026 "Ko đc bật lại camp đã tắt kia"): camp máy tắt theo luật RS → mọi đường bật (máy, lịch giờ, nút có vé thường) bị chặn;
+# chỉ vé LỆNH TRỰC TIẾP của anh qua (đã cảnh báo một lần lúc cấp vé)
+SQL_RS_TAT = "select camp_id from etp.nhat_ky where viec = 'tat' and ok and luat like 'RS %' and camp_id is not null"
+LY_RS_TAT = "camp tắt theo luật RS — không bật lại (anh 26/11/2026 \"Ko đc bật lại camp đã tắt kia\"); creative của nó lên lượt 2 ở camp mới (apps/etp/luot2.py)"
 def luat_cu_chan(viec, camp_ids=(), content_id=None):
     """LY_LUAT_CU nếu việc lên camp mới này đến từ luật máy cũ (trước LUAT_CU_MOC) | None — lệnh mới = vé ETP_VE hợp lệ (trực tiếp / anh bấm) hoặc hàng lệnh chờ lenh_cho"""
     if not LUAT_CU_DUNG or viec not in ("tao_camp", "nhan_ban"): return None
@@ -485,6 +498,8 @@ def chan_cua(viec, ch, camp_id=None, thay=False, ve=False, lich=False, cts=(), g
     if ly_cam: return ly_cam
     # tt = vé LỆNH TRỰC TIẾP của anh (anh 20/11/2026 09:35): miễn dừng khẩn / ít nước / bảo trì / phanh chợ — đã cảnh báo một lần lúc cấp vé (cong.py --ve-truc-tiep)
     if tt: return None
+    if viec == "bat" and camp_id and str(int(camp_id)) in (q or _q)(SQL_RS_TAT).split(): return LY_RS_TAT   # trước miễn lịch giờ / vé thường
+    if ch.get(KHOA_CHI_LENH) and luot2_dang(cts, q): ch = {**ch, KHOA_CHI_LENH: False}   # lượt 2 = luật anh lệnh đích danh 26/11/2026, chỉ cho phim có dòng sổ đang chờ
     if viec in ("tao_camp", "nhan_ban") and ch.get(KHOA_CHI_LENH) and not ve: return LY_CHI_LENH   # đứng trước miễn thay bài / lịch: máy không tự sinh camp mới
     if ch.get("dung_khan"): return LY_DUNG_KHAN
     if lich: return None
@@ -703,6 +718,15 @@ def _tu_kiem():
     assert all(chan_cua(_v, _cl, **_k) == LY_CHI_LENH for _v in ("tao_camp", "nhan_ban") for _k in ({}, {"thay": True}, {"lich": True})), "máy tạo / nhân bản phải bị chặn"
     assert chan_cua("tao_camp", _cl, ve=True) is None and chan_cua("nhan_ban", _cl, tt=True) is None, "nút anh / lệnh trực tiếp vẫn lên"
     assert all(chan_cua(_v, _cl) is None for _v in ("tang", "bat", "giam", "tat")) and chan_cua("nhan_ban", {KHOA_CHI_LENH: False}) is None, "chỉ chặn tạo mới"
+    _e0 = os.environ.pop("ETP_NGUON", None); _co = lambda s: "1" if "etp.luot2" in s else ""; _ko = lambda s: "0" if "etp.luot2" in s else ""   # lượt 2 (anh 26/11/2026): cổng chỉ mở cho luot2.py + phim đang có dòng sổ 'dang'
+    assert chan_cua("tao_camp", _cl, cts=[9], q=_co) == LY_CHI_LENH, "không phải tiến trình luot2 thì sổ có dòng cũng không mở"
+    os.environ["ETP_NGUON"] = "luot2"
+    assert chan_cua("tao_camp", _cl, cts=[9], q=_co) != LY_CHI_LENH and chan_cua("tao_camp", _cl, cts=[9], q=_ko) == LY_CHI_LENH and chan_cua("tao_camp", _cl, q=_co) == LY_CHI_LENH, "luot2 chỉ mở cho phim có dòng 'dang'"
+    assert chan_cua("tao_camp", {**_cl, "dung_khan": True}, cts=[9], q=_co) == LY_DUNG_KHAN, "lượt 2 vẫn dừng khi dừng khẩn"
+    os.environ.pop("ETP_NGUON"); _e0 and os.environ.__setitem__("ETP_NGUON", _e0)
+    _rs = lambda s: "7\n8" if s == SQL_RS_TAT else ""
+    assert chan_cua("bat", {}, 7, q=_rs) == LY_RS_TAT and chan_cua("bat", {}, 7, lich=True, q=_rs) == LY_RS_TAT and chan_cua("bat", {}, 7, ve=True, q=_rs) == LY_RS_TAT, "camp RS tắt không bật lại (máy / lịch / vé thường)"
+    assert chan_cua("bat", {}, 7, tt=True, q=_rs) is None, "lệnh trực tiếp của anh vẫn qua"
     assert phanh_sx(_cl) == "chờ phanh nhả: " + LY_CHI_LENH, "dòng phim / hàng chấm đọc cùng cổng"
     _bt = {"bao_tri_len": {"bat": True, "tu": "x"}}
     assert chan_cua("tao_camp", _bt).startswith("ETHOPEX BẢO TRÌ") and chan_cua("tao_camp", _bt, ve=True) is None

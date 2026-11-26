@@ -874,7 +874,10 @@ const LUAT = [
   { card: '1867', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', co: 'const b = useMemo(() => deLen(goc, de), [goc, de]);', vi: 'KhungBaiQc đè giá trị cấu hình lên bài đọc từ creative (#1867)' },
   { card: '1867', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: "a_page_ten: S(r.pten), a_page_anh: S(r.panh)", vi: 'khối cấu hình trả tên + ảnh Page để khung xem trước hiện đúng Page (#1867)' },
   // CAMP CHỜ GIỜ CHẠY MỜ (anh 26/11/2026 #1881 "Chờ giờ chạy : thì các phần này mờ đi")
-  { card: '1881', tep: 'apps/etp2/src/components/etp-view.tsx', co: "k.key === 'tt' ? k : { ...k, cellRowStyle: (c: CampEtpKho) => (choGio(c) ? { opacity: 0.4 }", vi: 'cây camp: dòng camp hẹn giờ chưa chạy mờ mọi ô, chỉ ô TT (giờ hẹn + ⏸) rõ' },
+  { card: '1881', tep: 'apps/etp2/src/components/etp-view.tsx', co: "(choGio(c) ? cot !== 'tt' :", vi: 'cây camp: dòng camp hẹn giờ chưa chạy mờ mọi ô, chỉ ô TT (giờ hẹn + ⏸) rõ' },
+  // BẢN NHÂN ĐANG CHẠY CHỈ SÁNG Ô CAMP (anh 26/11/2026 #1884 "camp dup ra sẽ chỉ làm sáng mỗi phần đỏ, còn lại vẫn để mờ")
+  { card: '1884', tep: 'apps/etp2/src/components/etp-view.tsx', co: "!!c.goc && c.camp_id > 0 && dangChay(c) && cot !== 'camp'", vi: 'cây camp: bản nhân (có camp gốc) đang chạy thật → mọi ô mờ trừ ô camp (# + mức ROAS)' },
+  { card: '1884', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'cellRowStyle: (c: CampEtpKho) => (dongMo(c, k.key) ? { opacity: 0.4 }', vi: 'cây camp: mọi cột đọc chung hàm dongMo' },
   // CAMP CHƯA CHẠY KHÔNG CÓ TUỔI (anh 26/11/2026 #1883 "Camp chưa chạy thì ko hiện cột tuổi")
   { card: '1883', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const tuoiCamp = (c: CampEtpKho) => (choChay(c) ? null : tuoiNgay(c.tao));', vi: 'tuổi camp: camp chờ giờ / đang tạo trả null — một hàm cho mọi cột / lọc Tuổi' },
   { card: '1883', tep: 'apps/etp2/src/components/etp-view.tsx', co: "cell: (c) => (tuoi(c) == null ? '' : tuoiChu(tuoi(c)))", vi: 'cây camp: ô Tuổi của camp chưa chạy để trống, không hiện 0.0 / —' },

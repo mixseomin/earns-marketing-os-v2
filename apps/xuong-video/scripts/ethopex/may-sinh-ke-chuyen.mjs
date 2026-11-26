@@ -12,9 +12,14 @@
 //   node /Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex/may-sinh-ke-chuyen.mjs [--tran=12] [--xem]   (--xem: chỉ in sổ + hàng đợi)
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { moPhien, dongPhien } from '../videoexpress.mjs';   // phiên VideoExpress: MỘT tệp nền tảng, profile riêng htuan82-vx (anh 29/10/2026)
 
-const XV = '/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video', B = 'root@167.233.241.16', HOME = process.env.HOME;
+// XV = apps/xuong-video của CHÍNH cây chứa tệp này (27/11/2026, tv5765: ghi cứng cây làm việc chung — cây đó chậm main nên chạy len-creative cũ không có cổng
+// chờ anh duyệt, cửa API chua_duyet chặn đúng luật mà máy đếm thành hỏng 3 lần rồi loại phim). launchd chạy từ bản sao bám main /Users/htuan/may-ky-su/etp-dong-phim.
+const XV = fileURLToPath(new URL('../..', import.meta.url)).replace(/\/$/, ''), B = 'root@167.233.241.16', HOME = process.env.HOME;
+// bản sao bám main không cài node_modules → tsx lùi về cây chung (vx-ke-chuyen chỉ dùng thư viện có sẵn của node)
+const TSX = [`${XV}/../../node_modules/.bin/tsx`, '/Users/htuan/Me/GitHub/earns-marketing-os-v2/node_modules/.bin/tsx'].find((p) => existsSync(p));
 const BOX = 'cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx';
 const TRAN = Number(process.argv.find((a) => a.startsWith('--tran='))?.slice(7) ?? 12);
 const C = `${HOME}/.cache/ethopex/vx-kc`; mkdirSync(C, { recursive: true });
@@ -25,7 +30,7 @@ const ghi = (s) => console.log(`[${gio()} VN] ${s}`);
 const so = existsSync(SO) ? JSON.parse(readFileSync(SO, 'utf8')) : { dang: null, ngay: {}, bo: [], xong: [] };
 const luu = () => writeFileSync(SO, JSON.stringify(so, null, 1));
 const ssh = (lenh, han = 900) => execFileSync('ssh', [B, `${BOX} ${lenh}`], { encoding: 'utf8', timeout: han * 1000, maxBuffer: 64 << 20 }).trim();
-const tsx = (args, han = 3600, env = {}) => spawnSync(`${XV}/../../node_modules/.bin/tsx`, args, { cwd: XV, encoding: 'utf8', timeout: han * 1000, maxBuffer: 64 << 20, env: { ...process.env, ...env } });
+const tsx = (args, han = 3600, env = {}) => spawnSync(TSX, args, { cwd: XV, encoding: 'utf8', timeout: han * 1000, maxBuffer: 64 << 20, env: { ...process.env, ...env } });
 const q = (s) => JSON.stringify(s);
 
 if (process.argv.includes('--xem')) { console.log(JSON.stringify(so, null, 1)); console.log(ssh('scripts/ethopex/hang-ke-chuyen.mts --so=5')); process.exit(0); }

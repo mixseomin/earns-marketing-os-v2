@@ -4,6 +4,7 @@
 // Nguồn MỘT: apps/xuong-video/scripts/du-lieu/thu-vien/dang-kenh.json › co_hoi[].dat (thư viện studio đọc cùng tệp) qua docYTuongKenh().
 import { SiteFavicon } from '@/components/ui';
 import { docYTuongKenh } from '@/lib/tai-san/kenh-sp';
+import { TheYTuong } from './kenh-y-tuong-the';
 
 type Kieu = 'kenh_co' | 'kenh_moi' | 'khong_dang' | 'gac';
 const COT: { kieu: Kieu; ten: string; mau: string; ghi?: string }[] = [
@@ -13,7 +14,6 @@ const COT: { kieu: Kieu; ten: string; mau: string; ghi?: string }[] = [
   { kieu: 'gac', ten: 'Gác / bỏ', mau: 'var(--fg-4)' },
 ];
 
-const xem = (n: number | null) => (n == null ? null : n >= 1e6 ? `${(n / 1e6).toFixed(1).replace('.0', '')} tr` : `${Math.round(n / 1e3)} N`);
 
 export function KenhYTuong() {
   const d = docYTuongKenh();
@@ -28,7 +28,7 @@ export function KenhYTuong() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%', minHeight: 0 }}>
       <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>
-        {d.ds.length} ý tưởng{d.luc ? ` · chốt ${d.luc.slice(8, 10)}/${d.luc.slice(5, 7)}` : ''} · 👁 = trung vị lượt xem YouTube của dạng đó
+        {d.ds.length} ý tưởng{d.luc ? ` · chốt ${d.luc.slice(8, 10)}/${d.luc.slice(5, 7)}` : ''} · 👁 = trung vị lượt xem YouTube của dạng đó · bấm thẻ xem chi tiết
         {thieu.length > 0 && <span style={{ color: 'var(--bad)', marginLeft: 8 }}>⚠ {thieu.length} ý tưởng chưa có nơi đặt: {thieu.map((c) => c.ten).join(', ')}</span>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 10, flex: 1, minHeight: 0, overflow: 'auto' }}>
@@ -56,16 +56,8 @@ export function KenhYTuong() {
                       </div>
                     )}
                     {cs.map((c) => (
-                      // thẻ gọn 2 dòng (YDNI mục 10): tên · rồi playlist + lượt xem + ghi; kiếm tiền / bằng chứng / trạng thái đầy đủ ở hover
-                      <div key={c.hang} style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: '4px 8px', fontSize: 12, lineHeight: 1.35 }}
-                        title={[c.ten, c.dat?.playlist && `▸ ${c.dat.playlist}`, c.kiem_tien && `💰 ${c.kiem_tien}`, c.bang_chung_tien, c.trang_thai, c.dat?.ghi].filter(Boolean).join('\n')}>
-                        <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.ten}</div>
-                        <div style={{ fontSize: 11, color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {xem(c.trungVi) && <span style={{ color: 'var(--fg-3)' }}>👁 {xem(c.trungVi)} </span>}
-                          {c.dat?.playlist && <span style={{ color: 'var(--fg-3)' }}>▸ {c.dat.playlist} </span>}
-                          {c.trang_thai ? <span style={{ color: 'var(--ok)' }}>· {c.trang_thai}</span> : c.dat?.ghi && <span>· {c.dat.ghi}</span>}
-                        </div>
-                      </div>
+                      // thẻ gọn 2 dòng (YDNI mục 10), bấm mở ngăn chi tiết đủ mọi trường (kenh-y-tuong-the.tsx)
+                      <TheYTuong key={c.hang} c={c} tenKenh={kenh ? d.tenKenh[kenh] ?? null : null} />
                     ))}
                   </div>
                 );

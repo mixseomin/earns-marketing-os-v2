@@ -21,12 +21,17 @@ const docTepLichSu = <T,>(tep: string): T | null => docTepXv<T>(`scripts/lich-su
 
 /** Ý TƯỞNG KÊNH (widget D7 màn /home?man=kenh): sổ cơ hội kênh của studio (scripts/du-lieu/thu-vien/dang-kenh.json › co_hoi — MỘT nguồn với trang thư viện studio)
  *  + trung vị lượt xem đã đo của dạng (ds[].cum) + tên kênh đang có (so-kenh.json). null = không đọc được tệp (widget kêu lỗi). */
-export function docYTuongKenh(): { ds: (CoHoi & { trungVi: number | null })[]; luc: string | null; tenKenh: Record<string, string> } | null {
+/** Dạng video đo nhu cầu (dang-kenh.json › ds) gọn cho ngăn chi tiết ý tưởng: mô tả + từng cụm tìm (trung vị, 5 video top). */
+export type DangDo = { ten: string; moTa: string; cum: { q: string; trungVi: number | null; top: { xem: number | null; kenh: string | null; giay: number | null; ten: string; url: string }[] }[] };
+export function docYTuongKenh(): { ds: (CoHoi & { trungVi: number | null; dangDo: DangDo | null })[]; luc: string | null; tenKenh: Record<string, string> } | null {
   const kho = docTepXv<KhoDangKenh & { dat_luc?: string }>('scripts/du-lieu/thu-vien/dang-kenh.json');
   if (!kho?.co_hoi) return null;
   const tv = new Map(kho.ds.map((d) => [d.id, Math.max(0, ...(d.cum ?? []).map((c) => c.trung_vi ?? 0)) || null]));
+  const dd = new Map(kho.ds.map((d): [string, DangDo] => [d.id, { ten: d.ten, moTa: d.mo_ta,
+    cum: (d.cum ?? []).map((c) => ({ q: c.q, trungVi: c.trung_vi ?? null, top: (c.top ?? []).slice(0, 5) })) }]));
   const tenKenh = Object.fromEntries(Object.entries(soKenh()).map(([ma, k]) => [ma, (k as { ten?: string }).ten ?? ma]));
-  return { ds: kho.co_hoi.map((c) => ({ ...c, trungVi: c.dang ? tv.get(c.dang) ?? null : null })), luc: kho.dat_luc ?? kho.co_hoi_luc ?? null, tenKenh };
+  return { ds: kho.co_hoi.map((c) => ({ ...c, trungVi: c.dang ? tv.get(c.dang) ?? null : null, dangDo: c.dang ? dd.get(c.dang) ?? null : null })),
+    luc: kho.dat_luc ?? kho.co_hoi_luc ?? null, tenKenh };
 }
 /** Hồ sơ kênh của máy làm tập (kenh.json — MỘT nguồn với việc nền chay-kenh.mjs): lich_tap + gio_tap + playlist theo mã máy. */
 function hoSoKenh(): Record<string, HoSoKenhLich> {

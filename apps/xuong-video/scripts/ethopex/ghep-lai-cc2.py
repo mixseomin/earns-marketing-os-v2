@@ -31,13 +31,25 @@ def do_sach(f):
     while i > 0 and lech[i - 1] < 10: i -= 1
     return max(0.0, tu + i / 10 - 0.4), f"do:{tinh.mean():.2f}"
 
+import re
+LOGO_BAN = int(re.search(r"^LOGO_BAN\s*=\s*(\d+)", open(os.path.join(D, "dung-mau.py")).read(), re.M).group(1))   # một nguồn: dung-mau.py
+
+def ban_logo(tm):
+    try: return json.load(open(os.path.join(tm, "logo-goc.json"))).get("ban")
+    except Exception: return None
+
 def lop_cua(cid, loc, ten, url):
     tm = os.path.join(TM, str(cid)); os.makedirs(tm, exist_ok=True); lop = os.path.join(tm, f"lop-cc2-{loc}.png")
-    if not (os.path.exists(lop) and os.path.isdir(lop[:-4] + "-nhip")):
-        # ĐÚNG LOGO CỦA AD: phim đã có AD → chép poster + logo gốc đã tách của AD (anh-tinh/<cid>), cùng một logo; chưa có → poster og:image trang phim (tai-tap.og_anh)
+    # lớp chỉ dùng lại khi logo nó dựng từ đúng bản tách hiện hành (dung-mau.LOGO_BAN) — anh 27/11/2026 #1897: lớp CC2 nhớ từ logo bản 5 (cụt chữ KING) vẫn được ghép
+    # sau khi Huy nâng LOGO_BAN 6, vì lớp cũ bỏ qua số bản. Lệch bản → dựng lại lớp; lop-logo-cc2 gọi dung-mau.logo_goc → tách lại logo theo bản mới.
+    if not (os.path.exists(lop) and os.path.isdir(lop[:-4] + "-nhip") and ban_logo(tm) == LOGO_BAN):
+        # ĐÚNG LOGO CỦA AD: phim đã có AD → chép poster + logo gốc đã tách của AD (anh-tinh/<cid>), cùng một logo — chỉ khi logo AD cũng đúng bản hiện hành;
+        # chưa có → poster og:image trang phim (tai-tap.og_anh)
         ad = os.path.expanduser(f"~/.cache/ethopex/anh-tinh/{cid}")
-        for t in ("poster.jpg", "logo-goc.png", "logo-goc.json"):
-            if os.path.exists(os.path.join(ad, t)) and not os.path.exists(os.path.join(tm, t)): shutil.copy2(os.path.join(ad, t), os.path.join(tm, t))
+        if os.path.exists(os.path.join(ad, "poster.jpg")) and not os.path.exists(os.path.join(tm, "poster.jpg")): shutil.copy2(os.path.join(ad, "poster.jpg"), os.path.join(tm, "poster.jpg"))
+        if ban_logo(ad) == LOGO_BAN and ban_logo(tm) != LOGO_BAN:
+            for t in ("logo-goc.png", "logo-goc.json"):
+                if os.path.exists(os.path.join(ad, t)): shutil.copy2(os.path.join(ad, t), os.path.join(tm, t))
         if not os.path.exists(os.path.join(tm, "poster.jpg")):
             import importlib.util
             s_ = importlib.util.spec_from_file_location("tai_tap", os.path.join(D, "tai-tap.py")); TT = importlib.util.module_from_spec(s_); s_.loader.exec_module(TT)

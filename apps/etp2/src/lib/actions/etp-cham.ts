@@ -78,7 +78,11 @@ export async function duyetCham(id: number, ok: boolean, chu?: string | null, no
     await guiGopY({ loai: 'loi', trang: `https://etp2.on.tc/?t=camp&l=${sl ? 'sualai' : 'choduyet'}&cr=${id}`, anhUrls: c?.anh ? [c.anh] : [], noiDung: [
       `${sl ? '✎ Sửa lại' : '✕ Loại'} creative #${id}${c ? ` — ${c.dang ?? '?'} · ${c.lang ?? '?'} · phim ${c.ten || c.content_id} (#${c.content_id})` : ''}`,
       `Nhận xét anh: ${nx}`,
-      `Việc cần làm: tìm gốc trong máy dựng dạng này (apps/xuong-video/scripts/ethopex, apps/etp/dong_phim.py), sửa cho mọi creative cùng dạng, rồi dựng lại bản cho phim này — không vá tay một creative.`].join('\n') }).catch(() => null);
+      // SỬA HÀNG LOẠT (anh 27/11/2026 "Khi tao báo sửa lại 1 creative thì thường sẽ là hàng loạt, vậy con sửa phải hiểu là sửa hàng loạt và tự fix" — #1897 Undercover:
+      // logo cắt mất KING ở MỌI creative của phim, card chỉ nêu một): việc giao = tìm hết bằng máy mọi creative dính cùng lỗi (mọi dạng AD/CC2…, mọi phim), dựng lại + thay.
+      `Việc cần làm (SỬA HÀNG LOẠT — creative này chỉ là mẫu): tìm gốc trong máy dựng (apps/xuong-video/scripts/ethopex, apps/etp/dong_phim.py) và sửa tận gốc; `
+        + `rồi DÒ BẰNG MÁY mọi creative dính cùng lỗi — mọi dạng (AD, CC2…) của phim này VÀ mọi phim khác cùng lớp lỗi (vd cùng tệp logo / cùng bước dựng) — dựng lại hết và thay bản cũ; `
+        + `báo lại danh sách creative đã thay. Không vá tay một creative, không chỉ sửa đúng creative được báo.`].join('\n') }).catch(() => null);
   }
   return { ok: true };
 }

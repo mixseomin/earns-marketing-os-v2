@@ -11,6 +11,6 @@ export async function GET(req: Request) {
   const q = await quyenEtp(me);
   if (!me || !q || me.role !== 'admin') return new Response('', { status: 401 });
   const ng = new URL(req.url).searchParams.get('ng') ?? undefined;
-  const ma = (await dangDongBo()) ? 'dang' : (await duTrang(q, ng)).phien;   // chung lượt đọc với trang + /etp/du (lib/etp-du-kho)
+  const ma = (await dangDongBo()) ? 'dang' : (await duTrang(q, ng, 50_000)).phien;   // ≤ 50 s dùng lại lượt vừa đọc (lib/etp-du-kho) — trước mỗi lần hỏi là một lượt đọc đủ kho   // chung lượt đọc với trang + /etp/du (lib/etp-du-kho)
   return new Response(ma, { headers: { 'content-type': 'text/plain', 'cache-control': 'no-store' } });
 }

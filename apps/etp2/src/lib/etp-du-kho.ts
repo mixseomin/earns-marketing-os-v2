@@ -33,16 +33,24 @@ export const KHOA_PHU = Object.keys(PHU) as (keyof typeof PHU)[];
 // trong 8 giây đó nhận lại số TRƯỚC thao tác, nút trông như không ăn. Lượt xong là bỏ khỏi sổ, lần hỏi sau đọc mới.
 const g2 = globalThis as unknown as { __etpDuDoc?: Map<string, Promise<{ du: DuLieuEtp; phien: string }>> };
 const DOC = (g2.__etpDuDoc ??= new Map());
-export async function duTrang(quyen: QuyenEtp, ng?: string): Promise<{ du: DuLieuEtp; phien: string }> {
+// LƯỢT HỎI MÃ (/etp/phien, mỗi phút mỗi tab) DÙNG LẠI LƯỢT VỪA XONG ≤ toiDaMs (anh 26/11/2026 "trang camp nặng"): trước mỗi lần hỏi là một lượt đọc đủ ~60 câu
+// (đo 04:25–04:55 UTC: 75 lượt / 30 phút, 1,3–3 s, chiếm cả pool) → mở trang lúc đó phải xếp hàng sau. Chỉ lượt hỏi mã dùng lại (chậm tối đa toiDaMs, nó vốn hỏi mỗi 60 s);
+// trang + /etp/du không truyền toiDaMs → vẫn đọc mới, số sau thao tác không bị cũ (bài /audit 13/11). boLuotDoc xoá luôn bản giữ.
+const g3 = globalThis as unknown as { __etpDuXong?: Map<string, { luc: number; v: { du: DuLieuEtp; phien: string } }> };
+const XONG = (g3.__etpDuXong ??= new Map());
+export async function duTrang(quyen: QuyenEtp, ng?: string, toiDaMs = 0): Promise<{ du: DuLieuEtp; phien: string }> {
   const n = ngCua(quyen, ng) ?? '', co = DOC.get(n);
   if (co) return co;
-  const p = docEtp(n || undefined, true).then((du) => ({ du, phien: phienDu(du) })).finally(() => DOC.delete(n));
+  const x = XONG.get(n);
+  if (toiDaMs > 0 && x && Date.now() - x.luc <= toiDaMs) return x.v;
+  const luc = Date.now();
+  const p = docEtp(n || undefined, true).then((du) => { const v = { du, phien: phienDu(du) }; if (DOC.get(n) === p) XONG.set(n, { luc, v }); return v; }).finally(() => DOC.delete(n));
   DOC.set(n, p);
   return p;
 }
 
 /** bỏ lượt đọc ĐANG CHẠY (anh 25/11/2026 "Thiếu lịch sử đổi ngân sách"): lệnh tay vừa ghi sổ → router.refresh ngay sau đó không được ăn chung lượt đọc bắt đầu TRƯỚC lúc ghi */
-export function boLuotDoc() { DOC.clear(); }
+export function boLuotDoc() { DOC.clear(); XONG.clear(); }
 
 const khoa = (q: QuyenEtp, phien: string) => `${q.vai}:${q.nguoiId ?? ''}:${phien}`;   // kèm vai: người thường nhận bản đã cắt
 

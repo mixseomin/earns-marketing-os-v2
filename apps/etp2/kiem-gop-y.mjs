@@ -7,6 +7,9 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1880, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{chay === 'lich' ? <b data-nb-gio-that=\"\"", vi: 'ngăn nhân bản: chọn "theo lịch" là giờ camp thực sự chạy hiện thẳng cạnh nút (anh 26/11/2026 "show giờ thực sự chạy ở đây"), không chỉ trong chữ rê' },
+  { card: 1880, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'theo lịch lên camp → <b data-nb-gio-that="">{chayLucGon()}</b>', vi: 'bản không bid cũng hiện giờ thực sự chạy' },
+  { card: 1880, tep: 'apps/etp2/src/lib/etp-nb.ts', co: 'return `${chayLucGon(now)} (${khungLen()})`;', vi: 'giờ gọn và chữ đầy đủ cùng một hàm tính giờ (gioLen) — không hai nguồn lệch nhau' },
   { card: 1859, tep: 'apps/etp2/src/lib/etp-dich.ts', co: 'from etp.camp_ngoai n where not exists (select 1 from etp.camp y where y.camp_id = n.camp_id)) x', vi: 'bài QC của camp CẢ ĐỘI lấy Page / tên miền thật, không gắn "chưa lên camp — chữ dự kiến"' },
   { card: 1859, tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: 'from etp.camp_ngoai n where not exists (select 1 from etp.camp x where x.camp_id = n.camp_id)) c', vi: 'ngăn cấu hình camp đọc cả camp CẢ ĐỘI (etp.camp_ngoai), không còn "Không thấy camp trong kho" (anh 25/11/2026 "camp cả đội cũng phải tải về hết")' },
   { card: 1856, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'persistKey="etp-cay" minWidth={1100} fixedLayout groups={NHOM_CAY} groupHeader', vi: 'bảng Cây có hàng nhãn nhóm ROI | Lãi | Chi (anh 25/11/2026 "ROI 1 nhóm, LÃI 1 nhóm")' },

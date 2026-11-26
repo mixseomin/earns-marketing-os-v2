@@ -20,7 +20,14 @@ export const chuGio = (g: string | null, tuDo = false) => g ? `hẹn ${g.slice(1
 /** giá trị `gio` của nút "⏱ Lên theo lịch" (anh 23/11/2026 #1772 "Cần option lên theo lịch"): KHÔNG vé trực tiếp, KHÔNG --gio → nhan-ban lich_len / gio_roas quyết giờ */
 export const THEO_LICH = 'lich';
 /** LÚC CAMP NHÂN BẢN THỰC SỰ CHẠY — cùng luật nhan-ban.gio_len: khung cố định 22h / 07h VN gần nhất, cả camp thường lẫn ★ ROAS (anh 24/11/2026 "Cấm tự lên ngay !!") */
+const p2 = (n: number) => String(n).padStart(2, '0');
+/** "hẹn chạy 22:00 26/11 giờ VN" — phần GỌN hiện thẳng cạnh nút "theo lịch" (anh 26/11/2026 #1880 "show giờ thực sự chạy ở đây") */
+export function chayLucGon(now = Date.now()): string {
+  const vn = new Date(gioLen(now) + 7 * 36e5);
+  return `hẹn chạy ${p2(vn.getUTCHours())}:00 ${p2(vn.getUTCDate())}/${p2(vn.getUTCMonth() + 1)} giờ VN`;
+}
+/** "khung lên 07h / 22h" — chữ phụ, gập vào chữ rê */
+export const khungLen = () => `khung lên ${(BANG_LUAT.khung_doi as unknown as { len_gio: number[] }).len_gio.map((h) => `${p2(h)}h`).join(' / ')}`;
 export function chayLuc(now = Date.now(), _roas = false): string {
-  const vn = new Date(gioLen(now) + 7 * 36e5), p = (n: number) => String(n).padStart(2, '0');
-  return `hẹn chạy ${p(vn.getUTCHours())}:00 ${p(vn.getUTCDate())}/${p(vn.getUTCMonth() + 1)} giờ VN (khung lên ${(BANG_LUAT.khung_doi as unknown as { len_gio: number[] }).len_gio.map((h) => `${p(h)}h`).join(' / ')})`;
+  return `${chayLucGon(now)} (${khungLen()})`;
 }

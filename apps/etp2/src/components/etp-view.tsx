@@ -15,7 +15,7 @@ import { catTokenEthopex, datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegr
 import { campTay, nhanBanTay, xemNhanBan, type ChoAp, type KieuNb } from '@/lib/actions/etp-tay';
 import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
 import { useDangLenTam } from '@/lib/etp-dang-len-tam';   // #1770: dấu "đang lên" ngay sau ▶ Lên
-import { NS_ROAS_CHIP, NS_ROAS_KHOANG, NS_TAY_CHIP, NS_TAY_KHOANG, ROAS_BA, ROAS_CAP, ROAS_MUC, THEO_LICH, chayLuc } from '@/lib/etp-nb';   // mức bid / ngân sách nhân bản ★ ROAS — cùng sổ với server (etp-tay.ts)
+import { NS_ROAS_CHIP, NS_ROAS_KHOANG, NS_TAY_CHIP, NS_TAY_KHOANG, ROAS_BA, ROAS_CAP, ROAS_MUC, THEO_LICH, chayLuc, chayLucGon, khungLen } from '@/lib/etp-nb';   // mức bid / ngân sách nhân bản ★ ROAS — cùng sổ với server (etp-tay.ts)
 import type { TrangPhim } from '@/lib/etp-doc';
 import { moXet, type DuLieuEtpGui } from '@/lib/etp-xet-gon';
 import { Dem, KeToan, tienKT, mauLai, MAU_DANG, MA_DANG, BadgeDang, BadgeDangNgan } from '@/components/etp-so';
@@ -1089,11 +1089,12 @@ function DieuKhienCamp({ c, lon, tat, boDs, choDs, lsDk, oDong }: { c: Pick<Camp
                     {NS_ROAS_CHIP.filter((x) => x >= nsKhoang[0]! && x <= nsKhoang[1]!).map((x) => <button key={x} onClick={() => { setNsRoas(String(x)); setXem(null); }} style={ch(nsRoas === String(x))}>${x}</button>)}
                     <span>$</span><input value={nsRoas} onChange={(e) => { setNsRoas(e.target.value.replace(/\D/g, '')); setXem(null); }} style={{ ...o2, width: 54 }} title={`$${nsKhoang[0]}–${nsKhoang[1]}`} />
                     <span style={{ color: 'var(--fg-3, #777)' }}>{n > 1 ? 'mỗi camp · ' : ''}${nsKhoang[0]}–{nsKhoang[1]}</span></>}</div>
-                  {nhan('Giờ chạy')}<div style={dong}>{kieu === 'thuong' ? <span style={{ color: 'var(--fg-2)' }}>theo lịch lên camp</span> : <>
+                  {nhan('Giờ chạy')}<div style={dong}>{kieu === 'thuong' ? <span style={{ color: 'var(--fg-2)' }} title={`lịch lên camp của máy quyết · ${khungLen()}`}>theo lịch lên camp → <b data-nb-gio-that="">{chayLucGon()}</b></span> : <>
                     <button onClick={() => setChay('lich')} style={ch(chay === 'lich')} title={`lịch lên camp của máy quyết — lúc này: ${chayLuc(Date.now(), true)}`}>theo lịch</button>{/* #1772: creative mới cũng lên theo lịch được */}
                     <button onClick={() => setChay('ngay')} style={ch(chay === 'ngay')} title="lệnh trực tiếp — phanh đang áp thì cảnh báo một lần, bấm lại là lên">chạy ngay</button>
                     <button onClick={() => setChay('gio')} style={ch(chay === 'gio')} title="lệnh trực tiếp — camp chạy đúng giờ VN đặt">đặt giờ</button>
-                    {chay === 'gio' ? <OGioVn gio={gioDat} setGio={setGioDat} style={o2} /> : null}</>}</div>
+                    {chay === 'gio' ? <OGioVn gio={gioDat} setGio={setGioDat} style={o2} /> : null}
+                    {chay === 'lich' ? <b data-nb-gio-that="" style={{ color: 'var(--fg-2)' }} title={`giờ camp thực sự chạy — lịch lên camp của máy quyết · ${khungLen()}`}>→ {chayLucGon()}</b> : null}{/* #1880: giờ thực sự chạy hiện thẳng cạnh nút, không chỉ trong chữ rê */}</>}</div>
                   {laRoasCu ? <>{nhan('Sau khi tạo')}<label style={{ ...dong, gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={tamDung} onChange={(e) => setTamDung(e.target.checked)} />để tạm dừng chờ review</label></> : null}
                 </> : null}
               </div>

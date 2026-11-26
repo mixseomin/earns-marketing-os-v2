@@ -906,7 +906,8 @@ const NB_KIEU: { k: KieuNb['kieu']; ten: string; mo: string }[] = [
   { k: 'bo', ten: 'Sang bộ tài khoản khác', mo: 'Clone sang bộ tài khoản khác — KHÔNG dùng được used post (bài đăng thuộc Page của bộ gốc) nên đăng bài mới cùng creative camp gốc, $1; bỏ qua các cổng chỉ dành cho nhân trong cùng bộ. Vẫn qua cổng chấm sạch + rào chắn etp.' },
   { k: 'roas', ten: 'Camp ROAS', mo: 'Nhân bản với bid ROAS goal (giá thầu theo ROAS tối thiểu), dùng LẠI bài đăng cũ của camp gốc (giữ tương tác), ngân sách $5–20 (camp mới $5, lãi thì nuôi dần lên). Mức 0.9 / 1 / 1.1, hoặc cặp 0.9 + 1.1 một lần bấm hai camp (Dol 22/11/2026: camp ★ lên mà lãi → nhân thêm 2 camp bid 0.9, 1.1). Nguồn "creative mới" = creative đã duyệt cùng phim chưa có camp, $5–10. Hợp với camp đã chi > $100 mà ROI > 50%, hoặc camp ★ ROAS chi > $10 mà ROI > 50%. Mức ROAS nhập sai = lỗi camp — máy đọc lại, sai thì tạm dừng.' },
 ];
-function DieuKhienCamp({ c, lon, tat, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'trang_thai' | 'ngan_sach' | 'nay' | 'qua' | 'thang'> & { cam?: CampEtpKho['cam'] }; /** nút chữ to (ngăn camp — điện thoại) */ lon?: boolean; /** #1789: nút ⏸ / ▶ ở cột TT — mở thẳng tab Bật/Tắt, sẵn câu xác nhận tắt (vẫn phải bấm Làm) */ tat?: boolean; /** bộ tài khoản khi đứng ngoài DieuKhienCtx */ boDs?: string[]; /** lệnh chờ áp khi đứng ngoài DieuKhienCtx */ choDs?: ChoAp[]; /** lịch sử khi đứng ngoài DieuKhienCtx */ lsDk?: LsDk }) {
+function DieuKhienCamp({ c, lon, tat, boDs, choDs, lsDk, oDong }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'trang_thai' | 'ngan_sach' | 'nay' | 'qua' | 'thang'> & { cam?: CampEtpKho['cam'] }; /** nút chữ to (ngăn camp — điện thoại) */ lon?: boolean; /** #1789: nút ⏸ / ▶ ở cột TT — mở thẳng tab Bật/Tắt, sẵn câu xác nhận tắt (vẫn phải bấm Làm) */ tat?: boolean;
+  /** #1876: ô có sẵn của dòng (chấm trạng thái / số $ ở Cây điện thoại) làm nút mở — tab 'tt' sẵn câu tắt như ⏸, tab 'ns' như ⚙ */ oDong?: { chu: React.ReactNode; tab: 'tt' | 'ns' }; /** bộ tài khoản khi đứng ngoài DieuKhienCtx */ boDs?: string[]; /** lệnh chờ áp khi đứng ngoài DieuKhienCtx */ choDs?: ChoAp[]; /** lịch sử khi đứng ngoài DieuKhienCtx */ lsDk?: LsDk }) {
   const router = useRouter();
   const ctx = useContext(DieuKhienCtx), bo = boDs ?? ctx?.bo ?? [], dsCho = choDs ?? ctx?.cho.get(c.camp_id) ?? [];
   const ls = lsDk ?? ctx?.ls(c.camp_id) ?? { tay: [], batTat: [], bac: [] };
@@ -962,15 +963,23 @@ function DieuKhienCamp({ c, lon, tat, boDs, choDs, lsDk }: { c: Pick<CampEtpKho,
   const o2: React.CSSProperties = { width: 70, fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'inherit' };
   // phim cấm (etp:phim-cam-quet-2011): khoá Bật / Tăng / Nhân bản — máy quét don_phim_cam tự tắt camp mỗi nhịp đồng bộ
   if (c.cam && tat) return null;   // cột TT: camp phim cấm không có nút ⏸ / ▶ — nhãn CẤM đã hiện ở chỗ ⚙
+  if (c.cam && oDong) return <>{oDong.chu}</>;   // #1876: phim cấm — ô giữ nguyên, không mở điều khiển (Bật / Tăng / Nhân bản đã khoá)
   if (c.cam) return <NhanCam cam={c.cam} />;
   const dangChay = c.trang_thai === 'ACTIVE';
-  return <>
+  // mở ngăn: một chỗ cho cả nút ⏸ / ⚙ và ô bấm được của dòng (#1876)
+  const moTt = () => { setMo(true); setKq(null); setXem(null); setEp(false); setGhi(''); setTab('tt');
+    setCho(dangChay ? { o: 'tt', chu: `tắt camp #${c.camp_id}`, f: () => campTay(c.camp_id, 'tat', { ep: false, ghi: '' }) } : null); };
+  const moNs = () => { setMo(true); setTab('ns'); setCho(null); setKq(null); setXem(null); setNs(String(c.ngan_sach)); setKieu(goiNb ?? 'thuong'); setNguonRoas('cu'); setNhieu(saoLai ? ROAS_CAP : null); setNsRoas('5'); setNsTay(''); setChay('lich'); setGioDat(''); };
+  // #1876: bọc span chặn bấm — ngăn (Drawer) vẽ qua portal nhưng sự kiện React vẫn nổi lên dòng cây, không chặn thì bấm trong ngăn / nền tối mở luôn ngăn camp
+  const than = <>
     {/* #1789 anh "Cần option để tao tắt camp thủ công": nút tắt nằm ngay cột TT, mở thẳng tab Tắt với câu xác nhận sẵn — không phải bấm ⚙ rồi tìm tab */}
-    {tat ? <button onClick={(e) => { e.stopPropagation(); setMo(true); setKq(null); setXem(null); setEp(false); setGhi(''); setTab('tt');
-        setCho(dangChay ? { o: 'tt', chu: `tắt camp #${c.camp_id}`, f: () => campTay(c.camp_id, 'tat', { ep: false, ghi: '' }) } : null); }}
+    {oDong ? <button onClick={(e) => { e.stopPropagation(); if (oDong.tab === 'tt') moTt(); else moNs(); }}
+      title={oDong.tab === 'tt' ? (dangChay ? 'bấm để tắt camp này (hỏi xác nhận trước khi gửi)' : 'bấm để bật lại camp này') : 'bấm để đổi bậc ngân sách · bật / tắt · nhân bản'}
+      style={{ border: 0, background: 'none', padding: 0, margin: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'inherit' }}>{oDong.chu}</button>
+    : tat ? <button onClick={(e) => { e.stopPropagation(); moTt(); }}
       title={dangChay ? 'tắt camp này bằng tay (hỏi xác nhận trước khi gửi)' : 'bật lại camp này bằng tay'}
       style={{ ...NUT_TT, border: `1px solid ${dangChay ? '#f8717188' : 'var(--line)'}`, color: dangChay ? '#fca5a5' : 'var(--fg-1)' }}>{dangChay ? '⏸' : '▶'}</button>
-    : <button onClick={(e) => { e.stopPropagation(); setMo(true); setTab('ns'); setCho(null); setKq(null); setXem(null); setNs(String(c.ngan_sach)); setKieu(goiNb ?? 'thuong'); setNguonRoas('cu'); setNhieu(saoLai ? ROAS_CAP : null); setNsRoas('5'); setNsTay(''); setChay('lich'); setGioDat(''); }} title="điều khiển camp: bật / tắt · bậc ngân sách · nhân bản"
+    : <button onClick={(e) => { e.stopPropagation(); moNs(); }} title="điều khiển camp: bật / tắt · bậc ngân sách · nhân bản"
       style={lon ? { fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--accent, #60a5fa)', background: 'var(--accent-soft, #60a5fa18)', color: 'inherit', cursor: 'pointer', width: '100%', textAlign: 'left' }
         // #1553 mở lại 19/11/2026: ⚙ xám 12px không viền chìm hẳn cạnh số ngân sách → trông như chưa có điều khiển. Nay là nút có viền, chữ sáng, cỡ như số ngân sách
         // (màu trung tính — YDNI: một hàng một nút, không tô nhấn cả 74 dòng)
@@ -1111,6 +1120,7 @@ function DieuKhienCamp({ c, lon, tat, boDs, choDs, lsDk }: { c: Pick<CampEtpKho,
       </div>
     </Drawer> : null}
   </>;
+  return oDong ? <span onClick={(e) => e.stopPropagation()} style={{ display: 'contents' }}>{than}</span> : than;
 }
 function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'trang_thai' | 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao'>; bao?: { nhom: string; chu: string }[]; ls?: DuLieuEtp['lsBac'][number] }) {
   const sua = useContext(SuaCampCtx) != null && c.camp_id > 0;
@@ -2642,10 +2652,12 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
       <div className="dong" data-camp-dong={c.camp_id} onClick={bamDong} style={{ cursor: moCamp ? 'pointer' : undefined, display: 'grid', gridTemplateColumns: LUOI_CAY_HEP, columnGap: 4, alignItems: 'center', padding: '5px 0 5px 4px', fontSize: 12, borderTop: '1px solid var(--line)',
         boxShadow: mau ? `inset 3px 0 ${mau}` : undefined, background: mau ? `${mau}14` : undefined, position: 'relative', ...toSangDong(hl, c.camp_id, mau ? { boxShadow: `inset 3px 0 ${mau}` } : undefined) }}>{vach}
         <span style={{ display: 'grid', gridTemplateColumns: LUOI_CAMP_HEP, columnGap: 6, alignItems: 'center', minWidth: 0, whiteSpace: 'nowrap' }}>
-          <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span>
+          {/* #1876 anh "Bấm vào đây thì mở modal có sẵn để thay bậc hoặc tắt camp": chấm trạng thái → ngăn điều khiển tab Bật/Tắt, số $ → tab Ngân sách bậc */}
+          <span data-cot="cham" style={{ display: 'inline-flex' }}>{dkCay && c.camp_id > 0 ? <DieuKhienCamp c={c} oDong={{ chu: <TT c={c} />, tab: 'tt' }} /> : <TT c={c} />}</span>
           <span data-cot="camp" style={{ paddingLeft: (cap - 1) * 12, overflow: 'hidden', textOverflow: 'ellipsis' }}><span className="mui">{ds.length ? '▸' : ''}</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b></span>{/* điện thoại không có nhãn loại CT/CC sau số camp (anh 29/10/2026 #1480 "bỏ nút này trên mobile" — ô hẹp cắt thành "…") */}
-          <span data-cot="ngan-sach" data-cot-can="phai" style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{choCay?.get(c.camp_id) || dkCay?.gui?.get(c.camp_id) ? <DauCho ds={choCay?.get(c.camp_id)} gui={dkCay?.gui?.get(c.camp_id)} /> : `$${c.ngan_sach}`}</span>
-          <span data-cot="dau-hieu" style={{ fontSize: 11, overflow: 'hidden' }}>{n ? <span title={`${n} bản nhân`}>x{n}</span> : null}</span>
+          <span data-cot="ngan-sach" data-cot-can="phai" style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{(() => { const so = choCay?.get(c.camp_id) || dkCay?.gui?.get(c.camp_id) ? <DauCho ds={choCay?.get(c.camp_id)} gui={dkCay?.gui?.get(c.camp_id)} /> : `$${c.ngan_sach}`;
+            return dkCay && c.camp_id > 0 ? <DieuKhienCamp c={c} oDong={{ chu: so, tab: 'ns' }} /> : so; })()}</span>
+<span data-cot="dau-hieu" style={{ fontSize: 11, overflow: 'hidden' }}>{n ? <span title={`${n} bản nhân`}>x{n}</span> : null}</span>
         </span>
         {(() => { const sd = ngayHien.map((d) => so.get(c.camp_id)?.get(d)), mx = coQua ? undefined : maxLai([...sd, c.nay]);
           return <>{ngayHien.map((d, i) => <O key={d} cot={`roi-${ngay.indexOf(d)}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={mx} bac={bacO(c.camp_id, d)} gio={{ camps: [c.camp_id], ngay: d }} />)}

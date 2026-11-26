@@ -35,7 +35,7 @@ export function GacDangBar() {
         <span style={{ fontWeight: 600 }}>{ds.length ? '🔒 Gác dạng' : '🔓 Không gác dạng nào'}</span>
         {ds.map((d) => <span key={d.ma} title={`${d.ma} — ${d.dang}\n${g.ly[d.ma] ?? 'chưa ghi lý do'}`} style={{ padding: '0 6px', borderRadius: 4, border: '1px solid #f59e0b88', fontWeight: 700 }}>{d.ma}</span>)}
         {ds.length > 0 && !mo && <span style={{ color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 'min(60vw, 900px)' }}>{ds.map((d) => g.ly[d.ma]).filter(Boolean)[0] ?? ''}</span>}
-        <button onClick={() => setMo(!mo)} style={{ ...nut, marginLeft: 'auto' }}>{mo ? 'Đóng' : 'Gác / Mở'}</button>
+        <button onClick={() => setMo(!mo)} style={{ ...nut, marginLeft: 'auto', marginRight: 44 }}>{mo ? 'Đóng' : 'Gác / Mở'}</button>
       </div>
       {loi && <div style={{ marginTop: 6, padding: '4px 8px', borderRadius: 4, background: '#d93025', color: '#fff' }}>⛔ {loi}</div>}
       {mo && <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '48px 1fr auto', gap: '6px 10px', alignItems: 'center' }}>

@@ -61,7 +61,8 @@ function Thang({ thang, tu, den, cho, homNay, onBam }: { thang: string; tu: stri
   );
 }
 
-export function ChonKhoang({ tu, den, ma, homNay, onDoi, mocThem, title }: {
+export function ChonKhoang({ tu, den, ma, homNay, onDoi, mocThem, title, chiMoc }: {
+  /** chỉ cho chọn trong mocThem (không mốc sẵn, không lịch) — widget máy chủ chỉ nhận vài kỳ cố định (góp ý #1889: cùng một ô chọn kỳ cho mọi widget) */ chiMoc?: boolean;
   tu: string; den: string;
   /** mã mốc sẵn đang chọn; null = khoảng tự chọn */ ma: string | null;
   /** 'YYYY-MM-DD' theo múi giờ / ngày của màn (etp: ngày Ethopex 07:00–07:00 VN) */ homNay: string;
@@ -79,7 +80,7 @@ export function ChonKhoang({ tu, den, ma, homNay, onDoi, mocThem, title }: {
   const haiDau = (a: string, b: string) => { if (!laNgay(a) || !laNgay(b)) return; const [x, y] = a <= b ? [a, b] : [b, a]; chot({ tu: x, den: y }); };
   const khoangChu = tu === den ? gon(tu) : `${gon(tu)} – ${gon(den)}`;
   const nhanMa = ma ? (mocThem?.find((m) => m.ma === ma)?.nhan ?? nhanCuaMoc(ma)) : null;
-  const nhan = nhanMa ? (ma && mocThem?.some((m) => m.ma === ma) ? nhanMa : `${nhanMa} · ${khoangChu}`) : khoangChu;
+  const nhan = nhanMa ? (!chiMoc && ma && mocThem?.some((m) => m.ma === ma) ? nhanMa : `${nhanMa} · ${khoangChu}`) : khoangChu;
   const thangPhai = dauThang(lui(dauThang(xem), -40));
   const nut = (chon: boolean) => ({ display: 'block', width: '100%', textAlign: 'left' as const, fontSize: 12.5, padding: '6px 10px', border: 'none', borderRadius: 6, cursor: 'pointer', color: 'inherit',
     background: chon ? 'rgba(52,211,153,.16)' : 'transparent', fontWeight: chon ? 600 : 400 });
@@ -101,13 +102,13 @@ export function ChonKhoang({ tu, den, ma, homNay, onDoi, mocThem, title }: {
       <AnchoredPopover anchorRef={ref} open={mo} onClose={() => { setMo(false); setCho(null); }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', maxWidth: '96vw', background: 'var(--bg-0, #0b0d12)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.5)', color: 'var(--fg-1)' }}>
           <div style={{ width: 176, borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', padding: 4 }}>
-            {MOC_SAN.map((m) => <button key={m.ma} type="button" onClick={() => chot({ ma: m.ma })} style={nut(ma === m.ma)}>{m.nhan}</button>)}
+            {!chiMoc && MOC_SAN.map((m) => <button key={m.ma} type="button" onClick={() => chot({ ma: m.ma })} style={nut(ma === m.ma)}>{m.nhan}</button>)}
             {(mocThem ?? []).map((m) => <button key={m.ma} type="button" onClick={() => chot({ ma: m.ma })} style={nut(ma === m.ma)}>{m.nhan}</button>)}
-            <div style={{ marginTop: 'auto', borderTop: '1px solid var(--line)', paddingTop: 4 }}>
+            {!chiMoc && <div style={{ marginTop: 'auto', borderTop: '1px solid var(--line)', paddingTop: 4 }}>
               <ODem q={false} chu="ngày tới hôm nay" /><ODem q chu="ngày tới hôm qua" />
-            </div>
+            </div>}
           </div>
-          <div style={{ padding: '8px 12px' }}>
+          {!chiMoc && <div style={{ padding: '8px 12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8, borderBottom: '1px solid var(--line)', marginBottom: 8 }}>
               <input type="date" value={oTu} max={oDen || homNay} aria-label="Từ ngày" style={oNgay} onChange={(e) => { setOTu(e.target.value); haiDau(e.target.value, oDen); }} />
               <span style={{ color: 'var(--fg-2)' }}>–</span>
@@ -120,7 +121,7 @@ export function ChonKhoang({ tu, den, ma, homNay, onDoi, mocThem, title }: {
                 onBam={(d) => { if (!cho) { setCho(d); setOTu(d); setODen(d); } else haiDau(cho, d); }} />)}
             </div>
             <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 6, minHeight: 14 }}>{cho ? `Từ ${gon(cho)} — bấm ngày thứ hai để chốt` : ''}</div>
-          </div>
+          </div>}
         </div>
       </AnchoredPopover>
     </>

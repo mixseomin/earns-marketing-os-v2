@@ -75,6 +75,9 @@
 .hm-ic { border: 0; background: none; padding: 0 5px; color: var(--fg-3); font-size: 11px; line-height: 1.6; border-radius: 4px; }
 .hm-ic:hover { color: var(--fg-0); background: var(--bg-3); }
 .hm-tb { border: 0; background: none; border-radius: 4px; padding: 1px 7px; color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto; }
+/* chế độ sửa: tên ô hiện đủ để tìm bên Kho widget (góp ý #1888) */
+.hm-sua .hm-od { flex-wrap: wrap; }
+.hm-sua .hm-tb, .hm-sua .hm-od b { overflow: visible; text-overflow: clip; flex-shrink: 0; }
 .hm-tb[aria-pressed="true"] { background: var(--bg-3); color: var(--fg-0); font-weight: 600; }
 .hm-nam { font-style: normal; font-size: 10px; letter-spacing: -2px; color: var(--fg-3); cursor: grab; flex: none; }
 .hm-ob { flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; padding: 8px; }

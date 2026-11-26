@@ -94,8 +94,8 @@ export function Bang({ so = 'home', ds, noi, sua, luoi, cham, to, kyChung = 30, 
               <div className={`hm-od${coDau ? '' : ' hm-od-noi'}`}>
                 {sua && <i className="hm-nam" aria-hidden="true">⋮⋮</i>}
                 {ts.length > 1
-                  ? ts.map((t) => <button key={t} type="button" className="hm-tb" aria-pressed={t === c.ma} title={widgetCua(t)?.moTa} onClick={() => { if (t !== c.ma) { const m = moTab(ds, i, t); if (laTo) onTo(khoaO(m, i)); onDoi(m, false); } }}>{widgetCua(t)?.ten ?? t}</button>)
-                  : <b title={w?.moTa}>{ten}</b>}
+                  ? ts.map((t) => <button key={t} type="button" className="hm-tb" aria-pressed={t === c.ma} title={`${widgetCua(t)?.ten ?? t}${widgetCua(t)?.moTa ? ' — ' + widgetCua(t)!.moTa : ''}`} onClick={() => { if (t !== c.ma) { const m = moTab(ds, i, t); if (laTo) onTo(khoaO(m, i)); onDoi(m, false); } }}>{widgetCua(t)?.ten ?? t}</button>)
+                  : <b title={`${ten}${w?.moTa ? ' — ' + w.moTa : ''}`}>{ten}</b>}
                 <span className="hm-on">
                   {chonKy}
                   {c.k ? <em>khoá</em> : null}

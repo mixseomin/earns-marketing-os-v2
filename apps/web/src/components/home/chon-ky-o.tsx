@@ -4,7 +4,6 @@
 //  'moc'  — widget etp2 tự tính trên trình duyệt: ô chọn khoảng chuẩn ChonKhoang (mốc sẵn, đếm lùi, hai đầu, All time); dữ liệu etp2 dùng chung, kỳ chỉ lọc trên trình duyệt.
 //  'ngay' — widget máy chủ đọc ?days / ?ky: 7 / 30 / 90 ngày hoặc theo kỳ chung của trang; đổi kỳ (cả hai kiểu) thì trang đọc lại để máy chủ vẽ ruột ô theo kỳ mới (trang.tsx doi).
 import { ChonKhoang, khoangCuaMoc } from '@/components/ui/chon-khoang';
-import { Segmented } from '@/components/ui/segmented';
 import { KY_NGAY } from '@/lib/luoi-trang/bo-so';
 
 /** All time của Ethopex: số etp2 bắt đầu 2026 — ngày trước '2000' thì useVeSo tự lấy ngày có số đầu tiên */
@@ -33,7 +32,9 @@ export function ChonKyO({ kieu, v, chung, onDoi }: {
       onDoi={(x) => onDoi('ma' in x ? x.ma : `${x.tu}~${x.den}`)} />;
   }
   const dang = v && (KY_NGAY as readonly string[]).includes(v) ? v : '';
-  return <Segmented size="xs" value="k" onChange={() => {}} options={[{ value: 'k', label: `${dang || chung} ngày${dang ? '' : ' · chung'} ▾`, title: 'kỳ riêng của ô này — rê chuột để chọn',
-    menu: [{ key: '', label: `Theo kỳ chung của trang (${chung} ngày)`, active: !dang, onPick: () => onDoi('') },
-      ...KY_NGAY.map((n) => ({ key: n, label: `${n} ngày`, active: dang === n, onPick: () => onDoi(n) }))] }]} />;
+  // cùng ô chọn kỳ ChonKhoang với widget 'moc' (góp ý #1889), chỉ mở các kỳ máy chủ nhận được
+  const nay = new Date().toISOString().slice(0, 10), k = khoangCuaMoc(dang || String(chung), nay) ?? { tu: nay, den: nay };
+  return <ChonKhoang chiMoc tu={k.tu} den={k.den} ma={dang || 'chung'} homNay={nay} title="kỳ riêng của ô này"
+    mocThem={[{ ma: 'chung', nhan: `Kỳ chung (${chung} ngày)` }, ...KY_NGAY.map((n) => ({ ma: n, nhan: `${n} ngày qua` }))]}
+    onDoi={(x) => { if ('ma' in x) onDoi(x.ma === 'chung' ? '' : x.ma); }} />;
 }

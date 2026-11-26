@@ -876,8 +876,8 @@ const LUAT = [
   // CAMP CHỜ GIỜ CHẠY MỜ (anh 26/11/2026 #1881 "Chờ giờ chạy : thì các phần này mờ đi")
   { card: '1881', tep: 'apps/etp2/src/components/etp-view.tsx', co: "(choGio(c) ? cot !== 'tt' :", vi: 'cây camp: dòng camp hẹn giờ chưa chạy mờ mọi ô, chỉ ô TT (giờ hẹn + ⏸) rõ' },
   // BẢN NHÂN ĐANG CHẠY CHỈ SÁNG Ô CAMP (anh 26/11/2026 #1884 "camp dup ra sẽ chỉ làm sáng mỗi phần đỏ, còn lại vẫn để mờ")
-  { card: '1884', tep: 'apps/etp2/src/components/etp-view.tsx', co: "!!c.goc && c.camp_id > 0 && dangChay(c) && cot !== 'camp'", vi: 'cây camp: bản nhân (có camp gốc) đang chạy thật → mọi ô mờ trừ ô camp (# + mức ROAS)' },
-  { card: '1884', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'cellRowStyle: (c: CampEtpKho) => (dongMo(c, k.key) ? { opacity: 0.4 }', vi: 'cây camp: mọi cột đọc chung hàm dongMo' },
+  { card: '1884', tep: 'apps/etp2/src/components/etp-view.tsx', co: "cungBai && c.camp_id > 0 && dangChay(c) && cot !== 'camp'", cam: "!!c.goc && c.camp_id > 0 && dangChay(c) && cot !== 'camp'", vi: 'cây camp: bản nhân đang chạy thật CÙNG BÀI POST với camp gốc → mọi ô mờ trừ ô camp; khác bài thì không mờ (anh 26/11/2026 "Phải có cùng nhóm POST thì mới mờ", #109178)' },
+  { card: '1884', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'cellRowStyle: (c: CampEtpKho) => (dongMo(c, k.key, !!c.goc && !!baiChung.get(c.camp_id)?.ds.includes(Number(c.goc))) ? { opacity: 0.4 }', vi: 'cây camp: mọi cột đọc chung hàm dongMo' },
   // CAMP CHƯA CHẠY KHÔNG CÓ TUỔI (anh 26/11/2026 #1883 "Camp chưa chạy thì ko hiện cột tuổi")
   { card: '1883', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const tuoiCamp = (c: CampEtpKho) => (choChay(c) ? null : tuoiNgay(c.tao));', vi: 'tuổi camp: camp chờ giờ / đang tạo trả null — một hàm cho mọi cột / lọc Tuổi' },
   { card: '1883', tep: 'apps/etp2/src/components/etp-view.tsx', co: "cell: (c) => (tuoi(c) == null ? '' : tuoiChu(tuoi(c)))", vi: 'cây camp: ô Tuổi của camp chưa chạy để trống, không hiện 0.0 / —' },

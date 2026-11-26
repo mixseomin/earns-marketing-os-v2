@@ -7,6 +7,9 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1880, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{chay === 'lich' ? <b data-nb-gio-that=\"\"", vi: 'ngăn nhân bản: chọn "theo lịch" là giờ camp thực sự chạy hiện thẳng cạnh nút (anh 26/11/2026 "show giờ thực sự chạy ở đây"), không chỉ trong chữ rê' },
+  { card: 1880, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'theo lịch lên camp → <b data-nb-gio-that="">{chayLucGon()}</b>', vi: 'bản không bid cũng hiện giờ thực sự chạy' },
+  { card: 1880, tep: 'apps/etp2/src/lib/etp-nb.ts', co: 'return `${chayLucGon(now)} (${khungLen()})`;', vi: 'giờ gọn và chữ đầy đủ cùng một hàm tính giờ (gioLen) — không hai nguồn lệch nhau' },
   { card: 1859, tep: 'apps/etp2/src/lib/etp-dich.ts', co: 'from etp.camp_ngoai n where not exists (select 1 from etp.camp y where y.camp_id = n.camp_id)) x', vi: 'bài QC của camp CẢ ĐỘI lấy Page / tên miền thật, không gắn "chưa lên camp — chữ dự kiến"' },
   { card: 1859, tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: 'from etp.camp_ngoai n where not exists (select 1 from etp.camp x where x.camp_id = n.camp_id)) c', vi: 'ngăn cấu hình camp đọc cả camp CẢ ĐỘI (etp.camp_ngoai), không còn "Không thấy camp trong kho" (anh 25/11/2026 "camp cả đội cũng phải tải về hết")' },
   { card: 1856, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'persistKey="etp-cay" minWidth={1100} fixedLayout groups={NHOM_CAY} groupHeader', vi: 'bảng Cây có hàng nhãn nhóm ROI | Lãi | Chi (anh 25/11/2026 "ROI 1 nhóm, LÃI 1 nhóm")' },
@@ -20,6 +23,10 @@ const LUAT = [
   { card: 1879, tep: 'apps/etp2/src/components/etp-view.tsx', co: "${chuLanDung(cr) ? ` · ${chuLanDung(cr)}` : ''}", vi: 'số lần dùng của creative gập vào chữ rê ô creative cây Camp (#1879)' },
   { card: 1876, tep: 'apps/etp2/src/components/etp-view.tsx', co: "<DieuKhienCamp c={c} oDong={{ chu: <TT c={c} />, tab: 'tt' }} />", vi: 'Cây điện thoại: bấm chấm trạng thái camp mở ngăn điều khiển tab Bật/Tắt (anh 26/11/2026 #1876)' },
   { card: 1876, tep: 'apps/etp2/src/components/etp-view.tsx', co: "<DieuKhienCamp c={c} oDong={{ chu: so, tab: 'ns' }} />", vi: 'Cây điện thoại: bấm số $ ngân sách mở ngăn điều khiển tab Ngân sách bậc (anh 26/11/2026 #1876)' },
+  { card: 1878, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const choMap = useMemo(() => conCho(gopCho(choAp, vuaCho), du.camps)', vi: 'lệnh vừa bấm (tắt/bật/ngân sách/nhân bản) vào sổ chờ ngay trên máy, không đợi tải lại trang (anh 26/11/2026 #1878 "show ngay icon")' },
+  { card: 1878, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'if (viecCho) ctx?.ghiCho?.({ camp_id: c.camp_id', vi: 'bấm lệnh xong ghi ngay ⏳ chờ áp cho camp đó (#1878)' },
+  { card: 1878, tep: 'apps/etp2/src/components/etp-view.tsx', co: "<DieuKhienCamp c={c} oDong={{ chu: <TT c={c} />, tab: 'tt' }} /><DauChoTT id={c.camp_id} />", vi: 'Cây điện thoại: ô trạng thái hiện ⏳ ngay khi vừa bấm tắt/bật (#1878)' },
+  { card: 1878, tep: 'apps/etp2/src/components/etp-view.tsx', co: '<DauChoTT id={c.camp_id} /><DieuKhienCamp c={c} tat />', vi: 'bảng camp: ô TT hiện ⏳ ngay khi vừa bấm tắt/bật (#1878)' },
   { card: 1876, tep: 'apps/etp2/src/components/etp-view.tsx', co: "return oDong ? <span onClick={(e) => e.stopPropagation()} style={{ display: 'contents' }}>{than}</span> : than;", vi: 'ngăn điều khiển mở từ ô dòng chặn bấm nổi lên dòng (không mở chồng ngăn camp) (#1876)' },
   { card: 1868, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "{ border: '1px solid #22c55e', background: '#0f2a18', color: '#86efac' }) }}>{bao.loi ?? bao.chu}</span>", vi: 'đổi ROAS xong không hiện ô xanh "creative #…" bị cắt trong dòng cây (anh 25/11/2026 #1868 "hiện cái chữ gì kia")' },
   { card: 1868, tep: 'apps/etp2/src/components/etp-view.tsx', co: "<AnchoredPopover anchorRef={neo} open={!!bao?.loi} onClose={() => setBao(null)}>", vi: 'lỗi sửa ROAS nổi ô đỏ qua lớp nổi neo vào số, kết quả đạt vào chữ hover (anh 25/11/2026 #1868)' },

@@ -15,7 +15,7 @@ import { catTokenEthopex, datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegr
 import { campTay, nhanBanTay, xemNhanBan, type ChoAp, type KieuNb } from '@/lib/actions/etp-tay';
 import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
 import { useDangLenTam } from '@/lib/etp-dang-len-tam';   // #1770: dấu "đang lên" ngay sau ▶ Lên
-import { NS_ROAS_CHIP, NS_ROAS_KHOANG, NS_TAY_CHIP, NS_TAY_KHOANG, ROAS_BA, ROAS_CAP, ROAS_MUC, THEO_LICH, chayLuc } from '@/lib/etp-nb';   // mức bid / ngân sách nhân bản ★ ROAS — cùng sổ với server (etp-tay.ts)
+import { NS_ROAS_CHIP, NS_ROAS_KHOANG, NS_TAY_CHIP, NS_TAY_KHOANG, ROAS_BA, ROAS_CAP, ROAS_MUC, THEO_LICH, chayLuc, chayLucGon, khungLen } from '@/lib/etp-nb';   // mức bid / ngân sách nhân bản ★ ROAS — cùng sổ với server (etp-tay.ts)
 import type { TrangPhim } from '@/lib/etp-doc';
 import { moXet, type DuLieuEtpGui } from '@/lib/etp-xet-gon';
 import { Dem, KeToan, tienKT, mauLai, MAU_DANG, MA_DANG, BadgeDang, BadgeDangNgan } from '@/components/etp-so';
@@ -64,7 +64,19 @@ const LsBacCtx = createContext<DuLieuEtp['lsBac']>({});   // lịch sử đổi 
 type LsDk = { tay: ChoAp[]; batTat: DuLieuEtp['nhatKy']; bac: DuLieuEtp['lsBac'][number] };
 const DieuKhienCtx = createContext<{ bo: string[]; cho: Map<number, ChoAp[]>; ls: (id: number) => LsDk; /** phanh chợ đang chạy → cảnh báo ở bước xác nhận (etp-phanh-cho canhBaoPhanh) */ phanh?: { tang: string | null; len: string | null };
   /** lệnh ĐANG GỬI theo camp (anh 25/11/2026 "2 cái này phải hiện đồng thời"): ngăn camp ghi lúc bấm Làm, ô ngân sách dòng bảng hiện ⏳ cùng lúc với "đang gửi máy…" */ gui?: Map<number, string>; datGui?: (id: number, chu: string | null) => void;
-  /** đổi bậc anh VỪA làm xong ở trang này (anh 25/11/2026 "Thiếu lịch sử đổi ngân sách") — ghép vào lịch sử bậc ngay, không chờ trang đọc lại sổ */ ghiBac?: (id: number, x: DuLieuEtp['lsBac'][number][number]) => void } | null>(null);
+  /** đổi bậc anh VỪA làm xong ở trang này (anh 25/11/2026 "Thiếu lịch sử đổi ngân sách") — ghép vào lịch sử bậc ngay, không chờ trang đọc lại sổ */ ghiBac?: (id: number, x: DuLieuEtp['lsBac'][number][number]) => void;
+  /** #1878 (anh 26/11/2026 "show ngay icon… chứ ko phải đợi cái đéo gì khác"): lệnh vừa gửi xong ghi vết chờ ⏳ vào trang NGAY — không đợi router.refresh mang sổ chờ áp từ máy chủ về */ ghiCho?: (x: ChoAp) => void } | null>(null);
+// VẾT CHỜ VỪA BẤM (#1878): ghép lệnh vừa gửi ở trang này vào sổ chờ áp của máy chủ — trùng (cùng camp + việc + mức, lệch < 30 phút) thì bỏ bản của trang
+function gopCho(so: ChoAp[], vua: ChoAp[]): ChoAp[] {
+  const them = vua.filter((x) => !so.some((y) => y.camp_id === x.camp_id && y.viec === x.viec && Number(y.sau ?? -1) === Number(x.sau ?? -1) && Math.abs(Date.parse(y.luc) - Date.parse(x.luc)) < 30 * 60_000));
+  return them.length ? [...so, ...them] : so;
+}
+/** ⏳ ở ô TRẠNG THÁI (#1878): lệnh bật / tắt đang gửi hoặc đã gửi chờ kho — trước chỉ ô ngân sách có vết, ô trạng thái im */
+function DauChoTT({ id }: { id: number }) {
+  const ctx = useContext(DieuKhienCtx); if (!ctx) return null;
+  const g = ctx.gui?.get(id), ds = ctx.cho.get(id)?.filter((x) => x.viec === 'tat' || x.viec === 'bat');
+  return <span data-o="cho-tt"><DauCho ds={ds} gui={g && /^đang (tắt|bật)/.test(g) ? g : undefined} /></span>;
+}
 // VẾT CHỜ (anh 09/11/2026 "khi thay đổi mà chưa áp dụng ngay thì phải show lại vết"): lệnh tay còn chờ = kho chưa khớp với lệnh (ngân sách / trạng thái);
 // nhân bản giữ vết 45 phút (camp mới hiện ở lượt đồng bộ kế). Hết chờ thì tự biến mất — không ai phải xoá.
 function conCho(ds: ChoAp[], camps: Pick<CampEtpKho, 'camp_id' | 'ngan_sach' | 'trang_thai'>[]): Map<number, ChoAp[]> {
@@ -944,6 +956,9 @@ function DieuKhienCamp({ c, lon, tat, boDs, choDs, lsDk, oDong }: { c: Pick<Camp
     if ('loi' in r) { setKq({ ok: false, chu: r.loi, o: ten }); return; }
     setKq({ ok: true, chu: r.chu, o: ten });
     const doi = ten === 'ns' ? /^\$([\d.]+) → \$([\d.]+)$/.exec(r.chu) : null;   // campTay trả "$truoc → $sau" khi Ethopex đã đổi (đặt lịch thì trả chữ lịch — không ghi)
+    // #1878: vết ⏳ hiện NGAY khi lệnh trả về (trước ⏳ xanh "đang gửi" tắt rồi phải đợi trang đọc lại sổ mới có ⏳ cam)
+    const luc = new Date().toISOString(), viecCho = ten === 'tt' ? (c.trang_thai === 'ACTIVE' ? 'tat' : 'bat') : ten === 'ns' ? (doi ? 'ns' : null) : ten === 'nb' ? 'nb' : null;
+    if (viecCho) ctx?.ghiCho?.({ camp_id: c.camp_id, viec: viecCho, sau: viecCho === 'ns' ? Number(doi![2]) : null, chu: r.chu, luc });
     if (doi && Number(doi[1]) !== Number(doi[2])) ctx?.ghiBac?.(c.camp_id, { luc: new Date().toISOString(), viec: Number(doi[2]) > Number(doi[1]) ? 'tang' : 'giam', truoc: doi[1] ?? null, sau: doi[2] ?? null, luat: 'tay etp2 (vừa bấm ở trang này)', ai: 'anh (etp2)' });
     router.refresh();
   };
@@ -1089,11 +1104,12 @@ function DieuKhienCamp({ c, lon, tat, boDs, choDs, lsDk, oDong }: { c: Pick<Camp
                     {NS_ROAS_CHIP.filter((x) => x >= nsKhoang[0]! && x <= nsKhoang[1]!).map((x) => <button key={x} onClick={() => { setNsRoas(String(x)); setXem(null); }} style={ch(nsRoas === String(x))}>${x}</button>)}
                     <span>$</span><input value={nsRoas} onChange={(e) => { setNsRoas(e.target.value.replace(/\D/g, '')); setXem(null); }} style={{ ...o2, width: 54 }} title={`$${nsKhoang[0]}–${nsKhoang[1]}`} />
                     <span style={{ color: 'var(--fg-3, #777)' }}>{n > 1 ? 'mỗi camp · ' : ''}${nsKhoang[0]}–{nsKhoang[1]}</span></>}</div>
-                  {nhan('Giờ chạy')}<div style={dong}>{kieu === 'thuong' ? <span style={{ color: 'var(--fg-2)' }}>theo lịch lên camp</span> : <>
+                  {nhan('Giờ chạy')}<div style={dong}>{kieu === 'thuong' ? <span style={{ color: 'var(--fg-2)' }} title={`lịch lên camp của máy quyết · ${khungLen()}`}>theo lịch lên camp → <b data-nb-gio-that="">{chayLucGon()}</b></span> : <>
                     <button onClick={() => setChay('lich')} style={ch(chay === 'lich')} title={`lịch lên camp của máy quyết — lúc này: ${chayLuc(Date.now(), true)}`}>theo lịch</button>{/* #1772: creative mới cũng lên theo lịch được */}
                     <button onClick={() => setChay('ngay')} style={ch(chay === 'ngay')} title="lệnh trực tiếp — phanh đang áp thì cảnh báo một lần, bấm lại là lên">chạy ngay</button>
                     <button onClick={() => setChay('gio')} style={ch(chay === 'gio')} title="lệnh trực tiếp — camp chạy đúng giờ VN đặt">đặt giờ</button>
-                    {chay === 'gio' ? <OGioVn gio={gioDat} setGio={setGioDat} style={o2} /> : null}</>}</div>
+                    {chay === 'gio' ? <OGioVn gio={gioDat} setGio={setGioDat} style={o2} /> : null}
+                    {chay === 'lich' ? <b data-nb-gio-that="" style={{ color: 'var(--fg-2)' }} title={`giờ camp thực sự chạy — lịch lên camp của máy quyết · ${khungLen()}`}>→ {chayLucGon()}</b> : null}{/* #1880: giờ thực sự chạy hiện thẳng cạnh nút, không chỉ trong chữ rê */}</>}</div>
                   {laRoasCu ? <>{nhan('Sau khi tạo')}<label style={{ ...dong, gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={tamDung} onChange={(e) => setTamDung(e.target.checked)} />để tạm dừng chờ review</label></> : null}
                 </> : null}
               </div>
@@ -2651,7 +2667,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
         boxShadow: mau ? `inset 3px 0 ${mau}` : undefined, background: mau ? `${mau}14` : undefined, position: 'relative', ...toSangDong(hl, c.camp_id, mau ? { boxShadow: `inset 3px 0 ${mau}` } : undefined) }}>{vach}
         <span style={{ display: 'grid', gridTemplateColumns: LUOI_CAMP_HEP, columnGap: 6, alignItems: 'center', minWidth: 0, whiteSpace: 'nowrap' }}>
           {/* #1876 anh "Bấm vào đây thì mở modal có sẵn để thay bậc hoặc tắt camp": chấm trạng thái → ngăn điều khiển tab Bật/Tắt, số $ → tab Ngân sách bậc */}
-          <span data-cot="cham" style={{ display: 'inline-flex' }}>{dkCay && c.camp_id > 0 ? <DieuKhienCamp c={c} oDong={{ chu: <TT c={c} />, tab: 'tt' }} /> : <TT c={c} />}</span>
+          <span data-cot="cham" style={{ display: 'inline-flex' }}>{dkCay && c.camp_id > 0 ? <><DieuKhienCamp c={c} oDong={{ chu: <TT c={c} />, tab: 'tt' }} /><DauChoTT id={c.camp_id} /></> : <TT c={c} />}</span>
           <span data-cot="camp" style={{ paddingLeft: (cap - 1) * 12, overflow: 'hidden', textOverflow: 'ellipsis' }}><span className="mui">{ds.length ? '▸' : ''}</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b></span>{/* điện thoại không có nhãn loại CT/CC sau số camp (anh 29/10/2026 #1480 "bỏ nút này trên mobile" — ô hẹp cắt thành "…") */}
           <span data-cot="ngan-sach" data-cot-can="phai" style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{(() => { const so = choCay?.get(c.camp_id) || dkCay?.gui?.get(c.camp_id) ? <DauCho ds={choCay?.get(c.camp_id)} gui={dkCay?.gui?.get(c.camp_id)} /> : `$${c.ngan_sach}`;
             return dkCay && c.camp_id > 0 ? <DieuKhienCamp c={c} oDong={{ chu: so, tab: 'ns' }} /> : so; })()}</span>
@@ -2761,7 +2777,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
         const o = choGio(c) ? <span style={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}><span style={{ flex: 1, minWidth: 0 }}>{o0}</span><NutLenGio camp={c.camp_id} lich={c.lich} /></span> : o0;   // 🕒 đổi giờ camp đã đẩy chưa chạy (anh 22/11/2026)
         const re = c.trang_thai === 'ACTIVE' || c.giao === 'DISAPPROVED' ? <ReThe the={() => ({ ma: `#${c.camp_id}`, ten: c.ten, tieu: x.chu, mau: x.mau, moc: [{ ten: 'Trạng thái', mau: x.mau, chu: x.t }] })}>{o}</ReThe> : <ReDung c={c}>{o}</ReDung>;
         // #1789 anh "Cần option để tao tắt camp thủ công": ⏸ tắt / ▶ bật ngay cạnh chữ trạng thái (chỉ chủ) — mở khung điều khiển ở tab Tắt, phải bấm Làm mới gửi
-        return dkCay && c.camp_id > 0 ? <span style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}><span style={{ flex: 1, minWidth: 0 }}>{re}</span><DieuKhienCamp c={c} tat /></span> : re; }, sortValue: (c) => ttCamp(c).chu },   // cột hẹp cố định — không ăn khoảng thừa của bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang")
+        return dkCay && c.camp_id > 0 ? <span style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}><span style={{ flex: 1, minWidth: 0 }}>{re}</span><DauChoTT id={c.camp_id} /><DieuKhienCamp c={c} tat /></span> : re; }, sortValue: (c) => ttCamp(c).chu },   // cột hẹp cố định — không ăn khoảng thừa của bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang")
     // cột Thị trường đứng SAU TT (#1823 anh 24/11/2026 "tận dụng không gian này để mở rộng tên phim"): ô TT dòng phim trống → tên phim tràn qua TT; đồng hồ thị trường sát ＋ — trước đứng giữa tên và TT, chặn tên tràn
     { key: 'ht', header: 'Thị trường', align: 'center', width: 40, title: 'thị trường của phim (độ hấp thụ): ROI biên 14 ngày (mỗi $1 chi thêm đem về bao nhiêu) — xanh còn hút · vàng gần đỉnh · đỏ bão hoà; chưa đủ số thì trống',
       cell: () => null, total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k) ? <DongHoPhim cid={k} m={du.moRong?.find((x) => x.content_id === k)} ten={rs.find((x) => x.camp_id > 0)?.phim} /> : null; } },   // cột riêng (anh 04/11/2026)
@@ -3200,7 +3216,7 @@ const chuLanDung = (cr: CreativeEtpKho | null | undefined): string => !cr || !(c
 const KIEU_HH: Record<string, { chu: string; nen: string; ten: string }> = { kien: { chu: 'K', nen: '#2563eb', ten: 'kiểu Kiên — chữ riêng từng phim (chu-kieu.json), link search.com' }, dol: { chu: 'D', nen: '#ea580c', ten: 'kiểu Dol — chữ form chung (form-chu.json), link info.com' } };
 function KieuCr({ cr }: { cr: CreativeEtpKho | null | undefined }) {
   if (!cr?.kieu) return null; const k = KIEU_HH[cr.kieu] ?? { chu: cr.kieu.slice(0, 1).toUpperCase(), nen: '#6b7280', ten: `kiểu ${cr.kieu}` };
-  return <span data-o="cr-kieu" title={k.ten} style={{ position: 'absolute', top: 2, left: 2, minWidth: 16, height: 16, padding: '0 3px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 3, background: k.nen, color: '#fff', fontSize: 11, fontWeight: 800, lineHeight: 1, boxShadow: '0 0 0 1.5px #fff, 0 1px 3px rgba(0,0,0,.5)', pointerEvents: 'auto', cursor: 'help' }}>{k.chu}</span>;
+  return <span data-o="cr-kieu" title={k.ten} style={{ position: 'absolute', top: 2, left: 2, minWidth: 11, height: 11, padding: '0 2px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 2, background: k.nen, color: '#fff', fontSize: 8.5, fontWeight: 700, lineHeight: 1, opacity: 0.75, boxShadow: '0 0 0 1px rgba(255,255,255,.7)',   /* anh 26/11/2026 "cho chữ bé hơn, mờ hơn chút" */ pointerEvents: 'auto', cursor: 'help' }}>{k.chu}</span>;
 }
 function LanDung({ cr }: { cr: CreativeEtpKho | null | undefined }) {
   if (!cr || !(cr.lan_dung > 0)) return null;
@@ -3231,7 +3247,9 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     return { ...d, hangCr: d.hangCr.map((c) => { const ok = c.creative_id != null && choAnhDuyet(c) ? bamDuyet[c.creative_id] : undefined; if (ok == null) return c;
       if (ok === 'sua') return { ...c, dong_bo: 'sua_lai', ten: c.ten.replace(/^⏸ Chờ duyệt/, '✎ Sửa lại') };
       return ok ? { ...c, dong_bo: 'xep_hang', ten: c.ten.replace(/^⏸ Chờ duyệt/, '⏳ Chờ lên camp') } : { ...c, dong_bo: 'da_loai', ten: c.ten.replace(/^⏸ Chờ duyệt/, '✕ Đã loại') }; }) }; }, [duGoc, nang, bamDuyet, vuaBac]);
-  const choMap = useMemo(() => conCho(choAp, du.camps), [choAp, du.camps]);
+  const [vuaCho, setVuaCho] = useState<ChoAp[]>([]);   // #1878 lệnh vừa gửi xong ở trang này — ⏳ hiện ngay, gopCho bỏ khi sổ máy chủ đã có
+  const ghiCho = useCallback((x: ChoAp) => setVuaCho((v) => [...v, x]), []);
+  const choMap = useMemo(() => conCho(gopCho(choAp, vuaCho), du.camps), [choAp, vuaCho, du.camps]);
   const [guiMap, setGuiMap] = useState<Map<number, string>>(() => new Map());   // lệnh tay đang gửi theo camp — ngăn camp + ô ngân sách dòng bảng cùng đọc
   const datGui = useCallback((id: number, chu: string | null) => setGuiMap((m) => { const n = new Map(m); if (chu) n.set(id, chu); else n.delete(id); return n; }), []);   // lệnh tay chờ áp còn hiệu lực (vết ⏳)
   // ⚙ Thiết lập: dòng khối 📝 Đang lên kế hoạch → camp DỰ KIẾN (chép cấu hình camp khuôn, đè đúng các ô khối đặt — giống nhan-ban.py của dong_phim.py b_camp_khoi)
@@ -3781,7 +3799,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     // TRANG TỰ CUỘN (body của mos2 khoá cuộn — trong mos2 chỉ vùng nội dung cuộn; etp.on.tc đứng riêng): khung cao đúng màn hình, cuộn bên trong,
     // đầu trang trôi đi, tiêu đề bảng + thanh trang của DataTable dính theo khung này — kéo lên xem hết bảng như bên Ethopex
     <ChiXem.Provider value={chiXem}><HoanCtx.Provider value={hoanSo}><LsBacCtx.Provider value={du.lsBac ?? {}}>
-    <PhamViLuu value={phamViNg(du)}><DieuKhienCtx.Provider value={quyen?.vai === 'chu' && !du.nguoi.ngoai ? { bo: Object.keys(du.boTk).sort(), cho: choMap, ls: lsCamp, phanh: canhBaoPhanh(du.cauHinh), gui: guiMap, datGui, ghiBac } : null}><SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
+    <PhamViLuu value={phamViNg(du)}><DieuKhienCtx.Provider value={quyen?.vai === 'chu' && !du.nguoi.ngoai ? { bo: Object.keys(du.boTk).sort(), cho: choMap, ls: lsCamp, phanh: canhBaoPhanh(du.cauHinh), gui: guiMap, datGui, ghiBac, ghiCho } : null}><SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
     <div ref={cuonRef} onScroll={(e) => { const h = heroRef.current; const g = !!h && e.currentTarget.scrollTop > (gon ? h.offsetTop + h.offsetHeight : 12); if (g !== gonHero) setGonHero(g); }} style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <HoverChu goc={cuonRef} />{/* #1546: mọi title= trong trang → thẻ nổi chung */}
       <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}@keyframes etpXoay{to{transform:rotate(360deg)}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>

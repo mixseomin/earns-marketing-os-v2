@@ -71,3 +71,12 @@ export function tieuDeDang(tieuDe, p) {
   if (!tt || !tieuDe) return tieuDe;
   return tieuDe.toLowerCase().startsWith(tt.toLowerCase()) ? tieuDe : `${tt}: ${tieuDe}`;
 }
+
+/** KHUNG GIỜ SẢN XUẤT (anh 26/11/2026: "set giờ cắt ffmpeg vào khung giờ ít online như tầm 18-24h … phải plan kế hoạch sx, ko đc thay đổi kế hoạch air bài"):
+ *  kenh.json › khung_sx = ["HH:MM", "HH:MM"] giờ VN — mọi việc nặng (tập mới, tập làm lại, tập dài) chỉ BẮT ĐẦU trong khung; đo số kênh vẫn chạy mỗi giờ.
+ *  "24:00" = hết ngày; khung qua nửa đêm (["22:00", "06:00"]) cũng được. Không khai = cả ngày (như trước). Lịch đăng không đổi: máy đăng đọc tập làm sẵn (truoc_ke_hoach). */
+export function trongKhungSx(K, gioNay) {
+  const kh = K?.khung_sx; if (!Array.isArray(kh) || kh.length !== 2) return true;
+  const [tu, den] = kh;
+  return tu <= den ? gioNay >= tu && gioNay < den : gioNay >= tu || gioNay < den;
+}

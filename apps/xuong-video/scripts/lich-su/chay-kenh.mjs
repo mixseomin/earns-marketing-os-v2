@@ -14,7 +14,7 @@ import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BOX, box, sqlBox, dauDangLam } from './box3.mjs';
-import { kiemPlaylist, lichHomNay, tapMoiTuan, timPlaylist } from './playlist.mjs';
+import { kiemPlaylist, lichHomNay, tapMoiTuan, timPlaylist, trongKhungSx } from './playlist.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 const arg = (k) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : null; };
@@ -83,8 +83,12 @@ for (const [k, K] of Object.entries(KENH)) {
   // TẬP KẸT TỰ LÀM TIẾP (02/11/2026, kế hoạch "kênh tự động hoàn toàn" bước 1): tập của kênh trong 10 ngày chưa đăng → đọc trạng thái trong DB máy đăng
   //   chưa nạp / chưa xuất / Phòng Nội dung bắt SỬA LẠI → lam-tap --id <tập> --gan-hook (giọng + ảnh dùng lại, hook / tiêu đề phạm luật thì gắn lại), kiểm chữ lỗi → thêm --sua
   //   chờ chấm / đã DUYỆT chờ máy đăng (20:00) → để yên. Mỗi tập tối đa 3 lần tự làm (tap.tu_dong.lan), quá thì báo Telegram MỘT lần.
+  // khung giờ sản xuất (kenh.json › khung_sx, playlist.mjs › trongKhungSx): ngoài khung chỉ đo số, không mở ffmpeg / dựng; --ep (anh gọi tay) bỏ qua khung
+  const gioSx = new Date().toLocaleTimeString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
+  const ngoaiKhung = !trongKhungSx(K, gioSx) && !process.argv.includes('--ep');
+  if (ngoaiKhung) bao.push(`⏸ ngoài khung sản xuất ${K.khung_sx.join('–')} — lượt này chỉ đo số`);
   const dangLamTiep = (() => { try { process.kill(Number(readFileSync(join(homedir(), '.cache', `lich-su-${k}.khoa`), 'utf8')), 0); return true; } catch { return false; } })();
-  if (!dangLamTiep) for (const f of readdirSync(join(DIR, 'tap')).filter((x) => x.endsWith('.json'))) {
+  if (!dangLamTiep && !ngoaiKhung) for (const f of readdirSync(join(DIR, 'tap')).filter((x) => x.endsWith('.json'))) {
     const tep = join(DIR, 'tap', f); if (Date.now() - statSync(tep).mtimeMs > 10 * 86_400_000) continue;
     const t = JSON.parse(readFileSync(tep, 'utf8')); if ((t.kenh ?? 'saga') !== k || t.id === undefined) continue;
     const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
@@ -147,7 +151,8 @@ for (const [k, K] of Object.entries(KENH)) {
   const loiPl = kiemPlaylist(K), lich = lichHomNay(K, thu, gioNay);
   // --ep: playlist theo --playlist, không thì playlist của lịch hôm nay, không thì playlist đầu (kênh có chia playlist)
   const plEp = process.argv.includes('--ep') ? (arg('playlist') ?? lich.playlist ?? K.playlist?.[0]?.ma ?? null) : null;
-  if (dangChay && !process.argv.includes('--ep')) bao.push('lượt làm tập trước còn chạy — lượt này chỉ đo số');
+  if (ngoaiKhung) { /* đã báo ở trên */ }
+  else if (dangChay && !process.argv.includes('--ep')) bao.push('lượt làm tập trước còn chạy — lượt này chỉ đo số');
   else if (loiPl.length) bao.push(`✗ cấu hình playlist sai — không làm tập: ${loiPl.join(' · ')}`);
   else if (plEp && (() => { try { timPlaylist(K, plEp); return false; } catch (e) { bao.push(`✗ ${e.message}`); return true; } })()) { /* đã báo */ }
   // CHỈ LÀM TRƯỚC KẾ HOẠCH N BÀI (anh 05/11/2026: "chỉ sx trước kế hoạch 3 bài thôi", kenh.json truoc_ke_hoach): đã có ≥ N tập làm xong chưa đăng YouTube
@@ -180,7 +185,7 @@ for (const [k, K] of Object.entries(KENH)) {
   // TẬP DÀI THEO LỊCH (08/11/2026, anh duyệt 15.000₫/tập, 1 tập/tuần): kenh.json › mau_dai.lich = { thu, gio, tran_vnd } — đúng thứ, từ giờ đó, tuần này chưa có
   // tập dài nào (tap/<may tắt>-dai-*.json tạo trong 7 ngày) và không có lượt làm tập đang chạy → giay/lam-dai.mjs tự chọn đề, dựng, nạp máy đăng; trần chi truyền --tran
   const LD = K.mau_dai?.lich;
-  if (LD && thu === LD.thu && gioNay >= (LD.gio ?? '00:00') && !dangChay && !process.argv.includes('--ep')) {
+  if (LD && !ngoaiKhung && thu === LD.thu && gioNay >= (LD.gio ?? '00:00') && !dangChay && !process.argv.includes('--ep')) {
     const tien_to = K.mau_dai.tien_to ?? 'ynt-dai-', moi = readdirSync(join(DIR, 'tap')).filter((f) => { const m = f.startsWith(tien_to) && f.slice(tien_to.length).match(/^(\d{4})(\d{2})(\d{2})\.json$/); return m && Date.now() - Date.parse(`${m[1]}-${m[2]}-${m[3]}T00:00:00+07:00`) < 7 * 86_400_000; });
     // tuần đã có tập = NGÀY trong mã tập (<tien_to>YYYYMMDD, đúng mã máy đặt ở dưới), KHÔNG phải ngày tạo tệp: tệp mẫu tay ynt-dai-nga-1812.json bị git / phiên khác ghi lại
     // là birthtime mới → mỗi thứ Sáu máy tưởng "tuần này đã có" rồi bỏ qua, kênh chỉ có đúng một tập dài (anh hỏi 22/11/2026)

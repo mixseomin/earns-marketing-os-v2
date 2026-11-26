@@ -18,6 +18,21 @@
    "nhom": "1 · Công thức máy dựng"
   },
   {
+   "ma": "cc2_logo",
+   "ten": "Cảnh cuối + logo cắt + nút",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "may",
+   "dang": "cảnh cuối logo",
+   "mac_dinh": true,
+   "dung_cho": [
+    "cảnh cuối logo"
+   ],
+   "may": "cat-canh.py + lop-logo-cc2.py (dòng CC2)",
+   "mo_ta": "Đoạn cao trào cắt từ phim như CC, 5 giây cuối là logo tên phim cắt từ poster (cùng hàm logo của AD) + nút WATCH NOW / VER AHORA, không caption nào khác; camp lên bằng chữ kiểu Kiên (anh 26/11/2026).",
+   "nhom": "1 · Công thức máy dựng"
+  },
+  {
    "ma": "tn_cta",
    "ten": "Tập nguyên + thẻ CTA",
    "loai": "cong_thuc",

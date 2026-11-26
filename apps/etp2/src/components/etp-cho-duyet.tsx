@@ -11,7 +11,6 @@ import { dsChoDuyet, duyetChoAnh, lenCamp, type ChoDuyet } from '@/lib/actions/e
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import { CHU_DAN } from '@/lib/etp-ke-cr';
 import { MO_TA_GIONG, maGiong, tenGiong } from '@/lib/etp-dang';
-import { coChuot } from '@/lib/co-chuot';
 import { BadgeDangNgan, BadgeKieu } from '@/components/etp-so';
 
 const nut: React.CSSProperties = { fontSize: 12, padding: '3px 10px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' };
@@ -104,7 +103,8 @@ function NutDuyet({ cr, roas, lich, dk, dang, bam }: { cr: number; roas: string 
         : <>Loại cr #{cr}? → <b style={{ color: '#f87171' }}>✕ Loại</b>, creative không lên camp.</>}</div>
       {hoi === true ? <label data-o="day-etho" style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: day ? '#4ade80' : 'var(--fg-2)', cursor: 'pointer' }}>
         <input type="checkbox" checked={day} onChange={(e) => setDay(e.target.checked)} /> 🚀 Đẩy lên Ethopex luôn (tạo camp ngay)</label> : null}
-      <textarea data-o="nhan-xet-cr" value={nx} onChange={(e) => setNx(e.target.value)} rows={3} maxLength={4000} autoFocus={coChuot()}
+      <textarea data-o="nhan-xet-cr" value={nx} onChange={(e) => setNx(e.target.value)} rows={3} maxLength={4000}
+        // #1896 anh 26/11/2026 "Ko tự focus" (Mac Chrome): ô Nhận xét KHÔNG tự focus ở MỌI máy — nhận xét không bắt buộc, anh bấm vào mới gõ
         placeholder={hoi === true ? 'Nhận xét (không bắt buộc): chỗ nào hay / cần sửa ở lượt dựng sau' : sua ? 'Cần sửa gì? (bắt buộc) — vd: đổi hook 3 giây đầu, chữ to hơn, bỏ logo góc…' : 'Vì sao loại? Con đọc làm hướng sửa (vd: chữ che mặt, hook yếu, logo mờ…)'}
         style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, padding: 6, borderRadius: 6, border: `1px solid ${thieu ? '#f97316' : 'var(--line)'}`, background: 'var(--bg-2)', color: 'inherit', resize: 'vertical' }} />
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

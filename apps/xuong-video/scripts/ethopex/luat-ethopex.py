@@ -1448,7 +1448,8 @@ def _xet_luat():
         # — rồi máy thay camp coi là sắp tắt). Luật tắt: camp đang lãi thì KHÔNG bao giờ là 'gần', chỉ 'xa'
         # 'gần' = thiếu đúng một điều kiện VÀ còn ít nhất một điều kiện thật (ngoài tiền đề) đã đạt — thẻ chỉ một điều kiện mà hỏng nó là 'xa' (anh 27/11/2026:
         # R15 gộp "chi ≥ $1 và thu < chi" một dòng, camp lãi chi $2.91 thu $4.03 vẫn hiện Gần)
-        ket = "khong_ap" if not ap else "dat" if thieu == 0 else "gan" if thieu == 1 and len(dk) > tien + 1 and lo is not False else "xa"
+        if len(dk) <= tien + 1: lo = False
+        ket = "khong_ap" if not ap else "dat" if thieu == 0 else "gan" if thieu == 1 and lo is not False else "xa"
         return {"ma": ma, "ten": ten, "mo_ta": mo_ta, "dk": dk, "ket": ket, "vao": vao_ds, "ghi": ghi}
     def L_g10(cid, ns):
         _x = [x for x in (_ng.get(int(cid)) or [None, []])[1] if x[0] in _d3s]; c3, t3 = sum(x[1] for x in _x), sum(x[2] for x in _x); r3 = (t3 - c3) / c3 * 100 if c3 >= 0.3 else None

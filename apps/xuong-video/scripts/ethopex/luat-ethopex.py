@@ -1111,7 +1111,7 @@ tat_rs = []
 try:
     if _ROAS & _bat:
         _rs_ngay = (dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=1)).isoformat()
-        _rs_camp = {int(x) for x in q(f"select camp_id from etp.camp where la_roas and (lich at time zone 'utc')::date = '{_rs_ngay}' and extract(hour from lich at time zone 'utc') >= {RS_GIO}").split() if x.strip().isdigit()}
+        _rs_camp = {int(x) for x in q(f"select camp_id from etp.camp where (lich at time zone 'utc')::date = '{_rs_ngay}' and extract(hour from lich at time zone 'utc') >= {RS_GIO}").split() if x.strip().isdigit()}
         _rs_so = bc(_rs_ngay, _rs_ngay) if _rs_camp & _ROAS & _bat else {}; _cmr = {c["id"]: c for c in ds_camp}
         for cid in sorted(_rs_camp & _ROAS & _bat):
             if int(cid) in _rl: continue

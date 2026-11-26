@@ -1748,8 +1748,8 @@ export const LUAT = [
   { card: 'cho-anh-duyet-2211', tep: 'apps/xuong-video/scripts/ethopex/len-creative.py', co: "insert into etp.cho_anh_duyet (creative_id, ghi) select unnest(", vi: 'mọi creative mới vào hàng Chờ anh duyệt trước khi xếp chấm (không lọt camp tự lên)' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/xuong-video/scripts/ethopex/len-creative.py', co: "không xếp chấm để không lọt camp tự lên", vi: 'giữ chờ duyệt lỗi thì không xếp chấm (fail-closed)' },
   // RN ★ ROAS NUÔI DẦN (Dol 22/11/2026 "camp mới $5, lãi thì nuôi dần"; anh "Ok. Làm theo đề xuất"): $5 → $10 → $15 → $20 khi từ lần đổi gần nhất chi > $10, ROI > 50%
-  { card: 'roas-nuoi-2211', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"roas_nuoi": {"chi": 10, "roi": 50, "bac": [5, 10, 15, 20]}', vi: 'bậc RN trong sổ luật chung' },
-  { card: 'roas-nuoi-2211', tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: '"roas_nuoi": {"chi": 10, "roi": 50, "bac": [5, 10, 15, 20]}', vi: 'etp2 cùng sổ luật' },
+  { card: 'roas-nuoi-2211', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"roas_nuoi": {"chi": 10, "roi": 50, "bac": [5, 10, 15, 20], "chi_ns": 0.8}', vi: 'bậc RN + ngưỡng chi theo ngân sách (anh 26/11/2026 sửa chỗ hở camp $5)' },
+  { card: 'roas-nuoi-2211', tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: '"roas_nuoi": {"chi": 10, "roi": 50, "bac": [5, 10, 15, 20], "chi_ns": 0.8}', vi: 'etp2 cùng sổ luật' },
   { card: 'roas-nuoi-2211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'RN = BANG_LUAT["roas_nuoi"]', vi: 'máy luật đọc RN từ sổ, không gõ số tay' },
   { card: 'roas-nuoi-2211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"tang_roas": m(tang_roas)', vi: 'danh sách RN ra worker' },
   { card: 'roas-nuoi-2211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'tang_roas = _bo_phanh(tang_roas)', vi: 'RN cũng phanh khi chợ xấu (anh 18/11/2026)' },

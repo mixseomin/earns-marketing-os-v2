@@ -1156,6 +1156,9 @@ _rl |= {int(x[0] or 0) for x in tat_r15}; tang30 = [x for x in tang30 if int(x[0
 # ngân sách gần nhất (tăng / giảm thành công trong etp.nhat_ky; chưa đổi thì từ lúc lên camp) chi > roas_nuoi.chi và ROI > roas_nuoi.roi% → máy tăng bậc kế trong
 # roas_nuoi.bac ($5 → $10 → $15 → $20, sổ luật chung). Từ $20 đi tiếp qua T30. Một camp một quyết định: RL / R0 / sắp tắt thắng RN. Khung giờ / nhịp / rào chắn ở worker + lam-ethopex + cong.kiem.
 RN = BANG_LUAT["roas_nuoi"]; RN_CHI, RN_ROI, RN_BAC = float(RN["chi"]), float(RN["roi"]), sorted(int(x) for x in RN["bac"])
+# NGƯỠNG CHI THEO NGÂN SÁCH (anh 26/11/2026 "sửa hết chỗ hở": camp $5 phải tiêu 2 ngày mới qua $10 → tăng muộn): chi ≥ min($RN_CHI, chi_ns × ngân sách).
+# Đo cả đội ★ ROAS $5 lên từ 18/11: ngày đầu chi ≥ $4 & ROI > 50% → các ngày sau ROI +42% (8 camp, chi $28.69); đối chứng ngày đầu ROI 0–50% → +19% (18 camp).
+RN_NS = float(RN.get("chi_ns") or 0); _rn_ng = lambda ns: min(RN_CHI, RN_NS * ns) if RN_NS and ns > 0 else RN_CHI
 tang_roas, _rn_so = [], {}
 try:
     _rn_cm = {int(c["id"]): c for c in ds_camp}
@@ -1174,7 +1177,7 @@ try:
             c, moc, chi_, thu_ = int(p[0]), p[1], float(p[2]), float(p[3]); ns_ = _rn_ns[c]; _rn_ke = min(b for b in RN_BAC if b > ns_)   # KHÔNG đặt tên ke: đè hàm ke() dòng 104 → thẻ xét luật 'int' object is not callable (22/11/2026)
             r_ = (thu_ - chi_) / chi_ * 100 if chi_ > 0 else None
             _rn_so[c] = {"moc": moc, "chi": chi_, "thu": thu_, "roi": r_, "ns": ns_, "ke": _rn_ke}
-            if chi_ > RN_CHI and r_ is not None and r_ > RN_ROI:
+            if chi_ >= _rn_ng(ns_) and r_ is not None and r_ > RN_ROI:
                 tang_roas.append((c, f"#{(_rn_cm[c].get('name') or '')[:80]} · từ {moc} VN: chi ${chi_:.2f} · thu ${thu_:.2f} · ROI {r_:+.0f}% · ${ns_:g} → ${_rn_ke}"))
 except Exception as e:
     loi_may.append((0, f"luật RN (★ ROAS nuôi dần) lỗi: {str(e)[:80]}"))
@@ -1498,8 +1501,8 @@ def _xet_luat():
                 ns = float(a.get("budget") or 0); du30 = [n[cid] for n in (ngay3 if "ngay3" in globals() else []) if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]
                 r30 = roi({"chi": sum(x["chi"] for x in du30), "thu": sum(x["thu"] for x in du30)}) if du30 else None
                 _rn = _rn_so.get(int(cid)) or {}
-                ls.append(L("rn", "RN · ★ ROAS nuôi dần $5 → $20", f"Dol 22/11/2026: camp ★ mới lên ${RN_BAC[0]}, lãi thì nuôi dần. Ngân sách ${RN_BAC[0]}–${RN_BAC[-2]}, từ lần đổi ngân sách gần nhất (chưa đổi thì từ lúc lên) chi > ${RN_CHI:g} và ROI > {RN_ROI:g}% → máy tự tăng bậc kế ({' → '.join(f'${b}' for b in RN_BAC)}). Từ ${RN_BAC[-1]} đi tiếp qua T30.",
-                    [["Ngân sách", f"${ns:g}", f"${RN_BAC[0]}–${RN_BAC[-2]}", RN_BAC[0] <= ns < RN_BAC[-1]], [f"Chi từ {_rn.get('moc') or 'lần đổi gần nhất'} VN", f(_rn.get("chi"), "$"), f"> ${RN_CHI:g}", (_rn.get("chi") or 0) > RN_CHI],
+                ls.append(L("rn", "RN · ★ ROAS nuôi dần $5 → $20", f"Dol 22/11/2026: camp ★ mới lên ${RN_BAC[0]}, lãi thì nuôi dần. Ngân sách ${RN_BAC[0]}–${RN_BAC[-2]}, từ lần đổi ngân sách gần nhất (chưa đổi thì từ lúc lên) chi ≥ min(${RN_CHI:g}, {RN_NS:g} × ngân sách) và ROI > {RN_ROI:g}% → máy tự tăng bậc kế ({' → '.join(f'${b}' for b in RN_BAC)}). Từ ${RN_BAC[-1]} đi tiếp qua T30.",
+                    [["Ngân sách", f"${ns:g}", f"${RN_BAC[0]}–${RN_BAC[-2]}", RN_BAC[0] <= ns < RN_BAC[-1]], [f"Chi từ {_rn.get('moc') or 'lần đổi gần nhất'} VN", f(_rn.get("chi"), "$"), f"≥ ${_rn_ng(ns):g}", (_rn.get("chi") or 0) >= _rn_ng(ns)],
                      ["ROI cùng khoảng", f(_rn.get("roi"), "%"), f"> {RN_ROI:g}%", _rn.get("roi") is not None and _rn["roi"] > RN_ROI]]
                     + ([["Phanh chợ", f"đang phanh — {_LY_PHANH[:200]}", "không phanh (★ ROAS cũng bị phanh, anh 18/11/2026)", False]] if _LY_PHANH else []),
                     "tang_roas" if int(cid) in vao["tang_roas"] else None, (f"bậc kế ${_rn['ke']}" if _rn.get("ke") else None), tien=1))
@@ -1743,7 +1746,7 @@ in_("LÃI ĐẦU PHIÊN — TĂNG LUÔN $2/$3 (ROI hôm nay > 50%, chi ≥ $0,5)
 in_("THANG NHÂN BẢN BỘ 2 — MỞ BẢN MỚI Ở BẬC KẾ (không đổi ngân sách camp đang chạy):", thang_nb, "(chưa có)")
 in_("BẢN THANG LỖ (chi ≥ 1 ngày ngân sách, ROI ≤ −30%) — MÁY TẮT (báo trước một nhịp):", thang_tat, "(không)")
 in_("T30 — CAMP $20, 5 NGÀY ĐÃ KHÉP CHI TB ≥ $12 + ROI ≥ 50% → LÊN $30 (MÁY TỰ TĂNG — nới 29/10/2026):", tang30, "(chưa có)")
-in_(f"RN — ★ ROAS NUÔI {' → '.join(f'${b}' for b in RN_BAC)} (từ lần đổi ngân sách gần nhất chi > ${RN_CHI:g}, ROI > {RN_ROI:g}% — Dol 22/11/2026, MÁY TỰ TĂNG):", tang_roas, "(chưa có)")
+in_(f"RN — ★ ROAS NUÔI {' → '.join(f'${b}' for b in RN_BAC)} (từ lần đổi ngân sách gần nhất chi ≥ min(${RN_CHI:g}, {RN_NS:g} × ngân sách), ROI > {RN_ROI:g}% — Dol 22/11/2026, MÁY TỰ TĂNG):", tang_roas, "(chưa có)")
 in_(f"ĐỦ TIÊU CHÍ LÊN ROAS (lãi 30 ngày ≥ ${ROAS_LAI}, chưa có camp ★) — MÁY TỰ LÊN:", moc30, "(chưa có)")
 in_(f"ĐỦ ĐIỀU KIỆN TĂNG (ROI 30 ngày / từ lúc lên ≥ {roi_min:g}% và spending hôm nay > {sp_min:g}%) — CHỜ ANH DUYỆT:", dat, "(chưa có)")
 in_("THA HÔM NAY — luật tắt (T2 / L3 / L4 / L0 / OFF / TV) chạm nhưng hôm nay ROI > 50%, không tắt hôm nay:", tha_nay, "(không)")

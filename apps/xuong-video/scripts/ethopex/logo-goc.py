@@ -72,10 +72,12 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
     if pw < DOC_RONG:
         doc_anh = os.path.splitext(ra)[0] + "-doc.jpg"; k = -(-DOC_RONG // pw); im0 = Image.open(poster).convert("RGB")
         im0.resize((im0.width * k, im0.height * k), Image.LANCZOS).save(doc_anh, quality=95)
-    j = json.loads(subprocess.run([AT().may_doc(), doc_anh], capture_output=True, text=True, timeout=300).stdout.strip() or "{}")
+    # ĐỌC ĐÚNG hơn đọc nhanh: chờ Neural Engine tới 4 phút (--cho 240) — dự phòng CPU .fast đọc cụt chữ hoa văn (27/11/2026 134241 ",jLargate de m")
+    j = json.loads(subprocess.run([AT().may_doc(), "--cho", "240", doc_anh], capture_output=True, text=True, timeout=600).stdout.strip() or "{}")
+    treo = " — máy đọc chữ chạy dự phòng vì Neural Engine treo (đọc thiếu chữ), chạy lại khi ANE rảnh" if j.get("du_phong") else ""
     if doc_anh != poster: os.remove(doc_anh)
     hop = AT().hop_ten(ten, j)
-    if not hop: noi("máy đọc chữ không thấy tên phim trên poster"); return None, None
+    if not hop: noi("máy đọc chữ không thấy tên phim trên poster" + treo); return None, None
     # ĐỦ KHỐI LOGO: máy đọc chữ hay đọc trượt dòng chữ hoa văn (20/11/2026: "Rising", "INTERN", "MechGod" rụng khỏi logo) → dòng chữ to sát trên / dưới khối tên,
     # không phải nhãn nền tảng, nhập vào khối. Sau đó chữ đọc được phải khớp ≥ 50% số từ của tên phim, không thì coi như KHÔNG đọc ra logo (thà dừng hơn lấy nhầm biển hiệu).
     tu = AT().tu_chu; hop = [list(b) for b in hop]; kh = [list(k) for k in j.get("khung") or []]
@@ -87,7 +89,7 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
             if b in hop or tu(k[0]) & NHAN or len(k[0].strip()) < 3 or b[3] < 0.45 * cao or b[0] + b[2] < l_ or b[0] > r_: continue
             if -0.9 * cao <= b[1] - d_ <= 0.9 * cao or -0.9 * cao <= t_ - (b[1] + b[3]) <= 0.9 * cao or (b[1] >= t_ and b[1] + b[3] <= d_): hop.append(b); them = True
     can = tu(ten); doc = AT().khop_tu(set().union(*[tu(k[0]) for k in kh if k[1:] in hop]), can, ten)
-    if len(doc) < 0.5 * len(can): noi(f"chữ đọc được trên poster chỉ khớp {len(doc)}/{len(can)} từ của tên phim"); return None, None
+    if len(doc) < 0.5 * len(can): noi(f"chữ đọc được trên poster chỉ khớp {len(doc)}/{len(can)} từ của tên phim" + treo); return None, None
     im = np.asarray(Image.open(poster).convert("RGB")).astype(np.float32); Y, X = im.shape[:2]
     px = lambda b: (b[0] * X, b[1] * Y, (b[0] + b[2]) * X, (b[1] + b[3]) * Y)
     hp = [px(b) for b in hop]; lh = float(np.median([b[3] - b[1] for b in hp]))

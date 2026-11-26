@@ -12,7 +12,11 @@ let coMat = CommandLine.arguments.contains("--mat")
 let nhanh = CommandLine.arguments.contains("--nhanh")
 // ANE đã treo một lần trong lượt → các ảnh sau đọc thẳng bằng CPU, không chờ lại 15 giây mỗi ảnh (26/11/2026: 105 khung × 15 giây = quá hạn 600 giây của kiem-thoai, phim 57545 không cắt được)
 var aneTreo = false
-for duong in CommandLine.arguments.dropFirst() where duong != "--mat" && duong != "--nhanh" {
+// --cho <giây> (27/11/2026 logo CC2 phim 134241/154164: ANE treo 15 giây → .fast đọc "¡Lárgate de mi Bugatti!" thành ",jLargate de m" → logo-goc kết luận "khớp 1/4 từ" như thể poster không có logo):
+//   việc cần ĐỌC ĐÚNG hơn đọc NHANH (tách logo) chờ .accurate lâu hơn; mặc định 15 giây cho đường dựng có hạn chót. CPU không chạy được .accurate (thử 27/11: unknownError) nên không có dự phòng chính xác.
+let cho: Double = { if let i = CommandLine.arguments.firstIndex(of: "--cho"), i + 1 < CommandLine.arguments.count, let v = Double(CommandLine.arguments[i + 1]) { return v }; return 15 }()
+let choVal = CommandLine.arguments.firstIndex(of: "--cho").map { $0 + 1 }
+for (i_, duong) in CommandLine.arguments.enumerated().dropFirst() where duong != "--mat" && duong != "--nhanh" && duong != "--cho" && i_ != choVal {
     var chu: [String] = []; var khung: [[Any]] = []; var mat: [[Any]] = []; var duPhong = false
     guard let im = NSImage(contentsOfFile: duong), let cg = im.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
         FileHandle.standardError.write("doc-chu: không mở được ảnh \(duong)\n".data(using: .utf8)!); exit(2) }
@@ -34,8 +38,8 @@ for duong in CommandLine.arguments.dropFirst() where duong != "--mat" && duong !
             }
             xong.signal()
         } }
-        if aneTreo || xong.wait(timeout: .now() + 15) == .timedOut {
-            if !aneTreo { FileHandle.standardError.write("doc-chu: ⚠ Neural Engine không trả lời sau 15 giây ở \(duong) — đọc dự phòng bằng CPU mức .fast (bắt ít chữ hơn) cho ảnh này và mọi ảnh sau trong lượt\n".data(using: .utf8)!) }
+        if aneTreo || xong.wait(timeout: .now() + cho) == .timedOut {
+            if !aneTreo { FileHandle.standardError.write("doc-chu: ⚠ Neural Engine không trả lời sau \(Int(cho)) giây ở \(duong) — đọc dự phòng bằng CPU mức .fast (bắt ít chữ hơn) cho ảnh này và mọi ảnh sau trong lượt\n".data(using: .utf8)!) }
             aneTreo = true
             let yd = VNRecognizeTextRequest(); yd.recognitionLevel = .fast; yd.usesCPUOnly = true; yd.recognitionLanguages = yc.recognitionLanguages
             // dò mặt cũng chạy CPU (25/11/2026: dự phòng bỏ mặt → "mat": [] im lặng, bên gọi tưởng khung không có người, ghép logo chết max() rỗng)

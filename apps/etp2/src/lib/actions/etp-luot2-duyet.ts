@@ -1,7 +1,7 @@
 'use server';
 // LƯỢT 2 KIỂU K CHỜ ANH DUYỆT (anh 26/11/2026 "các camp + creative đều phải chờ duyệt mới được push lên" · "trừ creative clone, hoặc đã từng đc duyệt thì ko cần nữa.
 // Camp lên kiểu Dol cũng ko cần duyệt nếu Creative đã passed"): apps/etp/luot2.py xếp dòng kiểu đích trong sổ luot2.duyet (kien) vào tt 'cho_duyet' (0483) — máy KHÔNG tạo
-// creative / camp tới khi anh bấm. ✓ = tt 'dang' (máy làm ở nhịp kế trong khung luot2.khung) · ✕ = tt 'bo'.
+// creative / camp tới khi anh bấm. ✓ = tt 'dang' (máy DỰNG trong giờ luot2.khung 07–21h, camp hẹn CHẠY ở khung 22h — lich theo lich_len) · ✕ = tt 'bo'.
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
@@ -33,6 +33,6 @@ export async function duyetLuot2(crs: number[], ok: boolean): Promise<{ ok: true
       ? sql`update etp.luot2 set tt = 'dang', ly = null, lan = 0, duyet_ai = ${ai}, duyet_luc = now(), cap_nhat = now() where tt = 'cho_duyet' and cr_goc in (${xs}) returning cr_goc`
       : sql`update etp.luot2 set tt = 'bo', ly = 'anh không duyệt (camp kiểu K)', duyet_ai = ${ai}, duyet_luc = now(), cap_nhat = now() where tt = 'cho_duyet' and cr_goc in (${xs}) returning cr_goc`);
     if (!r.length) return { loi: 'không dòng nào đổi — đã có người duyệt / máy đã đổi trạng thái, tải lại ô' };
-    return { ok: true, chu: ok ? `đã duyệt ${r.length} camp K — máy lên ở nhịp kế (khung 07–21h VN, 4 camp / nhịp)` : `đã bỏ ${r.length} camp K` };
+    return { ok: true, chu: ok ? `đã duyệt ${r.length} camp K — máy dựng sẵn trong giờ 07–21h VN (4 camp / nhịp), camp hẹn CHẠY ở khung 22h kế tiếp` : `đã bỏ ${r.length} camp K` };
   } catch (e) { return { loi: String((e as Error).message ?? e) }; }
 }

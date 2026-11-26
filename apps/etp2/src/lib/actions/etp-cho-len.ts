@@ -49,13 +49,14 @@ export async function dsChoLen(): Promise<{ ds: ChoLen[] } | { loi: string }> {
 export async function duyetChoLen(id: number): Promise<{ ok: true; chu: string } | { loi: string }> {
   const me = await laAdmin(); if (!me) return { loi: 'chỉ admin' };
   const n = Math.trunc(Number(id));
-  // duyệt = duyệt cả chữ QC đang hiện trên thẻ (kiểu đã lưu). Kiểu Kiên mà phim chưa có chữ Kiên → không duyệt, báo anh đổi sang D (chu-qc.py cũng dừng ở ca này)
-  const c = await run<{ content_id: number; kieu: Kieu }>(sql`select content_id, kieu from etp.cho_len where id = ${n}`);
-  if (c[0]?.kieu === 'kien' && !soChu().kien(c[0].content_id)) return { loi: `#${n}: phim #${c[0].content_id} chưa có chữ kiểu Kiên trong apps/etp/chu-kieu.json — bấm D (Dol) rồi duyệt` };
-  const r = await run<{ id: number; kieu: Kieu }>(sql`update etp.cho_len set trang_thai = 'duyet', duyet_ai = ${me.email}, duyet_luc = now(), loi = null, cap_nhat = now()
+  // duyệt = duyệt cả chữ QC đang hiện trên thẻ. Phim chưa có chữ Kiên (chu-kieu.json) → thẻ đã hiện chữ D → lưu D đúng thứ anh vừa xem (chu-qc.py dừng nếu K mà thiếu chữ)
+  const c = await run<{ content_id: number }>(sql`select content_id from etp.cho_len where id = ${n}`);
+  const epD = !!c[0] && !soChu().kien(c[0].content_id);
+  const r = await run<{ id: number; kieu: Kieu }>(sql`update etp.cho_len set trang_thai = 'duyet', duyet_ai = ${me.email}, duyet_luc = now(), loi = null, cap_nhat = now(),
+      kieu = case when ${epD} then 'dol' else kieu end
     where id = ${n} and trang_thai in ('cho', 'duyet') returning id, kieu`);
   if (!r.length) return { loi: `#${n} không còn ở trạng thái chờ duyệt (đã lên hoặc đã bỏ) — tải lại trang` };
-  return { ok: true, chu: `đã duyệt #${n} với chữ kiểu ${r[0]!.kieu === 'kien' ? 'Kiên (K)' : 'Dol (D)'} — máy trên iMac tải lên Ethopex trong ~1–2 phút` };
+  return { ok: true, chu: `đã duyệt #${n} với chữ kiểu ${r[0]!.kieu === 'kien' ? 'Kiên (K)' : 'Dol (D)'}${epD ? ' (phim chưa có chữ Kiên)' : ''} — máy trên iMac tải lên Ethopex trong ~1–2 phút` };
 }
 
 export async function doiKieuChoLen(id: number, kieu: Kieu): Promise<{ ok: true; chu: string } | { loi: string }> {

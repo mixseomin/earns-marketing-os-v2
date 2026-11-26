@@ -70,18 +70,18 @@ export function ChoLenEtho() {
                 {x.ghi ? <div style={{ color: 'var(--fg-3, #888)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.ghi}>{x.ghi}</div> : null}
                 <div style={{ color: 'var(--fg-3, #888)' }}>dựng {gioVn(x.tao)}</div>
                 <div style={{ color: mau, fontWeight: 600 }}>{tt}{x.creative_id ? ` → creative #${x.creative_id}` : ''}{x.trang_thai !== 'cho' ? <span style={{ fontWeight: 400, color: 'var(--fg-3, #888)' }}> · {gioVn(x.cap_nhat)}</span> : null}</div>
-                {(() => { const coK = !!x.chu.kien, sua = x.trang_thai === 'cho' || x.trang_thai === 'duyet', c = x.kieu === 'kien' ? x.chu.kien : x.chu.dol;
-                  const chip = (k: 'kien' | 'dol', nhan: string, goi: string) => { const on = x.kieu === k, tat = !sua || dg || (k === 'kien' && !coK);
+                {(() => { const coK = !!x.chu.kien, sua = x.trang_thai === 'cho' || x.trang_thai === 'duyet', kieu = coK ? x.kieu : 'dol', c = kieu === 'kien' ? x.chu.kien : x.chu.dol;
+                  const chip = (k: 'kien' | 'dol', nhan: string, goi: string) => { const on = kieu === k, tat = !sua || dg || (k === 'kien' && !coK);
                     return <button type="button" title={goi} disabled={tat || on} onClick={() => void bam(x.id, () => doiKieuChoLen(x.id, k))}
                       style={{ ...nut, padding: '1px 8px', borderColor: on ? '#a78bfa' : 'var(--line)', background: on ? 'rgba(167,139,250,.25)' : 'transparent', fontWeight: on ? 700 : 400, opacity: tat && !on ? 0.45 : 1, cursor: tat || on ? 'default' : 'pointer' }}>{nhan}</button>; };
                   return (
-                    <div data-cho-len-kieu={x.kieu} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <div data-cho-len-kieu={kieu} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                       <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
                         <span style={{ color: 'var(--fg-2)' }}>Chữ QC:</span>
                         {chip('kien', 'K · Kiên', 'chữ Kiên của phim (apps/etp/chu-kieu.json), link search.com — mặc định')}
                         {chip('dol', 'D · Dol', 'form Dol cố định (apps/etp/form-chu.json), link info.com')}
                       </div>
-                      {x.kieu === 'kien' && !coK ? <div role="alert" style={{ padding: 6, border: '1px solid #ef4444', borderRadius: 4, background: 'rgba(239,68,68,.12)', color: '#fca5a5' }}>Phim chưa có chữ kiểu Kiên (apps/etp/chu-kieu.json) — bấm D · Dol để lên được</div> : null}
+                      {!coK ? <div style={{ color: '#fbbf24' }}>phim chưa có chữ kiểu Kiên (apps/etp/chu-kieu.json) — chỉ lên được D · Dol</div> : null}
                       {c ? <ChuXem c={c} /> : null}
                     </div>); })()}
                 {x.loi && x.trang_thai !== 'da_len' ? <div role="alert" style={{ padding: 6, border: '1px solid #ef4444', borderRadius: 4, background: 'rgba(239,68,68,.12)', color: '#fca5a5' }}>Lần tải lên trước lỗi: {x.loi} — máy tự thử lại</div> : null}

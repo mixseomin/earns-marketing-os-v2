@@ -250,14 +250,15 @@ function theDaLam(xet: XetLuat[], luc: string, lam: { viec: string; luc: string;
   return sau.length ? xet.map((l) => { const v = sau.find((x) => VIEC_THE[x.viec]!(l.ma)); return v && (l.ket === 'dat' || l.ket === 'gan') ? { ...l, da: v.gio } : l; }) : xet;
 }
 export async function docEtp(ng?: string, nhe = false): Promise<DuLieuEtp> {
-  const d = await docEtpDu(ng);
+  const d = await docEtpDu(ng, nhe);
   if (!nhe) return d;
   // etp2 09/11/2026 "sửa load chậm": creative (2,6 MB / 3.475 dòng) bản nhẹ chỉ giữ creative của camp + thư viện bản nhẹ; đủ bộ tải bù khi mở tab Creative / Thư viện
   const tv = d.thuVien.filter(tvCay), crCan = new Set<number>([...d.camps.map((c) => c.creative_id), ...(d.hangCr ?? []).map((c) => c.creative_id), ...tv.map((v) => v.creative_id)].filter((x): x is number => x != null));
   return { ...d, nhe: true, pheu: [], diemCham: {}, dangSx: [], thuVien: tv, creatives: d.creatives.filter((c) => crCan.has(c.creative_id)),
     cham: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { ...c, lop: {}, diem: {}, ly_do: {}, khung: {} }])) };
 }
-async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
+// nhe: bản nhẹ (trang camp) không kéo lop/diem/ly_do/khung của etp.cham — ~24 MB jsonb, ~0,55 giây (đo 26/11/2026); tab Creative lấy qua taiNangEtp (bản đủ)
+async function docEtpDu(ng?: string, nhe = false): Promise<DuLieuEtp> {
   const db = getDb()!;
   const nay = new Date().toISOString().slice(0, 10), qua = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10), dauThang = `${nay.slice(0, 8)}01`;
   // ĐO CÂU CHẬM (etp2 09/11/2026 'sửa load chậm'): câu > 400ms ghi journal mos2-etp2 kèm đầu câu SQL — biết trang chậm vì câu nào
@@ -414,7 +415,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     run<{ nhom: string; ma: string; ten: string; mo_ta: string }>(sql`select nhom, ma, ten, mo_ta from etp.tieu_chi order by nhom desc, thu_tu`).catch(() => [] as { nhom: string; ma: string; ten: string; mo_ta: string }[]),
     // CHẤM CREATIVE MỌI THÀNH VIÊN (anh 31/10/2026 "Chưa thấy chấm creatives của các thành viên à?"): xem người khác → bản chấm + hàng chấm của creative trong camp người đó
     //   (trước đây runNha → rỗng khi ?ng=, dù nap-creative-ngoai.py --tu-dong đã chấm)
-    run<Record<string, unknown>>(sql`select c.creative_id, c.luc::text luc, c.may, c.ket, c.meta, c.afs, c.loi, c.lop, c.diem, c.ly_do, c.khung, g.duoc_len, g.chan_boi, g.cho_duyet, u.ok duyet from etp.cham c left join etp.cham_cong g using (creative_id) left join etp.cham_duyet u using (creative_id)${crNguoi(sql`c.creative_id`)}`).catch(() => [] as Record<string, unknown>[]),
+    run<Record<string, unknown>>(sql`select c.creative_id, c.luc::text luc, c.may, c.ket, c.meta, c.afs, c.loi, ${nhe ? sql`null::jsonb lop, null::jsonb diem, null::jsonb ly_do, null::jsonb khung` : sql`c.lop, c.diem, c.ly_do, c.khung`}, g.duoc_len, g.chan_boi, g.cho_duyet, u.ok duyet from etp.cham c left join etp.cham_cong g using (creative_id) left join etp.cham_duyet u using (creative_id)${crNguoi(sql`c.creative_id`)}`).catch(() => [] as Record<string, unknown>[]),
     run<Record<string, unknown>>(sql`select creative_id, trang_thai, luc::text luc, loi, nguon, buoc, nhat_ky, bat_dau::text bat_dau, xong::text xong from etp.cham_hang q
       where (trang_thai in ('cho', 'dang') or (trang_thai = 'loi' and luc > now() - interval '1 day') or xong > now() - interval '30 minutes')${crNguoi(sql`q.creative_id`, true)}`).catch(() => [] as Record<string, unknown>[]),
     runNha<Record<string, unknown>>(sql`select c.camp_id, c.ten, c.trang_thai, c.ngan_sach, coalesce(sum(s.chi), 0) chi, coalesce(sum(s.thu), 0) thu,

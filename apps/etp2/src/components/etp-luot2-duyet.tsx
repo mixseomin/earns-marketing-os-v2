@@ -31,13 +31,13 @@ export function ChoDuyetLuot2() {
     { key: 'moi', header: 'Lên thành', cell: (x) => <><b>{KD(x.kieu_moi)}</b> · bộ {x.bo_moi ?? '?'} · ★ ROAS</> },
     { key: 'luc', header: 'Xếp lúc', cell: (x) => x.tao ?? '—' },
     { key: 'nut', header: '', align: 'right', cell: (x) => <span style={{ whiteSpace: 'nowrap' }}>
-      <button style={{ ...nut, borderColor: '#4ade80' }} disabled={dang} onClick={() => bam([x.cr_goc], true)} title="duyệt: máy lên camp K này ở nhịp kế">✓</button>{' '}
+      <button style={{ ...nut, borderColor: '#4ade80' }} disabled={dang} onClick={() => bam([x.cr_goc], true)} title="duyệt: máy dựng camp K này trong giờ 07–21h, camp chạy ở khung 22h">✓</button>{' '}
       <button style={{ ...nut, borderColor: '#f87171' }} disabled={dang} onClick={() => bam([x.cr_goc], false)} title="không duyệt: bỏ, máy không lên">✕</button></span> },
   ];
   return <section data-o="luot2-cho" style={{ border: '1px solid #f59e0b', borderRadius: 8, padding: '8px 10px', margin: '8px 0', display: 'flex', flexDirection: 'column', gap: 6 }}>
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
       <b>Lượt 2 · camp kiểu K chờ anh duyệt</b>
-      <span style={{ color: 'var(--fg-3)', fontSize: 12 }}>{ds?.length ?? 0} camp · creative clone của bản đã duyệt, đổi chữ D → K, sang bộ kia · chưa duyệt thì máy không tạo</span>
+      <span style={{ color: 'var(--fg-3)', fontSize: 12 }}>{ds?.length ?? 0} camp · creative clone của bản đã duyệt, đổi chữ D → K, sang bộ kia · chưa duyệt thì máy không tạo · duyệt rồi: dựng trong 07–21h, CHẠY ở khung 22h</span>
       {ds && ds.length > 1 ? <button style={{ ...nut, marginLeft: 'auto', borderColor: '#4ade80' }} disabled={dang} onClick={() => bam(ds.map((x) => x.cr_goc), true)}>✓ Duyệt hết</button> : null}
     </div>
     {loi ? <div role="alert" style={{ background: '#7f1d1d', color: '#fecaca', borderRadius: 6, padding: '6px 8px', fontSize: 12.5 }}>Không làm được: {loi}</div> : null}

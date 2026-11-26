@@ -17,7 +17,12 @@ def phim_cam(ids):
         hong = next((v for v in ra.values() if v and "chặn cho an toàn" in v), None)
         if hong: raise RuntimeError(hong)
         return {int(c): v for c, v in ra.items() if v}
-    r = subprocess.run(["ssh", B, f"{ENV} && python3 apps/etp/cong.py --phim-cam {' '.join(ids)}"], capture_output=True, text=True, timeout=120)
+    # box3 sshd đóng kết nối khi nhiều dòng phim gọi cùng lúc (mã 255 "Connection closed by … port 22") → thử lại 4 lần cách 5/10/20 giây;
+    # trước đây rớt một lần là dòng AD dừng hẳn (#7107 #7111, 26/11/2026). Lỗi khác 255 (sổ hỏng, python lỗi) vẫn dừng ngay.
+    for lan in range(4):
+        r = subprocess.run(["ssh", "-o", "ConnectTimeout=15", B, f"{ENV} && python3 apps/etp/cong.py --phim-cam {' '.join(ids)}"], capture_output=True, text=True, timeout=120)
+        if r.returncode != 255 or lan == 3: break
+        time.sleep(5 * 2 ** lan)
     if r.returncode: raise RuntimeError(f"không đọc được sổ phim cấm qua box3 (mã {r.returncode}: {(r.stderr or r.stdout).strip()[-160:]}) — dừng, không làm creative")
     return {int(l.split("|", 1)[0]): l.split("|", 1)[1] for l in r.stdout.splitlines() if "|" in l and l.split("|", 1)[0].isdigit()}
 

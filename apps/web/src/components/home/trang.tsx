@@ -159,7 +159,7 @@ export function HomeTrang({ so = 'home', manId, tuy: tuyDau, bo, nguon, noi, ngu
           {sua && soLichSu > 0 && <button type="button" className="hm-nut hm-chi-may" onClick={hoanTac} title="Hoàn tác (Ctrl+Z)">Hoàn tác</button>}
           <button type="button" className="hm-nut" onClick={() => setPal(true)} title="Tìm màn, widget, lệnh (Ctrl+K hoặc /)">Tìm</button>
           <button type="button" className={`hm-nut hm-chi-may${sua ? ' hm-bat' : ''}`} title="Kéo thả, đổi cỡ, thêm bớt widget (phím E)"
-            onClick={doiSua}>{sua ? 'Xong sửa' : 'Sửa bố cục'}</button>
+            onClick={doiSua}>{sua ? 'Sửa xong' :'Sửa bố cục'}</button>
           <button type="button" className="hm-vuong hm-chi-may" onClick={() => datTuy({ pn: tuy.pn === 'rong' ? 'an' : 'rong' })} title="Mở hoặc đóng panel phụ (phím ])" aria-label="Mở hoặc đóng panel phụ" aria-pressed={tuy.pn === 'rong'}>◨</button>
         </header>
       )}
@@ -241,7 +241,7 @@ export function HomeTrang({ so = 'home', manId, tuy: tuyDau, bo, nguon, noi, ngu
       {pal && <BangTim dong={() => setPal(false)} muc={[
         ...MAN.map((m) => ({ loai: 'Màn', ten: m.ten, lam: () => router.push(href({ man: m.id })) })),
         ...Object.keys(WIDGET).map((ma) => ({ loai: tren.has(ma) ? (choLap(ma) ? 'Thêm bản nữa' : 'Đã có') : 'Thêm widget', ten: `${widgetCua(ma)!.ten} · ${ma}`, lam: () => themWidget(ma) })),
-        { loai: 'Lệnh', ten: sua ? 'Xong sửa bố cục' : 'Sửa bố cục', lam: doiSua },
+        { loai: 'Lệnh', ten: sua ? 'Sửa xong bố cục' : 'Sửa bố cục', lam: doiSua },
         { loai: 'Lệnh', ten: 'Trình chiếu: ẩn hoặc hiện hết khung', lam: () => trinhChieu(!an) },
         { loai: 'Lệnh', ten: 'Hoàn tác', lam: hoanTac },
         { loai: 'Lệnh', ten: 'Về bố cục mặc định của màn này', lam: veMacDinh },

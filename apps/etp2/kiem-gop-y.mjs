@@ -876,12 +876,13 @@ const LUAT = [
   // CAMP CHỜ GIỜ CHẠY MỜ (anh 26/11/2026 #1881 "Chờ giờ chạy : thì các phần này mờ đi")
   { card: '1881', tep: 'apps/etp2/src/components/etp-view.tsx', co: "(choGio(c) ? cot !== 'tt' :", vi: 'cây camp: dòng camp hẹn giờ chưa chạy mờ mọi ô, chỉ ô TT (giờ hẹn + ⏸) rõ' },
   // BẢN NHÂN ĐANG CHẠY CHỈ SÁNG Ô CAMP (anh 26/11/2026 #1884 "camp dup ra sẽ chỉ làm sáng mỗi phần đỏ, còn lại vẫn để mờ")
-  { card: '1884', tep: 'apps/etp2/src/components/etp-view.tsx', co: "cungBai && c.camp_id > 0 && dangChay(c) && cot !== 'camp'", cam: "!!c.goc && c.camp_id > 0 && dangChay(c) && cot !== 'camp'", vi: 'cây camp: bản nhân đang chạy thật CÙNG BÀI POST với camp gốc → mọi ô mờ trừ ô camp; khác bài thì không mờ (anh 26/11/2026 "Phải có cùng nhóm POST thì mới mờ", #109178)' },
-  { card: '1884', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'cellRowStyle: (c: CampEtpKho) => (dongMo(c, k.key, !!c.goc && !!baiChung.get(c.camp_id)?.ds.includes(Number(c.goc))) ? { opacity: 0.4 }', vi: 'cây camp: mọi cột đọc chung hàm dongMo' },
+  { card: '1884', tep: 'apps/etp2/src/components/etp-view.tsx', co: "cungBai && c.camp_id > 0 && dangChay(c) && cot !== 'camp'", cam: "!!c.goc && c.camp_id > 0 && dangChay(c) && cot !== 'camp'", vi: 'cây camp: camp đang chạy thật CHUNG BÀI POST với dòng ngay trên → mọi ô mờ trừ ô camp; khác bài thì không mờ (anh 26/11/2026 "phải chung post với bài ở trên thì mới làm mờ", #109178)' },
+  { card: '1884', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'cellRowStyle: (c: CampEtpKho, _i: number, truoc?: CampEtpKho) => (dongMo(c, k.key, !!truoc && cumBai(c) != null && cumBai(truoc) === cumBai(c)) ? { opacity: 0.4 }' },
+  { card: '1884', tep: 'packages/bang/src/data-table.tsx', co: '...c.cellRowStyle?.(row, i, truoc) }', vi: 'bảng dùng chung đưa dòng vẽ ngay trên cho cellRowStyle', vi: 'cây camp: mọi cột đọc chung hàm dongMo' },
   // CAMP CHƯA CHẠY KHÔNG CÓ TUỔI (anh 26/11/2026 #1883 "Camp chưa chạy thì ko hiện cột tuổi")
   { card: '1883', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const tuoiCamp = (c: CampEtpKho) => (choChay(c) ? null : tuoiNgay(c.tao));', vi: 'tuổi camp: camp chờ giờ / đang tạo trả null — một hàm cho mọi cột / lọc Tuổi' },
   { card: '1883', tep: 'apps/etp2/src/components/etp-view.tsx', co: "cell: (c) => (tuoi(c) == null ? '' : tuoiChu(tuoi(c)))", vi: 'cây camp: ô Tuổi của camp chưa chạy để trống, không hiện 0.0 / —' },
-  { card: '1881', tep: 'packages/bang/src/data-table.tsx', co: '...c.cellRowStyle?.(row, i)', vi: 'bảng chung áp kiểu riêng từng ô theo dòng (cellRowStyle)' },
+  { card: '1881', tep: 'packages/bang/src/data-table.tsx', co: '...c.cellRowStyle?.(row, i, truoc)', vi: 'bảng chung áp kiểu riêng từng ô theo dòng (cellRowStyle)' },
   // TRẠNG THÁI ✎ SỬA LẠI (anh 25/11/2026 #1863 "Thêm 1 status là Sửa lại !!")
   { card: '1863', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "data-o=\"nut-sua-lai\"", vi: 'thẻ chờ duyệt có nút thứ ba ✎ Sửa lại bên cạnh Duyệt / Loại' },
   { card: '1863', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: "duyetChoAnh(cr, false, chu, true), 'sua')", vi: 'xác nhận Sửa lại gửi cờ sửa lại, không gửi như Duyệt' },

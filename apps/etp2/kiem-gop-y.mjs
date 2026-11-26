@@ -7,6 +7,7 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 0, tep: 'apps/etp/dong_phim.py', co: 'máy dòng phim tự cất', vi: 'bam_main tự git stash tệp cục bộ chặn kéo main + báo Telegram khi kẹt ≥ 30 phút (máy đứng mã 25/11 hơn một ngày)' },
   { card: 0, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<GacDangBar />', vi: 'đầu trang etp2 có nút 🔒 Gác / Mở dạng dòng phim — anh tự bật / tắt, lý do ở DB (anh 26/11/2026 "lần sau tao muốn bật lại thì lại dựa vào não chó à")' },
   { card: 0, tep: 'apps/etp2/src/lib/actions/etp-dong.ts', mot: 'export async function doiGac(', vi: 'gác / mở ghi etp.cau_hinh.gac_dang + gac_dang_ly (lý do), không sửa mã' },
   { card: 0, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', cam: 'anh 08/11/2026 ưu tiên poster động', vi: 'chữ gác đọc lý do từ DB, không viết cứng lý do cũ' },

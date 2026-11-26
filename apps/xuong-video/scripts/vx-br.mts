@@ -10,8 +10,12 @@ import { readFileSync } from 'node:fs';
 import './videoexpress.mjs';   // gắn BR_PROFILE = profile riêng VideoExpress cho mọi lệnh br (chạy riêng vx-ke-chuyen cũng không phụ thuộc `br use` dùng chung)
 const BR = `${process.env.HOME}/bin/br`;
 export const ngu = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// MÃ CSRF (26/11/2026: từ 24/11 VideoExpress bắt mọi POST /ai/api/* kèm `_csrf_token` = options.aiApiCsrfToken in trong HTML trang; thiếu → 403
+// "csrf_token_invalid · Your session has expired" → máy kể chuyện kẹt phim American Sniper 2 ngày). Gắn MỘT lần ở cầu nối: mỗi lệnh eval tự cài lớp bọc fetch
+// của trang (đọc mã từ HTML hiện tại, nạp lại trang là đọc mã mới) → mọi chỗ gọi /ai/api/ (vx-ke-chuyen, vx-br, sau này) có mã, không chỗ nào phải tự nhớ.
+const GAN_CSRF = `(()=>{if(window.__vxCsrf)return;const m=document.documentElement.outerHTML.match(/aiApiCsrfToken:\\s*'([^']+)'/);if(!m)return;const tok=m[1],f0=window.fetch.bind(window);window.fetch=(u,o)=>{if(o&&String(o.method||'').toUpperCase()==='POST'&&/\\/ai\\/api\\//.test(String(u))&&typeof o.body==='string'&&!/(^|&)_csrf_token=/.test(o.body))o={...o,body:o.body+(o.body?'&':'')+'_csrf_token='+encodeURIComponent(tok)};return f0(u,o)};window.__vxCsrf=1})()`;
 export function brEval<T = unknown>(js: string): T {
-  const out = execFileSync(BR, ['eval', '--main', js], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  const out = execFileSync(BR, ['eval', '--main', `(${GAN_CSRF}, (${js}))`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   const dong = out.trim().split('\n');
   for (let i = dong.length - 1; i >= 0; i--) { try { return JSON.parse(dong[i]) as T; } catch {} }
   return out.trim() as unknown as T;

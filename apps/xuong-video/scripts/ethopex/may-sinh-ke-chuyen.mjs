@@ -38,6 +38,16 @@ const dong = () => { try { unlinkSync(KHOA); } catch { /* */ } dongPhien(); };
 // theo tap_id, mỗi nhịp cập nhật bước + ảnh bìa (khung cảnh 1 VideoExpress vừa sinh); xong thì thu-vien-them.mts đổi chính dòng đó sang "sẵn sàng", hỏng 3 lần → "loai"
 const lit = (x) => `'${String(x ?? '').replace(/'/g, "''")}'`;
 const psql = (cau) => execFileSync('ssh', [B, 'cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -q'], { timeout: 60e3, input: cau });
+// TỰ SỬA (anh 26/11/2026: "Lần sau chúng nó phải tự sửa"): máy kẹt thì KHÔNG lặp im lặng — xếp việc vào hàng Huy (kỹ sư Ethopex, etp-sua.json, chủ đề 📂 Ethopex);
+// Huy tìm gốc + sửa + deploy, rồi máy chạy tiếp. Gốc sự cố: 29/10–26/11 bước đưa creative báo "không tạo được creative" 2.592 lần, bước sinh báo
+// "Your session has expired" (thiếu mã CSRF) 2 ngày — không chỗ nào đếm, không ai được gọi. Khoá việc theo chỗ kẹt → tho-may-viec không xếp đôi.
+function giaoHuy(khoa, chu) {
+  try {
+    const n = execFileSync('ssh', [B, `cd /opt/cty && CTY_DATA_DIR=/var/lib/cty THO_MAY_TEP=etp-sua.json flock -w 60 /var/lib/cty/.etp-sua.json.khoa node worker/tho-may-viec.mjs --them ${q(khoa)} ethopex`], { input: `Máy sinh kể chuyện (iMac, launchd com.htuan.ethopex-may-sinh-ke-chuyen, mã /Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex/may-sinh-ke-chuyen.mjs, log /Users/htuan/Library/Logs/ethopex/may-sinh-ke-chuyen.log) KẸT: ${chu}`, encoding: 'utf8', timeout: 90e3 }).trim();
+    ghi(`  🔧 ${n.startsWith('0') ? 'việc đã có trong hàng Huy' : 'đã giao Huy sửa'} (${khoa})`);
+  } catch (e) { ghi(`  ✗ không giao được Huy: ${String(e?.message ?? e).slice(0, 160)}`); }
+}
+const DUNG_MAX = 6;   // số nhịp có mở trình duyệt liên tiếp mà không thêm được giọng / ảnh / clip nào (~30–40 phút) → kẹt thật
 function tienDo(d) {
   try { const x = JSON.parse(readFileSync(`${C}/${d.tap}/so.json`, 'utf8')).canh ?? {}; const v = Object.values(x);
     return { am: v.filter((c) => c.am).length, anh: v.filter((c) => c.anh).length, vid: v.filter((c) => c.vid).length, bia: x['1']?.anhUuid ? `https://user-assets.renderplatform.com/preview/${x['1'].anhUuid}.jpg` : null }; }
@@ -74,6 +84,19 @@ try {
   if (tv.length) {
     const r = spawnSync('python3', [`${XV}/scripts/ethopex/thu-vien-len.py`, ...tv], { cwd: XV, encoding: 'utf8', timeout: 40 * 60e3, maxBuffer: 64 << 20 });
     ghi(`đưa lên creative tv${tv.join(', tv')}: ${(r.stdout || r.stderr || '').trim().split('\n').filter((l) => /^[✓✗]|tv\d+:/.test(l)).slice(-3).join(' · ') || `mã thoát ${r.status}`}`);
+    // ĐẾM HỎNG TỪNG BẢN: hỏng 3 nhịp → thư viện 'loai' (không bốc lại mãi); hỏng vì đoạn phim bị máy soát cấm = phim không dùng được, chỉ loại;
+    // hỏng vì lý do khác = lỗi máy → giao Huy kèm đầu ra
+    const raLen = `${r.stdout || ''}\n${r.stderr || ''}`; so.len_hong ??= {};
+    for (const id of tv) {
+      if (new RegExp(`✓ tv${id}\\b`).test(raLen)) { delete so.len_hong[id]; continue; }
+      const n = (so.len_hong[id] = (so.len_hong[id] ?? 0) + 1);
+      if (n < 3) continue;
+      const cam = /đã bị cấm|không đoạn nào được đẩy/.test(raLen), ly = raLen.trim().split('\n').filter((l) => /✗|bị cấm|không đoạn|lỗi|Error/i.test(l)).slice(-4).join(' · ').slice(0, 400);
+      try { psql(`update etp.thu_vien set trang_thai = 'loai', ghi = ${lit(`máy sinh: đưa lên creative hỏng ${n} lần${cam ? ' — đoạn phim bị máy soát cấm' : ''}: ${ly}`)}, cap_nhat = now() where id = ${Number(id)};`); ghi(`  tv${id}: hỏng ${n} lần → thư viện "loại"`); } catch (e) { ghi(`  không loại được tv${id}: ${e}`); }
+      if (!cam) giaoHuy(`etp:ke-chuyen-len|tv${id}`, `đưa bản thư viện tv${id} lên creative hỏng ${n} nhịp liền (thu-vien-len.py). Đầu ra: ${ly}`);
+      delete so.len_hong[id];
+    }
+    luu();
   }
 } catch (e) { ghi(`✗ đưa lên creative: ${String(e?.message ?? e).slice(0, 200)}`); }
 try {
@@ -107,7 +130,12 @@ try {
     ghi(`  sinh: ${out.trim().split('\n').filter((l) => /✓|→|✗|chưa đủ/.test(l)).slice(-8).join(' · ')}`);   // 8 dòng: 4 dòng cuối từng che lỗi giọng #1–3 (29/10/2026)
     if (/→ gửi clip/.test(out)) d.gui_luc = Date.now();
     dongTv(d, 'dang_sinh', r.status === 0 ? 'đủ 6 cảnh · xuất thân phim' : buocChu(d));
-    if (r.status === 0) { d.buoc = 'nap'; d.lan = 0; delete d.gui_luc; luu(); } else if (/chưa đủ/.test(out)) { ghi('  chưa đủ clip — nhịp sau thu tiếp'); luu(); dong(); process.exit(0); } else throw new Error((r.stderr || out || 'vx-ke-chuyen lỗi').slice(-400));
+    // ĐẾM NHỊP KHÔNG TIẾN: nhịp mở trình duyệt mà số giọng / ảnh / clip không tăng và không gửi được gì → d.dung++; đủ DUNG_MAX → giao Huy (một lần mỗi chỗ kẹt)
+    const t2 = tienDo(d), dem = t2.am + t2.anh + t2.vid;
+    if (r.status !== 0 && dem <= (d.dem ?? -1) && !/→ gửi/.test(out)) d.dung = (d.dung ?? 0) + 1; else { d.dung = 0; delete d.da_giao; }
+    d.dem = dem;
+    if ((d.dung ?? 0) >= DUNG_MAX && !d.da_giao) { d.da_giao = gio(); giaoHuy(`etp:ke-chuyen-sinh|${d.tap}`, `phim ${d.ten} (tập #${d.tap}) đứng ở bước sinh ${d.dung} nhịp liền, không thêm được giọng / ảnh / clip nào (${buocChu(d)}). Đầu ra nhịp cuối: ${out.trim().split('\n').filter((l) => /✗|chưa đủ|lỗi|Error/i.test(l)).slice(-6).join(' · ').slice(0, 500)}`); }
+    if (r.status === 0) { d.buoc = 'nap'; d.lan = 0; delete d.gui_luc; delete d.dung; delete d.dem; delete d.da_giao; luu(); } else if (/chưa đủ/.test(out)) { ghi(`  chưa đủ clip — nhịp sau thu tiếp${d.dung ? ` (${d.dung}/${DUNG_MAX} nhịp không tiến)` : ''}`); luu(); dong(); process.exit(0); } else throw new Error((r.stderr || out || 'vx-ke-chuyen lỗi').slice(-400));
   }
   if (d.buoc === 'nap') {
     execFileSync('ssh', [B, `mkdir -p /var/tmp/vx-kc/${d.tap}`]);

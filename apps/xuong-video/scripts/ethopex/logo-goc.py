@@ -124,7 +124,11 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
         if not dac.any(): return "không còn nét logo sau khi tách"
         phu = dac[chu].mean(); ngoai = (dac & ~nd.binary_dilation(chu, iterations=int(0.3 * lh))).sum() / dac.sum()
         # khe giữa chữ / giữa từ hẹp hơn ~0,6 cao dòng không tính là mất nét (25/11/2026 dòng nhỏ "WHAT IF I'M" chỉ 69% cột có nét vì khoảng trắng) — phần chữ mất thật rộng hơn nhiều
-        du = min(nd.binary_closing(dac[int(max(0, b[1] - Y0)):int(b[3] - Y0), int(max(0, b[0] - X0)):int(b[2] - X0)].any(0), np.ones(max(3, int(0.6 * (b[3] - b[1]))), bool)).mean() for b in hp)
+        # đệm hai đầu trước khi đóng khe: binary_closing của scipy coi ngoài mép là trống nên ăn mất ~nửa cỡ khe ở mỗi đầu — dòng chữ cao trên hộp hẹp tự "rụng" ~30%
+        # dù đủ nét (26/11/2026 phim 179465 "Don't humiliate the CEO's parents": cột có nét 97% mà đo ra 70%, khoá màu sạch bị bỏ, lùi về dải poster)
+        def phu_ngang(cot, n):
+            return nd.binary_closing(np.pad(cot, n, constant_values=True), np.ones(n, bool))[n:-n].mean()
+        du = min(phu_ngang(dac[int(max(0, b[1] - Y0)):int(b[3] - Y0), int(max(0, b[0] - X0)):int(b[2] - X0)].any(0), max(3, int(0.6 * (b[3] - b[1])))) for b in hp)
         if not 0.10 <= phu <= tran: return f"nét phủ {phu:.0%} hộp chữ"
         if ngoai > 0.15: return f"{ngoai:.0%} phần tách nằm ngoài khối chữ"
         if du < du_min: return f"một dòng tên chỉ còn nét trên {du:.0%} bề ngang"

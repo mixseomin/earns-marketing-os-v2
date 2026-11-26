@@ -299,6 +299,9 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
     if (!loi.length) break;
   }
   sshS([`rm -rf ${tmp}`]);
+  // Cổng AI chết cả vòng (fetch failed mọi lượt) → KHÔNG có bản nào được ghi: loi vẫn [] nên guard loi.length bỏ sót,
+  // trước đây rơi xuống bước KHO và crash ENOENT ở readFileSync(tepTap) (26/11/2026). Chặn cả lớp: không có tệp tập thì dừng sạch mã 4.
+  if (!existsSync(tepTap)) { console.error(`✗ máy viết ${TONG_LUOT} lượt không ra được bản nào (cổng AI lỗi mạng?) — dừng, không tốn tiền giọng / ảnh`); process.exit(4); }
   if (loi.length) { console.error(`✗ máy viết ${TONG_LUOT} lượt vẫn lỗi — dừng, không tốn tiền giọng / ảnh`); process.exit(4); }
 } else { const loi = existsSync(join(RA, 'nguon.txt')) ? await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8')) : [];
   // --chi-day chỉ đẩy lại bản đã dựng lên Studio (không viết, không tốn tiền) → lỗi kiểm chỉ cảnh báo; máy đăng vẫn do Phòng Nội dung chặn

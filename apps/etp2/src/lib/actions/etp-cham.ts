@@ -6,6 +6,7 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp, xemNha } from '@/lib/etp-quyen';
 import { chayTach } from '@/lib/etp-chay-tach';
+import { guiGopY } from './gop-y-mos2';
 
 // CHỮ CỦA LỚP CHẤM (chữ trên hình · lời nói · tóm tắt) — trang không chở sẵn nữa (etp-doc gonLop, anh 27/10/2026 "load chậm quá");
 // tab Quét nội dung gọi một lần lúc mở, cắt 900 ký tự như thẻ hover
@@ -69,6 +70,16 @@ export async function duyetCham(id: number, ok: boolean, chu?: string | null, no
     on conflict (creative_id) do update set ok = excluded.ok, ai = excluded.ai, ghi = excluded.ghi, sua_lai = excluded.sua_lai, luc = now()`);
   if (nx) await getDb()!.execute(sql`with d as (insert into etp.nhan_xet_cr (creative_id, ok, chu, ai, noi) values (${id}, ${ok}, ${nx}, ${me.email}, ${noi ?? null}) returning id)
     update etp.nhan_xet_cr n set sua_lai = ${sl} from d where n.id = d.id and ${sl}`);   // cờ ✎ Sửa lại (0477) đặt trên đúng dòng vừa ghi
+  // NHẬN XÉT CHƯA ĐẠT = MỘT CARD GÓP Ý (anh 26/11/2026 "Tao vừa submit sửa lại creative phải sửa lại thì ai sẽ xử lý !?!"): trước đây nhận xét chỉ nằm ở
+  // etp.nhan_xet_cr, không máy / người nào đọc → câu "con dựng lại theo nhận xét" là hứa suông. Giờ Sửa lại / Loại có nhận xét mở card hòm góp ý etp2
+  // (cùng khuôn sinhLaiMau) → /tasks-etp2 nhận, sửa gốc máy dựng rồi dựng lại; anh theo dõi ở nút Góp ý.
+  if (nx && !ok) {
+    const [c] = (await getDb()!.execute(sql`select c.content_id, c.dang, c.lang, coalesce(c.anh, '') anh, coalesce(f.ten, '') ten from etp.creative c left join etp.phim f using (content_id) where c.creative_id = ${id}`)) as unknown as { content_id: number | null; dang: string | null; lang: string | null; anh: string; ten: string }[];
+    await guiGopY({ loai: 'loi', trang: `https://etp2.on.tc/?t=camp&l=${sl ? 'sualai' : 'choduyet'}&cr=${id}`, anhUrls: c?.anh ? [c.anh] : [], noiDung: [
+      `${sl ? '✎ Sửa lại' : '✕ Loại'} creative #${id}${c ? ` — ${c.dang ?? '?'} · ${c.lang ?? '?'} · phim ${c.ten || c.content_id} (#${c.content_id})` : ''}`,
+      `Nhận xét anh: ${nx}`,
+      `Việc cần làm: tìm gốc trong máy dựng dạng này (apps/xuong-video/scripts/ethopex, apps/etp/dong_phim.py), sửa cho mọi creative cùng dạng, rồi dựng lại bản cho phim này — không vá tay một creative.`].join('\n') }).catch(() => null);
+  }
   return { ok: true };
 }
 

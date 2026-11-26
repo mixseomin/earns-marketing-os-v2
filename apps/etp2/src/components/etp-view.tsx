@@ -3385,6 +3385,8 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   // localStorage chung mọi tab → tab mới đổi kỳ thì tab cũ F5 / tự làm mới cũng nhảy theo. Giờ URL thắng; localStorage chỉ còn là mặc định cho trang mở không có ?k=
   const [kh, setKh] = useState<Kh>(() => { let v = dauVao?.k ?? null; if (!v) try { v = localStorage.getItem('etp-kh'); } catch { /* trình duyệt chặn */ } return v ? KH_CU[v] ?? v : '7'; });
   const khK = khKhoang(kh, du.nay), khNay = khK.tu === du.nay && khK.den === du.nay, khNhan = khNhanCua(kh);
+  // #1885 (anh 26/11/2026 "Tối ưu lại cách trình bày cụm này"): kỳ trùng Hôm nay / Hôm qua thì KHÔNG thêm ô theo kỳ (trước hiện "Lãi hôm qua" hai lần) — ô cố định trùng kỳ được viền nhấn thay
+  const quaK = khoangCuaMoc('hom_qua', du.nay), khQua = !!quaK && khK.tu === quaK.tu && khK.den === quaK.den, khTrung: 'nay' | 'qua' | null = khNay ? 'nay' : khQua ? 'qua' : null;
   // SỐ HIỆU QUẢ TRONG MENU NGƯỜI (anh 22/11/2026 etp2 #1759): mỗi người chi · lãi · ROI · camp bật · ROI 7 ngày, dòng Team = tổng — cùng hàm với bảng Người, cùng bản số của Tổng quan (không tải thêm).
   // Chi / lãi / ROI LUÔN HÔM NAY, không theo kỳ chung (anh 24/11/2026 etp2 #1800)
   const soNguoi = useNguoiMenu();
@@ -3853,17 +3855,17 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       {/* MỐC BẬT DÒNG DÍNH (anh 01/11/2026 "sticky chưa hiện khi đang scroll ở gần Heros"): máy tính bật ngay khi dòng tiêu đề (cụm Người · TK · kỳ) BẮT ĐẦU trôi khỏi màn (cuộn > 12px = lề trên trang), không đợi tới đỉnh / hết hero; điện thoại dòng gọn chỉ có số → vẫn đợi qua hết hero */}
       <div ref={heroRef} style={{ margin: gon ? '8px 0' : '12px 0', ...(tab === 'tong' ? { display: 'none' } : {}) }}>{/* Tổng quan 2: widget Nắm nhanh thay dải số này — nhường chỗ để lưới vừa một màn (anh 01/11/2026) */}
         {gon ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }} title={`Camp chạy ${chay.length} · ngân sách $${chay.reduce((a, c) => a + c.ngan_sach, 0)}/ngày · đoạn vượt 3 camp ${new Set(du.camps.filter((c) => c.cung_doan > tranT).map((c) => c.doan)).size} · cảnh báo 24h ${du.canhBao.filter((c) => Date.now() - Date.parse(c.luc) < 86_400_000).length}`}>
-            {([['H.nay', nay], ['H.qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, s], i) => (   // khoá theo VỊ TRÍ: kỳ "Hôm nay" / "Hôm qua" trùng nhãn ô cố định (#1562)
-              <div key={i} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '6px 8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${khTrung ? 2 : 3}, 1fr)`, gap: 6 }} title={`Camp chạy ${chay.length} · ngân sách $${chay.reduce((a, c) => a + c.ngan_sach, 0)}/ngày · đoạn vượt 3 camp ${new Set(du.camps.filter((c) => c.cung_doan > tranT).map((c) => c.doan)).size} · cảnh báo 24h ${du.canhBao.filter((c) => Date.now() - Date.parse(c.luc) < 86_400_000).length}`}>
+            {([['H.nay', nay], ['H.qua', qua], ...(khTrung ? [] : [[khNhan, khTong]])] as [string, SoTien][]).map(([ten, s], i) => (   // khoá theo VỊ TRÍ; kỳ trùng Hôm nay / Hôm qua thì không có ô thứ ba (#1885)
+              <div key={i} style={{ border: `1px solid ${khTrung && i === (khTrung === 'nay' ? 0 : 1) ? 'var(--accent, #60a5fa)' : 'var(--line)'}`, borderRadius: 8, padding: '6px 8px' }}>
                 <div style={{ fontSize: 10, color: 'var(--fg-2)' }}>{ten} · <Roi s={s} /></div>
                 <div style={{ fontWeight: 700, fontSize: 15 }}><Lai s={s} /></div>
               </div>))}
           </div>
         ) : <StatsStrip cards={[
-          { key: 'nay', label: 'Lãi hôm nay', value: <Lai s={nay} />, sub: <span>ROI <Roi s={nay} /> · chi {usd(nay.chi)}</span> },   // CỐ ĐỊNH, không theo kỳ (anh 03/11/2026)
-          { key: 'qua', label: 'Lãi hôm qua', value: <Lai s={qua} />, sub: <span>ROI <Roi s={qua} /> · chi {usd(qua.chi)}</span> },
-          { key: 'kh', label: `Lãi ${khNhan.toLowerCase()}`, value: <Lai s={khTong} />, sub: <span>ROI <Roi s={khTong} /> · chi {usd(khTong.chi)}</span> },   // ô theo kỳ đang chọn
+          { key: 'nay', label: 'Lãi hôm nay', value: <Lai s={nay} />, sub: <span>ROI <Roi s={nay} /> · chi {usd(nay.chi)}</span>, ...(khTrung === 'nay' ? { active: true, color: '#60a5fa' } : {}) },   // CỐ ĐỊNH, không theo kỳ (anh 03/11/2026)
+          { key: 'qua', label: 'Lãi hôm qua', value: <Lai s={qua} />, sub: <span>ROI <Roi s={qua} /> · chi {usd(qua.chi)}</span>, ...(khTrung === 'qua' ? { active: true, color: '#60a5fa' } : {}) },
+          ...(khTrung ? [] : [{ key: 'kh', label: `Lãi ${khNhan.toLowerCase()}`, value: <Lai s={khTong} />, sub: <span>ROI <Roi s={khTong} /> · chi {usd(khTong.chi)}</span> }]),   // ô theo kỳ đang chọn — chỉ khi kỳ khác hai ô cố định (#1885)
           { key: 'camp', label: 'Camp chạy', value: chay.length, sub: `${choChayDs.length ? `${choChayDs.length} chờ chạy · ` : ''}${nguon.filter(daTat).length} đã tắt` },
           // TỔNG NGÂN SÁCH (anh 27/10/2026 "thêm hero tổng ngân sách"): mọi camp ACTIVE (đang chạy + chờ giờ), theo bộ lọc đang chọn như các ô khác
           { key: 'ns', label: 'Tổng ngân sách', value: `${usd([...chay, ...choChayDs].reduce((a, c) => a + c.ngan_sach, 0))}/ngày`, sub: `đang chạy ${usd(chay.reduce((a, c) => a + c.ngan_sach, 0))}${choChayDs.length ? ` · chờ chạy ${usd(choChayDs.reduce((a, c) => a + c.ngan_sach, 0))}` : ''} · đã chi hôm nay ${usd(nay.chi)}` },
@@ -3878,7 +3880,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       {gonHero ? <div style={{ display: 'flex', gap: gon ? 10 : 18, alignItems: gon ? 'baseline' : 'center', overflowX: 'auto', scrollbarWidth: 'none', whiteSpace: 'nowrap', fontSize: 12, padding: '6px 0 2px', borderBottom: '1px solid var(--line)' }}>
         {/* #1588 anh 13/11/2026 "Show cả khi sticky xuống": cụm tuổi số · ↻ Làm mới · ▶ Lên camp (cumTuoi — cùng hàm với dòng tiêu đề) đứng ĐẦU dòng dính */}
         <span data-dinh-tuoi="1" style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flex: 'none' }}>{cumTuoi(true)}</span>
-        {([['Hôm nay', nay], ['Hôm qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, x], i) => <span key={i}><span style={{ color: 'var(--fg-2)' }}>{ten} </span><b style={{ fontSize: 14 }}><Lai s={x} /></b> <span style={{ fontSize: 11 }}><Roi s={x} /></span></span>)}
+        {([['Hôm nay', nay], ['Hôm qua', qua], ...(khTrung ? [] : [[khNhan, khTong]])] as [string, SoTien][]).map(([ten, x], i) => <span key={i}><span style={{ color: 'var(--fg-2)' }}>{ten} </span><b style={{ fontSize: 14 }}><Lai s={x} /></b> <span style={{ fontSize: 11 }}><Roi s={x} /></span></span>)}
         <span><span style={{ color: 'var(--fg-2)' }}>Camp chạy </span><b style={{ fontSize: 14 }}>{chay.length}</b></span>
         <span><span style={{ color: 'var(--fg-2)' }}>Ngân sách </span><b style={{ fontSize: 14 }}>${[...chay, ...choChayDs].reduce((a, c) => a + c.ngan_sach, 0)}/ngày</b></span>
         {lenDinh ? <><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}{coBo ? boSel() : null}{coKy ? kySel() : null}<NutTieng /></span></>

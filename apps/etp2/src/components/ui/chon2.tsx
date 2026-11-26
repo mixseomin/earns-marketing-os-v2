@@ -57,7 +57,10 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
   const coChon = (v: string) => (nhieu ? (v === tatCa ? daChon.size === 0 : daChon.has(v)) : v === value);
   const datNhieu = (ds2: Set<string>) => onChange(ds2.size ? options.filter((m) => m.value !== tatCa && ds2.has(m.value)).map((m) => m.value).join(',') : tatCa);   // giữ thứ tự danh sách
   const dang = nhieu ? (daChon.size === 1 ? ds.find((m) => daChon.has(m.value)) : daChon.size ? { value: '_', label: `${daChon.size} mục` } as Chon2Muc : ds.find((m) => m.value === tatCa)) : ds.find((m) => m.value === value);
-  const nhanNhieu = nhieu && daChon.size > 1 ? options.filter((m) => daChon.has(m.value)).map((m) => m.ngan ?? (typeof m.label === 'string' ? m.label : m.value)).join(' + ') : null;
+  // #1885 (anh 26/11/2026 "Tối ưu lại cách trình bày cụm này"): chọn ≥ 3 mục thì nút chỉ ghi mục đầu + số mục còn lại ("Đang chạy +3") — nối đủ tên đẩy hàng lọc xuống dòng hai; đủ tên gập vào chữ rê (YDNI)
+  const dsNhieu = nhieu && daChon.size > 1 ? options.filter((m) => daChon.has(m.value)).map((m) => m.ngan ?? (typeof m.label === 'string' ? m.label : m.value)) : null;
+  const nhanNhieu = dsNhieu ? (dsNhieu.length > 2 ? `${dsNhieu[0]} +${dsNhieu.length - 1}` : dsNhieu.join(' + ')) : null;
+  const titleNhieu = dsNhieu && dsNhieu.length > 2 ? `Đang chọn: ${dsNhieu.join(' + ')}` : '';
   const chon = (v: string) => { if (!nhieu) { onChange(v); setMo(false); return; } if (v === tatCa) { onChange(tatCa); return; } const n = new Set(daChon); if (n.has(v)) n.delete(v); else n.add(v); datNhieu(n); };
   const phim = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setTro((i) => Math.min(loc.length - 1, i + 1)); }
@@ -77,7 +80,7 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
   const titleTo = nhanTo ? `🖍 Đang tô vàng: ${nhanTo} — chỉ tô, không giấu camp nào. Mở ô, bấm lại 🖍 để bỏ tô.` : '';
   return (
     <>
-      <button ref={ref} type="button" data-comp="ui.Chon2" title={[chan, titleTo, title].filter(Boolean).join('\n') || undefined} onClick={() => setMo((v) => !v)} data-to={toSet.size ? String(toSet.size) : undefined}
+      <button ref={ref} type="button" data-comp="ui.Chon2" title={[chan, titleNhieu, titleTo, title].filter(Boolean).join('\n') || undefined} onClick={() => setMo((v) => !v)} data-to={toSet.size ? String(toSet.size) : undefined}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap', minWidth, maxWidth: '100%', flex: 'none',
           border: `1px solid ${vien}`, background: nen, color: 'inherit', boxShadow: chan ? '0 0 0 2px rgba(248,113,113,.35)' : undefined }}>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>{nhan ?<span style={{ color: 'var(--fg-2)' }}>{nhan}: </span> : null}{nhanNhieu ?? dang?.ngan ?? dang?.label ?? rong}</span>

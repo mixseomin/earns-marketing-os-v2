@@ -881,6 +881,10 @@ const LUAT = [
   { card: '1884', tep: 'packages/bang/src/data-table.tsx', co: '...c.cellRowStyle?.(row, i, truoc) }', vi: 'bảng dùng chung đưa dòng vẽ ngay trên cho cellRowStyle', vi: 'cây camp: mọi cột đọc chung hàm dongMo' },
   // CAMP CHƯA CHẠY KHÔNG CÓ TUỔI (anh 26/11/2026 #1883 "Camp chưa chạy thì ko hiện cột tuổi")
   { card: '1883', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const tuoiCamp = (c: CampEtpKho) => (choChay(c) ? null : tuoiNgay(c.tao));', vi: 'tuổi camp: camp chờ giờ / đang tạo trả null — một hàm cho mọi cột / lọc Tuổi' },
+  // CỤM ĐẦU TRANG GỌN (anh 26/11/2026 #1885 "Tối ưu lại cách trình bày cụm này"): ô chọn nhiều ≥ 3 mục ghi "mục đầu +N"; kỳ trùng Hôm nay / Hôm qua không lặp ô Lãi
+  { card: '1885', tep: 'apps/etp2/src/components/ui/chon2.tsx', co: '`${dsNhieu[0]} +${dsNhieu.length - 1}`', cam: ".map((m) => m.ngan ?? (typeof m.label === 'string' ? m.label : m.value)).join(' + ') : null;", vi: 'ô chọn nhiều: chọn ≥ 3 mục thì nút ghi mục đầu + số mục còn lại, đủ tên ở chữ rê — không nối đủ tên đẩy hàng lọc xuống dòng hai' },
+  { card: '1885', tep: 'apps/etp2/src/components/etp-view.tsx', co: "...(khTrung ? [] : [{ key: 'kh', label: `Lãi ${khNhan.toLowerCase()}`", cam: "{ key: 'kh', label: `Lãi ${khNhan.toLowerCase()}`, value: <Lai s={khTong} />, sub: <span>ROI <Roi s={khTong} /> · chi {usd(khTong.chi)}</span> },   // ô theo kỳ đang chọn", vi: 'dải số: kỳ trùng Hôm nay / Hôm qua thì không thêm ô Lãi theo kỳ (trước hiện Lãi hôm qua hai lần)' },
+  { card: '1885', tep: 'apps/etp2/src/components/etp-view.tsx', co: "{([['Hôm nay', nay], ['Hôm qua', qua], ...(khTrung ? [] : [[khNhan, khTong]])]", vi: 'dòng số dính khi cuộn: cùng luật không lặp ô kỳ' },
   { card: '1883', tep: 'apps/etp2/src/components/etp-view.tsx', co: "cell: (c) => (tuoi(c) == null ? '' : tuoiChu(tuoi(c)))", vi: 'cây camp: ô Tuổi của camp chưa chạy để trống, không hiện 0.0 / —' },
   { card: '1881', tep: 'packages/bang/src/data-table.tsx', co: '...c.cellRowStyle?.(row, i, truoc)', vi: 'bảng chung áp kiểu riêng từng ô theo dòng (cellRowStyle)' },
   // TRẠNG THÁI ✎ SỬA LẠI (anh 25/11/2026 #1863 "Thêm 1 status là Sửa lại !!")

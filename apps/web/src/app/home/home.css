@@ -79,7 +79,8 @@
 .hm-nam { font-style: normal; font-size: 10px; letter-spacing: -2px; color: var(--fg-3); cursor: grab; flex: none; }
 .hm-ob { flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; padding: 8px; }
 /* ô không có thanh tiêu đề (ruột đã có tiêu đề riêng): nút phóng to chỉ hiện khi rê chuột */
-.hm-noi-to { position: absolute; top: 4px; right: 4px; z-index: 2; opacity: 0; background: var(--bg-2); }
+.hm-noi-to { position: absolute; top: 4px; right: 4px; z-index: 2; opacity: 0; display: flex; gap: 2px; align-items: center; background: var(--bg-2); border-radius: 4px; }
+.hm-noi-to:focus-within { opacity: 1; }
 .hm-o:hover > .hm-noi-to, .hm-noi-to:focus-visible { opacity: 1; }
 .hm-to { left: 3px !important; top: 3px !important; width: calc(100% - 6px) !important; height: calc(100% - 6px) !important; z-index: 90 !important; }
 .hm-cho { color: var(--fg-3); font: 11px var(--font-mono); }

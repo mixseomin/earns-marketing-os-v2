@@ -2,15 +2,14 @@
 // Ô WIDGET ETHOPEX DÙNG CHUNG MÃ VỚI etp2 (anh 26/11/2026 "thêm các widget mới giống widget của etp2.on.tc"): KHÔNG chép, KHÔNG nhúng trang —
 // gọi thẳng useVeSo của apps/etp2/src/components/etp-tong2-widget.tsx qua alias @etp2/tong2 (apps/web/next.config.mjs, cùng đường với Thành phố #1605).
 // Số đọc bằng taiTong2 của etp2 (cùng phiên mos2-session, cùng quyền etp) — mọi ô cùng màn chung MỘT lượt tải (useSoNho 'tong2').
-// Kỳ = '7' mặc định của etp2: 7 ngày Ethopex tới hôm nay (ngày Ethopex = ngày UTC).
+// Kỳ = kỳ riêng của ô (O.ky, chọn trên tiêu đề ô — components/home/chon-ky-o.tsx); chưa đặt = '7' mặc định của etp2 (ngày Ethopex = ngày UTC).
+// Cùng widget hai ô hai kỳ vẫn chung một lượt tải: kỳ chỉ lọc trên trình duyệt (useVeSo).
 import { useEffect, useRef, useState } from 'react';
 import { useVeSo } from '@etp2/tong2';
+import { khoangKyO } from './chon-ky-o';
 
-const lui = (d: string, n: number) => { const t = new Date(`${d}T00:00:00Z`); t.setUTCDate(t.getUTCDate() - n); return t.toISOString().slice(0, 10); };
-
-export default function Etp2O({ ma }: { ma: string }) {
-  const nay = new Date().toISOString().slice(0, 10);
-  const ve = useVeSo({ tu: lui(nay, 6), den: nay });
+export default function Etp2O({ ma, moc }: { ma: string; moc?: string }) {
+  const ve = useVeSo(khoangKyO(moc));
   const ref = useRef<HTMLDivElement | null>(null);
   const [kt, setKt] = useState<{ rong: number; cao: number } | null>(null);
   useEffect(() => {

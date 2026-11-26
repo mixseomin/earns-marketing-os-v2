@@ -10,7 +10,9 @@ import { HomeTrang } from '@/components/home/trang';
 import { VE, type Ngu } from '@/components/home/ve';
 import { docBoCucHome } from '@/lib/home/bo-cuc';
 import { docDuAnPhu, kyPhu } from '@/lib/home/du-lieu';
-import { KHUNG_COOKIE, coWidget, docTuyChon, manCua, type MaWidget } from '@/lib/home/so';
+import { KHUNG_COOKIE, WIDGET, coWidget, docTuyChon, manCua, type MaWidget } from '@/lib/home/so';
+import { khoaNoi, kyTab } from '@/lib/home/luoi';
+import { kieuKy } from '@/lib/luoi-trang/bo-so';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +27,14 @@ export default async function HomeWidgetPage({ searchParams }: { searchParams: P
   const [{ o, nguon }, ck, duAnPhu] = await Promise.all([docBoCucHome(me.id, man.id), cookies(), docDuAnPhu()]);
   // chỉ vẽ tab ĐANG MỞ của từng ô; đổi tab / thêm widget thì trình duyệt lưu bố cục rồi đọc lại trang để lấy ruột mới
   const noi: Record<string, ReactNode> = {};
-  for (const c of o) if (coWidget(c.ma)) noi[c.ma] = <Suspense fallback={<div className="hm-cho">đang đọc…</div>}>{VE[c.ma as MaWidget](n)}</Suspense>;
+  // ô có KỲ RIÊNG (O.ky, anh 26/11/2026) vẽ ruột theo kỳ đó, khoá `noi` = mã@kỳ — cùng widget hai kỳ trên một màn là hai ruột
+  for (const c of o) {
+    if (!coWidget(c.ma)) continue;
+    const v = kyTab(c), kieu = kieuKy(WIDGET[c.ma as MaWidget]), k = khoaNoi(c.ma, v);
+    if (k in noi) continue;
+    const nO: Ngu = !v ? n : kieu === 'ngay' ? { ...n, days: kyPhu(v), ky: v } : kieu === 'moc' ? { ...n, moc: v } : n;
+    noi[k] = <Suspense fallback={<div className="hm-cho">đang đọc…</div>}>{VE[c.ma as MaWidget](nO)}</Suspense>;
+  }
   return (
     <HomeTrang manId={man.id} tuy={docTuyChon(ck.get(KHUNG_COOKIE)?.value)} bo={o} nguon={nguon} noi={noi} docLuc={gioVn()}
       ngu={{ duAnPhu, pid: duAnPhu.includes(sp.p ?? '') ? sp.p : duAnPhu[0], days: n.days, p: sp.p, daysRaw: sp.days, ky: [30, 90].includes(Number(sp.ky)) ? Number(sp.ky) : 7 }} />

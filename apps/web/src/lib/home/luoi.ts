@@ -4,13 +4,20 @@
 // tự viết vì cần thả tự do + tab trong ô + không thêm thư viện vào gói tải (anh 20/11/2026 "tối ưu mọi thứ nhẹ nhất có thể").
 // tra-repo-ok: đã tra react-grid-layout, gridstack, dockview, FlexLayout (20/11/2026) — không cái nào có thả tự do + tab trong ô.
 export const CX = 48, CY = 72, RONG_NHO = 4, CAO_NHO = 3, TOI_DA_O = 60;
-export type O = { ma: string; x: number; y: number; w: number; h: number; tabs?: string[]; k?: 1 };
+/** ky: KỲ RIÊNG từng tab của ô (mã tab → mã kỳ: '7' / '30' / '90', mốc 'hom_qua' 'thang_nay' 'tat_ca'…, '14q', hay 'YYYY-MM-DD~YYYY-MM-DD') — thiếu = theo kỳ chung của trang (anh 26/11/2026) */
+export type O = { ma: string; x: number; y: number; w: number; h: number; tabs?: string[]; k?: 1; ky?: Record<string, string> };
 export type CheDoCham = 'de' | 'day' | 'chan';
 export type Tay = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 export const CAC_TAY: Tay[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
 export const tabsCua = (o: O): string[] => (o.tabs && o.tabs.length > 1 ? o.tabs : [o.ma]);
 export const maTrenMan = (ds: O[]): string[] => ds.flatMap(tabsCua);
+export const KY_HOP_LE = /^[a-z0-9_]{1,16}$|^\d{4}-\d{2}-\d{2}~\d{4}-\d{2}-\d{2}$/;
+/** khoá ruột widget trong `noi` (máy chủ vẽ sẵn): cùng widget khác kỳ là hai ruột khác nhau */
+export const khoaNoi = (ma: string, ky?: string) => (ky ? `${ma}@${ky}` : ma);
+export const kyTab = (o: O, ma = o.ma): string | undefined => o.ky?.[ma];
+/** khoá React + khoá phóng to của ô thứ i: mã tab đang mở, widget lặp trên màn thì thêm số thứ tự (~2, ~3…) */
+export const khoaO = (ds: O[], i: number): string => { const ma = ds[i]!.ma, n = ds.slice(0, i).filter((o) => o.ma === ma).length; return n ? `${ma}~${n + 1}` : ma; };
 export const chamNhau = (a: O, b: O) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 export const coCham = (ds: O[], i: number) => ds.some((o, j) => j !== i && chamNhau(o, ds[i]!));
 const kep = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
@@ -19,8 +26,9 @@ const tron = (v: number) => Math.round(v * 100) / 100;
 export const batDinh = (v: number, buoc: number) => (buoc ? Math.round(v / buoc) * buoc : Math.round(v * 20) / 20);
 export const buocCua = (luoi: number) => (luoi > 0 ? CX / luoi : 0);
 
-/** Bố cục hợp lệ: mã có trong sổ, không lặp (kể cả trong tab), số hữu hạn nằm trong màn, không nhỏ hơn cỡ tối thiểu. Trả bản đã chuẩn hoá hoặc null. */
-export function hopLe(v: unknown, coWidget: (ma: string) => boolean): O[] | null {
+/** Bố cục hợp lệ: mã có trong sổ, không lặp (kể cả trong tab — trừ widget `choLap` có tham số riêng như kỳ: được nhiều ô, nhưng không hai bản trong cùng một ô),
+ *  số hữu hạn nằm trong màn, không nhỏ hơn cỡ tối thiểu, kỳ riêng đúng dạng và chỉ cho tab của chính ô đó. Trả bản đã chuẩn hoá hoặc null. */
+export function hopLe(v: unknown, coWidget: (ma: string) => boolean, choLap: (ma: string) => boolean = () => false): O[] | null {
   if (!Array.isArray(v) || v.length > TOI_DA_O) return null;
   const da = new Set<string>(), ra: O[] = [];
   for (const x of v) {
@@ -28,12 +36,18 @@ export function hopLe(v: unknown, coWidget: (ma: string) => boolean): O[] | null
     if (!o || typeof o.ma !== 'string') return null;
     const ts = Array.isArray(o.tabs) && o.tabs.length > 1 ? o.tabs : [o.ma];
     if (!ts.includes(o.ma) || ts.length > 12) return null;
-    for (const t of ts) { if (typeof t !== 'string' || !coWidget(t) || da.has(t)) return null; da.add(t); }
+    if (new Set(ts).size !== ts.length) return null;
+    for (const t of ts) { if (typeof t !== 'string' || !coWidget(t) || (da.has(t) && !choLap(t))) return null; da.add(t); }
     if (![o.x, o.y, o.w, o.h].every((n) => typeof n === 'number' && Number.isFinite(n))) return null;
     const c: O = { ma: o.ma, x: tron(o.x), y: tron(o.y), w: tron(o.w), h: tron(o.h) };
     if (c.x < 0 || c.y < 0 || c.w < RONG_NHO || c.h < CAO_NHO || c.x + c.w > CX + 0.01 || c.y + c.h > CY + 0.01) return null;
     if (ts.length > 1) c.tabs = [...ts];
     if (o.k) c.k = 1;
+    if (o.ky != null) {
+      if (typeof o.ky !== 'object' || Array.isArray(o.ky)) return null;
+      const ky = Object.entries(o.ky).filter(([t, g]) => ts.includes(t) && choLap(t) && typeof g === 'string' && KY_HOP_LE.test(g));
+      if (ky.length) c.ky = Object.fromEntries(ky);
+    }
     ra.push(c);
   }
   return ra;
@@ -96,32 +110,48 @@ export function choTrong(ds: O[], w: number, h: number): { x: number; y: number 
   return null;
 }
 
-/** Thêm widget: thử cỡ mặc định rồi cỡ nhỏ; màn kín thì đặt đè lên trên (kin = true) để người dùng tự kéo. Đã có trên màn → giữ nguyên. */
-export function them(ds: O[], ma: string, mac: [number, number]): { ds: O[]; kin: boolean } {
-  if (maTrenMan(ds).includes(ma)) return { ds, kin: false };
+/** Thêm widget: thử cỡ mặc định rồi cỡ nhỏ; màn kín thì đặt đè lên trên (kin = true) để người dùng tự kéo. Đã có trên màn → giữ nguyên, trừ khi `lap` (widget có tham số riêng). */
+export function them(ds: O[], ma: string, mac: [number, number], lap = false, ky?: string): { ds: O[]; kin: boolean } {
+  if (!lap && maTrenMan(ds).includes(ma)) return { ds, kin: false };
+  const moi = (o: O): O => (ky ? { ...o, ky: { [ma]: ky } } : o);
   for (const [w, h] of [mac, [Math.max(RONG_NHO, Math.round(mac[0] / 2)), Math.max(CAO_NHO, Math.round(mac[1] / 2))] as [number, number]]) {
     const c = choTrong(ds, w, h);
-    if (c) return { ds: [...ds, { ma, x: c.x, y: c.y, w, h }], kin: false };
+    if (c) return { ds: [...ds, moi({ ma, x: c.x, y: c.y, w, h })], kin: false };
   }
-  return { ds: [...ds, { ma, x: 4, y: 4, w: Math.min(mac[0], CX - 4), h: Math.min(mac[1], CY - 4) }], kin: true };
+  return { ds: [...ds, moi({ ma, x: 4, y: 4, w: Math.min(mac[0], CX - 4), h: Math.min(mac[1], CY - 4) })], kin: true };
+}
+
+/** Đặt kỳ riêng cho tab `ma` của ô `i`; ky rỗng = về kỳ chung của trang. */
+export function datKy(ds: O[], i: number, ma: string, ky: string): O[] {
+  return ds.map((o, j) => {
+    if (j !== i || !tabsCua(o).includes(ma)) return o;
+    const m = { ...(o.ky ?? {}) }; if (ky) m[ma] = ky; else delete m[ma];
+    const c = { ...o }; if (Object.keys(m).length) c.ky = m; else delete c.ky;
+    return c;
+  });
 }
 
 /** Gộp ô `tu` vào ô `vao` thành tab; tab vừa thả vào là tab đang mở, và ô nhận nổi lên TRÊN CÙNG (đang bị ô khác đè thì vẫn bấm được tab ngay). */
+/** Hai ô cùng chứa một widget (widget lặp, khác kỳ) thì KHÔNG gộp — một ô không giữ hai bản cùng widget; trả lại đúng `ds` cũ để người gọi báo. */
 export function gop(ds: O[], tu: number, vao: number): O[] {
   if (tu === vao || !ds[tu] || !ds[vao]) return ds;
-  const a = ds[tu]!, b = ds[vao]!, moi: O = { ...b, ma: a.ma, tabs: [...tabsCua(b), ...tabsCua(a)] };
+  const a = ds[tu]!, b = ds[vao]!;
+  if (tabsCua(a).some((t) => tabsCua(b).includes(t))) return ds;
+  const moi: O = { ...b, ma: a.ma, tabs: [...tabsCua(b), ...tabsCua(a)] };
+  const ky = { ...(b.ky ?? {}), ...(a.ky ?? {}) }; if (Object.keys(ky).length) moi.ky = ky; else delete moi.ky;
   return [...ds.filter((_, j) => j !== tu && j !== vao), moi];
 }
 
 /** Bỏ tab đang mở khỏi ô `i` (ô còn tab khác thì giữ ô, hết tab thì bỏ ô). tach = true: tab đó ra một ô riêng. */
 export function boTab(ds: O[], i: number, tach: boolean, macCua: (ma: string) => [number, number]): O[] {
   const o = ds[i]; if (!o) return ds;
-  const ts = tabsCua(o), ma = o.ma;
+  const ts = tabsCua(o), ma = o.ma, ky = kyTab(o);
   if (ts.length < 2) return tach ? ds : ds.filter((_, j) => j !== i);
   const con = ts.filter((t) => t !== ma), giu: O = { ...o, ma: con[0]! };
   if (con.length > 1) giu.tabs = con; else delete giu.tabs;
+  if (giu.ky) { const m = { ...giu.ky }; delete m[ma]; if (Object.keys(m).length) giu.ky = m; else delete giu.ky; }
   const ra = ds.map((x, j) => (j === i ? giu : x));
-  return tach ? them(ra, ma, macCua(ma)).ds : ra;
+  return tach ? them(ra, ma, macCua(ma), true, ky).ds : ra;
 }
 
 /** Đổi tab đang mở của ô `i`. */

@@ -46,7 +46,8 @@ const Etp2O = dynamic(() => import('@/components/home/etp2-o'));   // widget etp
 const MaySxView = dynamic(() => import('@/components/may-sx-view').then((m) => m.MaySxView));
 
 /** ngữ cảnh chung của một lượt xem — đọc từ URL, cùng tên tham số với trang chủ cũ (?p ?days ?ky ?tv) */
-export type Ngu = { p?: string; days: number; ky?: string; tv?: string };
+/** moc: kỳ riêng của ô cho widget kyRieng 'moc' (widget etp2) — mã mốc / 'YYYY-MM-DD~YYYY-MM-DD'; ô không đặt thì không có (widget tự lấy 7 ngày) */
+export type Ngu = { p?: string; days: number; ky?: string; tv?: string; moc?: string };
 type Ve = (n: Ngu) => ReactNode;
 
 const ChuaCoSoPhu = () => <EmptyState icon="🧭" title="Chưa dự án nào có sổ phủ" description="Adapter hoặc cổng nhận số khai vào là hiện ở đây." compact />;
@@ -154,12 +155,12 @@ export const VE: Record<MaWidget, Ve> = {
   H8: () => <EthopexKhoi chi="luat" />,
   // H9–H19 — vẽ bằng mã Tổng quan 2 của etp2 (components/home/etp2-o.tsx), khoá = mã widget trong sổ apps/etp2/src/lib/etp-widget.json
   H9: () => <Etp2O ma="nam_nhanh" />,
-  H10: () => <Etp2O ma="nguoi" />,
+  H10: (n) => <Etp2O ma="nguoi" moc={n.moc} />,
   H11: () => <Etp2O ma="nha_thua" />,
-  H12: () => <Etp2O ma="tk" />,
+  H12: (n) => <Etp2O ma="tk" moc={n.moc} />,
   H13: () => <Etp2O ma="gio_nhiet" />,
   H14: () => <Etp2O ma="luy_ke" />,
-  H15: () => <Etp2O ma="luat" />,
+  H15: (n) => <Etp2O ma="luat" moc={n.moc} />,
   H16: () => <Etp2O ma="phan_bo" />,
   H17: () => <Etp2O ma="thi_truong" />,
   H18: () => <Etp2O ma="phim_moi" />,

@@ -12,9 +12,9 @@ import { useRouter } from 'next/navigation';
 import { Drawer, Segmented } from '@/components/ui';
 import { useShallowParam } from '@/lib/url-shallow';
 import { useTieuDe } from '@/lib/tieu-de';
-import { apKhung, batLuoi, buocCua, maTrenMan, them, type O } from '@/lib/home/luoi';
+import { apKhung, batLuoi, buocCua, khoaNoi, kyTab, maTrenMan, them, type O } from '@/lib/home/luoi';
 import { KHUNG, KHUNG_COOKIE, type TuyChon } from '@/lib/home/so';
-import { BO_SO, macCuaBo, manCuaBo, nhomCuaMa, widgetCuaBo, type BoSoId } from '@/lib/luoi-trang/bo-so';
+import { BO_SO, choLapBo, macCuaBo, manCuaBo, nhomCuaMa, widgetCuaBo, type BoSoId } from '@/lib/luoi-trang/bo-so';
 import type { NguonBoCuc } from '@/lib/home/bo-cuc';
 import { datTeamHome, luuBoCucHome, veMacDinhHome } from '@/lib/actions/home-bo-cuc';
 import { Bang } from './bang';
@@ -35,7 +35,7 @@ export function HomeTrang({ so = 'home', manId, tuy: tuyDau, bo, nguon, noi, ngu
   ngu: { duAnPhu: string[]; pid?: string; days: number; p?: string; daysRaw?: string; ky: number; duAn?: string[]; da?: string }; docLuc: string;
 }) {
   const S = BO_SO[so], MAN = S.man, MAN_MAC_DINH = S.manMacDinh, NHOM = S.nhom, WIDGET = S.widget, TRANG_KHAC = S.trangKhac;
-  const manCua = (id: string | undefined) => manCuaBo(S, id), widgetCua = (ma: string) => widgetCuaBo(S, ma), macCua = (ma: string) => macCuaBo(S, ma), nhomCua = nhomCuaMa;
+  const manCua = (id: string | undefined) => manCuaBo(S, id), widgetCua = (ma: string) => widgetCuaBo(S, ma), macCua = (ma: string) => macCuaBo(S, ma), nhomCua = nhomCuaMa, choLap = choLapBo(S);
   const hopLeTr = (v: string) => hopLeTrang(v, S.goc);
   const router = useRouter(), man = manCua(manId);
   const [tuy, setTuy] = useState(tuyDau);
@@ -76,7 +76,7 @@ export function HomeTrang({ so = 'home', manId, tuy: tuyDau, bo, nguon, noi, ngu
   const doi = (moi: O[], nho = true) => {
     if (nho) { lichSu.current.push(ds); if (lichSu.current.length > 50) lichSu.current.shift(); setSoLichSu(lichSu.current.length); }
     setBoSua((s) => ({ ...s, [man.id]: { o: moi, nguon: 'rieng' } }));
-    const thieu = moi.some((c) => !(c.ma in noi));
+    const thieu = moi.some((c) => !(khoaNoi(c.ma, kyTab(c)) in noi));   // ruột ô theo widget + kỳ riêng (page.tsx): đổi kỳ = ruột mới
     batDauLuu(async () => {
       const r = await luuBoCucHome(man.id, moi);
       if ('loi' in r) setBao(r.loi); else if (thieu) router.refresh();
@@ -84,8 +84,11 @@ export function HomeTrang({ so = 'home', manId, tuy: tuyDau, bo, nguon, noi, ngu
   };
   const hoanTac = () => { const cu = lichSu.current.pop(); setSoLichSu(lichSu.current.length); if (!cu) { setBao('Không còn gì để hoàn tác.'); return; } doi(cu, false); setBao('Đã hoàn tác một bước.'); };
   const themWidget = (ma: string) => {
-    if (maTrenMan(ds).includes(ma)) { setBao('Widget này đã có trên màn.'); return; }
-    const r = them(ds, ma, macCua(ma)); doi(r.ds);
+    // widget có kỳ riêng được thêm nhiều bản (mỗi ô một kỳ, anh 26/11/2026); widget không có tham số thì một màn một bản
+    const lap = choLap(ma);
+    if (!lap && maTrenMan(ds).includes(ma)) { setBao('Widget này đã có trên màn.'); return; }
+    const r = them(ds, ma, macCua(ma), lap); doi(r.ds);
+    if (lap && maTrenMan(ds).includes(ma)) { setBao(`Đã thêm một bản ${widgetCua(ma)?.ten} nữa — chọn kỳ riêng ngay trên tiêu đề ô.`); return; }
     setBao(r.kin ? `Màn đã kín nên ${widgetCua(ma)?.ten} nằm đè lên trên. Kéo nó tới chỗ anh muốn.` : `Đã thêm ${widgetCua(ma)?.ten} vào màn ${man.ten}.`);
   };
   const veMacDinh = () => batDauLuu(async () => {
@@ -178,7 +181,7 @@ export function HomeTrang({ so = 'home', manId, tuy: tuyDau, bo, nguon, noi, ngu
         {navMo && <div className="hm-man" onClick={() => setNavMo(false)} />}
 
         <main className="hm-main" onClickCapture={batLink}>
-          <Bang so={so} ds={ds} noi={noi} sua={sua} luoi={tuy.luoi} cham={tuy.cham} to={to} onDoi={doi} onTo={datTo} onBao={setBao} onThuLai={() => router.refresh()} />
+          <Bang so={so} ds={ds} noi={noi} sua={sua} luoi={tuy.luoi} cham={tuy.cham} to={to} kyChung={ngu.days} onDoi={doi} onTo={datTo} onBao={setBao} onThuLai={() => router.refresh()} />
         </main>
 
         <aside className="hm-pn" aria-label="Panel phụ">
@@ -193,8 +196,8 @@ export function HomeTrang({ so = 'home', manId, tuy: tuyDau, bo, nguon, noi, ngu
               {Object.keys(NHOM).map((k) => {
                 const q = khongDau(loc.trim()), muc = Object.keys(WIDGET).filter((ma) => nhomCua(ma) === k && (!q || khongDau(`${widgetCua(ma)!.ten} ${widgetCua(ma)!.moTa} ${ma}`).includes(q)));
                 return muc.length ? (<div key={k}><h4>{NHOM[k]}</h4>{muc.map((ma) => (
-                  <button key={ma} type="button" className="hm-kho" disabled={tren.has(ma)} title={tren.has(ma) ? 'Đã có trên màn đang mở' : `${widgetCua(ma)!.moTa} — bấm để thêm vào màn đang mở`} onClick={() => themWidget(ma)}>
-                    <span>{widgetCua(ma)!.ten}{widgetCua(ma)!.ghi ? <i title="Có nút ghi dữ liệu"> ✎</i> : null}</span><code>{tren.has(ma) ? 'đã có' : ma}</code>
+                  <button key={ma} type="button" className="hm-kho" disabled={tren.has(ma) && !choLap(ma)} title={tren.has(ma) ? (choLap(ma) ? 'Đã có trên màn — bấm để thêm một bản nữa, mỗi bản một kỳ riêng' : 'Đã có trên màn đang mở') : `${widgetCua(ma)!.moTa} — bấm để thêm vào màn đang mở`} onClick={() => themWidget(ma)}>
+                    <span>{widgetCua(ma)!.ten}{widgetCua(ma)!.ghi ? <i title="Có nút ghi dữ liệu"> ✎</i> : null}</span><code>{tren.has(ma) ? (choLap(ma) ? '+ bản nữa' : 'đã có') : ma}</code>
                   </button>))}</div>) : null;
               })}
             </>) : (<>
@@ -237,7 +240,7 @@ export function HomeTrang({ so = 'home', manId, tuy: tuyDau, bo, nguon, noi, ngu
       {bao && <div className="hm-bao" role="status">{bao}</div>}
       {pal && <BangTim dong={() => setPal(false)} muc={[
         ...MAN.map((m) => ({ loai: 'Màn', ten: m.ten, lam: () => router.push(href({ man: m.id })) })),
-        ...Object.keys(WIDGET).map((ma) => ({ loai: tren.has(ma) ? 'Đã có' : 'Thêm widget', ten: `${widgetCua(ma)!.ten} · ${ma}`, lam: () => themWidget(ma) })),
+        ...Object.keys(WIDGET).map((ma) => ({ loai: tren.has(ma) ? (choLap(ma) ? 'Thêm bản nữa' : 'Đã có') : 'Thêm widget', ten: `${widgetCua(ma)!.ten} · ${ma}`, lam: () => themWidget(ma) })),
         { loai: 'Lệnh', ten: sua ? 'Xong sửa bố cục' : 'Sửa bố cục', lam: doiSua },
         { loai: 'Lệnh', ten: 'Trình chiếu: ẩn hoặc hiện hết khung', lam: () => trinhChieu(!an) },
         { loai: 'Lệnh', ten: 'Hoàn tác', lam: hoanTac },

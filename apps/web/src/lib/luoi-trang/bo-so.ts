@@ -7,7 +7,7 @@ import type { O } from '../home/luoi';
 import { MAN, MAN_MAC_DINH, NHOM, WIDGET } from '../home/so';
 
 /** ngu: tham số ngữ cảnh widget đọc — p / days / ky của /home, tuDe, ghi, rong: như sổ /home */
-export type BoSoWidget = { ten: string; moTa: string; mac: readonly [number, number]; ngu?: readonly string[]; tuDe?: true; ghi?: true; rong?: true; moi?: string };
+export type BoSoWidget = { ten: string; moTa: string; mac: readonly [number, number]; ngu?: readonly string[]; tuDe?: true; ghi?: true; rong?: true; moi?: string; kyRieng?: 'moc' };
 export type BoSoMan = { id: string; ten: string; kh: string; nhom: string; o: O[] };
 export type BoSoId = 'home';
 export type BoSo = {
@@ -40,6 +40,12 @@ export const widgetCuaBo = (b: BoSo, ma: string): BoSoWidget | undefined => b.wi
 export const coWidgetBo = (b: BoSo) => (ma: string) => Object.prototype.hasOwnProperty.call(b.widget, ma);
 export const macCuaBo = (b: BoSo, ma: string): [number, number] => { const m = b.widget[ma]?.mac; return m ? [m[0], m[1]] : [16, 24]; };
 export const manCuaBo = (b: BoSo, id: string | undefined): BoSoMan => b.man.find((m) => m.id === id) ?? b.man.find((m) => m.id === b.manMacDinh)!;
+/** kiểu KỲ RIÊNG của widget (anh 26/11/2026 "mỗi widget cho chọn time period riêng; add cùng widget lên một màn vì tham số khác nhau"):
+ *  'moc' = mốc tự do (widget etp2) · 'ngay' = 7 / 30 / 90 ngày (widget máy chủ đọc ngu days / ky) · undefined = widget không có kỳ → không chọn, không lặp */
+export const kieuKy = (w: BoSoWidget | undefined): 'moc' | 'ngay' | undefined => w?.kyRieng ?? (w?.ngu?.some((n) => n === 'days' || n === 'ky') ? 'ngay' : undefined);
+export const KY_NGAY = ['7', '30', '90'] as const;
+/** widget được thêm nhiều lần lên một màn = widget có kỳ riêng */
+export const choLapBo = (b: BoSo) => (ma: string) => !!kieuKy(b.widget[ma]);
 export const nhomCuaMa = (ma: string) => ma.replace(/\d+$/, '');
 /** bộ sổ đang giữ màn này (phần lưu bố cục chỉ nhận mã màn → tự tìm bộ) */
 export const boCuaMan = (man: string): BoSo | null => Object.values(BO_SO).find((b) => b.man.some((m) => m.id === man)) ?? null;

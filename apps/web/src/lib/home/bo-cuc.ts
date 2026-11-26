@@ -3,7 +3,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { hopLe, type O } from './luoi';
-import { boCuaMan, coWidgetBo } from '@/lib/luoi-trang/bo-so';
+import { boCuaMan, choLapBo, coWidgetBo } from '@/lib/luoi-trang/bo-so';
 
 /** Widget mới vào sổ (có `moi` muộn hơn lúc lưu bố cục) mà bản lưu chưa có → chèn làm tab ĐẦU của ô đang chứa widget cùng ô với nó ở bố cục dựng sẵn.
  *  Chỉ chèn lúc đọc, không ghi lại DB; bản lưu SAU mốc `moi` (người đã thấy widget rồi tự gỡ) thì để nguyên. */
@@ -17,7 +17,8 @@ export function chenWidgetMoi(o: O[], capNhat: string, san: O[], widget: Record<
       const moi = widget[ma]?.moi;
       if (!moi || co.has(ma) || !(Date.parse(moi) > luc)) continue;
       const ban = ts.find((t) => t !== ma && co.has(t)); if (!ban) continue;
-      ra = ra.map((x) => { const xs = x.tabs ?? [x.ma]; return xs.includes(ban) && xs.length < 12 ? { ...x, ma, tabs: [ma, ...xs] } : x; });
+      let xong = false;   // widget `ban` có thể nằm ở nhiều ô (widget lặp, khác kỳ) → chỉ chèn vào ô ĐẦU, không nhân bản widget mới
+      ra = ra.map((x) => { const xs = x.tabs ?? [x.ma]; if (xong || !xs.includes(ban) || xs.length >= 12) return x; xong = true; return { ...x, ma, tabs: [ma, ...xs] }; });
       co.add(ma);
     }
   }
@@ -34,7 +35,7 @@ export async function docBoCucHome(userId: number, man: string): Promise<{ o: O[
   const db = getDb(); if (!db) return san;
   try {
     const rs = (await db.execute(sql`select user_id::int u, o, cap_nhat::text cap from home_bo_cuc where man = ${man} and user_id in (${userId}, 0)`)) as unknown as { u: number; o: unknown; cap: string }[];
-    const doc = (u: number) => { const r = rs.find((x) => x.u === u); const o = hopLe(r?.o, coWidget); return o && r ? chenWidgetMoi(o, r.cap, san.o, bo.widget) : null; };
+    const doc = (u: number) => { const r = rs.find((x) => x.u === u); const o = hopLe(r?.o, coWidget, choLapBo(bo)); return o && r ? chenWidgetMoi(o, r.cap, san.o, bo.widget) : null; };
     const rieng = doc(userId), team = doc(0);
     if (rieng?.length) return { o: rieng, nguon: 'rieng' };
     if (team?.length) return { o: team, nguon: 'team' };

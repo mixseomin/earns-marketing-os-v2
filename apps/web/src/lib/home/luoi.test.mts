@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/web/src/lib/home/luoi.test.mts
 import assert from 'node:assert';
-import { CX, CY, apKhung, batDinh, boTab, choTrong, day, gop, hopLe, keo, khoa, maTrenMan, moTab, tabsCua, tha, them, type O } from './luoi';
+import { CX, CY, apKhung, batDinh, boTab, choTrong, datKy, day, gop, hopLe, khoaNoi, khoaO, keo, khoa, maTrenMan, moTab, tabsCua, tha, them, type O } from './luoi';
 
 const co = (ma: string) => /^[A-Z]\d+$/.test(ma);
 const A: O = { ma: 'A1', x: 0, y: 0, w: 48, h: 12 }, B: O = { ma: 'B1', x: 0, y: 12, w: 24, h: 20 }, C: O = { ma: 'C1', x: 24, y: 12, w: 24, h: 20 };
@@ -65,4 +65,15 @@ assert.equal(khoa([A], 0)[0]!.k, 1); assert.equal(khoa(khoa([A], 0), 0)[0]!.k, u
 
 // khung
 assert.deepEqual(apKhung([A, B, C], [[0, 0, 12, 3], [0, 3, 12, 15]]), [{ ...A, x: 0, y: 0, w: 48, h: 12 }, { ...B, x: 0, y: 12, w: 48, h: 60 }]);
+// kỳ riêng + nhiều bản cùng widget (anh 26/11/2026)
+assert.equal(khoaNoi('H10'), 'H10'); assert.equal(khoaNoi('H10', '30'), 'H10@30');
+const lap = them([A], 'A1', [24, 20], true, '30'); assert.equal(lap.ds.length, 2, 'widget có kỳ được thêm bản nữa'); assert.deepEqual(lap.ds[1]!.ky, { A1: '30' });
+assert.deepEqual([khoaO(lap.ds, 0), khoaO(lap.ds, 1)], ['A1', 'A1~2'], 'khoá React / phóng to khác nhau');
+const choA = (m: string) => m === 'A1';
+assert.ok(hopLe(lap.ds, co, choA), 'hai ô cùng widget có kỳ: hợp lệ'); assert.equal(hopLe(lap.ds, co), null, 'không cho lặp thì bị loại');
+assert.equal(hopLe([{ ...A, tabs: ['A1', 'A1'] }], co, choA), null, 'một ô hai bản cùng widget: loại');
+assert.equal(gop(lap.ds, 1, 0), lap.ds, 'gộp vào ô đã có widget đó: giữ nguyên');
+const dk = datKy([A], 0, 'A1', '2026-11-01~2026-11-20'); assert.deepEqual(dk[0]!.ky, { A1: '2026-11-01~2026-11-20' }); assert.ok(hopLe(dk, co, choA)![0]!.ky);
+assert.equal(datKy(dk, 0, 'A1', '')[0]!.ky, undefined, 'bỏ kỳ riêng thì xoá hẳn map');
+assert.equal(hopLe([{ ...A, ky: { A1: 'x;drop' } }], co, choA)![0]!.ky, undefined, 'kỳ lạ bị bỏ');
 console.log('✓ luoi: mọi bài đạt');

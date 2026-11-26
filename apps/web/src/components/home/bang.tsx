@@ -4,9 +4,10 @@
 // Ruột từng widget do máy chủ vẽ sẵn (prop `noi`), lưới không biết và không đụng tới dữ liệu.
 // tra-repo-ok: đã tra react-grid-layout, gridstack, dockview, FlexLayout (20/11/2026) — tự viết vì cần thả tự do + tab trong ô + không thêm thư viện.
 import { Component, useMemo, useRef, type CSSProperties, type ReactNode } from 'react';
-import { CAC_TAY, CX, CY, boTab, buocCua, gop, keo, khoa, moTab, tabsCua, tha as thaO, type CheDoCham, type O, type Tay } from '@/lib/home/luoi';
-import { BO_SO, macCuaBo, widgetCuaBo, type BoSoId } from '@/lib/luoi-trang/bo-so';
+import { CAC_TAY, CX, CY, boTab, buocCua, datKy, gop, keo, khoa, khoaNoi, khoaO, kyTab, moTab, tabsCua, tha as thaO, type CheDoCham, type O, type Tay } from '@/lib/home/luoi';
+import { BO_SO, kieuKy, macCuaBo, widgetCuaBo, type BoSoId } from '@/lib/luoi-trang/bo-so';
 import { KhungO } from './khung-o';
+import { ChonKyO } from './chon-ky-o';
 
 /** Một widget lỗi (đọc dữ liệu hỏng, khối vỡ) không được kéo sập cả màn: báo ngay trong ô đó, kèm câu máy nói + nút thử lại. */
 class LoiWidget extends Component<{ ten: string; onThuLai: () => void; children: ReactNode }, { loi: string | null }> {
@@ -24,10 +25,12 @@ class LoiWidget extends Component<{ ten: string; onThuLai: () => void; children:
   }
 }
 
-export function Bang({ so = 'home', ds, noi, sua, luoi, cham, to, onDoi, onTo, onBao, onThuLai }: {
+export function Bang({ so = 'home', ds, noi, sua, luoi, cham, to, kyChung = 30, onDoi, onTo, onBao, onThuLai }: {
   /** bộ sổ của trang (lib/luoi-trang/bo-so.ts) */
   so?: BoSoId;
   ds: O[]; noi: Record<string, ReactNode>; sua: boolean; luoi: number; cham: CheDoCham; to: string;
+  /** kỳ chung của trang (ngày) — widget kỳ 'ngay' chưa đặt kỳ riêng thì theo nó */
+  kyChung?: number;
   /** bố cục mới; nho = false khi không cần đưa vào lịch sử hoàn tác (đổi tab) */
   onDoi: (moi: O[], nho?: boolean) => void; onTo: (ma: string) => void; onBao: (chu: string) => void; onThuLai: () => void;
 }) {
@@ -66,7 +69,7 @@ export function Bang({ so = 'home', ds, noi, sua, luoi, cham, to, onDoi, onTo, o
     const tha = () => {
       window.removeEventListener('pointermove', di); window.removeEventListener('pointerup', tha); window.removeEventListener('pointercancel', tha);
       el.classList.remove('hm-keo'); nhan?.classList.remove('hm-nhan');
-      if (nhan) { dat(goc); onDoi(gop(ds, i, Number(nhan.dataset.i))); onBao('Đã gộp thành tab trong một ô. Ctrl+Z để hoàn tác, nút "tách" để tách ra.'); return; }
+      if (nhan) { dat(goc); const g = gop(ds, i, Number(nhan.dataset.i)); if (g === ds) { onBao('Ô đó đã có widget này — một ô không giữ hai bản cùng widget (để hai bản ở hai ô riêng, mỗi ô một kỳ).'); return; } onDoi(g); onBao('Đã gộp thành tab trong một ô. Ctrl+Z để hoàn tác, nút "tách" để tách ra.'); return; }
       if (moi.x === goc.x && moi.y === goc.y && moi.w === goc.w && moi.h === goc.h) { dat(goc); return; }   // chỉ bấm, không kéo
       const kq = thaO(ds, i, moi, cham);
       if ('loi' in kq) { dat(goc); onBao(kq.loi); return; }
@@ -78,29 +81,33 @@ export function Bang({ so = 'home', ds, noi, sua, luoi, cham, to, onDoi, onTo, o
   return (
     <div ref={ref} className={`hm-luoi${sua ? ' hm-sua' : ''}${sua && cot ? ' hm-co-luoi' : ''}`} onPointerDown={batDau}
       style={cot ? { '--ox': `${100 / cot}%`, '--oy': `${100 / (cot * 1.5)}%` } as CSSProperties : undefined}
-      onDoubleClick={(e) => { const d = (e.target as HTMLElement).closest('.hm-od'); if (!d || (e.target as HTMLElement).closest('button')) return; const c = ds[Number((d.parentElement as HTMLElement).dataset.i)]; if (c) onTo(to === c.ma ? '' : c.ma); }}>
+      onDoubleClick={(e) => { const d = (e.target as HTMLElement).closest('.hm-od'); if (!d || (e.target as HTMLElement).closest('button')) return; const j = Number((d.parentElement as HTMLElement).dataset.i); if (ds[j]) { const k = khoaO(ds, j); onTo(to === k ? '' : k); } }}>
       {thuTu.map((i) => {
-        const c = ds[i]!, w = widgetCua(c.ma), ts = tabsCua(c), ten = w?.ten ?? c.ma, coDau = !w?.tuDe || ts.length > 1;   // KHÔNG phụ thuộc sua (góp ý #1722): bật sửa mà thêm thanh tiêu đề cho ô tự có tiêu đề là đẩy ruột xuống, widget lệch so với lúc xem — ô đó dùng thanh nổi góc phải
+        const c = ds[i]!, w = widgetCua(c.ma), ts = tabsCua(c), ten = w?.ten ?? c.ma, kO = khoaO(ds, i), laTo = to === kO, kieu = kieuKy(w), v = kyTab(c);
+        // ô chọn kỳ riêng của tab đang mở (chỉ widget có kỳ, lib/luoi-trang/bo-so.ts kieuKy) — đổi kỳ là đổi bố cục, Ctrl+Z trả kỳ cũ
+        const chonKy = kieu ? <ChonKyO kieu={kieu} v={v} chung={kyChung} onDoi={(x) => onDoi(datKy(ds, i, c.ma, x))} /> : null;
+        const coDau = !w?.tuDe || ts.length > 1;   // KHÔNG phụ thuộc sua (góp ý #1722): bật sửa mà thêm thanh tiêu đề cho ô tự có tiêu đề là đẩy ruột xuống, widget lệch so với lúc xem — ô đó dùng thanh nổi góc phải
         return (
-          <section key={c.ma} data-i={i} data-ma={c.ma} className={`hm-o${c.k ? ' hm-khoa' : ''}${to === c.ma ? ' hm-to' : ''}${coDau ? '' : ' hm-tran'}`}
+          <section key={kO} data-i={i} data-ma={c.ma} className={`hm-o${c.k ? ' hm-khoa' : ''}${laTo ? ' hm-to' : ''}${coDau ? '' : ' hm-tran'}`}
             style={{ '--x': c.x, '--y': c.y, '--w': c.w, '--h': c.h, zIndex: i + 1 } as CSSProperties} aria-label={ten}>
             {coDau || sua ? (
               <div className={`hm-od${coDau ? '' : ' hm-od-noi'}`}>
                 {sua && <i className="hm-nam" aria-hidden="true">⋮⋮</i>}
                 {ts.length > 1
-                  ? ts.map((t) => <button key={t} type="button" className="hm-tb" aria-pressed={t === c.ma} title={widgetCua(t)?.moTa} onClick={() => { if (t !== c.ma) { if (to === c.ma) onTo(t); onDoi(moTab(ds, i, t), false); } }}>{widgetCua(t)?.ten ?? t}</button>)
+                  ? ts.map((t) => <button key={t} type="button" className="hm-tb" aria-pressed={t === c.ma} title={widgetCua(t)?.moTa} onClick={() => { if (t !== c.ma) { const m = moTab(ds, i, t); if (laTo) onTo(khoaO(m, i)); onDoi(m, false); } }}>{widgetCua(t)?.ten ?? t}</button>)
                   : <b title={w?.moTa}>{ten}</b>}
                 <span className="hm-on">
+                  {chonKy}
                   {c.k ? <em>khoá</em> : null}
-                  <button type="button" className="hm-ic" title="Phóng to hoặc thu lại (bấm đúp tiêu đề)" aria-label={`Phóng to ${ten}`} onClick={() => onTo(to === c.ma ? '' : c.ma)}>⤢</button>
+                  <button type="button" className="hm-ic" title="Phóng to hoặc thu lại (bấm đúp tiêu đề)" aria-label={`Phóng to ${ten}`} onClick={() => onTo(laTo ? '' : kO)}>⤢</button>
                   {sua && <button type="button" className="hm-ic" title="Khoá vị trí và cỡ" onClick={() => onDoi(khoa(ds, i))}>{c.k ? 'mở' : 'khoá'}</button>}
                   {sua && ts.length > 1 && <button type="button" className="hm-ic" title="Tách tab đang mở ra ô riêng" onClick={() => onDoi(boTab(ds, i, true, macCua))}>tách</button>}
                   {sua && <button type="button" className="hm-ic" title="Bỏ khỏi màn (vẫn thêm lại được từ Kho widget)" aria-label={`Bỏ ${ten}`} onClick={() => onDoi(boTab(ds, i, false, macCua))}>×</button>}
                 </span>
               </div>
-            ) : <button type="button" className="hm-ic hm-noi-to" title={`${ten} · phóng to hoặc thu lại`} aria-label={`Phóng to ${ten}`} onClick={() => onTo(to === c.ma ? '' : c.ma)}>⤢</button>}
+            ) : <span className="hm-noi-to">{chonKy}<button type="button" className="hm-ic" title={`${ten} · phóng to hoặc thu lại`} aria-label={`Phóng to ${ten}`} onClick={() => onTo(laTo ? '' : kO)}>⤢</button></span>}
             <div className="hm-ob">
-              <LoiWidget ten={ten} onThuLai={onThuLai}><KhungO>{noi[c.ma] ?? <div className="hm-cho">đang đọc…</div>}</KhungO></LoiWidget>
+              <LoiWidget ten={ten} onThuLai={onThuLai}><KhungO>{noi[khoaNoi(c.ma, v)] ?? <div className="hm-cho">đang đọc…</div>}</KhungO></LoiWidget>
             </div>
             {sua && !c.k && CAC_TAY.map((t) => <i key={t} className="hm-tay" data-h={t} />)}
           </section>

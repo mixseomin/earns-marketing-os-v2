@@ -16,7 +16,10 @@ export const NHOM: Record<NhomWidget, string> = { A: 'Toàn cảnh', B: 'Campaig
  *  CẤM nhúng nguyên trang app khác vào ô (anh 20/11/2026) — scripts/check-home-widget.mjs luật 6 chặn. Mỗi widget khai đúng một trong hai: tab hoặc nguon. */
 export type WidgetSo = { ten: string; moTa: string; mac: [number, number]; ngu?: ('p' | 'days' | 'ky')[]; tuDe?: true; ghi?: true; rong?: true; tab?: string; nguon?: 'cty' | 'etp2';
   /** ngày giờ widget vào sổ (ISO) — bố cục đã lưu TRƯỚC mốc này mà thiếu widget thì lúc đọc tự chèn thành tab vào ô chứa widget cùng ô ở bố cục dựng sẵn (lib/home/bo-cuc.ts), không ghi đè bản lưu */
-  moi?: string };
+  moi?: string;
+  /** kyRieng 'moc': widget nhận KỲ RIÊNG từng ô theo mốc (Hôm qua, Tháng này, khoảng tự chọn…) — widget etp2 tự tính trên trình duyệt.
+   *  Widget đọc ngu 'days' / 'ky' tự có kỳ riêng 7 / 30 / 90 ngày (lib/luoi-trang/bo-so.ts kieuKy). Widget có kỳ riêng được thêm nhiều lần lên một màn. */
+  kyRieng?: 'moc' };
 export const RONG_BANG = 32;
 export const WIDGET = {
   A1: { ten: 'Dải số chính', moTa: 'doanh thu 30 ngày · chi QC · view → click → out · signup · camp chạy', mac: [48, 10], ngu: ['p', 'days'], tuDe: true, tab: 'camp' },
@@ -57,12 +60,12 @@ export const WIDGET = {
   H8: { ten: 'Sổ luật Ethopex', moTa: 'các luật đang áp cho camp', mac: [24, 32], tab: 'ethopex' },
   // H9–H19 — WIDGET TỔNG QUAN 2 CỦA etp2.on.tc (anh 26/11/2026 "thêm các widget mới giống widget của etp2"): mã vẽ + số dùng chung với etp2, mã etp2 ghi trong moTa
   H9: { ten: 'Nắm nhanh', moTa: 'lãi hôm qua · nhịp hôm nay so với cùng giờ hôm qua · người tụt mạnh nhất · tài khoản cần xem · luật nhịp tới (etp2)', mac: [48, 16], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
-  H10: { ten: 'Người', moTa: 'từng người trong 7 ngày: chi, lãi, ROI ▲▼ so kỳ trước, camp bật, đường ROI (etp2)', mac: [20, 20], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
+  H10: { ten: 'Người', moTa: 'từng người trong kỳ: chi, lãi, ROI ▲▼ so kỳ trước, camp bật, đường ROI (etp2)', mac: [20, 20], kyRieng: 'moc', nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
   H11: { ten: 'Nhà thua đội ở đâu', moTa: 'phim nhà và đội cùng chạy 7 ngày đã khép mà đội có ROI tốt hơn (etp2)', mac: [20, 16], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
-  H12: { ten: 'Tài khoản QC', moTa: 'mỗi tài khoản một ô theo người: màu = ROI, viền đỏ = có cờ (etp2)', mac: [28, 32], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
+  H12: { ten: 'Tài khoản QC', moTa: 'mỗi tài khoản một ô theo người: màu = ROI, viền đỏ = có cờ (etp2)', mac: [28, 32], kyRieng: 'moc', nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
   H13: { ten: 'Bản đồ giờ', moTa: 'ngày × giờ VN 14 ngày, màu = ROI giờ đó của nhà + đội (etp2)', mac: [48, 28], rong: true, nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
   H14: { ten: 'Luỹ kế hôm nay', moTa: 'lãi cộng dồn theo giờ: hôm nay so với hôm qua và TB 7 ngày (etp2)', mac: [24, 24], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
-  H15: { ten: 'Luật máy', moTa: 'thẻ luật máy nhịp tới + việc máy đã làm theo từng luật (etp2)', mac: [20, 32], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
+  H15: { ten: 'Luật máy', moTa: 'thẻ luật máy nhịp tới + việc máy đã làm theo từng luật (etp2)', mac: [20, 32], kyRieng: 'moc', nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
   H16: { ten: 'Phân bổ ngân sách', moTa: 'ngân sách camp đang bật so với trần ngày, từng nhóm so với mục tiêu (etp2)', mac: [48, 32], rong: true, nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
   H17: { ten: 'Thị trường', moTa: 'CPM / CPC / ROI từng ngày Ethopex — lịch nhiệt tháng + dự đoán (etp2)', mac: [48, 48], rong: true, nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },
   H18: { ten: 'Phim mới', moTa: 'phim nhà theo tuần bắt đầu chạy: thử · đủ thử · thắng · tiền thử / phim thắng (etp2)', mac: [28, 48], nguon: 'etp2', moi: '2026-11-26T05:00:00Z' },

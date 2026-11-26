@@ -42,8 +42,11 @@ def quet_chet():
 # Linux chỉ nhận khi hàng chờ ≥ HANG_LINUX (iMac chưa kịp tới) và lấy việc MỚI NHẤT (iMac giữ đầu hàng); trần giờ ×3 nhưng ≤ 65 phút (dòng phim chờ bước cắt 70 phút, dong_phim.BUOC) để không bỏ phí lô đang dở.
 CHAM = sys.platform != "darwin"; HANG_LINUX = 4
 def tran_giay(d): return min(tran_phut(d) * 3, 65) * 60 if CHAM else tran_phut(d) * 60
+# CC2 CẦN ĐỒ TÁCH LOGO (anh 26/11/2026 "Cc2 phải dùng logo nguyên bản giống AD"): HP may-cao-nha nhận việc cắt CC2 khi chưa có venv poster-mau / lop-logo-cc2.py
+# → cắt ra đoạn ô chữ vẽ (dòng 7081 7085). Máy thiếu đồ thì KHÔNG nhận việc có cờ logo; iMac nhận.
+DU_LOGO = os.path.exists(os.path.expanduser("~/.venvs/poster-mau/bin/python")) and os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "lop-logo-cc2.py"))
 def nhan(lo):
-    dk = f"and lo = '{lo}'" if lo else ""
+    dk = (f"and lo = '{lo}'" if lo else "") + ("" if DU_LOGO else " and not coalesce((du_lieu->>'logo')::boolean, false)")
     if CHAM and int(sql(f"select count(*) from etp.viec where trang_thai = 'cho' {dk}") or 0) < HANG_LINUX: return None
     j = sql(f"""update etp.viec set trang_thai = 'dang', may = '{MAY}', bat_dau = now(), lan_thu = lan_thu + 1, du_lieu = du_lieu || jsonb_build_object('nhip', now())
                where id = (select id from etp.viec where trang_thai = 'cho' {dk} and not coalesce(du_lieu->'may_hong', '[]'::jsonb) ? '{MAY}' order by id {'desc' if CHAM else ''} for update skip locked limit 1)

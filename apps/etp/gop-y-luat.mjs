@@ -1905,6 +1905,7 @@ export const LUAT = [
   { card: 1897, tep: 'apps/etp/dong_phim.py', co: 'cr_mau_moi(ma, cid, set(ids) | loai)', vi: 'bản bị loại không được nhặt lại làm creative mới của khối' },
   { card: 1897, tep: 'apps/etp/dong_phim.py', co: 'if c in co_camp or c in bo_ra or c in cu or k_ in da_k', vi: 'bản đã dựng bằng logo cũ (cụt chữ) không được dùng lại làm creative mới của khối' },
   { card: 1897, tep: 'apps/etp/dong_phim.py', co: 'extract(epoch from tao) > {tach}', vi: 'logo đã lên bản mới thì chỉ giữ bản dựng sau lúc tách logo' },
+  { card: 1897, tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: '        if d.get("ok"): break\n        sau = [x for i, x in enumerate(DONG_LUI)', vi: 'ảnh động: cổng AI chuyển động TỪ CHỐI (PlenX "người nổi tiếng") cũng lùi sang cổng kế như khi treo — bản dựng lại Undercover chết vì chỉ lùi khi treo' },
   { card: 'r15-gan-2711', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if len(dk) <= tien + 1: lo = False', vi: 'thẻ luật chỉ một điều kiện mà hỏng nó là Xa, không phải Gần' },
   { card: 'r15-gan-2711', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '["Hôm nay thu", f"${_a15[\'thu\']:.2f}", f"< chi', vi: 'thẻ R15 tách hai dòng: chi ≥ $1 và thu < chi' },
   { card: 'r15-gan-2711', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'lo=_a15["thu"] < _a15["chi"]', vi: 'camp R15 đang lãi trong ngày không bao giờ hiện Gần' },

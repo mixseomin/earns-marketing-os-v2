@@ -707,10 +707,12 @@ def chuyen_dong(nen, tm, cid, ma, b):
             d = _cong({"loai": "video_doc", "cong": g["cong"], "task_id": g["task_id"], "tao_luc": g.get("tao_luc")})
             if d.get("done"): break
             if time.time() - t0 > 1200: raise RuntimeError(f"AI chuyển động quá 20 phút chưa xong ({g.get('cong')} task {g.get('task_id')})")
-        if d.get("ok") or not d.get("treo"): break
+        # cổng TREO hoặc TỪ CHỐI (kiểm duyệt riêng của cổng, vd PlenX "Ảnh/video chứa người nổi tiếng" — 27/11/2026 #1897 bản dựng lại Undercover chết ở đây vì
+        # trước chỉ lùi khi treo) → gửi lại cổng kế trong chuỗi; hết cổng mới dừng kêu to.
+        if d.get("ok"): break
         sau = [x for i, x in enumerate(DONG_LUI) if i > next((j for j, y in enumerate(DONG_LUI) if y[0] == g.get("cong")), -1)]
         if not sau: break
-        print(f"{g.get('cong')} treo ({d.get('loi')}) → gửi lại qua {sau[0][1]}", flush=True)
+        print(f"{g.get('cong')} {'treo' if d.get('treo') else 'từ chối'} ({d.get('loi')}) → gửi lại qua {sau[0][1]}", flush=True)
         os.remove(so); ep, g = sau[0], None
     if not d.get("ok") or not d.get("uri"): raise RuntimeError(f"AI chuyển động hỏng ({g.get('cong')}): {str(d.get('loi'))[:300]}")
     if d.get("can_khoa"):

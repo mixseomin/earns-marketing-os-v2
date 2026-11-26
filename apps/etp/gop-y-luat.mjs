@@ -1860,4 +1860,5 @@ export const LUAT = [
   { card: 'luot2-2611', tep: 'apps/etp/luot2.py', co: 'bo = L2["bo"].get(str(r["bo"] or ""))', vi: 'lượt 2 lên ở bộ tài khoản khác theo sổ, không tự chọn tài khoản' },
   { card: 'luot2-2611', tep: 'packages/db/migrations/0479_etp_luot2.sql', co: 'create or replace view etp.cr_lan_dung', vi: 'chỉ số đếm số lần creative được dùng (gốc + bản lượt 2)' },
   { card: 'luot2-2611', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'etp.cr_lan_dung', vi: 'etp2 đọc số lần dùng creative' },
+  { card: 'luot2-2611', tep: 'apps/etp/luot2.py', co: 'if v["phim"] not in phim: ra.append(v); phim.add(v["phim"])', vi: 'lượt 2 chạy song song chỉ giữa các phim khác nhau (cùng phim bị nhan-ban chặn khi camp trước chưa đồng bộ)' },
 ];

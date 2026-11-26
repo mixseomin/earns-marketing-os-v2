@@ -10,7 +10,7 @@ Camp ★ ROAS nhà bị luật RS tắt (etp.nhat_ky viec 'tat', luat 'RS …') 
   · camp RS đã tắt KHÔNG bật lại (cong.chan_cua LY_RS_TAT); creative lượt 2 mà lại bị RS tắt thì HẾT — không có lượt 3
   · bản gốc không qua cổng chấm / duyệt (etp.cham_cong.duoc_len) thì không có lượt 2
 Mọi cổng etp vẫn áp trong nhan-ban (chấm Sạch, 18+, bài học, trang phim, phim cấm, dừng khẩn, bảo trì, phanh chợ); riêng cổng "chỉ lên theo lệnh" mở đúng cho phim
-đang có dòng etp.luot2 tt 'dang' (cong.luot2_dang). Worker gọi qua nuoi_bo.py mỗi nhịp; mỗi nhịp tối đa luot2.moi_nhip camp và không bắt đầu camp mới sau luot2.phut phút.
+đang có dòng etp.luot2 tt 'dang' (cong.luot2_dang). Worker gọi qua nuoi_bo.py mỗi nhịp; mỗi nhịp tối đa luot2.moi_nhip camp, từng lô luot2.song_song phim khác nhau chạy song song, không bắt đầu lô mới sau luot2.phut phút.
   python3 apps/etp/luot2.py --xem      → ứng viên + hàng đang chờ (không ghi, không tạo gì)
   python3 apps/etp/luot2.py --tu-kiem  → bài tự kiểm hàm thuần + sổ
 tra-repo-ok: mã dán keo nội bộ etp (gọi nhan-ban.py / ap-form-chu.py / cong.py của nhà), không có thư viện ngoài nào làm việc này"""
@@ -119,6 +119,15 @@ def mot(v, AF, EA):
                "--ten", f"l2 {ten} {v['lang'].upper()} - cr moi #{moi}"],
               f"lượt 2: RS tắt #{v['camp']} (kiểu {v['kieu']} · bộ {v['bo']}) → kiểu {v['kieu_moi']} · bộ {v['bo_moi']}, creative gốc #{goc}")
 
+def lo(hang, n):
+    """một lô chạy song song: tối đa n dòng đầu hàng, MỖI PHIM MỘT DÒNG — nhan-ban.camp_moi_hom_nay chặn phim đang có camp chưa đồng bộ xong, hai bản cùng phim
+    chạy cùng lúc thì bản sau hỏng và ăn một lần thử (26/11/2026: tuần tự 2 camp / 53 phút không kịp 32 creative trước 21h VN)"""
+    ra, phim = [], set()
+    for v in hang:
+        if len(ra) >= n: break
+        if v["phim"] not in phim: ra.append(v); phim.add(v["phim"])
+    return ra
+
 def chay(xem=False):
     if L2.get("tat") and not xem: return {"chay": False, "ly": "luot2 đang tắt (sổ luật)"}
     import ethopex_api as EA
@@ -130,14 +139,21 @@ def chay(xem=False):
     if not trong_khung(h): kq["ly"] = f"ngoài khung {L2['khung'][0]:02d}–{L2['khung'][1]:02d}h VN — hàng chờ nhịp trong khung"; return kq
     sp = iu.spec_from_file_location("ap_form_chu", os.path.join(D, "ap-form-chu.py")); AF = iu.module_from_spec(sp); sp.loader.exec_module(AF)
     han = time.time() + float(L2["phut"]) * 60
-    for v in hang[:int(L2["moi_nhip"])]:
-        if time.time() > han: break
-        try: r = mot(v, AF, EA)
-        except Exception as e: r = {"ok": False, "loi": f"{type(e).__name__}: {str(e)[:200]}"}
+    def thu(v):
+        try: return mot(v, AF, EA)
+        except Exception as e: return {"ok": False, "loi": f"{type(e).__name__}: {str(e)[:200]}"}
+    from concurrent.futures import ThreadPoolExecutor
+    def ghi(v, r):   # ghi sổ ngay sau mỗi lô: nhịp bị cắt giữa chừng không mất kết quả lô trước
         ok = bool(r.get("ok") and r.get("moi"))
         if ok: q(f"update etp.luot2 set tt = 'xong', camp_moi = {int(r['moi'])}, ly = null, cap_nhat = now() where cr_goc = {int(v['cr'])}")
         else: q(f"update etp.luot2 set tt = case when lan >= {int(L2['thu'])} then 'loi' else 'dang' end, ly = {s(str(r.get('loi') or 'không rõ')[:300])}, cap_nhat = now() where cr_goc = {int(v['cr'])}")
         kq["lam"].append({"cr": int(v["cr"]), "camp_goc": int(v["camp"]), "kieu": v["kieu_moi"], "bo": v["bo_moi"], "ok": ok, "moi": r.get("moi"), "loi": r.get("loi"), "gio": r.get("gio_anh")})
+    con, n = list(hang), 0
+    while con and n < int(L2["moi_nhip"]) and time.time() <= han:   # từng lô song song, mỗi lô các phim KHÁC nhau; dòng hỏng không thử lại trong nhịp này
+        l = lo(con, min(int(L2.get("song_song", 1)), int(L2["moi_nhip"]) - n))
+        with ThreadPoolExecutor(len(l)) as ex: rs = list(ex.map(thu, l))
+        for v, r in zip(l, rs): ghi(v, r)
+        con = [v for v in con if v not in l]; n += len(l)
     xong = [x for x in kq["lam"] if x["ok"]]; hong = [x for x in kq["lam"] if not x["ok"]]
     if xong or hong:
         chu = (f"🔁 LƯỢT 2 (creative RS tắt → kiểu còn lại, tài khoản khác): lên {len(xong)} camp ★ ROAS"
@@ -151,6 +167,9 @@ def _tu_kiem():
     assert all(a != b and L2["bo"].get(b) == a for a, b in L2["bo"].items()), "lượt 2 lên ở tài khoản KHÁC (sổ luot2.bo đi cặp)"
     assert L2["khung"][0] >= 7 and L2["khung"][1] <= 21, "tạo trong 07–21h VN thì nhan-ban.gio_len hẹn khung 22h VN cùng ngày"
     assert CG._BL["hoi_cho"]["ns"] == CG.NS_MOI and "luot2" in CG.NGUON_MOI
+    assert 1 <= int(L2.get("song_song", 1)) <= 2, "song song không vượt số khe nhan-ban.SONG_SONG (2) — bản dư chỉ ngủ chờ khe"
+    h = [{"cr": 1, "phim": "9"}, {"cr": 2, "phim": "9"}, {"cr": 3, "phim": "8"}, {"cr": 4, "phim": "7"}]
+    assert [v["cr"] for v in lo(h, 2)] == [1, 3] and [v["cr"] for v in lo(h, 3)] == [1, 3, 4] and [v["cr"] for v in lo(h[:2], 2)] == [1] and lo([], 2) == [], "một lô không có hai dòng cùng phim"
     assert trong_khung(7) and trong_khung(20) and not trong_khung(21) and not trong_khung(6) and not trong_khung(23)
     r = {"duoc": True, "chan": "", "la_l2": False, "bo": "1", "lang": "es"}; co = lambda k: True
     assert xep(r, "dol", co) == ("dang", "kien", "2", None) and xep({**r, "bo": "2"}, "kien", co) == ("dang", "dol", "1", None), "kiểu còn lại + bộ khác"

@@ -18,7 +18,10 @@ export function getDb(): DB | null {
   const url = process.env.DATABASE_URL;
   if (!url) return null;
   if (!globalThis.__mos2_db) {
-    const sql = postgres(url, { max: 4, prepare: false });
+    // Cỡ pool đọc từ DB_POOL_MAX (mặc định 4 cho mos2). etp2 chạy ~30 câu song song mỗi lượt đọc trang (docEtp): với 4 kết nối các câu xếp hàng,
+    // câu ROAS chạy riêng 7 ms mà trong lượt đo ra 1,1 s (26/11/2026). Unit etp2 đặt DB_POOL_MAX riêng, mos2 giữ nguyên.
+    const max = Number(process.env.DB_POOL_MAX) > 0 ? Number(process.env.DB_POOL_MAX) : 4;
+    const sql = postgres(url, { max, prepare: false });
     globalThis.__mos2_pg = sql;
     globalThis.__mos2_db = drizzle(sql, { schema, casing: 'snake_case' });
   }

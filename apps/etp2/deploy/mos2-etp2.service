@@ -8,6 +8,8 @@ WorkingDirectory=/opt/earns-marketing-os-v2/apps/etp2
 EnvironmentFile=/opt/earns-marketing-os-v2/.env.production
 Environment=NODE_ENV=production
 Environment=PORT=3880
+# pool Postgres riêng của etp2 (packages/db/src/client.ts đọc biến này): docEtp chạy ~30 câu song song, 4 kết nối làm câu xếp hàng (26/11/2026)
+Environment=DB_POOL_MAX=12
 ExecStart=/usr/bin/npm run start
 Restart=always
 RestartSec=3

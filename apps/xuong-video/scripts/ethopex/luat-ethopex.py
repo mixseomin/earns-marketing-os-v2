@@ -1446,7 +1446,9 @@ def _xet_luat():
         ap = ap and all(x[3] for x in dk[:tien]); thieu = sum(1 for x in dk if not x[3])
         # lo = camp có đang LỖ trong khung của luật tắt không (anh 29/10/2026 sau L4: camp lãi +177% hiện thẻ "L4 gần chạm" vì đủ ngày + đủ chi, chỉ thiếu điều kiện ROI
         # — rồi máy thay camp coi là sắp tắt). Luật tắt: camp đang lãi thì KHÔNG bao giờ là 'gần', chỉ 'xa'
-        ket = "khong_ap" if not ap else "dat" if thieu == 0 else "gan" if thieu == 1 and lo is not False else "xa"
+        # 'gần' = thiếu đúng một điều kiện VÀ còn ít nhất một điều kiện thật (ngoài tiền đề) đã đạt — thẻ chỉ một điều kiện mà hỏng nó là 'xa' (anh 27/11/2026:
+        # R15 gộp "chi ≥ $1 và thu < chi" một dòng, camp lãi chi $2.91 thu $4.03 vẫn hiện Gần)
+        ket = "khong_ap" if not ap else "dat" if thieu == 0 else "gan" if thieu == 1 and len(dk) > tien + 1 and lo is not False else "xa"
         return {"ma": ma, "ten": ten, "mo_ta": mo_ta, "dk": dk, "ket": ket, "vao": vao_ds, "ghi": ghi}
     def L_g10(cid, ns):
         _x = [x for x in (_ng.get(int(cid)) or [None, []])[1] if x[0] in _d3s]; c3, t3 = sum(x[1] for x in _x), sum(x[2] for x in _x); r3 = (t3 - c3) / c3 * 100 if c3 >= 0.3 else None
@@ -1496,8 +1498,8 @@ def _xet_luat():
                 if int(cid) in globals().get("_r15_camp", set()):
                     _a15 = (globals().get("_r15_so") or {}).get(cid) or (globals().get("_r15_so") or {}).get(str(cid)) or {"chi": 0.0, "thu": 0.0}
                     ls.append(L("r15", "R15 · ROAS lên 07h, 15h vẫn âm", f"Camp ★ ROAS lên khung 07h VN: từ 15h VN tới hết ngày Ethopex, số hôm nay {R15_NGUONG} → máy tắt luôn (anh 26/11/2026; đo cả đội 20–24/11: âm lúc 15h thì 1/24 camp về lãi, phần sau ROI −25%). Chỉ xét trong ngày lên.",
-                        [["Hôm nay chi / thu", f"${_a15['chi']:.2f} / ${_a15['thu']:.2f}", R15_NGUONG, r15_tat(_a15)]],
-                        "tat_r15" if int(cid) in vao["tat_r15"] else None))
+                        [["Hôm nay chi", f"${_a15['chi']:.2f}", f"≥ ${R15_CHI:g}", _a15["chi"] >= R15_CHI], ["Hôm nay thu", f"${_a15['thu']:.2f}", f"< chi (${_a15['chi']:.2f})", _a15["thu"] < _a15["chi"]]],
+                        "tat_r15" if int(cid) in vao["tat_r15"] else None, lo=_a15["thu"] < _a15["chi"]))
                 ns = float(a.get("budget") or 0); du30 = [n[cid] for n in (ngay3 if "ngay3" in globals() else []) if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]
                 r30 = roi({"chi": sum(x["chi"] for x in du30), "thu": sum(x["thu"] for x in du30)}) if du30 else None
                 _rn = _rn_so.get(int(cid)) or {}

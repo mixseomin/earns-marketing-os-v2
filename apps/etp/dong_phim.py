@@ -394,8 +394,11 @@ def b_creative_khoi(d):
     if len(ids) < len(muc):
         rc, out = chay_tien_trinh(d["id"], "creative", [os.path.expanduser("~/.venvs/poster-mau/bin/python"), os.path.join(E, "dung-mau.py"), ma, str(cid), "--ban", str(len(muc) - len(ids))], dict(BUOC)["creative"] - 120)
         ids += cr_mau_moi(ma, cid, set(ids))[:len(muc) - len(ids)]
-        if not ids: return ("loi" if rc == -9 else "dung"), f"dựng mẫu {ma} không ra creative: {out[-300:]}", None
-        if len(ids) < len(muc): return ("loi" if rc == -9 else "dung"), f"mẫu {ma}: mới có {len(ids)}/{len(muc)} creative riêng cho {len(muc)} mức ★ ROAS — {out[-240:]}", {"ds": [{"creative_id": c} for c in ids]}
+        # dung-mau chưa xong vì CHỜ (Ethopex đang sinh trang / link tập 1) → 'cho', lượt sau tự dựng tiếp; ssh tới box3 rớt (exit 255) → 'loi' để đường lỗi mạng thử lại.
+        # Trước đây cả hai thành 'dung' → 10/10 dòng AD 26/11/2026 dừng hẳn chỉ vì chờ link tập / một lần ssh rớt.
+        hk = "cho" if "trang_phim · cho" in out else "loi" if rc == -9 or "exit status 255" in out else "dung"
+        if not ids: return hk, f"dựng mẫu {ma} không ra creative: {out[-300:]}", None
+        if len(ids) < len(muc): return hk, f"mẫu {ma}: mới có {len(ids)}/{len(muc)} creative riêng cho {len(muc)} mức ★ ROAS — {out[-240:]}", {"ds": [{"creative_id": c} for c in ids]}
     sql(f"update etp.dong_phim set creative_id = {ids[0]} where id = {d['id']}")
     kq = {"creative_id": ids[0], "ds": [{"creative_id": c, "roas": muc[i]} for i, c in enumerate(ids)]}
     # TỶ LỆ K : D (anh 26/11/2026 "tạo creative mới theo 2 cách lên camp để thử" · "Tại sao tao cứ phải nhắc đi nhắc lại tỷ lệ này"):
@@ -817,7 +820,7 @@ def lam_buoc(d, buoc):
     if sql(f"select huy::text from etp.dong_buoc where dong_id = {d['id']} and buoc = '{buoc}'") == "true" and ket != "xong":
         ket, ghi = "loi", f"bị huỷ (Mạnh / nút Dừng) — {ghi}"
     k_mang = (d["id"], buoc, int(((d.get("buoc") or {}).get(buoc) or {}).get("lan") or 0))   # đếm RIÊNG lượt thử lại vì mạng của LẦN bật này — `lan` đếm cả FIX tay và không tăng khi thử lại (05/11/2026: #51 đã FIX 4 lần → không bao giờ được thử lại)
-    if ket == "loi" and re.search(r"ssh:|Connection (closed|reset|refused|timed out)|kex_exchange|Operation timed out|Broken pipe|mux_client|Session open refused|Control ?[Ss]ocket|ensure-clone lỗi", ghi or "") and THU_MANG.get(k_mang, 0) < 3:
+    if ket == "loi" and re.search(r"ssh:|Connection (closed|reset|refused|timed out)|kex_exchange|Operation timed out|Broken pipe|mux_client|Session open refused|Control ?[Ss]ocket|ensure-clone lỗi|exit status 255", ghi or "") and THU_MANG.get(k_mang, 0) < 3:
         THU_MANG[k_mang] = THU_MANG.get(k_mang, 0) + 1
         ket, ghi = "cho", f"lỗi mạng tới box3, thử lại {THU_MANG[k_mang]}/3 — {ghi[:200]}"   # LỖI MẠNG TỰ THỬ LẠI (04/11/2026: 3 dòng chết vì box3 ngắt ssh) — tối đa 3 lượt · mux_client / Session open refused = kênh ssh dùng chung bị box3 từ chối (22:08 04/11: #15 #21 #51)
     if ket == "cho":

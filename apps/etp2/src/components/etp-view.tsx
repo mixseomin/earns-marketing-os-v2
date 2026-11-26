@@ -45,6 +45,7 @@ import { NenLam } from '@/components/etp-tu-van';
 import { TabInsight } from '@/components/etp-insight';
 import { TabLogs } from '@/components/etp-logs';
 import { ChoDuyetCr, NutDuyetCr, SU_DUYET, SUA_MAU, type SuDuyet, type ChonDuyet } from '@/components/etp-cho-duyet';
+import { ChoDuyetLuot2 } from '@/components/etp-luot2-duyet';
 import { NutLenGio, OGioVn } from '@/components/etp-len-gio';
 import { keCr } from '@/lib/etp-ke-cr';
 import { doiRoasCamp, dsCrMoiCamp, hoanCr, lenNgayCr, suaRoasCr } from '@/lib/actions/etp-cho-duyet';
@@ -3234,7 +3235,7 @@ type QuyenXem = { vai: 'chu' | 'admin' | 'nguoi'; sua: number | null; het?: stri
 const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
 /** SỐ LẦN CREATIVE ĐƯỢC DÙNG (anh 26/11/2026) — MỘT bản cho ô creative của bảng Camp và cột 'Lần dùng' của bảng Creative. */
 // #1879 (anh 26/11/2026 "Ai bảo mày thêm chữ này ở đây ?"): ô creative của cây / bảng Camp KHÔNG in chữ "dùng N" — số lần dùng gập vào chữ rê của ô (chuLanDung); chữ in ra chỉ ở cột 'Lần dùng' của bảng Creative
-const chuLanDung = (cr: CreativeEtpKho | null | undefined): string => !cr || !(cr.lan_dung > 0) ? '' : `creative này đã được dùng ${cr.lan_dung} lần (số camp đã lên, tính cả bản lượt 2 cùng video)${cr.luot === 2 ? ' — đây là LƯỢT 2: camp lượt 1 bị luật RS tắt, lên lại kiểu chữ còn lại ở tài khoản khác' : ''}`;
+const chuLanDung = (cr: CreativeEtpKho | null | undefined): string => !cr || !(cr.lan_dung > 0) ? '' : `creative này đã được dùng ${cr.lan_dung} lần (số camp FB đã thật sự chạy — có chi tiền; camp tạo ra mà bị dừng trước khi chạy không tính; tính cả bản lượt 2 cùng video)${cr.luot === 2 ? ' — đây là LƯỢT 2: camp lượt 1 bị luật RS tắt, lên lại kiểu chữ còn lại ở tài khoản khác' : ''}`;
 /** HUY HIỆU KIỂU LÊN CAMP ở góc trên trái ảnh creative (anh 26/11/2026 "kiểu Kiên (K) và Dol (D)… thêm chữ này vào đây ở vị trí góc này, cho màu khác và rõ ràng"):
  *  K = xanh dương (chữ chu-kieu.json, link search.com) · D = cam (chữ form-chu.json, link info.com); kiểu lạ → chữ cái đầu, nền xám. Nguồn: CreativeEtpKho.kieu (etp-doc kieuCr). */
 const KIEU_HH: Record<string, { chu: string; nen: string; ten: string }> = { kien: { chu: 'K', nen: '#2563eb', ten: 'kiểu Kiên — chữ riêng từng phim (chu-kieu.json), link search.com' }, dol: { chu: 'D', nen: '#ea580c', ten: 'kiểu Dol — chữ form chung (form-chu.json), link info.com' } };
@@ -3600,7 +3601,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     { key: 'id', header: 'Creative', align: 'left', cell: (r) => <span style={{ whiteSpace: 'nowrap' }}>#{r.creative_id} <span style={{ fontSize: 11, color: r.cta_dat ? 'var(--neon-lime,#4ade80)' : '#ffb74d' }}>{r.cta_dat ? 'CTA đạt' : 'CTA cũ'}</span>{r.tu_choi ? <span style={{ fontSize: 11, color: '#f87171' }}> · Meta từ chối</span> : null}</span>, sortValue: (r) => r.creative_id },
     { key: 'phim', header: 'Phim · đoạn', align: 'left', width: 260, cell: (r) => <PhimO anh={anh(r.creative_id)} ten={r.phim ?? '—'} phu={`${r.dang ?? ''} ${r.tu != null ? `${Math.round(r.tu)}–${Math.round(r.den ?? 0)}s` : ''}`} video={r.video} />, sortValue: (r) => r.phim ?? '' },
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (r) => <span style={{ fontSize: 12 }}>{tl(r.the_loai)}</span>, sortValue: (r) => r.the_loai ?? '' },
-    { key: 'lan', header: 'Lần dùng', title: 'số lần creative này được dùng = số camp đã lên, tính cả bản lượt 2 cùng video · L2 = bản lượt 2 (camp lượt 1 bị luật RS tắt)', cell: (r) => <LanDung cr={r} />, sortValue: (r) => r.lan_dung ?? 0 },
+    { key: 'lan', header: 'Lần dùng', title: 'số lần creative này được dùng = số camp FB đã thật sự chạy (có chi tiền), tính cả bản lượt 2 cùng video · L2 = bản lượt 2 (camp lượt 1 bị luật RS tắt)', cell: (r) => <LanDung cr={r} />, sortValue: (r) => r.lan_dung ?? 0 },
     { key: 'camp', header: 'Camp chạy', title: `⚔ = số camp đang chạy cùng ĐOẠN (gộp bản CTA cũ + bản sửa) — trần ${tranT} (điểm bão hoà)`, cell: (r) => <span>{r.chay}/{r.camp}{r.cung_doan > 1 ? <span style={{ marginLeft: 4, color: r.cung_doan > tranT ? '#ffb74d' : 'var(--fg-2)' }}>⚔{r.cung_doan}</span> : null}</span>, sortValue: (r) => r.chay },
     ...soCot<CreativeEtpKho>('nay', (r) => r.nay), ...soCot<CreativeEtpKho>('qua', (r) => r.qua), ...(khNay ? [] : soCot<CreativeEtpKho>('kh', (r) => crKh.get(r.creative_id) ?? KHONG)),
     { key: 'tuoi', header: 'Tuổi (ngày)', title: 'số NGÀY từ camp đầu tiên dùng creative — bão hoà thường sau vài ngày · lọc 🔍 > 2 = hơn 2 ngày', cell: (r) => tuoiChu(tuoiNgay(r.ngay_dau)), sortValue: (r) => tuoiLoc(tuoiNgay(r.ngay_dau)) },
@@ -3891,7 +3892,8 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       {gon ? null : thanhTren}
       </div>
       {gon ? thanhTren : null}
-      {tab === 'camp' && !laNguoi ? <ChoDuyetCr /> : null}   {/* creative máy giữ chờ anh duyệt (anh 22/11/2026) — components/etp-cho-duyet.tsx */}
+      {tab === 'camp' && !laNguoi ? <ChoDuyetCr /> : null}
+      {tab === 'camp' && !laNguoi ? <ChoDuyetLuot2 /> : null}   {/* camp lượt 2 kiểu K chờ anh duyệt (anh 26/11/2026) — components/etp-luot2-duyet.tsx */}   {/* creative máy giữ chờ anh duyệt (anh 22/11/2026) — components/etp-cho-duyet.tsx */}
       {tab === 'tong' ? (   /* TỔNG QUAN = lưới widget (anh 11/11/2026 "Tổng quan 2 giờ thay thế luôn tổng quan… xoá Tổng quan cũ"); số theo quyền cắt ở máy chủ (actions/etp-tong2.ts, etp-quyen.ts) */
         <Tong2 laChu={!chiXem} ky={khK} ve={{ bieu_do_ngay: (k) => bieuDoNgay(k.cao), bang_ngay: () => bangNgay, nen_lam: () => <NenLam ds={du.tuVan ?? []} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} />, ...veTach }} dau={Object.fromEntries(Object.keys(veTach).map((k) => [k, DAU_TACH]))} />
       ) : tab === 'roas' ? (

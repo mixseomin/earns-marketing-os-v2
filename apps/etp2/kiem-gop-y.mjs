@@ -7,6 +7,8 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 'luot2-K', tep: 'apps/etp/luot2.py', co: 'if dich in L2.get("duyet", []): return "cho_duyet"', vi: 'anh 26/11/2026: camp lượt 2 kiểu K chờ anh duyệt, máy không tự lên' },
+  { card: 'luot2-K', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<ChoDuyetLuot2 />', vi: 'ô duyệt camp K lượt 2 ở etp2 › Camp' },
   { card: 1880, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{chay === 'lich' ? <b data-nb-gio-that=\"\"", vi: 'ngăn nhân bản: chọn "theo lịch" là giờ camp thực sự chạy hiện thẳng cạnh nút (anh 26/11/2026 "show giờ thực sự chạy ở đây"), không chỉ trong chữ rê' },
   { card: 1880, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'theo lịch lên camp → <b data-nb-gio-that="">{chayLucGon()}</b>', vi: 'bản không bid cũng hiện giờ thực sự chạy' },
   { card: 1880, tep: 'apps/etp2/src/lib/etp-nb.ts', co: 'return `${chayLucGon(now)} (${khungLen()})`;', vi: 'giờ gọn và chữ đầy đủ cùng một hàm tính giờ (gioLen) — không hai nguồn lệch nhau' },

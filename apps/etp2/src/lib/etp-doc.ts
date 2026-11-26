@@ -61,7 +61,7 @@ export type CampEtpKho = { camp_id: number; /** miền trang đích của ad (Et
   roas: number | null; chien_luoc: string | null };
 export type CreativeEtpKho = { creative_id: number; content_id: number | null; phim: string | null; the_loai: string | null; dang: string | null; ban: string | null; giong: string | null; doan: string | null; tu: number | null; den: number | null;
   lang: string | null; cta_dat: boolean; tu_choi: string | null; video: string | null; anh: string | null; camp: number; chay: number; cung_doan: number;
-  /** SỐ LẦN CREATIVE ĐƯỢC DÙNG (anh 26/11/2026 "thêm chỉ số đếm số lần creative đc sử dụng"): số camp đã lên của creative gốc + bản lượt 2 của nó (view etp.cr_lan_dung); luot = 2 khi đây là bản lượt 2 (apps/etp/luot2.py) */
+  /** SỐ LẦN CREATIVE ĐƯỢC DÙNG (anh 26/11/2026 "thêm chỉ số đếm số lần creative đc sử dụng"): số camp FB THẬT SỰ chạy (chi > 0, migration 0482) của creative gốc + bản lượt 2 của nó (view etp.cr_lan_dung); luot = 2 khi đây là bản lượt 2 (apps/etp/luot2.py) */
   lan_dung: number; luot: number;
   /** kiểu lên camp theo link creative: 'dol' (form-chu.json) · 'kien' (chu-kieu.json) · null = chưa đồng bộ bài / link lạ */
   kieu: string | null; thang: SoTien; qua: SoTien; nay: SoTien; ngay_dau: string | null;

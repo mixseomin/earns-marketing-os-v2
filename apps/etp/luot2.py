@@ -9,6 +9,8 @@ Camp ★ ROAS nhà bị luật RS tắt (etp.nhat_ky viec 'tat', luat 'RS …') 
   · giờ chạy do nhan-ban.gio_len quyết: tạo trong khung luot2.khung (giờ VN) → hẹn khung 22h VN cùng ngày
   · camp RS đã tắt KHÔNG bật lại (cong.chan_cua LY_RS_TAT); creative lượt 2 mà lại bị RS tắt thì HẾT — không có lượt 3
   · bản gốc không qua cổng chấm / duyệt (etp.cham_cong.duoc_len) thì không có lượt 2
+  · kiểu đích trong sổ luot2.duyet (kien = camp kiểu K) → tt 'cho_duyet': chưa tạo gì tới khi anh bấm ✓ ở etp2 › Camp (anh 26/11/2026 "các camp + creative đều phải
+    chờ duyệt mới được push lên" · "Camp lên kiểu Dol cũng ko cần duyệt nếu Creative đã passed"); kiểu dol đi thẳng (bản clone của creative đã duyệt)
 Mọi cổng etp vẫn áp trong nhan-ban (chấm Sạch, 18+, bài học, trang phim, phim cấm, dừng khẩn, bảo trì, phanh chợ); riêng cổng "chỉ lên theo lệnh" mở đúng cho phim
 đang có dòng etp.luot2 tt 'dang' (cong.luot2_dang). Worker gọi qua nuoi_bo.py mỗi nhịp; mỗi nhịp tối đa luot2.moi_nhip camp, từng lô luot2.song_song phim khác nhau chạy song song, không bắt đầu lô mới sau luot2.phut phút.
   python3 apps/etp/luot2.py --xem      → ứng viên + hàng đang chờ (không ghi, không tạo gì)
@@ -50,6 +52,7 @@ def xep(r, kieu, co_chu):
     bo = L2["bo"].get(str(r["bo"] or ""))
     if not bo: return "bo", dich, None, f"bộ gốc '{r['bo']}' không có trong sổ luot2.bo — không tự chọn tài khoản"
     if (r["lang"] or "en") not in KHUON: return "bo", dich, bo, f"chưa có khuôn ★ ROAS cho ngôn ngữ '{r['lang']}'"
+    if dich in L2.get("duyet", []): return "cho_duyet", dich, bo, f"camp kiểu {dich} — chờ anh duyệt ở etp2 › Camp"
     return "dang", dich, bo, None
 
 SQL_UV = f"""select c.camp_id, c.creative_id, c.content_id, coalesce(r.lang, 'en'), coalesce(c.bo, ''), coalesce(g.duoc_len, false),
@@ -172,11 +175,12 @@ def _tu_kiem():
     assert [v["cr"] for v in lo(h, 2)] == [1, 3] and [v["cr"] for v in lo(h, 3)] == [1, 3, 4] and [v["cr"] for v in lo(h[:2], 2)] == [1] and lo([], 2) == [], "một lô không có hai dòng cùng phim"
     assert trong_khung(7) and trong_khung(20) and not trong_khung(21) and not trong_khung(6) and not trong_khung(23)
     r = {"duoc": True, "chan": "", "la_l2": False, "bo": "1", "lang": "es"}; co = lambda k: True
-    assert xep(r, "dol", co) == ("dang", "kien", "2", None) and xep({**r, "bo": "2"}, "kien", co) == ("dang", "dol", "1", None), "kiểu còn lại + bộ khác"
+    assert L2["duyet"] == ["kien"], "anh 26/11/2026: camp kiểu K chờ duyệt, kiểu Dol không cần khi creative đã qua duyệt"
+    assert xep(r, "dol", co)[:3] == ("cho_duyet", "kien", "2") and xep({**r, "bo": "2"}, "kien", co) == ("dang", "dol", "1", None), "kiểu còn lại + bộ khác; đích kien chờ anh duyệt"
     assert xep({**r, "la_l2": True}, "dol", co)[0] == "bo", "không có lượt 3"
     assert xep({**r, "duoc": False, "chan": "người duyệt loại"}, "dol", co)[0] == "bo", "bản gốc bị loại thì không lên lại"
     assert xep(r, None, co)[0] == "bo" and xep(r, "dol", lambda k: False)[0] == "bo", "chữ lệch sổ / phim chưa có chữ kiểu đích → bỏ, không tự viết"
-    assert xep(r, "kien", lambda k: False)[:2] == ("dang", "dol"), "đích dol dùng chữ form, không cần sổ chu-kieu"
+    assert xep(r, "kien", lambda k: False)[:2] == ("dang", "dol"), "đích dol dùng chữ form, không cần sổ chu-kieu, không chờ duyệt"
     assert xep({**r, "bo": "3"}, "dol", co)[0] == "bo" and xep({**r, "lang": "fr"}, "dol", co)[0] == "bo", "bộ ngoài sổ / ngôn ngữ không có khuôn → bỏ"
     class E:
         FORM = {"call_to_action": "LEARN_MORE", "link_url": "f.com", "primaryTexts": ["a"], "headlines": ["b"], "descriptions": ["c"]}; KIEU_DOI = ["kien"]

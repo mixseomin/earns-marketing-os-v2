@@ -659,9 +659,13 @@ def main(a):
     bo = lay("--bo"); thang = float(lay("--thang")) if lay("--thang") else None; bo_doi = bool(lay("--bo"))
     if thang and (moi or thang not in THANG_MUC): raise SystemExit(f"--thang phải là một trong {sorted(THANG_MUC)} và không đi kèm --creative")
     if moi and not (moi["content"] and moi["ten"]): raise SystemExit("--creative cần kèm --content và --ten")
-    roas = float(lay("--roas")) if lay("--roas") else None
-    # MẶC ĐỊNH ★ ROAS (anh 24/11/2026 "Từ giờ mặc định là roas"): lên creative MỚI (--creative) mà không nói --roas → ★ ROAS hoi_cho.roas · $hoi_cho.ns (sổ etp-bang-luat.json), không còn camp $1
-    if moi and roas is None and not thang and "--hoi-cho" not in a: roas = float(HOI_CHO["roas"])
+    # MẶC ĐỊNH ★ ROAS (anh 24/11/2026 "Từ giờ mặc định là roas"): lên creative MỚI (--creative) mà không nói --roas → ★ ROAS · $hoi_cho.ns, không còn camp $1
+    # DÀN MỨC (anh 26/11/2026 "Sửa từ gốc để đa dạng level ROAS"): --roas dan / mặc định → mức chọn ĐÚNG lúc tạo bằng etp.muc_roas (cong.muc_roas — mức sổ hoi_cho.muc
+    # ít camp ★ ROAS nhất của phim), không còn mức cứng 1; --roas <số> (anh chỉnh tay / khối etp.ke_cr) giữ nguyên số anh đặt
+    r_ = lay("--roas")
+    dan = r_ == CONG.ROAS_DAN or (moi and r_ is None and not thang and "--hoi-cho" not in a)
+    if dan and not (moi and moi["content"]): raise SystemExit("--roas dan chỉ đi cùng --creative + --content (mức dàn theo phim)")
+    roas = CONG.muc_roas(moi["content"]) if dan else float(r_) if r_ else None
     # NGÂN SÁCH ANH CHỈNH cho bản không bid / sang bộ khác (anh 22/11/2026 "Ngân sách cho điều chỉnh"): chỉ khi anh bấm tay (vé), $1–20 nguyên; thiếu = CONG.NS_MOI ($5 mọi camp mới, anh 25/11/2026)
     ns_tay = int(float(lay("--ns"))) if lay("--ns") and roas is None and not thang else None
     if ns_tay is not None and not (anh and 1 <= ns_tay <= 20): raise SystemExit("--ns cho bản không bid / sang bộ khác chỉ đi cùng vé thao tác tay, $1–20")

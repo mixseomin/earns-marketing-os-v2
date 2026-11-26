@@ -15,6 +15,7 @@ import { boSoan, docCrPhim, docThuVienO, docXem, dungSoan, lenCampCrPhim, luuSoa
 const ICON_CHU: Record<string, string> = { cau_giong: '🔊', nut: '🔘', hook: '💬' };
 import { DO, XANH } from './etp-doi-thu';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
+import { CHU_DAN } from '@/lib/etp-ke-cr';
 
 const VANG = '#fbbf24', LAM = '#60a5fa';
 const gio = (s: string) => new Date(s).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
@@ -147,7 +148,7 @@ export function EtpCrPhimDrawer({ khoa, onClose }: { khoa: string; onClose: () =
   const moCamp = (id: number) => { const u = new URL(location.href); u.searchParams.delete('ed'); u.searchParams.set('t', 'camp'); u.searchParams.set('ngan', `camp:${id}`); location.assign(u.toString()); };
   const trangThai = (c: DuCrPhim['cr'][number]) => c.tu_choi ? <span title={c.tu_choi}>{nhan('Ethopex từ chối', DO)}</span>
     : c.camp_id ? <a style={{ cursor: 'pointer', alignSelf: 'flex-start' }} title={`mở camp #${c.camp_id}${c.camp_tt ? ` · ${c.camp_tt}` : ''}`} onClick={() => moCamp(c.camp_id!)}>{nhan(`camp #${c.camp_id}${c.camp_tt ? ` · ${c.camp_tt}` : ''}`, LAM)}</a>
-    : <GuardedButton onClick={() => void lenCamp([c.creative_id])} reason={len ? 'đang lên…' : false} title={`lên ★ ROAS ${BANG_LUAT.hoi_cho.roas} · $${BANG_LUAT.hoi_cho.ns}/ngày theo lịch lên (đúng đường ✓ Duyệt)`}
+    : <GuardedButton onClick={() => void lenCamp([c.creative_id])} reason={len ? 'đang lên…' : false} title={`lên ★ ROAS ${CHU_DAN} · $${BANG_LUAT.hoi_cho.ns}/ngày theo lịch lên (đúng đường ✓ Duyệt)`}
         style={{ ...nut(VANG), padding: '2px 8px', alignSelf: 'flex-start' }}>{len && lenMot === c.creative_id ? 'đang lên…' : '🚀 Lên camp'}</GuardedButton>;
 
   return <Drawer onClose={onClose} width={2400} padding={0}>{dau}

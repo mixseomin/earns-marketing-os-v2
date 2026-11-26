@@ -162,6 +162,16 @@ def _q(s):
     if r.returncode: raise RuntimeError(r.stderr.strip()[-200:])
     return r.stdout.strip()
 
+# DÀN MỨC ★ ROAS (anh 26/11/2026 "Tại sao các camp đều là 1.0? … Sửa từ gốc để đa dạng level ROAS"): mọi đường lên ★ ROAS creative mới chọn mức qua MỘT hàm
+# etp.muc_roas (migration 0481) — mức trong sổ hoi_cho.muc có ít camp ★ ROAS nhất của phim trong dan_ngay ngày. Bên gọi nhan-ban truyền --roas dan, nhan-ban chọn mức
+# ĐÚNG lúc tạo (camp trước cùng phim đã vào etp.camp) → các camp cùng phim tự rải 1 / 0.9 / 1.1 / 1.2. etp2 gọi cùng hàm SQL với cùng danh sách.
+MUC_ROAS = [float(m) for m in _BL["hoi_cho"]["muc"]]; DAN_NGAY = int(_BL["hoi_cho"]["dan_ngay"]); ROAS_DAN = "dan"
+_MUC_TXT = ",".join(f"{m:g}" for m in MUC_ROAS)
+def sql_muc_roas(cid): return f"select etp.muc_roas({int(cid)}, array[{_MUC_TXT}]::numeric[], {DAN_NGAY})"
+def muc_roas(cid, q=None): return float((q or _q)(sql_muc_roas(cid)))
+def so_roas(r): return ROAS_DAN if r == ROAS_DAN else f"{float(r):g}"   # đối số --roas cho nhan-ban
+def chu_roas(r): return ("dàn " + "/".join(f"{m:g}" for m in MUC_ROAS)) if r == ROAS_DAN else f"{float(r):g}"   # nhãn cho người đọc
+
 # AT CHỈ MỘT DẠNG — FREE (anh chốt 19/11/2026 theo mẫu team Dol, sổ luật at_chi_dang_free): creative ẢNH TĨNH (etp.diem_cham.cham.hook.dang / etp.creative.dang
 # 'ảnh tĩnh') chỉ được lên camp khi cham.cta.mau = 'watch_for_free' (nhãn tím "All Episodes Released" + tên phim + nút "Watch For Free"). Mọi đường (dòng phim, AT,
 # hồi chợ, nhân bản, đổi creative bài bị từ chối) gửi qua apps/etp/ethopex_api.api → chấm ở đó trên creative_id của CHÍNH lệnh. Creative AT của nhà chưa có sổ điểm
@@ -698,6 +708,9 @@ def ns_tao(body):
 
 def _tu_kiem():
     global PC_CHAN
+    assert len(set(MUC_ROAS)) >= 3 and all(0.9 <= m <= 1.4 for m in MUC_ROAS) and "roas" not in _BL["hoi_cho"], "dàn mức ★ ROAS: ≥ 3 mức trong 0.9–1.4, không còn mức cứng hoi_cho.roas (anh 26/11/2026)"
+    assert sql_muc_roas("12") == f"select etp.muc_roas(12, array[{_MUC_TXT}]::numeric[], {DAN_NGAY})" and muc_roas(5, lambda s: "1.1") == 1.1
+    assert so_roas(ROAS_DAN) == "dan" and so_roas(1.0) == "1" and chu_roas(1.2) == "1.2" and chu_roas(ROAS_DAN).startswith("dàn ")
     _pc0 = PC_CHAN; PC_CHAN = False   # chỉ cảnh báo: phanh có mà không chặn gì
     _b = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=6)).isoformat(); _c = {"phanh_cho": {"phanh": {"den_tang": _b, "den_len": _b, "ly_do": "thử"}, "gia6": {"ti": 0.6, "den": _b}, "rut": {"den": _b}}}
     assert all(chan_cua(v, _c) is None for v in ("tang", "nhan_ban", "tao_camp")) and phanh_sx(_c) is None and phanh_cho(_c["phanh_cho"], "tang"), "chan=false: không chặn nhưng vẫn có câu cảnh báo"

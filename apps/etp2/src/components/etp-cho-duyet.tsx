@@ -9,6 +9,7 @@ import { CamCauHinh } from './etp-camp-cau-hinh';
 import { KhungBaiQc } from './etp-bai-qc';
 import { dsChoDuyet, duyetChoAnh, lenCamp, type ChoDuyet } from '@/lib/actions/etp-cho-duyet';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
+import { CHU_DAN } from '@/lib/etp-ke-cr';
 import { MO_TA_GIONG, maGiong, tenGiong } from '@/lib/etp-dang';
 import { coChuot } from '@/lib/co-chuot';
 
@@ -17,7 +18,7 @@ const GIAI = 'chưa duyệt thì máy không lên camp. ✓ Duyệt = creative r
 const GIAI_DK = 'đang DỪNG KHẨN (etp.cau_hinh.dung_khan): bấm Duyệt vẫn ghi duyệt, nhưng máy chặn tạo camp tới khi tắt dừng khẩn — máy tự lên camp ở nhịp đầu nhả (apps/etp/lenh_cho.py), anh không phải bấm lại.';
 
 /** kiểu camp máy sẽ lên: ★ ROAS (sổ len_cr_roas, lệnh anh 22/11/2026 "roas kiểu Sơn") hoặc ★ ROAS mặc định hoi_cho (anh 24/11/2026 "Từ giờ mặc định là roas") */
-const kieu = (r: string | null) => { const [ro, ns] = (r ?? '').split('|'); return ro && ns ? `★ ROAS ${ro} · ${'$'}${ns}` : `★ ROAS ${BANG_LUAT.hoi_cho.roas} · ${'$'}${BANG_LUAT.hoi_cho.ns}`; };   // mặc định ★ ROAS hoi_cho (anh 24/11/2026)
+const kieu = (r: string | null) => { const [ro, ns] = (r ?? '').split('|'); return ro && ns ? `★ ROAS ${ro} · ${'$'}${ns}` : `★ ROAS ${CHU_DAN} · ${'$'}${BANG_LUAT.hoi_cho.ns}`; };   // mặc định ★ ROAS dàn mức theo phim (anh 26/11/2026)
 
 /** TÓM TẮT CAMP DỰ KIẾN trên thẻ (anh 25/11/2026 "phải show 1 vài thông tin quan trọng để còn biết mà review… nhất là ngôn ngữ, targeting,... form text"):
  *  giá trị = docThietLap của camp dự kiến (khuôn + ô lệnh ▶ Lên đè) — cùng nguồn ngăn camp, không gõ tay */

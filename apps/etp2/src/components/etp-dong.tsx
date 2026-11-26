@@ -12,6 +12,7 @@ import { TRE_MO } from '@/lib/etp-tre';
 import { KhungNoi, laCham, ReThe, TheChung, useCaoThat, useDongKhiCuon, useNoi, viTriNoi, type Moc, type TheNoi } from '@/components/etp-noi';
 import { chuLich } from '@/lib/etp-khung';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
+import { CHU_DAN } from '@/lib/etp-ke-cr';
 const RO = BANG_LUAT.hoi_cho;   // lên creative mới = ★ ROAS hoi_cho (anh 24/11/2026 "Từ giờ mặc định là roas")
 import { choGio, chuHen, dangChay, dangTao } from '@/lib/etp-chay';
 import { batDauCamp, chayDong, docChiTiet, docDong, dungDong, fixBuoc, formDong, lenCampCr, type CampDong, type CrDong, type DongPhim, type BuocDong, type LoaiNoiDung, type LocDong } from '@/lib/actions/etp-dong';
@@ -234,8 +235,8 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
         <div style={{ color: 'var(--fg-3)', marginBottom: 6 }}>bắt đầu {ngayGio(menu.b.bat_dau)} · {menu.b.ket_thuc ? `xong ${ngayGio(menu.b.ket_thuc)}` : `đã chạy ${phut(menu.b.bat_dau, null) ?? '—'} / hạn ${Math.round(menu.b.han_giay / 60)} phút`}{menu.b.lan > 1 ? ` · lần ${menu.b.lan}` : ''}</div>
         {menu.b.ghi ? <div style={{ maxHeight: 90, overflow: 'auto', color: 'var(--fg-2)', marginBottom: 8, whiteSpace: 'pre-wrap' }}>{menu.b.ghi}</div> : null}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {menu.b.buoc === 'camp' && /CHỜ ANH BẮT ĐẦU/.test(menu.b.ghi ?? '') ? <NutGui chu={`▶ Duyệt lên camp — ${sach.size || 1} ★ ROAS ${RO.roas} × $${RO.ns} ≈ $${(sach.size || 1) * RO.ns}/ngày`} mau="#4ade80" dang="đang gửi duyệt…" xong="✓ đã duyệt — máy lên camp ở vòng kế"
-            hoi={`Duyệt lên ${sach.size || 1} camp ★ ROAS ${RO.roas} · $${RO.ns}/ngày mỗi camp (bộ 2) cho phim ${d.ten ?? d.content_id}? Áp cho mọi loại nội dung của phim này.`}
+          {menu.b.buoc === 'camp' && /CHỜ ANH BẮT ĐẦU/.test(menu.b.ghi ?? '') ? <NutGui chu={`▶ Duyệt lên camp — ${sach.size || 1} ★ ROAS ${CHU_DAN} × $${RO.ns} ≈ $${(sach.size || 1) * RO.ns}/ngày`} mau="#4ade80" dang="đang gửi duyệt…" xong="✓ đã duyệt — máy lên camp ở vòng kế"
+            hoi={`Duyệt lên ${sach.size || 1} camp ★ ROAS ${CHU_DAN} · $${RO.ns}/ngày mỗi camp (bộ 2) cho phim ${d.ten ?? d.content_id}? Áp cho mọi loại nội dung của phim này.`}
             lam={async () => { const r = await batDauCamp(d.id); if (!('loi' in r)) { setTimeout(() => setMenu(null), 1200); xong(); } return r; }} /> : null}
           <NutGui chu={`↻ ${menu.b.trang_thai === 'dang' ? 'Huỷ và chạy lại bước này' : 'Chạy lại bước này (FIX)'}`} dang="đang gửi lệnh chạy lại…" xong="✓ đã gửi — chờ máy nhận"
             lam={async () => { const b0 = menu.b; const r = await fixBuoc(d.id, b0.buoc); if (!('loi' in r)) { setCho((c) => ({ ...c, [b0.buoc]: b0.bat_dau ?? '' })); setTimeout(() => setMenu(null), 900); xong(); } return r; }} />
@@ -247,7 +248,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
         <div style={{ fontWeight: 700, marginBottom: 4 }}>Creative #{menuCr.id}{cx?.dang ? ` · ${cx.dang}` : ''}</div>
         <div style={{ color: ok ? '#4ade80' : '#fbbf24', marginBottom: 8, whiteSpace: 'pre-wrap' }}>{ok ? 'cổng chấm cho lên' : chuChan(cx?.chan, ct?.tc ?? []) || 'bị cổng chấm chặn'}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {ok ? <NutGui chu={`▶ Lên ★ ROAS ${RO.roas} riêng creative này — $${RO.ns}/ngày, ${chuLich()}`} mau="#4ade80" dang="đang gửi…" xong="✓ đã gửi — máy đang tạo camp" hoi={`Lên 1 camp ★ ROAS ${RO.roas} · $${RO.ns}/ngày cho creative #${menuCr.id} (phim ${d.ten ?? d.content_id})? Cổng luật nhan-ban vẫn xét.`}
+          {ok ? <NutGui chu={`▶ Lên ★ ROAS ${CHU_DAN} riêng creative này — $${RO.ns}/ngày, ${chuLich()}`} mau="#4ade80" dang="đang gửi…" xong="✓ đã gửi — máy đang tạo camp" hoi={`Lên 1 camp ★ ROAS ${CHU_DAN} · $${RO.ns}/ngày cho creative #${menuCr.id} (phim ${d.ten ?? d.content_id})? Cổng luật nhan-ban vẫn xét.`}
             lam={async () => { const r = await lenCampCr(d.id, menuCr.id); if (!('loi' in r)) { setTimeout(() => setMenuCr(null), 1200); xong(); } return r; }} />
             : cx?.cho ? <NutGui chu="✓ Đạt — cho creative này lên camp" mau="#4ade80" dang="đang ghi…" xong="✓ đã Đạt"
               lam={async () => { const r = await duyetCham(menuCr.id, true); if (!('loi' in r)) { setTimeout(() => setMenuCr(null), 1200); xong(); } return r; }} />

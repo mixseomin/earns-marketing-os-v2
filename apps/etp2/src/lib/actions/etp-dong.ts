@@ -15,6 +15,7 @@ import { dangChay } from '@/lib/etp-chay';
 import { DS_DANG } from '@/lib/etp-dang';
 import { envVe, xinVeTrucTiep } from '@/lib/etp-ve';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
+import { DAN_NGAY, MUC_DAN_SQL } from '@/lib/etp-ke-cr';
 
 export type LoaiNoiDung = { ma: string; ten: string; dang: string; mo_ta: string; cach: string; gia: string; thoi_gian: string; chay: boolean; khoa?: string;
   vi_du: { creative_id: number; video: string; phim: string | null; lai: number; chi: number }[] };
@@ -302,8 +303,9 @@ export async function lenCampCr(dongId: number, creativeId: number): Promise<{ o
   const lang = x.lang === 'es' ? 'es' : 'en';
   // KẾ CAMP MỘT NGUỒN (view etp.ke_cr, 0476 — anh 25/11/2026 "Các chỉ số ROAS phải dàn đủ như tao bảo"): khối dàn muc theo thứ tự creative + khuôn khối; ngoài khối = hoi_cho + KHUON
   const [ke] = await run<{ roas: string | null; ns: number | null; khuon: number | null; nguon: string | null }>(sql`select roas::text roas, ns, khuon, nguon from etp.ke_cr where creative_id = ${cr} limit 1`);
-  const roas = ke?.roas != null ? Number(ke.roas) : Number(BANG_LUAT.hoi_cho.roas), ns = ke?.ns != null ? Math.trunc(Number(ke.ns)) : Math.trunc(Number(BANG_LUAT.hoi_cho.ns));
-  const khuon = ke?.khuon ? Math.trunc(Number(ke.khuon)) : KHUON[lang]!, nguon = ke?.nguon ?? 'mặc định hoi_cho';
+  const [dan] = ke?.roas != null ? [] : await run<{ m: string }>(sql`select etp.muc_roas(${Math.trunc(Number(x.content_id))}, ${MUC_DAN_SQL}::numeric[], ${DAN_NGAY})::text m`);   // ngoài khối: dàn mức theo phim (0481, anh 26/11/2026)
+  const roas = ke?.roas != null ? Number(ke.roas) : Number(dan?.m), ns = ke?.ns != null ? Math.trunc(Number(ke.ns)) : Math.trunc(Number(BANG_LUAT.hoi_cho.ns));
+  const khuon = ke?.khuon ? Math.trunc(Number(ke.khuon)) : KHUON[lang]!, nguon = ke?.nguon ?? 'dàn mức theo phim';
   const ten = `${id > 0 ? `dp${id}` : 'tay'} ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - cr moi #${cr}`;   // spawn không qua shell — chỉ giữ chữ ASCII cho tên camp
   const dir = `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/xuong-video/scripts/ethopex`;
   const vt = await xinVeTrucTiep('tao_camp', { content: x.content_id, lenh: `anh bấm etp2: lên camp creative #${cr} (Sản xuất)`, ns });   // anh bấm = LỆNH TRỰC TIẾP (anh 25/11/2026 "fix tất cả nút thủ công")

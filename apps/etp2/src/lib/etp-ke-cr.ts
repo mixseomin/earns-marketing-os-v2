@@ -12,10 +12,16 @@ export const tiengCr = (lang: string | null | undefined) => (lang === 'es' ? 'es
 /** tên camp ▶ Lên đặt (spawn không qua shell — chỉ chữ ASCII) */
 export const tenCampCr = (phim: string | null | undefined, lang: string | null | undefined, cr: number) =>
   `duyet ${(phim ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${tiengCr(lang).toUpperCase()} - cr moi #${cr}`;
-/** mức ★ ROAS sẽ lên: view etp.ke_cr ('roas|ns' — khối dàn muc theo thứ tự creative, sổ len_cr_roas) hoặc mặc định hoi_cho (anh 24/11/2026 "Từ giờ mặc định là roas") */
-export function mucCr(roas: string | null | undefined): { roas: number; ns: number } {
+/** DÀN MỨC ★ ROAS (anh 26/11/2026 "Sửa từ gốc để đa dạng level ROAS"): mức = etp.muc_roas(phim, MUC_DAN, DAN_NGAY) (migration 0481) — mức sổ hoi_cho.muc có ít camp
+ *  ★ ROAS nhất của phim trong DAN_NGAY ngày; cùng hàm cong.muc_roas bên Python. Truy vấn nhúng: etp.muc_roas(<content_id>, ${MUC_DAN_SQL}::numeric[], ${DAN_NGAY}) */
+export const MUC_DAN: number[] = BANG_LUAT.hoi_cho.muc;
+export const MUC_DAN_SQL = `{${MUC_DAN.join(',')}}`;
+export const DAN_NGAY: number = BANG_LUAT.hoi_cho.dan_ngay;
+export const CHU_DAN = `dàn ${MUC_DAN.join('/')}`;
+/** mức ★ ROAS sẽ lên: view etp.ke_cr ('roas|ns' — khối / sổ len_cr_roas) hoặc null = dàn mức theo phim (nhan-ban chọn lúc tạo) */
+export function mucCr(roas: string | null | undefined): { roas: number | null; ns: number } {
   const [r, n] = (roas ?? '').split('|');
-  return r && n ? { roas: Number(r), ns: Math.trunc(Number(n)) } : { roas: Number(BANG_LUAT.hoi_cho.roas), ns: Math.trunc(Number(BANG_LUAT.hoi_cho.ns)) };
+  return r && n ? { roas: Number(r), ns: Math.trunc(Number(n)) } : { roas: null, ns: Math.trunc(Number(BANG_LUAT.hoi_cho.ns)) };
 }
 const p2 = (n: number) => String(n).padStart(2, '0');
 /** khung lên gần nhất (gioLen — hai khung cố định), chữ giờ VN + còn bao lâu (anh #1843 25/11/2026 "Bỏ (khung giờ gần nhất), thay bằng : còn bao lâu") */
@@ -32,7 +38,7 @@ export function keCr(x: { cr: number; cid: number; lang: string | null; phim: st
     ...(x.mien ? { a_mien: x.mien } : {}),
     c_ten: tenCampCr(x.phim, x.lang, x.cr),
     // nhan-ban --roas: bid_strategy campaign LOWEST_COST_WITH_MIN_ROAS + daily_budget campaign, Ad Set tối ưu VALUE + roas_average_floor
-    c_gia: 'LOWEST_COST_WITH_MIN_ROAS', c_ns: String(m.ns), c_che_do: 'Campaign budget', g_roas: String(m.roas), g_toi_uu: 'VALUE',
+    c_gia: 'LOWEST_COST_WITH_MIN_ROAS', c_ns: String(m.ns), c_che_do: 'Campaign budget', g_roas: m.roas == null ? `${CHU_DAN} (mức ít camp nhất của phim)` : String(m.roas), g_toi_uu: 'VALUE',
     // nhan-ban bo_ngon_ngu bỏ targeting.locales của MỌI camp (luật cố định anh 24/11/2026) — khuôn EN mang [6], ES [1002] nhưng camp tạo ra không nhắm ngôn ngữ
     g_ngon_ngu: null,
     g_lich: chuKhungLen(), f_cr: String(Math.trunc(x.cr)),

@@ -106,15 +106,15 @@ def chay(xem=False):
     for v in lay_r:
         ten = re.sub(r"[^ -~]|['\"$`\\]", "", f"hc {v['ten']} {v['lang'][:2].upper()} - cr moi #{v['cr']}")[:120]
         bo = q(CG.SQL_BO_PHIM.format(cid=v["phim"])) or "1"
-        r = nb([str(KHUON[v["lang"][:2]]), "--roas", f"{float(HC['roas']):g}", "--ns", f"{int(HC['ns'])}", "--creative", str(v["cr"]), "--content", str(v["phim"]), "--ten", ten, "--bo", str(bo)],
+        r = nb([str(KHUON[v["lang"][:2]]), "--roas", CG.ROAS_DAN, "--ns", f"{int(HC['ns'])}", "--creative", str(v["cr"]), "--content", str(v["phim"]), "--ten", ten, "--bo", str(bo)],
                f"{LUAT_ROAS} · phim #{v['phim']} trước {HC['moc_sut'][8:]}/{HC['moc_sut'][5:7]} ROI {v['r']}% · creative #{v['cr']}")
-        kq["roas"].append({**v, "ok": r.get("ok"), "moi": r.get("moi"), "loi": r.get("loi")})
+        kq["roas"].append({**v, "ok": r.get("ok"), "moi": r.get("moi"), "loi": r.get("loi"), "ro": r.get("roas")})
     for v in lay_b:
         r = nb([str(v["goc"]), "--hoi-cho", "--nac"], f"{LUAT_BAI} · gốc #{v['goc']} trước {HC['moc_sut'][8:]}/{HC['moc_sut'][5:7]} ROI {v['r']}% chi ${v['chi']}")
         kq["bai_cu"].append({**v, "ok": r.get("ok"), "moi": r.get("moi"), "loi": r.get("loi")})
     for x in kq["roas"] + kq["bai_cu"]:
         if x.get("ok") and x.get("moi"):
-            chu = (f"🌤 HỒI CHỢ — ★ ROAS {float(HC['roas']):g} · ${int(HC['ns'])} từ creative mới #{x['cr']} phim #{x['phim']} (trước sụt ROI {x['r']}%) → camp #{x['moi']}" if "cr" in x
+            chu = (f"🌤 HỒI CHỢ — ★ ROAS {CG.chu_roas(x.get('ro') or CG.ROAS_DAN)} · ${int(HC['ns'])} từ creative mới #{x['cr']} phim #{x['phim']} (trước sụt ROI {x['r']}%) → camp #{x['moi']}" if "cr" in x
                    else f"🌤 HỒI CHỢ — nhân bản bài cũ của camp #{x['goc']} (trước sụt ROI {x['r']}%, chi ${x['chi']}) → camp #{x['moi']}")
             q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) values ('hoi_cho', 'hoi_cho:{int(x['moi'])}', 'info', $N${chu}$N$) on conflict (khoa) do nothing""")
     return kq
@@ -127,7 +127,7 @@ def _tu_kiem():
     assert not dot({"gia6_nay": 0.8}, "2026-11-17", u("2026-11-19T01:00:00"))[0] and not dot({}, "2026-11-17", u("2026-11-19T01:00:00"))[0], "giá chưa về ≥ ngưỡng / chưa đo được → chưa lên"
     assert not dot({"gia6_nay": 0.9, "gia6": {"ti": 0.7, "den": "2026-11-19T03:00:00+00:00"}}, "2026-11-17", u("2026-11-19T01:00:00"))[0], "còn nấc báo sớm → chưa lên"
     assert not dot({"gia6_nay": 0.9, "rut": {"den": "2026-11-20T00:00:00+00:00"}}, "2026-11-17", u("2026-11-19T01:00:00"))[0] and not dot(tt, None, u("2026-11-19T01:00:00"))[0]
-    assert HC["roas"] == 1 and HC["ns_khoang"] == [5, 5] and HC["ns_khoang"][0] <= HC["ns"] <= HC["ns_khoang"][1] and HC["tran_ngay"] == 5, "đợt hồi chợ lệch sổ luật (anh 18/11/2026: ROAS 1, 5 camp / ngày; $5 như mọi camp mới — anh 25/11/2026)"
+    assert "roas" not in HC and len(set(HC["muc"])) >= 3 and HC["ns_khoang"] == [5, 5] and HC["ns_khoang"][0] <= HC["ns"] <= HC["ns_khoang"][1] and HC["tran_ngay"] == 5, "đợt hồi chợ lệch sổ luật (anh 18/11/2026: 5 camp / ngày; ROAS dàn mức hoi_cho.muc — anh 26/11/2026; $5 như mọi camp mới — anh 25/11/2026)"
     assert KHUON.get("en") and KHUON.get("es")
     assert DU_TRU == 15, "kho dự trữ hồi chợ = 5 camp ROAS / ngày × 3 ngày (anh 18/11/2026)"
     gia = lambda tong, co, thieu: (lambda s: du_tru(lambda _: s))(f"{tong}|{co}|{thieu}")

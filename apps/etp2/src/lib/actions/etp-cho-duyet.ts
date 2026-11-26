@@ -17,7 +17,7 @@ import { lenCampCr } from '@/lib/actions/etp-dong';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import { laKhung } from '@/lib/etp-khung';
 import { giongCr } from '@/lib/etp-ban';
-import { KHUON_CR, keCr, tenCampCr } from '@/lib/etp-ke-cr';
+import { DAN_NGAY, KHUON_CR, MUC_DAN_SQL, keCr, tenCampCr } from '@/lib/etp-ke-cr';
 import { docThietLap, type KeTl } from '@/lib/actions/etp-thiet-lap';
 
 export type ChoDuyet = {
@@ -143,9 +143,10 @@ async function lenhNb(cr: number, gio?: string | null, o?: { roas: number; ns: n
   const id = Math.trunc(Number(cr)), g = gioVn(gio);
   if (gio && !g) return { loi: `giờ không đọc được: "${gio}" — dạng YYYY-MM-DD HH:MM giờ VN` };
   if (g && daQua(g)) return { loi: `giờ ${g} VN đã qua — chọn giờ sau bây giờ` };
-  const [x] = await run<{ content_id: number | null; ten: string | null; lang: string | null; ok: boolean | null; co_camp: string | null; bo: string | null; roas: string | null; ns: string | null; khuon: number | null }>(sql`select r.content_id, f.ten, r.lang, u.ok,
+  const [x] = await run<{ content_id: number | null; ten: string | null; lang: string | null; ok: boolean | null; co_camp: string | null; bo: string | null; roas: string | null; ns: string | null; khuon: number | null; dan: string | null }>(sql`select r.content_id, f.ten, r.lang, u.ok,
       (select string_agg('#' || c.camp_id || case when c.doi then ' (team)' else '' end, ', ') from etp.cr_co_camp c where c.creative_id = r.creative_id) co_camp, (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo,
-      e.roas::text roas, e.ns::text ns, e.khuon   -- kế camp MỘT nguồn: view etp.ke_cr (0476)
+      e.roas::text roas, e.ns::text ns, e.khuon,   -- kế camp MỘT nguồn: view etp.ke_cr (0476)
+      case when r.content_id is null then null else etp.muc_roas(r.content_id, ${MUC_DAN_SQL}::numeric[], ${DAN_NGAY})::text end dan   -- ngoài khối: dàn mức theo phim (0481, anh 26/11/2026)
     from etp.creative r left join etp.phim f using (content_id) left join etp.cham_duyet u on u.creative_id = r.creative_id
       left join lateral (select * from etp.ke_cr k where k.creative_id = r.creative_id limit 1) e on true where r.creative_id = ${id}`);
   if (!x) return { loi: `không thấy creative #${id}` };
@@ -160,7 +161,7 @@ async function lenhNb(cr: number, gio?: string | null, o?: { roas: number; ns: n
     if (Number(k.content_id) !== Number(x.content_id)) return { loi: `creative #${id} không cùng phim với camp #${o.khuon}` };
   }
   const lang = x.lang === 'es' ? 'es' : 'en', ro = o ? { roas: o.roas, ns: o.ns } : x.roas && x.ns ? { roas: Number(x.roas), ns: Math.trunc(Number(x.ns)) }
-    : { roas: Number(BANG_LUAT.hoi_cho.roas), ns: Math.trunc(Number(BANG_LUAT.hoi_cho.ns)) };   // MẶC ĐỊNH ★ ROAS hoi_cho (anh 24/11/2026 "Từ giờ mặc định là roas") — hết camp $1
+    : { roas: Number(x.dan), ns: Math.trunc(Number(BANG_LUAT.hoi_cho.ns)) };   // MẶC ĐỊNH ★ ROAS (anh 24/11/2026) — mức DÀN theo phim etp.muc_roas (anh 26/11/2026 "đa dạng level ROAS"), không cứng 1
   const chu = lich ? `theo lịch: ${chayLuc(Date.now(), !!ro)}` : chuGio(g, tuDo(g));
   const lenh = o ? `anh bấm nhân bản ★ ROAS ${o.roas} creative mới #${id} từ camp #${o.khuon} trên etp2 (${chu})` : `anh bấm ${lich ? '⏱ Lên theo lịch' : '▶ Lên ngay'} creative #${id} trên etp2 (${chu})`;
   const ten = tenCampCr(x.ten, lang, id);   // cùng tên camp dự kiến của ô duyệt (lib/etp-ke-cr)

@@ -115,7 +115,7 @@ def mot(v, AF, EA):
     chep_so(goc, moi)
     ten = q(f"select regexp_replace(coalesce((select ten from etp.phim where content_id = {int(v['phim'])}), ''), '[^A-Za-z0-9 .,:!?#-]', '', 'g')")
     hc = CG._BL["hoi_cho"]
-    return nb([str(KHUON[v["lang"]]), "--roas", f"{float(hc['roas']):g}", "--ns", f"{int(hc['ns'])}", "--bo", str(v["bo_moi"]), "--creative", str(moi), "--content", str(int(v["phim"])),
+    return nb([str(KHUON[v["lang"]]), "--roas", CG.ROAS_DAN, "--ns", f"{int(hc['ns'])}", "--bo", str(v["bo_moi"]), "--creative", str(moi), "--content", str(int(v["phim"])),
                "--ten", f"l2 {ten} {v['lang'].upper()} - cr moi #{moi}"],
               f"lượt 2: RS tắt #{v['camp']} (kiểu {v['kieu']} · bộ {v['bo']}) → kiểu {v['kieu_moi']} · bộ {v['bo_moi']}, creative gốc #{goc}")
 

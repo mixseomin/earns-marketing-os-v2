@@ -6,6 +6,7 @@ import { sqlBan, banCr, sqlGiong, giongCr } from './etp-ban';
 import { getDb } from '@mos2/db';
 import { tvSx } from '@/lib/etp-sx';
 import BANG_LUAT from './etp-bang-luat.json';
+import { DAN_NGAY, MUC_DAN_SQL } from './etp-ke-cr';
 import { docNhatKyLen } from '@/lib/etp-nhat-ky-len';
 import { gioLen } from '@/lib/etp-khung';
 import MAU_CR from './etp-mau-cr.json';
@@ -518,14 +519,14 @@ async function docEtpDu(ng?: string, nhe = false): Promise<DuLieuEtp> {
   // thành dòng "xếp hàng" trong nhóm phim của nó ở bảng cây — camp_id = −creative_id; kiểu lên theo sổ len_cr_roas (★ ROAS riêng) hay ★ ROAS mặc định hoi_cho (apps/etp/lenh_cho.py, anh 24/11/2026) — chỉ Nhà
   const hangRs = await runNha<Record<string, unknown>>(sql`select h.creative_id, r.content_id, f.ten phim, f.the_loai, r.dang, h.tao::text tao, coalesce(r.lang, 'en') lang, r.cta_dat cta, u.ok duyet, coalesce(u.sua_lai, false) sua_lai,   -- ✎ Sửa lại (#1863, 0477): ok = false + cờ — vẫn hiện ở bảng cây, không lên camp
 
-      e.roas ro, e.ns, e.khuon, e.nguon, (select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo,   -- bộ máy sẽ lên (lenh_cho.py đọc cùng khoá)
+      e.roas ro, e.ns, e.khuon, e.nguon, etp.muc_roas(r.content_id, ${MUC_DAN_SQL}::numeric[], ${DAN_NGAY}) dan, (select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo,   -- bộ máy sẽ lên (lenh_cho.py đọc cùng khoá)
       coalesce((select y.gia_tri ? h.creative_id::text from etp.cau_hinh y where y.khoa = 'hoan_cr'), false) hoan   -- ⏸ anh tạm dừng (lenh_cho.py SQL_CR_DUYET bỏ qua)
     from etp.cho_anh_duyet_cr h left join etp.cham_duyet u on u.creative_id = h.creative_id join etp.creative r on r.creative_id = h.creative_id
       left join etp.phim f on f.content_id = r.content_id left join lateral (select * from etp.ke_cr k where k.creative_id = h.creative_id limit 1) e on true   -- kế camp MỘT nguồn (0476): khối dàn ROAS theo creative
     where (u.ok is not false or u.sua_lai) and not exists (select 1 from etp.cr_co_camp c where c.creative_id = h.creative_id) order by h.creative_id`).catch((e) => { console.error('etp hangCr', e); return []; });
   // giờ chạy THẬT của ▶ Lên: khung cố định 22h VN gần nhất (nhan-ban.gio_len, anh 24/11/2026) — cả ★ ROAS lẫn camp $1
   const gioKhung = new Date(gioLen()).toISOString();
-  const hangCr: CampEtpKho[] = hangRs.map((r) => { const ro = r.ro == null ? Number(BANG_LUAT.hoi_cho.roas) : Number(r.ro), ns = r.ns == null ? Number(BANG_LUAT.hoi_cho.ns) : Number(r.ns), cr = n(r.creative_id);   // ngoài sổ len_cr_roas = ★ ROAS mặc định hoi_cho (anh 24/11/2026)
+  const hangCr: CampEtpKho[] = hangRs.map((r) => { const ro = r.ro == null ? (r.dan == null ? null : Number(r.dan)) : Number(r.ro), ns = r.ns == null ? Number(BANG_LUAT.hoi_cho.ns) : Number(r.ns), cr = n(r.creative_id);   // ngoài khối / sổ len_cr_roas = mức dàn theo phim etp.muc_roas (0481, anh 26/11/2026)
     const lang = r.lang === 'es' ? 'es' : 'en', nk = docNhatKyLen(cr), da = r.duyet === true || r.duyet === 't', sl = r.sua_lai === true || r.sua_lai === 't';   // da = anh đã duyệt (cham_duyet ok) · chưa có dòng = ⏸ Chờ duyệt   // #1770: đã bấm lên mà camp chưa vào sổ = đang lên
     const o: CampEtpKho = { camp_id: -cr, xep: { khuon: r.khuon != null ? n(r.khuon) : lang === 'es' ? 65734 : 65110, lang, cta: r.cta === true || r.cta === 't', truoc: nk.truoc, gui: nk.gui, moi: nk.moi, hoan: r.hoan === true || r.hoan === 't' },   // khuôn cùng KHUON_CR của lenNgayCr
       ten: `⏳ Chờ lên camp · ${ro != null ? `★ ROAS ${ro} · $${ns}` : 'camp $1'}${r.nguon ? ` · ${r.nguon}` : ''} · cr #${cr}`.replace(/^⏳ Chờ lên camp/, sl ? '✎ Sửa lại' : !da ? '⏸ Chờ duyệt' : nk.gui ? '🚀 đang lên' : '$&'), bo: (r.bo as string) || null, trang_thai: 'ACTIVE', giao: null, ngan_sach: ns,
@@ -539,6 +540,7 @@ async function docEtpDu(ng?: string, nhe = false): Promise<DuLieuEtp> {
   const TEN_BUOC_SX: Record<string, string> = { nhan: 'nhận phim', ws: 'vào workspace', poster: 'soát poster', cat: 'cắt đoạn', soat: 'soát đoạn', creative: 'làm creative' };
   // KHỐI (etp.khoi): dòng thuộc khối hiện cả khi còn 'cho' (khối chờ anh duyệt, chưa có bước nào) — mỗi dòng nở thành so_camp camp sắp lên mang đúng tham số khối
   const sxRs = await runNha<Record<string, unknown>>(sql`select d.id, d.content_id, d.loai, d.so_camp, d.bo, d.ai, d.tao_luc::text tao, d.trang_thai tt, f.ten phim, f.the_loai, f.locale tieng,
+      etp.muc_roas(d.content_id, ${MUC_DAN_SQL}::numeric[], ${DAN_NGAY}) dan,   -- ngoài khối: mức dàn theo phim (0481)
       (select b.buoc from etp.dong_buoc b where b.dong_id = d.id and b.trang_thai not in ('xong', 'bo_qua') order by b.thu_tu limit 1) buoc,
       (select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo_moi,
       case when k.id is null then null else row_to_json(k)::jsonb || jsonb_build_object('so_phim', (select count(*) from etp.dong_phim x where x.khoi_id = k.id and x.trang_thai in ('cho', 'chay')),
@@ -554,7 +556,7 @@ async function docEtpDu(ng?: string, nhe = false): Promise<DuLieuEtp> {
       locale: k.locale === true, cr_camp: n(k.cr_camp ?? 1), tran_ngay: k.tran_ngay == null ? null : Number(k.tran_ngay), dang: (k.dang as string) ?? null, mau: (k.mau as string) ?? null,
       mau_ten: mau?.ten ?? null, trang_thai: String(k.trang_thai ?? 'cho'), so_phim: n(k.so_phim ?? 0), so_camp: n(k.so_camp ?? 0), thanh_phan: (mau?.o ?? []).map((o) => ({ ten: o.ten, luat: o.luat })),
       khuon: k.khuon && typeof k.khuon === 'object' ? (k.khuon as Record<string, number>) : null, muc: Array.isArray(k.muc) ? (k.muc as unknown[]).map(Number) : null, duyet_ai: (k.duyet_ai as string) ?? null, duyet_luc: (k.duyet_luc as string) ?? null }; };
-  for (const r of sxRs) { const kh = docKhoi(r.khoi), ro = kh ? kh.roas : Number(BANG_LUAT.hoi_cho.roas), ns = kh ? kh.ns : Number(BANG_LUAT.hoi_cho.ns), sc = r.so_camp == null ? null : n(r.so_camp);
+  for (const r of sxRs) { const kh = docKhoi(r.khoi), ro = kh ? kh.roas : r.dan == null ? null : Number(r.dan), ns = kh ? kh.ns : Number(BANG_LUAT.hoi_cho.ns), sc = r.so_camp == null ? null : n(r.so_camp);
     // nhãn bước THẬT (anh 25/11/2026 "nếu không duyệt thì sao?"): khối 'cho' = chưa bắt đầu, không tốn tiền · 'duyet' = anh đã bấm ▶ Bắt đầu sản xuất, chờ sinh AD · dòng chạy = bước máy đang làm
     const b = r.tt === 'cho' ? (kh?.trang_thai === 'cho' ? 'chưa bắt đầu' : kh?.trang_thai === 'duyet' ? 'đã duyệt · chờ sinh AD' : 'chờ máy nhận') : TEN_BUOC_SX[String(r.buoc ?? '')] ?? 'đang dựng';
     const tieng = (r.tieng as string) ?? null, soK = kh ? Math.max(1, sc ?? kh.cr_camp) : null;

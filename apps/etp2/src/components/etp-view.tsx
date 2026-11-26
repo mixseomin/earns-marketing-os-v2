@@ -6,6 +6,7 @@ import { createContext, Fragment, startTransition, useCallback, useContext, useE
 import { useRouter } from 'next/navigation';
 import { ChonKhoang, khoangCuaMoc, nhanCuaMoc } from '@/components/ui/chon-khoang';
 import { BienPhanhCho, NhietKeCho, canhBaoPhanh } from '@/components/etp-phanh-cho';
+import { GacDangBar } from '@/components/etp-gac-dang';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';   // SỔ LUẬT CHUNG — mọi thẻ / nhóm / hướng / bộ lọc luật đọc từ đây (anh 01/11/2026 "tìm nguyên nhân gốc")
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
 import { AnchoredPopover, DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Pill, Segmented, StatsStrip, usePaged, type DataColumn, type SegmentedOption } from '@/components/ui';
@@ -3832,6 +3833,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     {/* TRÀN HẾT BỀ NGANG MÀN (anh 29/10/2026 "tại sao màn hình ko tràn hết sang 2 bên"): trước khoá maxWidth 1600 căn giữa — màn 1930px thừa hai lề trống, bảng Cây bị cắt cột phải */}
     <div style={{ padding: hep ? '10px 10px 40px' : '16px 20px 40px' }}>
       <BienPhanhCho cauHinh={du.cauHinh} /><BienLotCua canhBao={du.canhBao} /><NhietKeCho cauHinh={du.cauHinh} dinh />
+      {quyen?.vai === 'chu' && !du.nguoi.ngoai && <GacDangBar />}{/* anh 26/11/2026: gác / mở dạng dòng phim là nút của anh, lý do ở DB */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0, fontSize: hep ? 16 : 20 }}>ETP · quản lý camp</h1>
         <NhietKeCho cauHinh={du.cauHinh} />

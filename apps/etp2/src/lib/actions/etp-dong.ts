@@ -97,6 +97,32 @@ export async function dangGac(): Promise<string[]> {
   return g?.kt ? [...new Set([...ds, 'KT'])] : ds;
 }
 
+/** GÁC / MỞ DẠNG DÒNG PHIM — NÚT CỦA ANH trên etp2 (anh 26/11/2026: "Lần sau tao lại muốn bật lại thì … lại dựa vào não chó à"): trạng thái + LÝ DO nằm ở DB
+ *  (etp.cau_hinh.gac_dang = mảng mã, gac_dang_ly = {mã: lời anh}), không ở trí nhớ Claude hay chữ viết cứng. dong_phim.py gac_ly() đọc cùng lý do. */
+export type GacDang = { gac: string[]; ly: Record<string, string>; ai: string | null; luc: string | null };
+export async function docGac(): Promise<GacDang> {
+  const [g] = await run<{ ly: Record<string, string> | null; ai: string | null; luc: string | null }>(sql`select (select gia_tri from etp.cau_hinh where khoa = 'gac_dang_ly') ly,
+    (select ai from etp.cau_hinh where khoa = 'gac_dang') ai, (select luc::text from etp.cau_hinh where khoa = 'gac_dang') luc`).catch(() => []);
+  return { gac: await dangGac(), ly: g?.ly ?? {}, ai: g?.ai ?? null, luc: g?.luc ?? null };
+}
+export async function doiGac(ma: string, gac: boolean, ly?: string): Promise<{ ok: true } | { loi: string }> {
+  const me = await quyen(); if (!me) return { loi: 'chỉ chủ / admin gác / mở dạng dòng phim' };
+  if (!DS_DANG.some((d) => d.dong === ma)) return { loi: `mã dạng '${ma}' không có trong sổ dạng (lib/etp-dang.json)` };
+  const ai = me.displayName ?? me.email ?? 'admin', chu = (ly ?? '').trim();
+  if (gac && !chu) return { loi: 'ghi lý do gác (ai bảo, lúc nào) — máy và Claude đọc đúng câu này' };
+  await db().execute(sql`insert into etp.cau_hinh (khoa, gia_tri, ai, luc) values ('gac_dang', '[]'::jsonb, ${ai}, now()) on conflict (khoa) do nothing`);
+  await db().execute(sql`update etp.cau_hinh set gia_tri = (select coalesce(jsonb_agg(distinct x), '[]'::jsonb) from (
+      select jsonb_array_elements_text(gia_tri) x union select ${ma}::text where ${gac}) t where x <> ${ma} or ${gac}),
+    ai = ${ai}, luc = now(), ghi = left(${`${new Date().toISOString().slice(0, 16)} ${ai} ${gac ? 'gác' : 'mở'} ${ma}${chu ? `: ${chu}` : ''}`} || coalesce(' · ' || ghi, ''), 4000)
+    where khoa = 'gac_dang'`);
+  await db().execute(sql`insert into etp.cau_hinh (khoa, gia_tri, ai, luc) values ('gac_dang_ly', '{}'::jsonb, ${ai}, now()) on conflict (khoa) do nothing`);
+  await db().execute(gac ? sql`update etp.cau_hinh set gia_tri = coalesce(gia_tri, '{}'::jsonb) || jsonb_build_object(${ma}::text, ${chu}::text), ai = ${ai}, luc = now() where khoa = 'gac_dang_ly'`
+    : sql`update etp.cau_hinh set gia_tri = coalesce(gia_tri, '{}'::jsonb) - ${ma}::text, ai = ${ai}, luc = now() where khoa = 'gac_dang_ly'`);
+  if (ma === 'KT' && !gac) await db().execute(sql`update etp.cau_hinh set gia_tri = 'false'::jsonb, ai = ${ai}, luc = now() where khoa = 'gac_kt'`);   // KT còn cờ cũ gac_kt — mở thì tắt cả cờ đó
+  return { ok: true };
+}
+const chuGacLoi = async (ma: string) => { const { ly } = await docGac(); return `dòng ${ma} đang gác — ${ly[ma] ?? 'chưa ghi lý do'}. Mở ở nút 🔒 Gác dạng đầu trang etp2`; };
+
 /** THỂ LOẠI cho hàng Thao tác của bảng phim — ĐỦ MỌI DẠNG trong SỔ DẠNG lib/etp-dang.json (anh 15/11/2026 #1616 "show hết các thể loại ra đây"; trước lấy từ LOAI
  *  form dòng phim nên gộp 5 kiểu mới thành KM và thiếu TN / PD / LM). Dạng có mục LOAI → mã dòng + chay của máy dòng phim; dạng máy chưa làm → hiện, khoá kèm lý do. */
 export async function loaiThaoTac(): Promise<{ ma: string; ten: string; chay: boolean; khoa: string | null }[]> {
@@ -116,7 +142,7 @@ export async function chayDong(contentId: number, loai: string, theLoai: string,
   const id = Math.trunc(Number(contentId)); if (!(id > 0)) return { loi: 'mã phim không hợp lệ' };
   const l = LOAI.find((x) => x.ma === loai); if (!l) return { loi: 'loại nội dung lạ' }; if (!l.chay) return { loi: `${l.ten}: ${l.khoa}` };
   // DẠNG ĐANG GÁC (#1598): máy dòng phim (dong_phim.py gac_dang) dừng ngay dòng dạng gác trong ~15 s → dòng anh vừa bấm biến mất không lời. Chặn từ lúc bấm, nói rõ vì sao.
-  if ((await dangGac()).includes(loai)) return { loi: `dòng ${loai} đang tạm gác (anh 08/11/2026 ưu tiên poster động, etp.cau_hinh.gac_dang) — máy dừng ngay nên không tạo. Muốn chạy ${loai}: bỏ '${loai}' khỏi gac_dang trước` };
+  if ((await dangGac()).includes(loai)) return { loi: await chuGacLoi(loai) };
   const [ph] = await run<{ ten: string | null; nhom_goc: string | null }>(sql`select coalesce(p.ten, v.ten) ten, p.nhom_goc from (select ${id}::int content_id) k
     left join etp.phim p using (content_id) left join etp.thu_vien_phim v using (content_id)`);
   if (ph?.nhom_goc && ph.nhom_goc !== 'au_my') return { loi: `phim nhóm gốc '${ph.nhom_goc}' — chỉ chạy phim Âu-Mỹ` };   // chưa có nhóm gốc: bước Nhận của dòng tự chấm poster (anh 04/11/2026 "chạy đủ các bước")

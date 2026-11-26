@@ -70,7 +70,8 @@ function campMoi(l: LichPhim) {
 }
 // DẠNG GÁC (#1598): nút ＋ của dạng anh đang gác (etp.cau_hinh.gac_dang) mờ + tắt — máy dòng phim dừng dạng gác ngay, bấm chỉ ra một dòng biến mất
 const GAC_ST: React.CSSProperties = { opacity: 0.4, cursor: 'not-allowed', textDecoration: 'line-through' };
-const chuGac = (x: string) => `dòng ${x} đang tạm gác (anh 08/11/2026 ưu tiên poster động) — máy dừng ngay nên nút tắt. Mở lại: bỏ '${x}' khỏi etp.cau_hinh.gac_dang`;
+// lý do ĐỌC TỪ DB (etp.cau_hinh.gac_dang_ly — lời anh ghi lúc bấm 🔒 Gác dạng đầu trang), không viết cứng (anh 26/11/2026)
+const chuGac = (x: string, ly: Record<string, string>) => `dòng ${x} đang gác — ${ly[x] ?? 'chưa ghi lý do'}. Máy dừng ngay nên nút tắt. Mở lại: nút 🔒 Gác dạng đầu trang etp2`;
 const O = ({ mau, net }: { mau: string; net?: boolean }) => <span style={{ flex: '1 1 0', maxWidth: 22, minWidth: 3, height: 12, borderRadius: 2, background: net ? 'transparent' : mau, border: net ? `1px dashed ${mau}` : undefined }} />;
 
 // một dòng log thành một mốc: chữ thường, bỏ tên camp lặp trong câu luật
@@ -279,12 +280,12 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
               <div style={{ gridColumn: '1 / -1', position: 'sticky', bottom: -10, zIndex: 1, margin: '0 -12px', padding: '8px 12px 10px', background: 'var(--bg-1, #0f172a)', borderTop: '1px solid var(--line)',
                 display: 'grid', gridTemplateColumns: '58px 1fr', gap: '9px 10px', alignItems: 'center' }}>
               {H('Thao tác', <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }} onMouseLeave={() => baoToa({ p: cid, sang: false })}>
-                {(() => { const lx = dsLoai.find((x) => x.ma === loaiTT0), gacX = l.gac.includes(loaiTT0), khoaX = lx && !lx.chay ? lx.khoa ?? 'máy chưa làm được dạng này' : gacX ? chuGac(loaiTT0) : null;
+                {(() => { const lx = dsLoai.find((x) => x.ma === loaiTT0), gacX = l.gac.includes(loaiTT0), khoaX = lx && !lx.chay ? lx.khoa ?? 'máy chưa làm được dạng này' : gacX ? chuGac(loaiTT0, l.gacLy ?? {}) : null;
                   const oChon = (on: boolean): React.CSSProperties => ({ ...nut, padding: '1px 7px', borderColor: on ? 'var(--accent, #60a5fa)' : 'var(--line)', color: on ? 'var(--fg-1)' : 'var(--fg-3)' });
                   return <div style={{ display: 'flex', flexDirection: 'column', gap: 5, width: '100%' }}>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{(dsLoai.length ? dsLoai : [{ ma: 'CC', ten: 'CC', chay: true, khoa: null }]).map((x) => {
                       const gac = l.gac.includes(x.ma), tat = !x.chay || gac;
-                      return <button key={x.ma} onClick={() => setLoaiTT0(x.ma)} title={!x.chay ? `${x.ten} — ${x.khoa ?? 'máy chưa làm được'}` : gac ? chuGac(x.ma) : x.ten}
+                      return <button key={x.ma} onClick={() => setLoaiTT0(x.ma)} title={!x.chay ? `${x.ten} — ${x.khoa ?? 'máy chưa làm được'}` : gac ? chuGac(x.ma, l.gacLy ?? {}) : x.ten}
                         style={{ ...oChon(loaiTT0 === x.ma), ...(tat ? GAC_ST : {}) }}>{x.ma}</button>; })}</div>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title={`số camp ★ ROAS ${CHU_DAN} · $${BANG_LUAT.hoi_cho.ns} sẽ lên (1–30)`}>

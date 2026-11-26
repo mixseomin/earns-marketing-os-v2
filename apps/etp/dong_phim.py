@@ -726,7 +726,12 @@ def gac_dang():
     try: g = {str(x) for x in json.loads(sql("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'gac_dang'), '[]')") or "[]")}
     except ValueError: g = set()
     return g | ({"KT"} if gac_kt() else set())
-def gac_ly(ma): return GAC_KT_LY if ma == "KT" else f"tạm gác dòng {ma} để ưu tiên poster động (anh 08/11/2026) — mở lại: bỏ '{ma}' khỏi etp.cau_hinh.gac_dang rồi FIX"
+def gac_ly(ma):
+    # lý do ĐỌC TỪ DB etp.cau_hinh.gac_dang_ly (anh ghi lúc bấm 🔒 Gác dạng đầu trang etp2, 26/11/2026) — không viết cứng lý do ở đây
+    try: ly = (sql(f"select coalesce((select gia_tri->>{s(ma)} from etp.cau_hinh where khoa = 'gac_dang_ly'), '')") or "").strip()
+    except Exception: ly = ""
+    if ma == "KT" and not ly: return GAC_KT_LY
+    return f"tạm gác dòng {ma} — {ly or 'chưa ghi lý do'} · mở lại: nút 🔒 Gác dạng đầu trang etp2 rồi FIX"
 
 def sang_ke_chuyen(d, buoc, ghi):
     if d.get("loai") == "KT" or buoc not in ("cat", "soat", "creative") or not HET_NL.search(ghi or ""): return None

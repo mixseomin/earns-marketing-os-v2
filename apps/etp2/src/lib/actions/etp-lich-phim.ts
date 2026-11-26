@@ -10,7 +10,7 @@ import { campToaSql, docCampToa, type CampToa } from '@/lib/etp-toa-sql';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
-import { chayDong, dangGac } from '@/lib/actions/etp-dong';
+import { chayDong, docGac } from '@/lib/actions/etp-dong';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 
 export type LichDang = { dang: string; chay: number; lai: number; lo: number; chi7: number; thu7: number };   // CHỈ camp đang chạy, lãi / lỗ theo 7 ngày (anh 07/11/2026 "mục tiêu là camp active")
@@ -29,6 +29,8 @@ export type LichPhim = {
   camp: CampToa[]; camp_tat: CampToa[];   // camp_tat: camp đã tắt còn chi trong 30 ngày (cây héo ở thửa túp lều / nhà cấp 4)
   /** dạng dòng đang gác (etp.cau_hinh.gac_dang) — nút ＋ dạng đó tắt, chữ rê nói vì sao (#1598) */
   gac: string[];
+  /** lý do gác từng dạng (etp.cau_hinh.gac_dang_ly — lời anh ghi khi bấm 🔒 Gác) */
+  gacLy: Record<string, string>;
   /** bộ đang xem (#1613): bảng mở từ MỘT khối nhà (tháp một bộ) trên thành phố → mọi số camp chỉ của bộ đó; null = cả phim */
   bo: string | null;
 };
@@ -76,7 +78,7 @@ export async function docLichPhim(contentId: number, boXem?: string | null): Pro
     run<{ g: LichPhim['lt'] }>(sql`select gia_tri->${String(id)} g from etp.cau_hinh where khoa = 'lo_trinh_tt'`),
   ]);
   const DON_GIO = Number(BANG_LUAT.khung_doi.don_gio);
-  const [thang, [kho], camp, gac] = await Promise.all([
+  const [thang, [kho], camp, gacDu] = await Promise.all([
     run<CampThang>(sql`with nay as (select (now() at time zone 'utc')::date d), c as (select camp_id, ten, ngan_sach from etp.camp c where c.content_id = ${id} and ${B('c')} and c.trang_thai = 'ACTIVE' and not c.la_roas),
         s as (select n.camp_id, sum(n.chi) filter (where n.ngay >= nay.d - 29) chi30, sum(n.thu) filter (where n.ngay >= nay.d - 29) thu30,
                 sum(n.chi) filter (where n.ngay >= nay.d - 6) chi7, sum(n.thu) filter (where n.ngay >= nay.d - 6) thu7, sum(n.chi) filter (where n.ngay >= nay.d - 2) chi3, sum(n.thu) filter (where n.ngay >= nay.d - 2) thu3,
@@ -98,15 +100,16 @@ export async function docLichPhim(contentId: number, boXem?: string | null): Pro
         (select to_char(((max(tao) at time zone 'utc')::date + 2)::timestamp at time zone 'utc' at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') from etp.camp c where c.content_id = ${id} and ${B('c')} and c.trang_thai = 'ACTIVE' and not c.la_roas) do_toi
       from (select (select gia_tri from etp.cau_hinh where khoa = 'len_doi_lai') gia_tri) x`),
     run<Record<string, unknown>>(campToaSql(bo == null ? sql`c.content_id = ${id}` : sql`c.content_id = ${id} and c.bo = ${bo}`)),   // c.bo ở câu toà đã là text ('?' khi trống)
-    dangGac(),
+    docGac(),
   ]);
   const ids = new Set((await run<{ camp_id: number }>(sql`select camp_id from etp.camp c where c.content_id = ${id} and ${B('c')} and c.trang_thai = 'ACTIVE'`)).map((x) => Number(x.camp_id)));
   const hoan = (['tang', 'giam', 'tat'] as const).flatMap((h) => ((kh?.g?.[h] as number[] | undefined) ?? []).filter((c) => ids.has(Number(c))).map((c) => ({ camp_id: Number(c), huong: h })));
   // DỪNG VÌ GÁC MÀ GÁC ĐÃ MỞ (#1612): anh mở lại mọi dạng 15/11/2026, dòng dừng "tạm gác dòng CC … mở lại: bỏ 'CC' khỏi gac_dang" vẫn hiện 24 giờ, nói sai hiện trạng.
   // Lý do gác chỉ còn đúng khi dạng đó VẪN trong gac → hết gác thì thôi hiện (cùng một chỗ cho mọi dạng, KT gồm gac_kt qua dangGac)
+  const gac = gacDu.gac;
   const sxDung = sx.map((d) => d.trang_thai === 'dung' && (d.ly_do ?? '').startsWith('tạm gác dòng') && !gac.includes(d.loai) ? { ...d, moi: false } : d);
   return { ...p!, dang, thay: thay ?? null, sx: sxDung, hoan, moc_chi: mc?.chi ?? 25, moc_thu: mc?.so ?? 4, ke: ke ?? null, hen, tu_len: cho?.tu_len ?? 0, thieu: cho?.thieu ?? null, may_mo: !!cho?.may_mo, lt: lt?.g ?? null,
-    thang, cr: { san: kho?.san ?? 0, chan: kho?.chan ?? 0 }, doi_lai: { chi: kho?.chi ?? 30, roi: kho?.roi ?? 30, ngay: kho?.ngay ?? 3 }, do_toi: kho?.do_toi ?? null, camp: camp.map(docCampToa).filter((x) => !x.tat), camp_tat: camp.map(docCampToa).filter((x) => x.tat), gac, bo };
+    thang, cr: { san: kho?.san ?? 0, chan: kho?.chan ?? 0 }, doi_lai: { chi: kho?.chi ?? 30, roi: kho?.roi ?? 30, ngay: kho?.ngay ?? 3 }, do_toi: kho?.do_toi ?? null, camp: camp.map(docCampToa).filter((x) => !x.tat), camp_tat: camp.map(docCampToa).filter((x) => x.tat), gac, gacLy: gacDu.ly, bo };
 }
 
 /** LOG TỪNG PHIM (anh 07/11/2026 "các log của từng film nên để sang 1 tab riêng"): nhật ký máy + dòng phim, mới nhất trên. Lần cổng chặn (ok rỗng) gom theo câu lỗi. */

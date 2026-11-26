@@ -87,13 +87,16 @@ export async function datBia(videoId: string, token: string, thumbUrl: string): 
 }
 
 /** Bài ảnh: mỗi ảnh lên /photos (published=false, Facebook tự kéo từ URL) → một bài /feed gắn đủ ảnh; trả permalink bài. */
-async function dangAnh(pageId: string, token: string, anh: string[], moTa: string): Promise<{ url: string; post_id: string }> {
+// hen = unix giây → bài ảnh HẸN GIỜ (/feed published=false + scheduled_publish_time; ảnh con temporary=true để Facebook giữ tới giờ đăng).
+// 26/11/2026: kênh fb_anh hẹn giờ (Mia) gửi video_url → "thiếu video_url" 1.303 lượt từ 12/11, không bài ảnh nào lên.
+async function dangAnh(pageId: string, token: string, anh: string[], moTa: string, hen?: number): Promise<{ url: string; post_id: string }> {
   if (!anh.length || anh.length > 10) throw new Error(`bài ảnh cần 1–10 ảnh (có ${anh.length})`);
   const ids: string[] = [];
-  for (const u of anh) ids.push(String((await goi(`${G}/${pageId}/photos`, { method: 'POST', body: new URLSearchParams({ url: u, published: 'false', access_token: token }) })).id));
-  const b = new URLSearchParams({ message: moTa, access_token: token });
+  for (const u of anh) ids.push(String((await goi(`${G}/${pageId}/photos`, { method: 'POST', body: new URLSearchParams({ url: u, published: 'false', ...(hen ? { temporary: 'true' } : {}), access_token: token }) })).id));
+  const b = new URLSearchParams({ message: moTa, access_token: token, ...(hen ? { published: 'false', scheduled_publish_time: String(hen) } : {}) });
   ids.forEach((id, i) => b.append(`attached_media[${i}]`, JSON.stringify({ media_fbid: id })));
   const p = await goi(`${G}/${pageId}/feed`, { method: 'POST', body: b });
+  if (hen) return { url: `fb-hen-api:${p.id}:${new Date(hen * 1000).toISOString()}`, post_id: String(p.id) };
   const l = await goi(`${G}/${p.id}?${qs({ fields: 'permalink_url', access_token: token })}`);
   return { url: String(l.permalink_url ?? `https://www.facebook.com/${p.id}`), post_id: String(p.id) };
 }
@@ -146,7 +149,7 @@ if (a[0] === '--bia') {
 let raw = ''; for await (const c of process.stdin) raw += c;
 const x = JSON.parse(raw) as { page_id: string; ten: string; video_url?: string; anh?: string[]; mo_ta: string; binh_luan?: string; hen?: number; thumb?: string };
 const t = await kiemTrang(x.page_id, x.ten);
-if (x.anh) { process.stdout.write(JSON.stringify({ ...(await dangAnh(x.page_id, t.token, x.anh, x.mo_ta)), binh_luan: false })); process.exit(0); }
+if (x.anh) { process.stdout.write(JSON.stringify({ ...(await dangAnh(x.page_id, t.token, x.anh, x.mo_ta, x.hen)), binh_luan: false })); process.exit(0); }
 if (!x.video_url) { console.error('thiếu video_url (hoặc anh cho bài ảnh)'); process.exit(1); }
 const dai = doDai(x.video_url), r = dai != null && dai > REEL_TOI_DA_GIAY ? await dangVideoDai(x.page_id, t.token, x.video_url, x.mo_ta, x.hen) : await dangReel(x.page_id, t.token, x.video_url, x.mo_ta, x.hen);
 // bìa ngay sau khi Facebook nhận video (cả bài hẹn) — video đã lên/đã hẹn nên hỏng bìa KHÔNG ném (ném là đăng trùng): trả bia_hong cho người gọi ghi sổ, lượt sau đặt lại

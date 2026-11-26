@@ -1,6 +1,6 @@
 """LỚP LOGO CỦA DẠNG CC2 (anh 26/11/2026: "CC phải dùng dạng CC kết hợp với cách lên của Kiên. Cc phải luôn dùng logo cắt đẹp như AD. Đặt tên loại CC2 … Cc2 ko cần caption trên màn hình").
 Thay ô chữ tên phim cuối đoạn cắt (cat-canh.the_ten) bằng: logo gốc tách từ poster (dung-mau.logo_goc — đúng hàm của AD) + nút CTA cùng bảng màu logo (dung-mau.nut_logo).
-KHÔNG nhãn "All Episodes Released", không chữ nào khác. Một ảnh RGBA 1080×1920 / phim / ngôn ngữ; cat-canh.dung_tap phủ ảnh này O_CUOI giây cuối (env ETP_LOGO).
++ nhãn trên cùng "All Episodes Released" (dung-mau.nhan_logo — đúng hàm của AD; anh 26/11/2026 "CC2 cũng phải có đoạn ALL EPISODES"). Một ảnh RGBA 1080×1920 / phim / ngôn ngữ; cat-canh.dung_tap / ghep-lai-cc2.py ghép đuôi bằng duoi_cc2.ghep (env ETP_LOGO); kèm khung nút nảy <ảnh ra không đuôi>-nhip/.
 Chạy (iMac, ~/.venvs/poster-mau/bin/python):  lop-logo-cc2.py <thư mục phim> <content_id> <tên phim> <locale> <link phim> <ảnh ra>
 In một dòng JSON {out, vnd, kieu} — vnd = tiền AI tách logo (0 khi logo đã nhớ). Không tách được logo → mã 1, kêu to (không lùi về chữ vẽ).
 tra-repo-ok: mã dán keo nội bộ (gọi lại hàm vẽ của dung-mau.py)."""
@@ -18,9 +18,16 @@ def lam(tm, cid, ten, lang, url, ra):
     c = {"tm": tm, "ten": ten, "cid": str(cid), "lang": lang, "p": {"url": url}, "mat_day": int(DM.H * 0.40)}
     lop, day = DM._lop_logo(c, DM.NUT_DONG, DM.LOGO_CAO_DONG, DM.LOGO_VUNG_DONG)
     lg, kieu = DM.logo_goc(c)
-    DM.nut_logo(lop, chu, day + DM.NUT_CACH, DM.bang_mau_logo(lg))
+    pal = DM.bang_mau_logo(lg); DM.nut_logo(lop, chu, day + DM.NUT_CACH, pal)
+    DM.nhan_logo(lop, c, pal)   # nhãn "ALL EPISODES RELEASED" như AD (anh 26/11/2026 "CC2 cũng phải có đoạn ALL EPISODES")
     lop.save(ra)
-    return {"out": ra, "vnd": DM._CHI_LOGO[0], "kieu": kieu}
+    # NÚT NẢY ĐÚNG FORM AD (anh 26/11/2026 "Nút CTA phải có điểm nhấn, dùng lại form của AD"): khung dung-mau.nhip_nut cho đúng nút vừa vẽ → <ra không đuôi>-nhip/ + .json (x, y);
+    # duoi_cc2.ghep lặp khung này tới hết video
+    import shutil
+    c["_nut"] = (pal, chu, day + DM.NUT_CACH); g = os.path.splitext(ra)[0] + "-nhip"
+    d, x, y = DM.nhip_nut(c, os.path.dirname(os.path.abspath(ra)), "cc2-tam"); shutil.rmtree(g, True); shutil.move(d, g)
+    json.dump({"x": x, "y": y}, open(g + ".json", "w"))
+    return {"out": ra, "vnd": DM._CHI_LOGO[0], "kieu": kieu, "nhip": g}
 
 if __name__ == "__main__":
     a = sys.argv[1:]

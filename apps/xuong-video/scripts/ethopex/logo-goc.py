@@ -61,11 +61,19 @@ def anh_khoa(link, ra, ma=""):
     open(ra, "wb").write(base64.b64decode(j["anh_b64"])); v = round((j.get("chi_usd") or 0) * 26000)
     print(f"logo gốc: ảnh khoá màu AI {j.get('model')} {v}₫ → {ra}", flush=True); return ra, v
 
+DOC_RONG = 1800   # poster hẹp hơn thì phóng lên ~mức này trước khi đưa máy đọc chữ
 def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
     """→ (đường dẫn PNG trong suốt, 'cat' | 'ai' | 'dai'), hoặc (None, None) kèm lý do qua ghi_ly_do(str). nen_sach(poster) → đường dẫn ảnh poster đã xoá chữ (tầng AI, tuỳ chọn)."""
     noi = ghi_ly_do or (lambda s: None)
     if not os.path.exists(poster): noi("thiếu poster"); return None, None
-    j = json.loads(subprocess.run([AT().may_doc(), poster], capture_output=True, text=True, timeout=300).stdout.strip() or "{}")
+    # POSTER NHỎ PHÓNG LÊN TRƯỚC KHI ĐỌC (26/11/2026 phim 22385: og:image 651×868, chữ hoa văn — máy đọc chỉ ra "ITTLE", phóng ×3 đọc đủ "THE DEVILS / LITTLE PRINCE / IS HIDING AGAIN").
+    # Toạ độ máy đọc trả về theo tỉ lệ 0–1 nên dùng thẳng cho poster gốc.
+    doc_anh = poster; pw = Image.open(poster).size[0]
+    if pw < DOC_RONG:
+        doc_anh = os.path.splitext(ra)[0] + "-doc.jpg"; k = -(-DOC_RONG // pw); im0 = Image.open(poster).convert("RGB")
+        im0.resize((im0.width * k, im0.height * k), Image.LANCZOS).save(doc_anh, quality=95)
+    j = json.loads(subprocess.run([AT().may_doc(), doc_anh], capture_output=True, text=True, timeout=300).stdout.strip() or "{}")
+    if doc_anh != poster: os.remove(doc_anh)
     hop = AT().hop_ten(ten, j)
     if not hop: noi("máy đọc chữ không thấy tên phim trên poster"); return None, None
     # ĐỦ KHỐI LOGO: máy đọc chữ hay đọc trượt dòng chữ hoa văn (20/11/2026: "Rising", "INTERN", "MechGod" rụng khỏi logo) → dòng chữ to sát trên / dưới khối tên,

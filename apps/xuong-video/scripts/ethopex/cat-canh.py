@@ -124,8 +124,20 @@ def dung_tap(nguon, tu, den, ten, out, nut="WATCH NOW", cam=()):
            f"[1:v]format=rgba,fade=in:st={L - O_CUOI}:d=0.3:alpha=1[o];[c][o]overlay=0:0:enable='gte(t,{L - O_CUOI})'[v];"
            f"[0:a]atrim=0:{den - tu},asetpts=PTS-STARTPTS,{ca}afade=in:d=0.2,afade=out:st={L - 0.6}:d=0.6[a]")
     if kh: print("bỏ giây cấm:", ", ".join(f"{a_:.1f}–{z_:.1f}s" for a_, z_ in kh), file=sys.stderr)
-    gx.sh("ffmpeg", "-v", "error", "-y", *TUA(nguon, tu, den), "-loop", "1", "-t", f"{L}", "-i", lop, "-filter_complex", loc, "-map", "[v]", "-map", "[a]", "-t", f"{L}",
-          *MA_HOA, "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out, han=3600)
+    if os.environ.get("ETP_LOGO"):
+        # CC2 (anh 26/11/2026 #116269 "CTA quá ngắn và cụt"): cắt đoạn SẠCH (không lớp phủ, dư DC.DUNG giây tiếng sau cú cắt) → đuôi chung duoi_cc2.ghep
+        # (logo gốc + nút nảy form AD, giữ khung cuối, tiếng mờ dần) — cùng một hàm với ghep-lai-cc2.py ghép lại thành phẩm cũ
+        import duoi_cc2 as DC
+        den2 = den + DC.DUNG + 0.5; sach = tmp + "-sach.mp4"
+        loc2 = (f"[0:v]trim=0:{den2 - tu},setpts=PTS-STARTPTS,fps=30,{cv}scale={W}:{H}:flags=lanczos:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[v];"
+                f"[0:a]atrim=0:{den2 - tu},asetpts=PTS-STARTPTS,{ca}afade=in:d=0.2[a]")
+        gx.sh("ffmpeg", "-v", "error", "-y", *TUA(nguon, tu, den2), "-filter_complex", loc2, "-map", "[v]", "-map", "[a]",
+              *MA_HOA, "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100", sach, han=3600)
+        if gx.dur_luong(sach)[0] < L - 1.5: raise RuntimeError(f"đoạn sạch ngắn hơn {L:.1f}s — nguồn lỗi mối nối, bỏ đoạn")
+        DC.ghep(sach, L, lop, out); os.remove(sach); L = L + DC.DUNG
+    else:
+        gx.sh("ffmpeg", "-v", "error", "-y", *TUA(nguon, tu, den), "-loop", "1", "-t", f"{L}", "-i", lop, "-filter_complex", loc, "-map", "[v]", "-map", "[a]", "-t", f"{L}",
+              *MA_HOA, "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out, han=3600)
     dv, da = gx.dur_luong(out)
     if abs(dv - L) > 1.5 or abs(da - L) > 1.5: raise RuntimeError(f"đoạn ra hình {dv:.1f}s / tiếng {da:.1f}s khác độ dài tính {L:.1f}s — nguồn lỗi mối nối, bỏ đoạn")
     for p in (tmp + "-the-ten.png",):

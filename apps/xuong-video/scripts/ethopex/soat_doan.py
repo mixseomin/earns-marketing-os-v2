@@ -106,15 +106,19 @@ def ai_box(jpg):
 # khung dính → bỏ khoảng quanh các khung đó (mỗi khung ±1 bước của tờ 30 ô) khỏi video thành phẩm, giữ phần còn lại (nhảy cảnh cũng được), soát lại tờ mới.
 # Còn ≥ 40% thời lượng và soát lại "ok" mới đẩy; không thì bỏ cả đoạn như cũ. Bản trước khi cắt giữ cạnh tệp (.goc.mp4).
 GIU_TOI_THIEU, LUOT_CAT = 0.4, 2
-def cat_bo(f, khung):
+# KHÔNG CẮT VÀO ĐUÔI CTA (anh 26/11/2026 #116269 "CTA quá ngắn và cụt"): khung cấm rơi trong 5 giây thẻ cuối → lượt cắt nuốt luôn thẻ logo + nút, còn ~1 giây.
+# Khoảng cắt bị kẹp trước GIU_DUOI giây cuối (CC2 = đuôi duoi_cc2 HIEN_TRUOC + DUNG); khung cấm thật nằm trong đuôi → soát lại vẫn cấm → bỏ cả đoạn, không cụt CTA.
+GIU_DUOI, GIU_DUOI_CC2 = 5.0, 7.5
+def cat_bo(f, khung, giu=GIU_DUOI):
     d = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], capture_output=True, text=True).stdout.strip() or 0)
     if not d or not khung: return None
-    b = d / 30; kh = []
+    b = d / 30; kh = []; tran = d - giu
     for i in sorted(khung):
-        a, z = max(0.0, (i - 1.5) * b), min(d, (i + 0.5) * b)
+        a, z = max(0.0, (i - 1.5) * b), min(tran, (i + 0.5) * b)
+        if z - a < 0.3: continue
         if kh and a <= kh[-1][1]: kh[-1][1] = max(kh[-1][1], z)
         else: kh.append([a, z])
-    if d - sum(z - a for a, z in kh) < GIU_TOI_THIEU * d: return None
+    if not kh or d - sum(z - a for a, z in kh) < GIU_TOI_THIEU * d: return None
     dk = "+".join(f"between(t,{a:.2f},{z:.2f})" for a, z in kh)
     goc = f[:-4] + ".goc.mp4"   # bản gốc giữ một lần; lượt cắt thứ hai cắt trên bản ĐÃ cắt (khung soát lại đánh số theo bản đó)
     nguon = goc if not os.path.exists(goc) else f[:-4] + ".truoc.mp4"; os.replace(f, nguon)
@@ -130,7 +134,7 @@ def soat_cat(x, k, kq):
     da = []
     for _ in range(LUOT_CAT):
         if kq["ket"] != "cam" or not kq.get("khung") or x["file"].startswith("box3:"): break
-        kh = cat_bo(x["file"], kq["khung"])
+        kh = cat_bo(x["file"], kq["khung"], GIU_DUOI_CC2 if (x.get("bien") or {}).get("logo") == "cc2" else GIU_DUOI)
         if not kh: break
         da += [f"{a:.1f}–{z:.1f}s" for a, z in kh]
         kq = ai(to_khung(x["file"], k)); print(f"SOÁT ĐOẠN: {k} đã cắt bỏ {', '.join(da)} → soát lại: {kq['ket']} · {kq['ly'][:100]}", flush=True)

@@ -201,6 +201,25 @@ def ab_lay(kq, pl, lich, goc, moi, roas=False, cr=None):   # một chỗ gọi a
     except Exception as e: kq["ab_loi"] = f"{type(e).__name__}: {str(e)[:120]}"; return None
     if tn: kq["ab"] = {"ma": tn[0], "nhanh": tn[1]}
     return tn
+def ghi_kho_ngay(moi, pl, ten, goc, cid, bo, roas=None):
+    """CAMP MỚI HIỆN NGAY Ở BẢNG CAMP etp2 (anh 26/11/2026 "bấm Tạo camp xong và duyệt thì phải thấy ngay camp đó trong tab camp"): trước đây camp chỉ vào kho
+    etp.camp ở lượt dong-bo.py kế (10 phút) trong khi lượt này còn chờ Meta tới 20 phút. Ghi hàng tạm ngay khi Ethopex trả mã: dong_bo 'creating' → trang hiện
+    "🚀 đang lên" (hoặc "chờ X nữa" khi Ad Set hẹn giờ); dong-bo.py upsert đè số thật ở lượt sau. Lỗi ghi không chặn tạo camp."""
+    if NGOAI: return
+    try:
+        ag = ((pl.get("campaign") or {}).get("ad_groups") or [{}])[0]; st = ag.get("start_time") if ag.get("type_run") == "custom" else None
+        ns_ = float(((pl.get("campaign") or {}).get("source_payload") or {}).get("daily_budget") or 0) or "null"
+        tk = int(pl.get("ad_account_id")) if str(pl.get("ad_account_id") or "").isdigit() else "null"
+        lich_ = f"'{st}'::timestamp at time zone 'UTC'" if st and re.fullmatch(r"[\d\- :]+", st) else "null"
+        q(f"""insert into etp.camp (camp_id, ten, bo, ad_account_id, trang_thai, dong_bo, ngan_sach, content_id, goc, lich, tao, roas, chien_luoc)
+              values ({int(moi)}, $t${ten}$t$, {f"'{bo}'" if bo and str(bo).isalnum() else "null"}, {tk}, 'PAUSED', 'creating', {ns_}, {int(cid) if str(cid or '').isdigit() else "null"},
+              {int(goc) if str(goc or '').isdigit() else "null"}, {lich_}, now(), {float(roas) if roas is not None else "null"}, {"'LOWEST_COST_WITH_MIN_ROAS'" if roas is not None else "null"})
+              on conflict (camp_id) do nothing""")
+    except Exception as e: print(f"ghi_kho_ngay #{moi}: {e}", file=sys.stderr)
+def ghi_kho_tt(moi, c):   # đồng bộ xong trong lượt → trạng thái thật vào hàng tạm (dong-bo.py vẫn đè đủ cột ở lượt sau)
+    if NGOAI or not moi or not c: return
+    try: q(f"update etp.camp set trang_thai = $t${c.get('state') or ''}$t$, dong_bo = $t${c.get('sync_status') or ''}$t$, cap_nhat = now() where camp_id = {int(moi)} and cap_nhat_etp is null")
+    except Exception as e: print(f"ghi_kho_tt #{moi}: {e}", file=sys.stderr)
 def ab_ghi(moi, tn):   # dang: định dạng lúc chia (hạn mức mỗi định dạng đếm cả camp chưa đồng bộ); None = clone ngoài khung ngày → định dạng của camp gốc lúc đồng bộ
     dg = f"'{tn[2].replace(chr(39), chr(39) * 2)}'" if len(tn) > 2 and tn[2] is not None else "null"
     q(f"insert into etp.camp_ab (camp_id, ab, nhanh, dang) values ({int(moi)}, '{tn[0]}', '{tn[1]}', {dg}) on conflict (camp_id) do nothing")
@@ -765,10 +784,11 @@ def main(a):
         if not moi:   # đọc lại theo tên nếu API không trả id
             time.sleep(3); moi = next((x["id"] for x in api("/api/v1/campaigns?page_size=20")["data"] if x.get("name") == ten), None)
         if not moi: raise ValueError(f"Ethopex không trả camp mới: {str(r)[:160]}")
+        ghi_kho_ngay(moi, pl, ten, goc, cid, bo)
         for _ in range(12):
             time.sleep(5); c = api(f"/api/v1/campaigns/{moi}")["campaign"]
             if c.get("sync_status") in ("done", "synced") or c.get("error"): break
-        kq.update(ok=not c.get("error"), moi=moi, dong_bo=c.get("sync_status"), loi=c.get("error") or None, bo=bo, ns=c.get("budget_daily"))
+        kq.update(ok=not c.get("error"), moi=moi, dong_bo=c.get("sync_status"), loi=c.get("error") or None, bo=bo, ns=c.get("budget_daily")); ghi_kho_tt(moi, c)
         if mien_cham and ep: q(f"update etp.cau_hinh set gia_tri = gia_tri || to_jsonb({int(moi)}), luc = now() where khoa = 'cham_mien' and not gia_tri @> to_jsonb({int(moi)})")
         ns_dich = thang or ns_tay or CONG.NS_MOI   # camp mới đều $5 (anh 25/11/2026) — Ethopex không nhận ngân sách lúc tạo thì đặt lại
         if ns_dich and kq["ok"] and float(c.get("budget_daily") or 0) != ns_dich:   # Ethopex không nhận ngân sách lúc tạo → đặt lại ngay (camp mới chưa học gì)
@@ -899,7 +919,7 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
         if not moi:
             time.sleep(3); moi = next((x["id"] for x in api("/api/v1/campaigns?page_size=20")["data"] if x.get("name") == ten), None)
         if not moi: raise ValueError(f"Ethopex không trả camp mới: {str(r)[:160]}")
-        kq["moi"] = moi
+        kq["moi"] = moi; ghi_kho_ngay(moi, pl, ten, goc, cid, bo, roas=roas)
         # GHI SỔ CHỜ ĐỌC NGAY khi có camp (24/11/2026): bên gọi có trần giờ (dong_phim box 900s…) giết tiến trình giữa 20 phút chờ đồng bộ → camp mồ côi; doc_lai_roas.py vẫn đọc lại
         q(f"insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_roas_cho_doc', '{{}}'::jsonb) on conflict (ten) do nothing")
         q(f"update xv_khoa_ngoai set gia_tri = gia_tri || jsonb_build_object('{int(moi)}', jsonb_build_object('goc', {int(goc)}, 'roas', {float(roas)}, 'ns', {float(ns)}, 'luc_s', {int(time.time())})) where ten = 'ethopex_roas_cho_doc'")
@@ -925,10 +945,11 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
             for _ in range(15):
                 time.sleep(5); tt = api(f"/api/v1/campaigns/{moi}")["campaign"]
                 if tt.get("state") == "PAUSED" and tt.get("source_status") == "PAUSED": break
-            kq["tam_dung"] = tt.get("state") == "PAUSED"; kq["trang_thai"] = tt.get("state")
+            kq["tam_dung"] = tt.get("state") == "PAUSED"; kq["trang_thai"] = tt.get("state"); ghi_kho_tt(moi, tt)
             if not kq["tam_dung"]: raise ValueError(f"đã gửi lệnh tạm dừng nhưng camp #{moi} vẫn {tt.get('state')} — tắt tay ngay")
         if sai: raise ValueError(f"đọc lại sai ROAS (đặt {roas}, Ethopex {san}, chiến lược {c.get('source_bidding_strategy')}) — đã tạm dừng camp")
         kq["ok"] = True
+        if not (sai or tam_dung): ghi_kho_tt(moi, c)
         kq["chay_luc"] = kq.get("gio_anh") or kq.get("gio_roas") or chay_luc(lich)
         if cu: kq["thay_cho"] = thay_cho(cu, moi, gio)
         if tn: ab_ghi(moi, tn)

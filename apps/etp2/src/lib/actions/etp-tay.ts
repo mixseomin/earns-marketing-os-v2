@@ -87,19 +87,8 @@ const thamNb = (x: KieuNb): string[] | string => {
   if (muc.length > 3 || new Set(muc).size !== muc.length || muc.some((r) => !(r >= ROAS_KHOANG[0] && r <= ROAS_KHOANG[1]))) return `ROAS goal phải trong ${ROAS_KHOANG[0]}–${ROAS_KHOANG[1]}, tối đa 3 mức khác nhau`;
   if (!(Number.isInteger(x.ns) && x.ns >= NS_ROAS_KHOANG[0] && x.ns <= NS_ROAS_KHOANG[1])) return `ngân sách camp ROAS $${NS_ROAS_KHOANG[0]}–${NS_ROAS_KHOANG[1]}`;
   if (x.gio && x.gio !== 'ngay') { const g = gioVn(x.gio); if (!g) return 'giờ chạy sai dạng'; if (daQua(g)) return `giờ ${g} VN đã qua — chọn giờ sau bây giờ`; }
-  return ['--ns', String(x.ns), ...(x.tamDung ? ['--tam-dung'] : [])];   // mức ROAS gắn ở từng lượt (nhanBanTay / xemNhanBan)
+  return ['--ns', String(x.ns), ...(x.tamDung ? ['--tam-dung'] : [])];   // mức ROAS gắn ở từng lượt (nhanBanTay)
 };
-
-/** XEM TRƯỚC nhân bản: chạy khô (không --that) — máy in payload / lý do chặn, không tạo gì */
-export async function xemNhanBan(campId: number, x: KieuNb): Promise<{ ok: true; chu: string } | { loi: string }> {
-  if (!(await laChu())) return { loi: 'chỉ admin mos2 điều khiển camp' };
-  const t = thamNb(x); if (typeof t === 'string') return { loi: t };
-  const ve = await xinVeTay('nhan_ban', { camp: campId, ai: AI });   // chạy khô không gửi gì nên không đốt vé — vé tự hết hạn
-  const ra = await chay(['nhan-ban.py', String(campId), '--tay', '--anh', ...t, ...(x.kieu === 'roas' ? ['--roas', mucRoas(x)[0]!.toFixed(2)] : [])], 120_000, ve);   // nhiều mức: chạy khô mức đầu — mức sau chỉ khác roas · giờ không chạy khô (--gio đòi vé trực tiếp)   // --anh: anh bấm tay — máy không chặn bằng luật mềm (10/11/2026), chỉ có nghĩa khi mang vé (18/11/2026)
-  const k = dongJson<{ ok?: boolean; loi?: string | null; ten?: string }>(ra);
-  if (k && (k.ok === false || k.loi)) return { loi: k.loi || 'máy chặn' };   // chạy khô bị chặn: ok null + loi (vd ĐANG DỪNG LÊN CAMP MỚI)
-  return { ok: true, chu: ra.trim().slice(-3000) || '(máy không in gì)' };
-}
 
 /** NHÂN BẢN THẬT: chạy nền (tạo + đọc lại có thể vài phút), kết quả vào nhật ký luật + log /tmp/etp2-nb-<camp>.log */
 export async function nhanBanTay(campId: number, x: KieuNb, ghi?: string): Promise<KetTay> {
@@ -123,7 +112,7 @@ export async function nhanBanTay(campId: number, x: KieuNb, ghi?: string): Promi
     chayTach('sh', ['-c', muc.map((r, i) => `ETP_VE="$V${i}" python3 "$@" --roas ${r.toFixed(2)}${g ? ' --gio "$G"' : ''}`).join('; '), 'sh', ...chung],
       { cwd: DIR, detached: true, stdio: ['ignore', log, log], env: { ...envVe(null), G: g ?? '', ...Object.fromEntries(ves.map((v, i) => [`V${i}`, v])) } }).unref();
     await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản ★ ROAS ${ten} · $${x.ns}${muc.length > 1 ? ' mỗi camp' : ''} · ${chuChay}` });
-    return { ok: true, chu: `đã gửi máy ${muc.length > 1 ? `${muc.length} camp ★ ROAS ${muc.join(' / ')} (chạy nối tiếp)` : `camp ★ ROAS ${muc[0]}`} · $${x.ns}${muc.length > 1 ? ' mỗi camp' : ''} · bài cũ của #${campId} · camp mới ${chuChay} · kết quả ghi nhật ký luật` };
+    return { ok: true, chu: `đã gửi máy ${muc.length > 1 ? `${muc.length} camp ★ ROAS ${muc.join(' / ')} (chạy nối tiếp)` : `camp ★ ROAS ${muc[0]}`} · $${x.ns}${muc.length > 1 ? ' mỗi camp' : ''} · bài cũ của #${campId} · camp mới ${chuChay} · camp hiện ngay trong bảng Camp (🚀 đang lên) · kết quả ghi nhật ký luật` };
   }
   // anh bấm nhân bản = LỆNH TRỰC TIẾP (anh 25/11/2026 "fix tất cả nút thủ công" — trước vé 'tay' không miễn mùa lễ / nắp ROI / trần ngày)
   const vt = await xinVeTrucTiep('nhan_ban', { camp: campId, lenh: `anh bấm etp2: nhân bản ${x.kieu} #${campId}${x.ns != null ? ` · $${x.ns}` : ''}${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, ns: x.ns ?? null });
@@ -133,5 +122,5 @@ export async function nhanBanTay(campId: number, x: KieuNb, ghi?: string): Promi
   chayTach('python3', ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that', '--luat', `tay etp2: nhân bản ${x.kieu} — ANH CHỊU TRÁCH NHIỆM, máy không chặn${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, '--ai', AI],
     { cwd: DIR, detached: true, stdio: ['ignore', log, log], env: envVe(ve) }).unref();
   await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản ${x.kieu === 'thuong' ? 'thường' : x.kieu === 'thang' ? `thang $${x.ns}` : `sang bộ ${x.bo}`}${x.kieu !== 'thang' && x.ns != null ? ` · $${x.ns}` : ''}` });
-  return { ok: true, chu: `đã gửi máy nhân bản (anh chịu trách nhiệm — máy không chặn bằng luật, chỉ dừng khẩn) · camp mới ${chayLuc()} · camp hiện sau lượt đồng bộ kế, kết quả ghi nhật ký luật` };
+  return { ok: true, chu: `đã gửi máy nhân bản (anh chịu trách nhiệm — máy không chặn bằng luật, chỉ dừng khẩn) · camp mới ${chayLuc()} · camp hiện ngay trong bảng Camp khi Ethopex trả mã (~10–40 giây): 🚀 đang lên → chờ giờ / chạy, kết quả ghi nhật ký luật` };
 }

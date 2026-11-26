@@ -878,6 +878,11 @@ const LUAT = [
   { card: '1869', tep: 'apps/etp2/src/components/etp-len-gio.tsx', co: 'haiKhung()[0]?.gio', vi: 'mở khung: giờ đang hẹn đã qua thì ô sẵn khung chính kế' },
   { card: '1869', tep: 'apps/etp2/src/components/etp-len-gio.tsx', co: 'data-canh-ngoai-khung', vi: 'gõ giờ ngoài 2 khung chính vẫn cho, nhưng hiện ô vàng cảnh báo' },
   { card: '1869', tep: 'apps/etp2/src/lib/etp-khung.ts', co: 'export function laKhung(', vi: 'một chỗ quyết giờ nào là khung chính' },
+  { card: 0, tep: 'apps/etp2/src/components/etp-view.tsx', cam: '>Xem trước<', vi: 'anh 26/11/2026: bỏ nút Xem trước nhân bản — Tạo camp đi thẳng bước xác nhận' },
+  { card: 0, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'xemNhanBan', vi: 'không gọi chạy khô nhân bản / khối JSON xem trước' },
+  { card: 0, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'kho: du.camps', vi: 'ngữ cảnh điều khiển camp mang kho camp để mở bài post' },
+  { card: 0, tep: 'apps/etp2/src/components/etp-view.tsx', co: "nguonRoas === 'cu' && khoCamp", vi: 'chọn bài cũ (used post) hiện ngay icon Facebook mở bài' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'def ghi_kho_ngay(', vi: 'camp nhân bản hiện ngay trong bảng Camp (hàng tạm 🚀 đang lên) khi Ethopex trả mã, không chờ lượt đồng bộ' },
 ];
 
 const loi = [];

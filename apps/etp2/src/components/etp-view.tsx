@@ -2626,7 +2626,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
           <span data-cot="creative" onMouseEnter={c.creative_id && moCr ? chiRe((e: React.MouseEvent) => moCr(c.creative_id!, e, c.camp_id)) : undefined} onMouseLeave={dongCr}
             onClick={c.creative_id && moCr ? (e) => { e.stopPropagation(); e.preventDefault(); moCr(c.creative_id!, e, c.camp_id); } : undefined} title={`cr #${c.creative_id ?? '?'}${c.doan ? ` · đoạn ${c.doan.split(':')[1] ?? ''}s` : ''}`} style={{ cursor: c.creative_id ? 'zoom-in' : undefined,  display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
             {(() => { const [w, h] = [40, 60];   // #1858 (anh 25/11/2026 "các creative cùng kích thước"): MỌI dòng cây một cỡ ảnh 40×60 — trước dòng chờ duyệt 40×60 (anh 22/11 "cần xem cả creative") còn camp đã chạy 14×24 nên lệch nhau
-              return cr?.anh ? <img src={cr.anh} alt="" style={{ width: w, height: h, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: w, height: h, background: 'var(--line)' }} />; })()}
+              return <span style={{ position: 'relative', display: 'inline-flex', flex: 'none' }}>{cr?.anh ? <img src={cr.anh} alt="" style={{ width: w, height: h, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: w, height: h, background: 'var(--line)' }} />}<KieuCr cr={cr} /></span>; })()}
             {/* chỉ mã + điểm chấm (anh 28/10/2026 #1465 "chỉ cần ID đủ… show thêm điểm số"); đoạn giây ở hover */}
             {/* #1555 (anh 10/11/2026 "ẩn thông tin này, cần thì hover"): mã creative không in ra ô — rê ô mới thấy */}
             {/* SỐ LẦN CREATIVE ĐƯỢC DÙNG (anh 26/11/2026): số camp đã lên của creative này tính cả bản lượt 2 cùng video; L2 = camp này chạy bản lượt 2 */}
@@ -3195,6 +3195,13 @@ function NutLenCamp({ du, gon }: { du: DuLieuEtp; gon: boolean }) {
 type QuyenXem = { vai: 'chu' | 'admin' | 'nguoi'; sua: number | null; het?: string | null; cheDo?: CheDoLuat | null };
 const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
 /** SỐ LẦN CREATIVE ĐƯỢC DÙNG (anh 26/11/2026) — MỘT bản cho ô creative của bảng Camp và cột 'Lần dùng' của bảng Creative. */
+/** HUY HIỆU KIỂU LÊN CAMP ở góc trên trái ảnh creative (anh 26/11/2026 "kiểu Kiên (K) và Dol (D)… thêm chữ này vào đây ở vị trí góc này, cho màu khác và rõ ràng"):
+ *  K = xanh dương (chữ chu-kieu.json, link search.com) · D = cam (chữ form-chu.json, link info.com); kiểu lạ → chữ cái đầu, nền xám. Nguồn: CreativeEtpKho.kieu (etp-doc kieuCr). */
+const KIEU_HH: Record<string, { chu: string; nen: string; ten: string }> = { kien: { chu: 'K', nen: '#2563eb', ten: 'kiểu Kiên — chữ riêng từng phim (chu-kieu.json), link search.com' }, dol: { chu: 'D', nen: '#ea580c', ten: 'kiểu Dol — chữ form chung (form-chu.json), link info.com' } };
+function KieuCr({ cr }: { cr: CreativeEtpKho | null | undefined }) {
+  if (!cr?.kieu) return null; const k = KIEU_HH[cr.kieu] ?? { chu: cr.kieu.slice(0, 1).toUpperCase(), nen: '#6b7280', ten: `kiểu ${cr.kieu}` };
+  return <span data-o="cr-kieu" title={k.ten} style={{ position: 'absolute', top: 2, left: 2, minWidth: 16, height: 16, padding: '0 3px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 3, background: k.nen, color: '#fff', fontSize: 11, fontWeight: 800, lineHeight: 1, boxShadow: '0 0 0 1.5px #fff, 0 1px 3px rgba(0,0,0,.5)', pointerEvents: 'auto', cursor: 'help' }}>{k.chu}</span>;
+}
 function LanDung({ cr, order }: { cr: CreativeEtpKho | null | undefined; order?: number }) {
   if (!cr || !(cr.lan_dung > 0)) return null;
   return <span data-o="cr-lan-dung" title={`creative này đã được dùng ${cr.lan_dung} lần (số camp đã lên, tính cả bản lượt 2 cùng video)${cr.luot === 2 ? ' — đây là LƯỢT 2: camp lượt 1 bị luật RS tắt, lên lại kiểu chữ còn lại ở tài khoản khác' : ''}`} style={{ order, fontSize: 10.5, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'help', color: cr.luot === 2 ? '#f59e0b' : 'var(--fg-3, #999)' }}>dùng {cr.lan_dung}{cr.luot === 2 ? ' · L2' : ''}</span>;

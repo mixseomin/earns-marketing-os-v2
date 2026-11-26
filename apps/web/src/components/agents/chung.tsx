@@ -121,7 +121,7 @@ const NhanTuyen = ({ m }: { m: string }) => { const t = tuyenModel(m); return t.
 export function SuaModel({ id, model, soul, admin, goi = [] }: { id: string; model: string; soul: string; admin: boolean; goi?: string[] }) {
   const nut = useRef<HTMLButtonElement | null>(null); const [mo, setMo] = useState(false); const [v, setV] = useState(model);
   const { dang, loi, chay, boLoi } = useLenh();
-  const ten = model.replace(/^[a-z]+:/, '').replace(/\bqua:\w+/g, '').trim() || 'không';
+  const ten = model.replace(/^[a-z-]+:/, '').replace(/\bqua:\w+/g, '').trim() || 'không';
   if (!admin) return <span className="ag-model" title={`${model}\n${tuyenModel(model).chu}`}><NhanTuyen m={model} /> {ten}</span>;
   const ds = [...new Set([model, soul, ...goi].map((x) => x.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   const muc = [{ v: '', nhan: `— về dòng SOUL (${soul || 'không'})` }, ...ds.map((m) => { const t = tuyenModel(m); return { v: m, nhan: `${t.icon} ${m.replace(/^[a-z-]+:/, '')}` }; })];

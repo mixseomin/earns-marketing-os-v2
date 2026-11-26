@@ -1892,4 +1892,8 @@ export const LUAT = [
   { card: 'cc2-2611', tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', co: 'os.environ.get("ETP_LOGO")', vi: 'dung_tap dùng lớp logo CC2 thay ô tên phim, không nhãn All Episodes ("Cc2 ko cần caption trên màn hình")' },
   { card: 'cc2-2611', tep: 'apps/web/src/lib/etp-dang.json', co: '"ma": "CC2"', vi: 'sổ dạng có CC2' },
   { card: 'cc2-2611', tep: 'apps/etp2/src/lib/etp-dang.json', co: '"ma": "CC2"', vi: 'sổ dạng etp2 có CC2' },
+  { card: 1897, tep: 'apps/xuong-video/scripts/ethopex/logo-goc.py', co: 'return al, dac, cong(dac) or ly_mep(dac)', vi: 'logo AD / CC2: tầng cắt theo vùng trượt cổng khi nét chạm mép vùng cắt (logo bị cụt, #116378 mất chữ KING)' },
+  { card: 1897, tep: 'apps/xuong-video/scripts/ethopex/logo-goc.py', co: 'for _ in range(NOI_LAN):\n        s = mep(cat(bg)[1])', vi: 'vùng cắt logo tự nới theo cạnh nét chạm, không tin hộp máy đọc chữ' },
+  { card: 1897, tep: 'apps/xuong-video/scripts/ethopex/logo-goc.py', co: 'ly3 = cong(m3, 0.82) or ly_mep(m3)', vi: 'lớp BiRefNet cũng qua cổng logo bị cụt' },
+  { card: 1897, tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'LOGO_BAN = 6', vi: 'logo đã nhớ của mọi phim tách lại theo cách mới' },
 ];

@@ -19,6 +19,7 @@ from PIL import Image
 from scipy import ndimage as nd
 
 D = os.path.dirname(os.path.abspath(__file__))
+NOI_LAN = 3   # số lần nới vùng cắt khi nét logo chạm mép (mỗi lần một cao dòng, chỉ cạnh bị chạm) — 26/11/2026 #116378 mất chữ KING
 NHAN = {"reelshort", "dramabox", "shortmax", "goodshort", "flextv", "exclusive", "original", "originals"}   # nhãn nền tảng trên poster — không thuộc logo phim, không mang vào creative
 _at = None
 def AT():
@@ -84,24 +85,42 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
     hp = [px(b) for b in hop]; lh = float(np.median([b[3] - b[1] for b in hp]))
     x0 = int(max(0, min(b[0] for b in hp) - 1.0 * lh)); x1 = int(min(X, max(b[2] for b in hp) + 0.7 * lh))
     y0 = int(max(0, min(b[1] for b in hp) - 0.9 * lh)); y1 = int(min(Y, max(b[3] for b in hp) + 0.45 * lh))
-    v = int(max(12, 0.5 * lh)); X0, Y0, X1, Y1 = max(0, x0 - v), max(0, y0 - v), min(X, x1 + v), min(Y, y1 + v)   # vành ngoài để ước nền
-    c = im[Y0:Y1, X0:X1]; h, w = c.shape[:2]
-    trong = np.zeros((h, w), bool); trong[y0 - Y0:y1 - Y0, x0 - X0:x1 - X0] = True
-    # NỀN: trung bình có trọng số của vành ngoài, hai cỡ nhoè (gần mép lấy cỡ nhỏ cho sát, giữa vùng lấy cỡ lớn)
-    def nen(sig):
-        wv = nd.gaussian_filter((~trong).astype(np.float32), sig); return np.stack([nd.gaussian_filter(c[..., k] * ~trong, sig) for k in range(3)], -1) / np.maximum(wv, 1e-4)[..., None], wv
-    b1, w1 = nen(max(6, 0.6 * lh)); b2, _ = nen(max(12, 2.2 * lh)); t = np.clip(w1 / 0.25, 0, 1)[..., None]; bg = b1 * t + b2 * (1 - t)
-    chu = np.zeros((h, w), bool)   # hộp các dòng tên phim
-    for b in hp: chu[int(max(0, b[1] - Y0)):int(b[3] - Y0), int(max(0, b[0] - X0)):int(b[2] - X0)] = True
-    cam_nhan = np.zeros((Y, X), bool)   # riêng nhãn nền tảng, cỡ poster — tầng khoá màu khi tên thiếu từ chỉ cấm vùng này
-    cam = np.zeros((h, w), bool)   # chữ KHÁC trên poster (nhãn nền tảng, khẩu hiệu) + biểu tượng đứng cạnh nó: không bao giờ thuộc logo
-    for t_, bx, by, bw, bh in j.get("khung") or []:
-        if [bx, by, bw, bh] in hop: continue
-        k = 1.0 if bw * bh < 0.004 else 0.25; trai = 2.4 * bh * Y / X if tu(t_) & NHAN else 0   # nhãn nền tảng luôn có biểu tượng bên trái chữ (DramaBox "M", ReelShort "R")
-        a, b_, e, f = px((bx - bw * k - trai, by - bh * (k + (0.5 if trai else 0)), bw * (1 + 2 * k) + trai, bh * (1 + 2 * k + (1.0 if trai else 0))))
-        cam[int(max(0, b_ - Y0)):int(max(0, f - Y0)), int(max(0, a - X0)):int(max(0, e - X0))] = True
-        if trai: cam_nhan[int(max(0, b_)):int(max(0, f)), int(max(0, a)):int(max(0, e))] = True
-    cam &= ~chu
+    # VÙNG CẮT LỚN DẦN THEO NÉT (anh 26/11/2026 creative #116378 Undercover Prison King: "Logo bị cắt lỗi ! Mất chữ KING" — chữ KING đỏ kiểu mực loang, máy đọc chữ
+    # trả hộp hụt nên vùng cắt dừng trước chữ G, mọi nét ngoài vùng bị xoá mà cổng vẫn cho qua): nét logo chạm mép vùng cắt ở cạnh nào thì nới cạnh đó thêm một cao dòng
+    # rồi cắt lại (tối đa NOI_LAN lần); vẫn chạm thì mọi tầng cắt theo vùng (cắt nền / nền sạch AI / BiRefNet) trượt cổng "logo bị cụt" — thà lùi tầng còn hơn ra logo mất chữ
+    def dung(x0, x1, y0, y1):
+        nonlocal v, X0, Y0, X1, Y1, c, h, w, trong, bg, chu, cam_nhan, cam, vung
+        vung = (x0, x1, y0, y1)
+        v = int(max(12, 0.5 * lh)); X0, Y0, X1, Y1 = max(0, x0 - v), max(0, y0 - v), min(X, x1 + v), min(Y, y1 + v)   # vành ngoài để ước nền
+        c = im[Y0:Y1, X0:X1]; h, w = c.shape[:2]
+        trong = np.zeros((h, w), bool); trong[y0 - Y0:y1 - Y0, x0 - X0:x1 - X0] = True
+        # NỀN: trung bình có trọng số của vành ngoài, hai cỡ nhoè (gần mép lấy cỡ nhỏ cho sát, giữa vùng lấy cỡ lớn)
+        def nen(sig):
+            wv = nd.gaussian_filter((~trong).astype(np.float32), sig); return np.stack([nd.gaussian_filter(c[..., k] * ~trong, sig) for k in range(3)], -1) / np.maximum(wv, 1e-4)[..., None], wv
+        b1, w1 = nen(max(6, 0.6 * lh)); b2, _ = nen(max(12, 2.2 * lh)); t = np.clip(w1 / 0.25, 0, 1)[..., None]; bg = b1 * t + b2 * (1 - t)
+        chu = np.zeros((h, w), bool)   # hộp các dòng tên phim
+        for b in hp: chu[int(max(0, b[1] - Y0)):int(b[3] - Y0), int(max(0, b[0] - X0)):int(b[2] - X0)] = True
+        cam_nhan = np.zeros((Y, X), bool)   # riêng nhãn nền tảng, cỡ poster — tầng khoá màu khi tên thiếu từ chỉ cấm vùng này
+        cam = np.zeros((h, w), bool)   # chữ KHÁC trên poster (nhãn nền tảng, khẩu hiệu) + biểu tượng đứng cạnh nó: không bao giờ thuộc logo
+        for t_, bx, by, bw, bh in j.get("khung") or []:
+            if [bx, by, bw, bh] in hop: continue
+            k = 1.0 if bw * bh < 0.004 else 0.25; trai = 2.4 * bh * Y / X if tu(t_) & NHAN else 0   # nhãn nền tảng luôn có biểu tượng bên trái chữ (DramaBox "M", ReelShort "R")
+            a, b_, e, f = px((bx - bw * k - trai, by - bh * (k + (0.5 if trai else 0)), bw * (1 + 2 * k) + trai, bh * (1 + 2 * k + (1.0 if trai else 0))))
+            cam[int(max(0, b_ - Y0)):int(max(0, f - Y0)), int(max(0, a - X0)):int(max(0, e - X0))] = True
+            if trai: cam_nhan[int(max(0, b_)):int(max(0, f)), int(max(0, a)):int(max(0, e))] = True
+        cam &= ~chu
+    def mep(dac):
+        """cạnh vùng cắt mà nét logo chạm (trừ cạnh trùng mép poster — đó là mép ảnh gốc, không phải mình cắt) → {'trai','phai','tren','duoi'}"""
+        x0, x1, y0, y1 = vung; a, b, e, f = y0 - Y0, y1 - Y0, x0 - X0, x1 - X0; n = max(3, int(0.15 * lh)); dd = max(2, int(0.04 * lh)); ra_ = set()
+        if x0 > 0 and dac[a:b, e:e + dd].any(1).sum() >= n: ra_.add("trai")
+        if x1 < X and dac[a:b, f - dd:f].any(1).sum() >= n: ra_.add("phai")
+        if y0 > 0 and dac[a:a + dd, e:f].any(0).sum() >= n: ra_.add("tren")
+        if y1 < Y and dac[b - dd:b, e:f].any(0).sum() >= n: ra_.add("duoi")
+        return ra_
+    def ly_mep(dac):
+        s = mep(dac); return f"nét logo chạm mép vùng cắt ({', '.join(sorted(s))}) — logo bị cụt" if s else None
+    v = X0 = Y0 = X1 = Y1 = h = w = 0; c = trong = bg = chu = cam_nhan = cam = vung = None
+    dung(x0, x1, y0, y1)
     def cat(bg, that=False):
         """nền dưới logo → (lớp trong suốt, nét đặc, lý do trượt cổng | None)"""
         d = np.abs(c - bg).max(-1); d[~trong] = 0
@@ -118,7 +137,7 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
         nhom, n = nd.label(nd.binary_dilation(dac, iterations=max(2, int(0.16 * lh))))   # mảng sát nhau gộp một nhóm
         giu = np.zeros(n + 1, bool); giu[np.unique(nhom[chu & dac])] = True; giu[0] = False
         al = al * giu[nhom]; dac = dac & giu[nhom]
-        return al, dac, cong(dac)
+        return al, dac, cong(dac) or ly_mep(dac)
     def cong(dac, tran=0.62, du_min=0.85):
         """cổng chất lượng của một lớp nét → lý do trượt | None"""
         if not dac.any(): return "không còn nét logo sau khi tách"
@@ -133,6 +152,11 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
         if ngoai > 0.15: return f"{ngoai:.0%} phần tách nằm ngoài khối chữ"
         if du < du_min: return f"một dòng tên chỉ còn nét trên {du:.0%} bề ngang"
         return None
+    for _ in range(NOI_LAN):
+        s = mep(cat(bg)[1])
+        if not s: break
+        x0, x1, y0, y1 = vung; d_ = int(1.0 * lh)
+        dung(max(0, x0 - d_) if "trai" in s else x0, min(X, x1 + d_) if "phai" in s else x1, max(0, y0 - d_) if "tren" in s else y0, min(Y, y1 + d_) if "duoi" in s else y1)
     al, _, ly = cat(bg); cach = "cat"
     # TÊN THIẾU TỪ (21/11/2026 Get Out of My Bugatti: "Bugatti" viết tay máy đọc chữ bỏ sót): các tầng cắt theo HỘP CHỮ đều mất phần đó → chỉ nhận tầng khoá màu,
     # nơi AI tô hồng mọi thứ trừ logo nên lấy được cả phần chữ máy không đọc ra (dải ngang quanh khối tên, bỏ chữ khác của poster). Khoá màu trượt → không có logo.
@@ -205,7 +229,7 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
                     # BiRefNet tách tiền cảnh rất sạch mép và đủ hoạ tiết logo nhưng lấy luôn người trong vùng cắt; lớp lệch nền sạch AI biết CHỖ có logo nhưng bẩn mép
                     # → lớp cuối = BiRefNet, chỉ giữ trong vùng lệch nền sạch (nới nhẹ). Trượt cổng thì lùi về lớp lệch nền sạch, rồi mới tới dải poster.
                     try:
-                        cua = nd.binary_dilation(dac2, iterations=max(3, int(0.14 * lh))); al3 = tach_nen(c) * cua * ~cam; ly3 = cong(nd.median_filter(al3 > 0.5, size=3), 0.82)
+                        cua = nd.binary_dilation(dac2, iterations=max(3, int(0.14 * lh))); al3 = tach_nen(c) * cua * ~cam; m3 = nd.median_filter(al3 > 0.5, size=3); ly3 = cong(m3, 0.82) or ly_mep(m3)
                         if ly3: noi(f"BiRefNet + nền sạch AI trượt cổng ({ly3})")
                         else: al, ly, cach = al3, None, "ai"
                     except Exception as e: noi(f"BiRefNet lỗi: {str(e)[:140]}")

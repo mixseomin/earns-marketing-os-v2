@@ -239,7 +239,7 @@ def logo_khoa_ai(c):
         TT = _nap("tai_tap", "tai-tap.py"); link = TT.og_anh(TT.mo_rong(c["p"]["url"])) if c.get("p", {}).get("url") else None
         ra, v = _nap("logo_goc", "logo-goc.py").anh_khoa(link, os.path.join(c["tm"], "logo-khoa.png"), c.get("cid") or ""); _CHI_LOGO[0] += v; return ra
     return lam
-LOGO_BAN = 5   # đổi cách tách thì tăng số này → logo đã nhớ của mọi phim tách lại
+LOGO_BAN = 6   # đổi cách tách thì tăng số này → logo đã nhớ của mọi phim tách lại (6: vùng cắt nới theo nét + cổng "logo bị cụt", 26/11/2026 #116378 mất chữ KING)
 def logo_goc(c, cao=None):
     """cao = trần chiều cao riêng của mẫu (phần khung) — mặc định LOGO_CAO · logo gốc đã tách của phim (MỘT lần / phim, nhớ logo-goc.png + .json) → (ảnh RGBA đã đưa về cỡ chuẩn, 'cat' | 'ai' | 'dai'); không tách được → dừng kêu to"""
     ra = os.path.join(c["tm"], "logo-goc.png"); so = ra[:-4] + ".json"; ly = []; kieu = None

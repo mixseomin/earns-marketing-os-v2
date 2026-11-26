@@ -1896,4 +1896,6 @@ export const LUAT = [
   { card: 1897, tep: 'apps/xuong-video/scripts/ethopex/logo-goc.py', co: 'for _ in range(NOI_LAN):\n        s = mep(cat(bg)[1])', vi: 'vùng cắt logo tự nới theo cạnh nét chạm, không tin hộp máy đọc chữ' },
   { card: 1897, tep: 'apps/xuong-video/scripts/ethopex/logo-goc.py', co: 'ly3 = cong(m3, 0.82) or ly_mep(m3)', vi: 'lớp BiRefNet cũng qua cổng logo bị cụt' },
   { card: 1897, tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'LOGO_BAN = 6', vi: 'logo đã nhớ của mọi phim tách lại theo cách mới' },
+  { card: 1897, tep: 'apps/etp/dong_phim.py', co: 'ids = [c for c in ids if c not in loai][:len(muc)]', vi: 'khối creative bỏ bản anh đã Loại / Sửa lại để máy dựng bản thay, không chờ duyệt mãi' },
+  { card: 1897, tep: 'apps/etp/dong_phim.py', co: 'cr_mau_moi(ma, cid, set(ids) | loai)', vi: 'bản bị loại không được nhặt lại làm creative mới của khối' },
 ];

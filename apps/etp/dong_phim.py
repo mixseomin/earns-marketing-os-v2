@@ -402,11 +402,15 @@ def b_creative_khoi(d):
     Lượt chạy quá hạn bước thì lượt sau đọc lại etp.mau_dung.creative_ids, chỉ dựng phần còn thiếu."""
     k = d["khoi"]; ma = str(k["mau"]); cid = int(d["content_id"]); muc = muc_camp(k, d.get("so_camp"))
     tr = (d.get("buoc") or {}).get("creative") or {}; kq0 = tr.get("ket_qua") or {}
-    ids = [int(x["creative_id"]) for x in kq0.get("ds") or []][:len(muc)]
-    if len(ids) < len(muc): ids += cr_mau_moi(ma, cid, set(ids))[:len(muc) - len(ids)]
+    # creative anh đã LOẠI hoặc bấm ✎ SỬA LẠI (etp.cham_duyet ok = false) rời khỏi khối → máy dựng bản thay (26/11/2026 #1897: #116378 logo cụt, anh bấm Sửa lại
+    # mà dòng #7117 cứ giữ nó trong danh sách và "chờ anh duyệt" mãi — không bao giờ dựng lại). Bản bị loại cũng không được nhặt lại qua cr_mau_moi.
+    ids = [int(x["creative_id"]) for x in kq0.get("ds") or []]
+    loai = {int(x) for x in sql(f"select u.creative_id from etp.cham_duyet u join etp.creative r using (creative_id) where not u.ok and r.content_id = {cid}").split() if x.isdigit()}
+    ids = [c for c in ids if c not in loai][:len(muc)]
+    if len(ids) < len(muc): ids += cr_mau_moi(ma, cid, set(ids) | loai)[:len(muc) - len(ids)]
     if len(ids) < len(muc):
         rc, out = chay_tien_trinh(d["id"], "creative", [os.path.expanduser("~/.venvs/poster-mau/bin/python"), os.path.join(E, "dung-mau.py"), ma, str(cid), "--ban", str(len(muc) - len(ids))], dict(BUOC)["creative"] - 120)
-        ids += cr_mau_moi(ma, cid, set(ids))[:len(muc) - len(ids)]
+        ids += cr_mau_moi(ma, cid, set(ids) | loai)[:len(muc) - len(ids)]
         # dung-mau chưa xong vì CHỜ (Ethopex đang sinh trang / link tập 1) → 'cho', lượt sau tự dựng tiếp; ssh tới box3 rớt (exit 255) → 'loi' để đường lỗi mạng thử lại.
         # Trước đây cả hai thành 'dung' → 10/10 dòng AD 26/11/2026 dừng hẳn chỉ vì chờ link tập / một lần ssh rớt.
         hk = "cho" if "trang_phim · cho" in out else "loi" if rc == -9 or "exit status 255" in out else "dung"

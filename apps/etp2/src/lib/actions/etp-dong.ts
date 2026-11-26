@@ -124,7 +124,7 @@ export async function doiGac(ma: string, gac: boolean, ly?: string): Promise<{ o
   if (ma === 'KT' && !gac) await db().execute(sql`update etp.cau_hinh set gia_tri = 'false'::jsonb, ai = ${ai}, luc = now() where khoa = 'gac_kt'`);   // KT còn cờ cũ gac_kt — mở thì tắt cả cờ đó
   return { ok: true };
 }
-const chuGacLoi = async (ma: string) => { const { ly } = await docGac(); return `dòng ${ma} đang gác — ${ly[ma] ?? 'chưa ghi lý do'}. Mở ở nút 🔒 Gác dạng đầu trang etp2`; };
+const chuGacLoi = async (ma: string) => { const { ly } = await docGac(); return `dòng ${ma} đang gác — ${ly[ma] ?? 'chưa ghi lý do'}. Mở ở nút 🔒 Gác dạng tab Sản xuất etp2`; };
 
 /** THỂ LOẠI cho hàng Thao tác của bảng phim — ĐỦ MỌI DẠNG trong SỔ DẠNG lib/etp-dang.json (anh 15/11/2026 #1616 "show hết các thể loại ra đây"; trước lấy từ LOAI
  *  form dòng phim nên gộp 5 kiểu mới thành KM và thiếu TN / PD / LM). Dạng có mục LOAI → mã dòng + chay của máy dòng phim; dạng máy chưa làm → hiện, khoá kèm lý do. */

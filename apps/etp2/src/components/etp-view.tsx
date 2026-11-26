@@ -3837,7 +3837,6 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     {/* TRÀN HẾT BỀ NGANG MÀN (anh 29/10/2026 "tại sao màn hình ko tràn hết sang 2 bên"): trước khoá maxWidth 1600 căn giữa — màn 1930px thừa hai lề trống, bảng Cây bị cắt cột phải */}
     <div style={{ padding: hep ? '10px 10px 40px' : '16px 20px 40px' }}>
       <BienPhanhCho cauHinh={du.cauHinh} /><BienLotCua canhBao={du.canhBao} /><NhietKeCho cauHinh={du.cauHinh} dinh />
-      {quyen?.vai === 'chu' && !du.nguoi.ngoai && <GacDangBar />}{/* anh 26/11/2026: gác / mở dạng dòng phim là nút của anh, lý do ở DB */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0, fontSize: hep ? 16 : 20 }}>ETP · quản lý camp</h1>
         <NhietKeCho cauHinh={du.cauHinh} />
@@ -3929,7 +3928,9 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         <DataTable rows={du.creatives} columns={cotCr} groups={NHOM} groupHeader getRowKey={(r) => String(r.creative_id)} persistKey="etp-creative" minWidth={1400} pageSize={100}
           searchText={(r) => `${r.creative_id} ${r.phim ?? ''} ${r.dang ?? ''} ${tl(r.the_loai)}`} searchPlaceholder="Tìm creative, phim, dạng…" />
       ) : tab === 'dong' ? (
-        <TabDong moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} />
+        <>{/* Gác / Mở dạng dòng phim nằm TRONG tab Sản xuất, không ở đầu trang mọi tab (anh 26/11/2026 #1894 "ko đc để ở đây") */}
+          {quyen?.vai === 'chu' && !du.nguoi.ngoai && <GacDangBar />}
+          <TabDong moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} /></>
       ) : tab === 'tv' ? (
         <TabThuVien du={du} tl={tl} />
       ) : tab === 'dt' ? (

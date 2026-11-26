@@ -1,5 +1,5 @@
 'use client';
-/** NÚT GÁC / MỞ DẠNG DÒNG PHIM — đầu trang etp2 (anh 26/11/2026: "Lần sau tao lại muốn bật lại thì … lại dựa vào não chó à").
+/** NÚT GÁC / MỞ DẠNG DÒNG PHIM — trong tab Sản xuất etp2, trên bảng dòng phim (#1894: không đặt đầu trang mọi tab) (anh 26/11/2026: "Lần sau tao lại muốn bật lại thì … lại dựa vào não chó à").
  * Trạng thái + LÝ DO nằm ở DB (etp.cau_hinh.gac_dang + gac_dang_ly), anh tự bấm gác / mở, không cần Claude nhớ hay sửa mã.
  * Máy đọc cùng chỗ: apps/etp/dong_phim.py gac_dang() + gac_ly() (dừng dòng dạng gác, không tự xếp CC), nút ＋ Thao tác bảng phim (etp-lich-phim). */
 import { useEffect, useState } from 'react';

@@ -8,7 +8,10 @@ import { join } from 'node:path';
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
   { card: 0, tep: 'apps/etp/dong_phim.py', co: 'máy dòng phim tự cất', vi: 'bam_main tự git stash tệp cục bộ chặn kéo main + báo Telegram khi kẹt ≥ 30 phút (máy đứng mã 25/11 hơn một ngày)' },
-  { card: 0, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<GacDangBar />', vi: 'đầu trang etp2 có nút 🔒 Gác / Mở dạng dòng phim — anh tự bật / tắt, lý do ở DB (anh 26/11/2026 "lần sau tao muốn bật lại thì lại dựa vào não chó à")' },
+  { card: 0, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<GacDangBar />', vi: 'etp2 có nút 🔒 Gác / Mở dạng dòng phim — anh tự bật / tắt, lý do ở DB (anh 26/11/2026 "lần sau tao muốn bật lại thì lại dựa vào não chó à")' },
+  { card: 1894, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{quyen?.vai === 'chu' && !du.nguoi.ngoai && <GacDangBar />}\n          <TabDong ", vi: 'thanh Gác dạng chỉ nằm trong tab Sản xuất, ngay trên bảng dòng phim — không ở đầu trang mọi tab (anh 26/11/2026 "ko đc để ở đây")' },
+  { card: 1894, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', cam: 'Gác dạng đầu trang', vi: 'chữ chỉ đường mở gác trỏ tab Sản xuất, không còn "đầu trang"' },
+  { card: 1894, tep: 'apps/etp2/src/lib/actions/etp-dong.ts', cam: 'Gác dạng đầu trang', vi: 'lỗi khi bấm chạy dạng đang gác trỏ tab Sản xuất, không còn "đầu trang"' },
   { card: 0, tep: 'apps/etp2/src/lib/actions/etp-dong.ts', mot: 'export async function doiGac(', vi: 'gác / mở ghi etp.cau_hinh.gac_dang + gac_dang_ly (lý do), không sửa mã' },
   { card: 0, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', cam: 'anh 08/11/2026 ưu tiên poster động', vi: 'chữ gác đọc lý do từ DB, không viết cứng lý do cũ' },
   { card: 0, tep: 'apps/etp/dong_phim.py', co: "khoa = 'gac_dang_ly'", vi: 'máy dòng phim ghi lý do dừng đọc từ gac_dang_ly' },

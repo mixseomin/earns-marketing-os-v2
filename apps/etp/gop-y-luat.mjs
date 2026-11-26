@@ -1427,6 +1427,7 @@ export const LUAT = [
   { card: 'cho-kem-1811', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: 'kieu_b = kieu_ban(kieu, b, XOAY)', vi: 'mọi bản AT của một phim cùng giọng tốt nhất (chỉ --giong xoay mới đổi giọng từng bản)' },
   { card: 'phanh-lot-1811', tep: 'apps/etp/cong.py', cam: 'def anh_bam_tu(', vi: 'bỏ hẳn đoán người bấm bằng chữ ai — duyệt đứng "anh (chat DD/MM…)" hay "anh (etp2)" đều giả được (18/11/2026: 31 camp AT lọt phanh); chỉ vé miễn' },
   { card: 'phanh-lot-1811', tep: 'apps/etp/cong.py', co: 'return ma if re.fullmatch(r"[0-9a-f]{32}", ma) else None', vi: 'vé chỉ là mã 32 hex do nút xin — chữ ai không phải vé' },
+  { card: 1894, tep: 'apps/etp/dong_phim.py', cam: 'Gác dạng đầu trang', vi: 'lý do dừng dòng gác chỉ đường mở ở tab Sản xuất etp2 — thanh Gác dạng không còn ở đầu trang (anh 26/11/2026 "ko đc để ở đây")' },
   // MỘT CỬA + VÉ THAO TÁC TAY + HẬU KIỂM (anh 18/11/2026 "Mày giao cho thằng Huy" — khoá lỗi etp:kiem-soat-cong-1811)
   { card: 'kiem-soat-cong-1811', tep: 'apps/etp/ethopex_api.py', co: '    lenh = cua(duong, body)\n    if duong.startswith("/api/v1/campaigns?") and body is None:', vi: 'mọi lệnh ghi qua cổng API chung đều chấm ở cửa trước khi gửi' },
   { card: 'kiem-soat-cong-1811', tep: 'apps/etp/ethopex_api.py', mot: 'def phan_loai(duong, body):', vi: 'một hàm đọc việc từ CHÍNH lệnh (tạo / nhân bản / tăng / bật), không tin cờ người gọi' },

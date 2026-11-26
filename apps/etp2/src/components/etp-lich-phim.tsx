@@ -70,8 +70,8 @@ function campMoi(l: LichPhim) {
 }
 // DẠNG GÁC (#1598): nút ＋ của dạng anh đang gác (etp.cau_hinh.gac_dang) mờ + tắt — máy dòng phim dừng dạng gác ngay, bấm chỉ ra một dòng biến mất
 const GAC_ST: React.CSSProperties = { opacity: 0.4, cursor: 'not-allowed', textDecoration: 'line-through' };
-// lý do ĐỌC TỪ DB (etp.cau_hinh.gac_dang_ly — lời anh ghi lúc bấm 🔒 Gác dạng đầu trang), không viết cứng (anh 26/11/2026)
-const chuGac = (x: string, ly: Record<string, string>) => `dòng ${x} đang gác — ${ly[x] ?? 'chưa ghi lý do'}. Máy dừng ngay nên nút tắt. Mở lại: nút 🔒 Gác dạng đầu trang etp2`;
+// lý do ĐỌC TỪ DB (etp.cau_hinh.gac_dang_ly — lời anh ghi lúc bấm 🔒 Gác dạng ở tab Sản xuất), không viết cứng (anh 26/11/2026)
+const chuGac = (x: string, ly: Record<string, string>) => `dòng ${x} đang gác — ${ly[x] ?? 'chưa ghi lý do'}. Máy dừng ngay nên nút tắt. Mở lại: nút 🔒 Gác dạng ở tab Sản xuất etp2`;
 const O = ({ mau, net }: { mau: string; net?: boolean }) => <span style={{ flex: '1 1 0', maxWidth: 22, minWidth: 3, height: 12, borderRadius: 2, background: net ? 'transparent' : mau, border: net ? `1px dashed ${mau}` : undefined }} />;
 
 // một dòng log thành một mốc: chữ thường, bỏ tên camp lặp trong câu luật

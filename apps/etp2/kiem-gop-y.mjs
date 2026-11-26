@@ -886,6 +886,9 @@ const LUAT = [
   { card: 0, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'kho: du.camps', vi: 'ngữ cảnh điều khiển camp mang kho camp để mở bài post' },
   { card: 0, tep: 'apps/etp2/src/components/etp-view.tsx', co: "nguonRoas === 'cu' && khoCamp", vi: 'chọn bài cũ (used post) hiện ngay icon Facebook mở bài' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'def ghi_kho_ngay(', vi: 'camp nhân bản hiện ngay trong bảng Camp (hàng tạm 🚀 đang lên) khi Ethopex trả mã, không chờ lượt đồng bộ' },
+  { card: 0, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'cum={cumBai}', vi: 'camp chung bài post đứng liền một cụm trong bảng Camp (anh 26/11/2026)' },
+  { card: 0, tep: 'apps/etp2/src/components/etp-view.tsx', co: '<NhanBai c={c} />', vi: 'nhãn màu B1, B2… đánh dấu camp chung bài post' },
+  { card: 0, tep: 'packages/bang/src/data-table.tsx', co: 'export function giuCum<T>(', vi: 'DataTable giữ cụm dòng cùng khoá liền nhau (prop cum)' },
 ];
 
 const loi = [];

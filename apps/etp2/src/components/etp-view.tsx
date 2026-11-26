@@ -9,6 +9,7 @@ import { BienPhanhCho, NhietKeCho, canhBaoPhanh } from '@/components/etp-phanh-c
 import BANG_LUAT from '@/lib/etp-bang-luat.json';   // SỔ LUẬT CHUNG — mọi thẻ / nhóm / hướng / bộ lọc luật đọc từ đây (anh 01/11/2026 "tìm nguyên nhân gốc")
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
 import { AnchoredPopover, DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Pill, Segmented, StatsStrip, usePaged, type DataColumn, type SegmentedOption } from '@/components/ui';
+import { giuCum } from '@mos2/bang/data-table';
 import { PhamViLuu, useKhoaLuu } from '@/components/ui/table-prefs';
 import { SimpleTable } from '@/components/ui/simple-table';
 import { catTokenEthopex, datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegram } from '@/lib/actions/etp-sua';
@@ -2626,7 +2627,17 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
   const tronSo = useMemo(() => { const m = new Map<number, SoTien>(); for (const r of du.soNgay) { if (!bayNgay.has(r.d)) continue; const a = m.get(r.c); m.set(r.c, { chi: (a?.chi ?? 0) + r.chi, thu: (a?.thu ?? 0) + r.thu }); } return m; }, [du.soNgay, bayNgay]);
   const tongChi = useMemo(() => new Map([...tronSo].map(([k, v]) => [k, v.chi])), [tronSo]);
   const tronCong = (rs: CampEtpKho[]): SoTien => rs.reduce((a, c) => { const t = tronSo.get(c.camp_id); return { chi: a.chi + (t?.chi ?? 0), thu: a.thu + (t?.thu ?? 0) }; }, { chi: 0, thu: 0 });
-  const sapXep = (ds: CampEtpKho[]) => [...ds].sort((a, b) => (xep === 'tuoi' ? (tuoi(b) ?? -1) - (tuoi(a) ?? -1) : laiDai(b) - laiDai(a)));
+  // CAMP CHUNG BÀI POST (anh 26/11/2026 "các camp cùng bài post sẽ để cạnh nhau và … nhìn vào là biết chúng nó cùng bài post"): bài nào có ≥ 2 camp trong kho
+  // (kể cả bản Used post chưa có mã — baiCuaCamp đi chuỗi mẹ) được một nhãn chữ + màu riêng; bảng giữ các camp đó liền một cụm (DataTable `cum`) — danh sách vẫn phẳng, không cây
+  const baiChung = useMemo(() => { const theo = new Map<string, number[]>(); for (const c of du.camps) { const b = c.camp_id > 0 ? baiCuaCamp(c, du.camps)?.bai : null; if (b) theo.set(b, [...(theo.get(b) ?? []), c.camp_id]); }
+    const m = new Map<number, { bai: string; nhan: string; mau: string; ds: number[] }>(); let i = 0;
+    for (const [bai, ds] of [...theo].filter(([, ds]) => ds.length > 1).sort((a, b) => Math.min(...a[1]) - Math.min(...b[1]))) { const x = { bai, nhan: nhanBai(i), mau: MAU_BAI[i % MAU_BAI.length]!, ds: ds.sort((a, b) => a - b) }; i++; for (const id of ds) m.set(id, x); }
+    return m; }, [du.camps]);
+  const cumBai = useCallback((c: CampEtpKho) => baiChung.get(c.camp_id)?.bai ?? null, [baiChung]);
+  const NhanBai = ({ c }: { c: CampEtpKho }) => { const x = baiChung.get(c.camp_id); if (!x) return null;
+    return <span data-o="bai-chung" title={`CÙNG BÀI POST ${x.nhan} — ${x.ds.length} camp dùng chung bài ${x.bai}: ${x.ds.map((id) => `#${id}`).join(', ')}${x.ds.length > 1 ? ' (bản Used post nhân từ cùng camp gốc). Các camp này luôn đứng liền nhau trong bảng' : ''}`}
+      style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', height: 16, padding: '0 4px', borderRadius: 3, fontSize: 10, fontWeight: 700, color: '#0b0f14', background: x.mau, cursor: 'help' }}>{x.nhan}</span>; };
+  const sapXep = (ds: CampEtpKho[]) => giuCum([...ds].sort((a, b) => (xep === 'tuoi' ? (tuoi(b) ?? -1) - (tuoi(a) ?? -1) : laiDai(b) - laiDai(a))), cumBai);
   const dem = (c: CampEtpKho): number => (con.m.get(c.camp_id) ?? []).reduce((a, x) => a + 1 + dem(x), 0);
   const giam = (c: CampEtpKho) => { const r = ngay.slice(-3).map((d) => roi(so.get(c.camp_id)?.get(d))); return r[0] != null && r[1] != null && r[2] != null && r[0] > r[1] && r[1] > r[2]; };
   // data-cot: phép đo `do-man thang` (mọi ô cùng tên cột phải cùng mép) — anh 25/10/2026 không muốn nhắc lại chuyện lệch cột
@@ -2673,7 +2684,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
         <span style={{ display: 'grid', gridTemplateColumns: LUOI_CAMP_HEP, columnGap: 6, alignItems: 'center', minWidth: 0, whiteSpace: 'nowrap' }}>
           {/* #1876 anh "Bấm vào đây thì mở modal có sẵn để thay bậc hoặc tắt camp": chấm trạng thái → ngăn điều khiển tab Bật/Tắt, số $ → tab Ngân sách bậc */}
           <span data-cot="cham" style={{ display: 'inline-flex' }}>{dkCay && c.camp_id > 0 ? <><DieuKhienCamp c={c} oDong={{ chu: <TT c={c} />, tab: 'tt' }} /><DauChoTT id={c.camp_id} /></> : <TT c={c} />}</span>
-          <span data-cot="camp" style={{ paddingLeft: (cap - 1) * 12, overflow: 'hidden', textOverflow: 'ellipsis' }}><span className="mui">{ds.length ? '▸' : ''}</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b></span>{/* điện thoại không có nhãn loại CT/CC sau số camp (anh 29/10/2026 #1480 "bỏ nút này trên mobile" — ô hẹp cắt thành "…") */}
+          <span data-cot="camp" style={{ paddingLeft: (cap - 1) * 12, overflow: 'hidden', textOverflow: 'ellipsis' }}><span className="mui">{ds.length ? '▸' : ''}</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b> <NhanBai c={c} /></span>{/* điện thoại không có nhãn loại CT/CC sau số camp (anh 29/10/2026 #1480 "bỏ nút này trên mobile" — ô hẹp cắt thành "…") */}
           <span data-cot="ngan-sach" data-cot-can="phai" style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{(() => { const so = choCay?.get(c.camp_id) || dkCay?.gui?.get(c.camp_id) ? <DauCho ds={choCay?.get(c.camp_id)} gui={dkCay?.gui?.get(c.camp_id)} /> : `$${c.ngan_sach}`;
             return dkCay && c.camp_id > 0 ? <DieuKhienCamp c={c} oDong={{ chu: so, tab: 'ns' }} /> : so; })()}</span>
 <span data-cot="dau-hieu" style={{ fontSize: 11, overflow: 'hidden' }}>{n ? <span title={`${n} bản nhân`}>x{n}</span> : null}</span>
@@ -2770,7 +2781,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><span style={{ minWidth: 22 }} /></span></span>;   {/* bỏ nút ▶ ở dòng chờ ID: duyệt = máy tự đẩy lên Ethopex (anh 25/11/2026 "Xoá … nút kia đi") */}
         const n = dem(c); return <span data-o="camp-cay" style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} />
         <b data-nut="mo-camp" onClick={moCamp ? (e) => { e.preventDefault(); e.stopPropagation(); moCamp(c.camp_id); } : undefined} title={moCamp ? 'mở ngăn chi tiết camp' : undefined}
-          style={{ ...(laRoas(c) ? { color: MAU_ROAS } : {}), ...(moCamp ? { cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 } : {}) }}>#{c.camp_id}</b>{choGio(c) && laRoas(c) ? <SuaRoas c={c} /> : <MucBid c={c} nho />}<CoNuoc nuoc={c.nuoc ?? []} /><NhanAb ab={c.ab} ban={c.camp_id} />
+          style={{ ...(laRoas(c) ? { color: MAU_ROAS } : {}), ...(moCamp ? { cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 } : {}) }}>#{c.camp_id}</b>{choGio(c) && laRoas(c) ? <SuaRoas c={c} /> : <MucBid c={c} nho />}<NhanBai c={c} /><CoNuoc nuoc={c.nuoc ?? []} /><NhanAb ab={c.ab} ban={c.camp_id} />
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}>
         {/* bỏ dấu ⚠ nhân bản lỗi (#1524 anh 04/11/2026 "bỏ các thông báo lỗi này · chỉnh thể loại thẳng cột"): ô số bản nhân luôn rộng 22px → badge loại thẳng một cột */}
         {n ? <ReThe the={() => ({ ma: `#${c.camp_id}`, ten: c.ten, tieu: `${n} bản nhân`, mau: '#94a3b8', moc: [{ ten: 'Nhân bản', mau: '#94a3b8', so: `x${n}`, chu: 'camp nhân y nguyên từ camp này (cùng creative) — mở ▶ xem từng bản' }] })}><span style={{ color: 'var(--fg-2)', fontSize: 11, minWidth: 22, textAlign: 'right', cursor: 'help' }}>x{n}</span></ReThe>
@@ -2867,10 +2878,10 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
   // + dòng XẾP HÀNG: creative đã duyệt chưa camp (du.hangCr, camp_id < 0) nằm trong nhóm phim — anh 22/11/2026 "duyệt rồi thì phải cho vào table bên dưới"
   const hangCay = hang?.length ? [...con.ds, ...hang] : con.ds;   // #1767: dòng ⏳ chờ duyệt đã qua bộ lọc (hangLoc) — không nối thẳng du.hangCr nữa (hiện cả khi lọc Đang chạy)
   const bangCay = hep ? null : <DataTable rows={hangCay} columns={cotCay} getRowKey={(c) => String(c.camp_id)} persistKey="etp-cay" minWidth={1100} fixedLayout groups={NHOM_CAY} groupHeader defaultSort={[{ key: 'lai', dir: 'desc' }]}
-    tree={{ parent: () => null, open: moBang, onOpen: doiMoBang }} groupBy={{ value: nhomCay, label: nhanPhim }}
+    tree={{ parent: () => null, open: moBang, onOpen: doiMoBang }} groupBy={{ value: nhomCay, label: nhanPhim }} cum={cumBai}
     rowData={(c) => ({ 'camp-dong': c.camp_id })}
     rowStyle={(c) => { const mau = loiNb.get(c.camp_id) ? '#ef4444' : giam(c) ? '#f59e0b' : null; const mo = con.them.has(c.camp_id) ? { opacity: 0.55 } : {}; return toSangDong(hl, c.camp_id, mau ? { ...mo, boxShadow: `inset 3px 0 ${mau}`, background: `${mau}14` } : con.them.has(c.camp_id) ? mo : undefined); }}
-    searchText={(c) => `${c.camp_id} ${c.ten ?? ''} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tlC(c.the_loai ?? null)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…"
+    searchText={(c) => `${c.camp_id} ${c.ten ?? ''} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tlC(c.the_loai ?? null)} ${baiChung.get(c.camp_id)?.nhan ?? ''}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…"
     dauThanh={nutCay} thanhDinh="var(--etp-dinh, 0px)" locTuDong={false} onTimDoi={onTimDoi} khiTimTrong={khiTimTrong} />;   // TT / Luật / Loại tự sinh trùng nghĩa ô Lọc · Luật · Loại trên thanh tab
   return (
     <div ref={gocCay} className="etp-cay" style={{ padding: '0 4px' }}>
@@ -3125,6 +3136,9 @@ const KHO_ID = new WeakMap<CampEtpKho[], Map<number, CampEtpKho>>();
 const khoTheoId = (ds: CampEtpKho[]) => { let m = KHO_ID.get(ds); if (!m) KHO_ID.set(ds, (m = new Map(ds.map((c) => [c.camp_id, c])))); return m; };
 const baiCuaCamp = (c: CampEtpKho, kho: CampEtpKho[]): { bai: string; tu: number } | null => { const theoId = khoTheoId(kho);
   for (let x: CampEtpKho | undefined = c, n = 0; x && n < 30; n++) { if (x.bai) return { bai: x.bai, tu: x.camp_id }; x = laBaiCu(x) && x.goc ? theoId.get(x.goc) : undefined; } return null; };
+// nhãn + màu cụm camp chung bài post: B1, B2… — màu sáng đọc được chữ tối trên cả nền sáng lẫn tối
+const MAU_BAI = ['#fbbf24', '#34d399', '#60a5fa', '#f472b6', '#a78bfa', '#fb923c', '#22d3ee', '#a3e635'];
+const nhanBai = (i: number) => `B${i + 1}`;
 const linkBai = (bai: string) => { const [p, b] = bai.split('_'); return b ? `https://www.facebook.com/${p}/posts/${b}` : `https://www.facebook.com/${bai}`; };
 function OBai({ c, kho }: { c: CampEtpKho; kho: CampEtpKho[] }) {
   if (!(c.camp_id > 0)) return null;

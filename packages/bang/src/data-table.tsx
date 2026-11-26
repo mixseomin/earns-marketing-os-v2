@@ -108,6 +108,9 @@ interface DataTableProps<T> {
   /** GHIM ĐẦU bất kể sắp xếp người xem chọn (anh 24/11/2026 etp2: "camp mới lên hoặc mới tạo thì luôn ở trên cùng"): dòng trả số → lên đầu, số lớn trước;
    *  null / undefined → theo sắp xếp thường bên dưới. */
   ghimDau?: (row: T) => number | null | undefined;
+  /** GIỮ CẠNH NHAU (anh 26/11/2026 etp2: "các camp cùng bài post sẽ để cạnh nhau"): dòng cùng khoá đứng liền một cụm, cụm đặt ở chỗ dòng đứng đầu của nó
+   *  theo sắp xếp hiện tại (các dòng trong cụm giữ thứ tự đã sắp). null / undefined → đứng riêng như thường. */
+  cum?: (row: T) => string | null | undefined;
   /**
    * Cắt trang NGAY TRONG bảng, sau khi đã lọc và sắp xếp. Bắt buộc phải ở đây chứ không phải chỗ
    * gọi: bảng còn có ô tìm + LỌC THEO CỘT của riêng nó, nên nếu bên ngoài cắt trang trước rồi mới
@@ -185,6 +188,13 @@ interface DataTableProps<T> {
   khiTimTrong?: ReactNode;
 }
 
+/** cụm cùng khoá đứng liền nhau tại vị trí dòng đầu của cụm — dùng cho prop `cum` */
+export function giuCum<T>(rows: T[], khoa: (r: T) => string | null | undefined): T[] {
+  const nhom = new Map<string, T[]>(); for (const r of rows) { const k = khoa(r); if (k != null) nhom.set(k, [...(nhom.get(k) ?? []), r]); }
+  const ra: T[] = [], da = new Set<string>();
+  for (const r of rows) { const k = khoa(r); if (k == null) { ra.push(r); continue; } if (da.has(k)) continue; da.add(k); ra.push(...nhom.get(k)!); }
+  return ra;
+}
 const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
 // Tiêu đề: chữ HOA + giãn chữ + padding 5px → hai cột cạnh nhau đọc thành một cụm dài
 // ("BÀI/NGÀY KIỂU BÀI × HIỆU QUẢ TƯƠNG TÁC/1K TV"). Nới padding ngang, và headStyle vẽ thêm vạch
@@ -220,7 +230,7 @@ export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey: persistKeyGoc, onRowClick, minWidth = 640, rowTitle, rowStyle, fullRow, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced, timNgoai, giuCot,
   stickyFirst = true, stickyCols, fixedLayout = false, cuonNgang = false,
-  serverSort, serverFilter, hopCuon = false, tree, ghimDau, groupBy, rowData, dauThanh, thanhDinh, locTuDong = true, onTimDoi, khiTimTrong,
+  serverSort, serverFilter, hopCuon = false, tree, ghimDau, cum, groupBy, rowData, dauThanh, thanhDinh, locTuDong = true, onTimDoi, khiTimTrong,
 }: DataTableProps<T>) {
   const persistKey = useKhoaLuu(persistKeyGoc);   // + phạm vi lưu của trang (PhamViLuu) — mỗi phạm vi một bộ cột / sort / lọc / ô tìm riêng
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
@@ -569,12 +579,13 @@ export function DataTable<T>({
   };
 
   const { sorted: sortedGoc, thProps } = useTableSort(shownRows, columns, sliced ? undefined : persistKey, defaultSort);
-  const sortedRows = useMemo(() => {
+  const sortedGhim = useMemo(() => {
     if (!ghimDau) return sortedGoc;
     const dau: [T, number][] = [], sau: T[] = [];
     for (const r of sortedGoc) { const v = ghimDau(r); if (v != null && Number.isFinite(v)) dau.push([r, v]); else sau.push(r); }
     return dau.length ? [...dau.sort((a, b) => b[1] - a[1]).map(([r]) => r), ...sau] : sortedGoc;
   }, [sortedGoc, ghimDau]);
+  const sortedRows = useMemo(() => (cum ? giuCum(sortedGhim, cum) : sortedGhim), [sortedGhim, cum]);
   // Cắt trang sau cùng: lọc → sắp xếp → cắt. Đổi bộ lọc thì về trang 1, không thì đứng ở trang 5 của
   // tập cũ rồi thấy rỗng.
   const paged = usePaged(sortedRows, pageSize ?? Math.max(sortedRows.length, 1));

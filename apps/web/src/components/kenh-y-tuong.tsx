@@ -38,10 +38,10 @@ export function KenhYTuong() {
           for (const c of ds) { const k = c.dat?.kenh ?? ''; nhom.set(k, [...(nhom.get(k) ?? []), c]); }
           return (
             <section key={cot.kieu} style={{ borderTop: `3px solid ${cot.mau}`, background: 'var(--bg-2)', borderRadius: 8, padding: 8, display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0 }}>
-              <header style={{ position: 'sticky', top: 0, background: 'var(--bg-2)', display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              <header style={{ position: 'sticky', top: 0, background: 'var(--bg-2)', display: 'flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap' }} title={cot.ghi}>
                 <b style={{ fontSize: 13 }}>{cot.ten}</b>
                 <span style={{ fontSize: 12, color: cot.mau, fontWeight: 600 }}>{ds.length}</span>
-                {cot.ghi && <span style={{ fontSize: 11, color: 'var(--fg-4)', marginLeft: 'auto' }}>{cot.ghi}</span>}
+                {cot.ghi && <span style={{ fontSize: 11, color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis' }}>· {cot.ghi}</span>}
               </header>
               {ds.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>chưa có</div>}
               {[...nhom.entries()].map(([kenh, cs]) => {
@@ -56,16 +56,15 @@ export function KenhYTuong() {
                       </div>
                     )}
                     {cs.map((c) => (
-                      <div key={c.hang} style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: '6px 8px', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 2 }}
-                        title={[c.bang_chung_tien, c.dung_code].filter(Boolean).join('\n')}>
-                        <b style={{ fontWeight: 600 }}>{c.ten}</b>
-                        {c.dat?.playlist && <span style={{ color: 'var(--fg-3)' }}>▸ {c.dat.playlist}</span>}
-                        <span style={{ color: 'var(--fg-4)', fontSize: 11 }}>
-                          {[xem(c.trungVi) && `👁 ${xem(c.trungVi)}`, c.kiem_tien && `💰 ${c.kiem_tien}`].filter(Boolean).join(' · ')}
-                        </span>
-                        {(c.trang_thai || c.dat?.ghi) && (
-                          <span style={{ fontSize: 11, color: c.trang_thai ? 'var(--ok)' : 'var(--fg-3)' }}>{c.trang_thai ?? c.dat?.ghi}</span>
-                        )}
+                      // thẻ gọn 2 dòng (YDNI mục 10): tên · rồi playlist + lượt xem + ghi; kiếm tiền / bằng chứng / trạng thái đầy đủ ở hover
+                      <div key={c.hang} style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: '4px 8px', fontSize: 12, lineHeight: 1.35 }}
+                        title={[c.ten, c.dat?.playlist && `▸ ${c.dat.playlist}`, c.kiem_tien && `💰 ${c.kiem_tien}`, c.bang_chung_tien, c.trang_thai, c.dat?.ghi].filter(Boolean).join('\n')}>
+                        <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.ten}</div>
+                        <div style={{ fontSize: 11, color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {xem(c.trungVi) && <span style={{ color: 'var(--fg-3)' }}>👁 {xem(c.trungVi)} </span>}
+                          {c.dat?.playlist && <span style={{ color: 'var(--fg-3)' }}>▸ {c.dat.playlist} </span>}
+                          {c.trang_thai ? <span style={{ color: 'var(--ok)' }}>· {c.trang_thai}</span> : c.dat?.ghi && <span>· {c.dat.ghi}</span>}
+                        </div>
                       </div>
                     ))}
                   </div>

@@ -40,7 +40,7 @@ export const WIDGET = {
   D3: { ten: 'Shop → sản phẩm', moTa: 'cây shop, duyệt + đổi trạng thái sản phẩm', mac: [48, 40], ngu: ['ky'], ghi: true, rong: true, tab: 'taisan' },
   D4: { ten: 'Video ngắn', moTa: 'lượt xem 7 ngày theo nền và theo video', mac: [24, 32], ngu: ['ky'], tab: 'taisan' },
   D5: { ten: 'Ma trận kênh traffic', moTa: 'tựa × phương pháp kéo khách', mac: [24, 32], ngu: ['ky'], ghi: true, tab: 'taisan' },
-  D7: { ten: 'Ý tưởng kênh', moTa: 'mọi ý tưởng kênh / dạng video theo nơi đặt: kênh đang có · kênh mới · không đăng · gác', mac: [48, 30], rong: true, tab: 'kenh', moi: '2026-11-27T10:00:00Z' },
+  D7: { ten: 'Ý tưởng kênh', moTa: 'mọi ý tưởng kênh / dạng video theo nơi đặt: kênh đang có · kênh mới · không đăng · gác', mac: [48, 40], rong: true, tab: 'kenh', moi: '2026-11-27T10:00:00Z' },
   D6: { ten: 'Kênh nội dung', moTa: 'bảng kênh video, mở ra cây tập', mac: [48, 48], ngu: ['ky'], rong: true, tab: 'kenh' },
   E1: { ten: 'SEO một site', moTa: 'chọn site → GSC / Bing 30 ngày + truy vấn', mac: [28, 36], ghi: true, tab: 'seo' },
   E2: { ten: 'SteamSolo ngôn ngữ', moTa: 'số liệu theo ngôn ngữ + engagement', mac: [20, 36], tuDe: true, tab: 'seo' },
@@ -136,7 +136,7 @@ export const MAN: Man[] = [
   { id: 'may', ten: 'Máy', kh: 'MA', nhom: 'Máy', o: o([['K1', 0, 0, 48, 9], ['K2', 0, 9, 48, 37, ['K3', 'K4']], ['K5', 0, 46, 48, 26, ['K6']]]) },
   { id: 'agents', ten: 'Agents', kh: 'AG', nhom: 'Công ty AI', o: o([['M1', 0, 0, 48, 9], ['M2', 0, 9, 48, 36, ['M3', 'M6']], ['M7', 0, 45, 48, 27, ['M4', 'M5']]]) },
   { id: 'taisan', ten: 'Tài sản', kh: 'TS', nhom: 'Tài sản', o: o([['D1', 0, 0, 48, 10], ['D2', 0, 10, 48, 62, ['D3']]]) },
-  { id: 'kenh', ten: 'Kênh nội dung', kh: 'KN', nhom: 'Tài sản', o: o([['D7', 0, 0, 48, 30], ['D6', 0, 30, 48, 42, ['D4', 'D5']]]) },
+  { id: 'kenh', ten: 'Kênh nội dung', kh: 'KN', nhom: 'Tài sản', o: o([['D7', 0, 0, 48, 40], ['D6', 0, 40, 48, 32, ['D4', 'D5']]]) },
   { id: 'seo', ten: 'SEO', kh: 'SE', nhom: 'Tài sản', o: o([['E1', 0, 0, 28, 72], ['E2', 28, 0, 20, 72]]) },   // bảng website (D2) nặng ~1,3 MB nên nằm ở màn Tài sản, không kéo sang đây
   { id: 'email', ten: 'Email', kh: 'EM', nhom: 'Tài sản', o: o([['F2', 0, 0, 48, 36, ['F3', 'F6']], ['F1', 0, 36, 28, 36], ['F4', 28, 36, 20, 18], ['F5', 28, 54, 20, 18]]) },
   { id: 'congcu', ten: 'Dự án và công cụ', kh: 'CC', nhom: 'Công cụ', o: o([['G1', 0, 0, 32, 40], ['C5', 32, 0, 16, 20], ['L2', 32, 20, 16, 20], ['L1', 0, 40, 48, 32]]) },

@@ -531,6 +531,12 @@ def main():
             rows.append({"creative_id": cr, "content_id": int(f[1]) if f[1].isdigit() else None, "tu": tu_, "den": den_, "lo": f[4] or None, "lang": f[5] or None,
                          "dang": {"qc_canh_that": "cảnh thật", "qc_ke_chuyen": "kể chuyện"}.get(f[6], f[6] or None), "video": f[7] or None, "anh": f[8] or None,
                          "cta_dat": str(cr) in dat, "thay_cho": thay_nguoc.get(cr), "tu_choi": (tc.get(str(cr)) or {}).get("ly_do")})
+        # DẠNG THEO DÒNG PHIM (anh 26/11/2026 "sao vẫn hỏi duyệt camp CT"): studio chỉ có qc_canh_that / qc_ke_chuyen → creative CC2 lô dp<id>lt bị ghi 'cảnh thật' (CT, dạng gác)
+        # trong hàng chờ duyệt. Lô dp<id>… là của etp.dong_phim #id → dạng = loại dòng (CC2 → cảnh cuối logo). LT giữ nhãn cũ (cuu_cham tính LT gồm cảnh thật).
+        loai_dong = dict(l.split("|", 1) for l in q("select id, loai from etp.dong_phim where loai is not null").splitlines() if "|" in l)
+        for r in rows:
+            m = re.match(r"dp(\d+)", r["lo"] or ""); lo_ = loai_dong.get(m.group(1)) if m else None
+            if lo_ and lo_ != "LT" and DG.DONG.get(lo_): r["dang"] = DG.DONG[lo_]
         # dạng theo tên camp đang dùng creative (chính xác hơn loại studio) + khoá đoạn: bản CTA cũ mang đoạn của bản sửa
         dang_camp = {int(a): b for a, b in (l.split("|", 1) for l in q("select creative_id, string_agg(distinct ten, ' ') from etp.camp where creative_id is not null group by 1").splitlines() if l)}
         theo = {r["creative_id"]: r for r in rows}

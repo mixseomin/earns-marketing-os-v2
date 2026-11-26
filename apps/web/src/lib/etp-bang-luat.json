@@ -63,6 +63,8 @@
                    "tat": { "tep": "ethopex-tat-r0.json", "ten": "R0", "mo_ta": "luật R0: camp ★ ROAS 3 ngày đã khép gần như không tiêu (&lt; max($0.5, 5% ngân sách 3 ngày)) — thầu không thắng, trả ngân sách cho việc khác (anh 02/11)", "cot": "Lãi", "luat": "R0 (★ ROAS 3 ngày đã khép không tiêu, chi < max($0.5, 5% ngân sách 3 ngày))", "ai": "anh (chat 02/11/2026: camp ROAS 3 ngày ko tiêu tiền — cần cơ chế dồn ngân sách sang việc khác) — máy chạy" } },
     "tat_rs":    { "ma": "rs",  "huong": "tat", "nhan": ["✕", "RS · ROAS lên 22h, sáng đầu", "#f87171", "dang"], "de_xuat": "tat", "nhat_ky": ["tat", "^RS "],
                    "tat": { "tep": "ethopex-tat-rs.json", "ten": "RS", "mo_ta": "luật RS: camp ★ ROAS hẹn chạy khung 22h VN, tới 07:00 sáng chi &lt; $0.1 (chưa tiêu) hoặc ROI &lt; 0.1% (âm / hoà) — tắt luôn mọi khung giờ, không báo trước (anh 26/11; ngưỡng đổi từ chi &lt; $0.5 hoặc thu &lt; chi theo góp ý #1877)", "cot": "Lãi đêm", "luat": "RS (★ ROAS lên khung 22h, tới 07:00 sáng âm hoặc chưa tiêu)", "ai": "anh (chat 26/11/2026: camp roas lên khung 22h đến 7h sáng mà âm hoặc chưa tiêu tắt luôn) — máy chạy", "ngay": true, "moi_khung": true } },
+    "tat_r15":   { "ma": "r15", "huong": "tat", "nhan": ["✕", "R15 · ROAS lên 07h, 15h vẫn âm", "#f87171", "dang"], "de_xuat": "tat", "nhat_ky": ["tat", "^R15 "],
+                   "tat": { "tep": "ethopex-tat-r15.json", "ten": "R15", "mo_ta": "luật R15: camp ★ ROAS lên khung 07h VN, từ 15h VN số hôm nay chi ≥ $1 mà thu &lt; chi — tắt luôn, không báo trước (anh 26/11; đo cả đội 20–24/11: âm lúc 15h thì 1/24 về lãi)", "cot": "Lãi hôm nay", "luat": "R15 (★ ROAS lên khung 07h, từ 15h vẫn âm)", "ai": "anh (chat 26/11/2026: mốc 15h, camp lên 07h vẫn âm thì cắt) — máy chạy", "ngay": true, "moi_khung": true } },
     "tat_roas":  { "ma": "rl",  "huong": "tat", "nhan": ["✕", "RL · ROAS lỗ", "#f87171", "dang"], "de_xuat": "tat", "nhat_ky": ["tat", "^RL "],
                    "tat": { "tep": "ethopex-tat-rl.json", "ten": "RL", "mo_ta": "luật RL: camp ★ ROAS 2 ngày đã khép ĐỀU lỗ, cộng 2 ngày chi &gt; $20, ROI &lt; 0%", "cot": "Lãi 2n", "luat": "RL (★ ROAS 2 ngày đã khép đều lỗ, chi > $20, ROI < 0%)", "ai": "anh (chat 30/10/2026: thêm luật tắt ROAS cho khớp mọi luật, không luật ngầm) — máy chạy" } },
     "tat_g10":   { "ma": "g10", "huong": "tat", "nhan": ["✕", "G10 sắp tắt", "#f87171", "dang"], "de_xuat": "tat", "nhat_ky": ["tat", "^G10 \\("],
@@ -118,6 +120,7 @@
     "rl":        ["✕ RL", "#f87171", "tat", "RL · ROAS lỗ 2 ngày"],
     "r0":        ["✕ R0", "#f87171", "tat", "R0 · ROAS không tiêu"],
     "rs":        ["✕ RS", "#f87171", "tat", "RS · ROAS lên 22h, sáng đầu"],
+    "r15":       ["✕ R15", "#f87171", "tat", "R15 · ROAS lên 07h, 15h vẫn âm"],
     "dung_dem":  ["☾ Dừng đêm", "#f87171", null, "Dừng đêm"]
   }
 }

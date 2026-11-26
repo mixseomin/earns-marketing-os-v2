@@ -107,6 +107,8 @@ for i in range(80):
     time.sleep(15)
 print(json.dumps([(x.get("creative") or {{}}).get("id") for x in k["data"]]))
 EOF'""", timeout=3600)
+    if not r.stdout.strip():   # bulk-jobs không in gì = lệnh trên box3 đổ (lech_tao / phim cấm / API) — nêu nguyên văn stderr thay vì IndexError câm (CC2 #7083 #7086, 26/11/2026)
+        sys.exit(f"bulk-jobs trên box3 không trả creative: {(r.stderr or 'không có stderr').strip()[-400:]}")
     crs = json.loads(r.stdout.strip().splitlines()[-1])
     XG.bao("day", ma, "ghi studio", 0, len(lo), ep=True)
     # 4. studio

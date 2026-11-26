@@ -168,6 +168,14 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
                     if thieu:   # cổng hộp chữ không áp được (phần thiếu nằm ngoài hộp): đủ nét trong hộp đã đọc + khối giữ phải lớn hơn hẳn hộp đã đọc (đã lấy thêm phần thiếu)
                         ys_ = np.where(dac.any(1))[0]; cao_doc = (max(b[3] for b in hp) - min(b[1] for b in hp)) * tl
                         lyk = "không còn nét logo" if not len(ys_) else (None if ys_.max() - ys_.min() > 1.3 * cao_doc and nho(dac)[Y0:Y1, X0:X1][chu].mean() > 0.10 else "khoá màu không lấy thêm được phần chữ thiếu")   # dòng chữ nhỏ thưa ("and Became …") có khe giữa các từ; đã có cổng khớp poster gốc gác phía sau
+                        if lyk and len(ys_):   # máy đọc chữ trên POSTER lúc ra lúc không (26/11/2026 phim 179465: cùng poster, lượt này đủ từ, lượt sau rụng một dòng) → đọc lại
+                            # ngay trên logo đã tách (nền tối phẳng, không còn ảnh nền nhiễu): đủ mọi từ thiếu thì khoá màu đã lấy được phần đó, nhận
+                            import tempfile
+                            with tempfile.TemporaryDirectory() as tm_:
+                                tp_ = os.path.join(tm_, "logo.png"); Image.fromarray((Kh * a[..., None] + 30 * (1 - a[..., None])).astype(np.uint8)).save(tp_)
+                                jl = json.loads(subprocess.run([AT().may_doc(), tp_], capture_output=True, text=True, timeout=300).stdout.strip() or "{}")
+                            dl = AT().khop_tu(set().union(*[tu(k[0]) for k in jl.get("khung") or []]) if jl.get("khung") else set(), can, ten)
+                            if thieu <= dl: lyk = None
                     F = np.clip((Kh - (1 - a)[..., None] * M) / np.maximum(a, 0.06)[..., None], 0, 255)   # gỡ ám hồng: màu thật của nét ở mép bán trong suốt
                     du_h = np.clip(np.minimum(F[..., 0], F[..., 2]) - F[..., 1], 0, None) * (nd.minimum_filter(a, size=5) < 0.97)   # ám hồng còn lại ở viền + nét mảnh: rút phần đỏ-lam thừa
                     F[..., 0] -= 0.85 * du_h; F[..., 2] -= 0.85 * du_h

@@ -243,7 +243,10 @@ def doi_at(d, ly, loai=("CC", CC2, None)):
     """CẤM BỎ CUỘC (anh 07/11/2026 "thử đa dạng cấm bỏ cuộc"): dòng CC không ra đoạn / hết khung mới → xếp dòng AT (ảnh tĩnh) cho cùng phim, không xếp đôi (dong_phim_mot).
     loai: các loại dòng được chuyển — dạng trượt cổng chấm (b_cat) chuyển cả LT."""
     if d.get("loai") not in loai: return ""
-    ma = "PO" if "AT" in gac_dang() else "AT"   # AT đang gác (etp.cau_hinh.gac_dang, anh 08/11/2026 ưu tiên poster động) → chuyển sang PO
+    # dạng thay đầu tiên CHƯA GÁC (AT → PO); gác cả hai thì không xếp gì (anh 26/11/2026 "Và giờ dùng AD và CC2" — gác KT/PO/LT/ATT trong gac_dang): dòng đứng lại để FIX,
+    # không đẻ dòng dạng gác rồi vòng sau dừng nó
+    g = gac_dang(); ma = next((m for m in ("AT", "PO") if m not in g), None)
+    if not ma: return ""
     r = sql(f"""insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp) select content_id, ten, the_loai, '{ma}', {s('máy: CC không ra (' + ly[:80] + ') → thử ' + DG.DONG[ma])}, 1
                from etp.dong_phim where id = {d['id']} and not exists (select 1 from etp.dong_phim x where x.content_id = {d['content_id']} and x.loai = '{ma}' and x.tao_luc > now() - interval '2 days')
                on conflict do nothing returning id""")
@@ -757,7 +760,7 @@ def gac_ly(ma):
 
 def sang_ke_chuyen(d, buoc, ghi):
     if d.get("loai") == "KT" or buoc not in ("cat", "soat", "creative") or not HET_NL.search(ghi or ""): return None
-    if gac_kt(): return (doi_at(d, "hết nguyên liệu cắt", ("CC", CC2, "LT", None)).lstrip(" ·") or None)   # gác KT → ảnh tĩnh
+    if "KT" in gac_dang(): return (doi_at(d, "hết nguyên liệu cắt", ("CC", CC2, "LT", None)).lstrip(" ·") or None)   # gác KT (gac_dang hoặc gac_kt cũ) → ảnh tĩnh / poster nếu chưa gác
     cid = int(d["content_id"])
     if CG.phim_cam(cts=[cid], q=sql): return None
     co = sql(f"select id from etp.dong_phim where content_id = {cid} and loai = 'KT' and tao_luc > now() - interval '3 days' order by id desc limit 1")

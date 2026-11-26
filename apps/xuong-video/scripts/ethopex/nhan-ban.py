@@ -269,7 +269,7 @@ def trang_chua_san(content_id, tk):
         # (đọc từ mã app 03/11/2026, idempotent). Thêm xong Ethopex sinh trang (mô tả / cốt truyện / link) — lượt đồng bộ kế (dong-bo, 10 phút) thấy bản mới thì camp lên.
         ws = them_ws(content_id)
         return (f"phim {content_id} vừa được máy thêm vào workspace Ethopex của {ng_ten} (bản #{ws}) — chờ đồng bộ trang phim rồi lên camp ở lượt sau" if ws
-                else f"phim {content_id} chưa có trong workspace Ethopex của {ng_ten} và máy thêm không được (ensure-clone lỗi) — tài khoản nhà chỉ lên camp phim đã thêm")
+                else f"phim {content_id} chưa có trong workspace Ethopex của {ng_ten} và máy thêm không được (ensure-clone lỗi: {them_ws.loi or '?'}) — tài khoản nhà chỉ lên camp phim đã thêm")
     ws, thieu = r.split("|", 1)
     if thieu and nha_ == "t" and ("mô tả" in thieu or "cốt truyện" in thieu) and dien_trang(ws):
         # TỰ ĐIỀN MÔ TẢ / CỐT TRUYỆN (anh 03/11/2026 — bản gốc thư viện không có mô tả thì Ethopex không tự sinh cho bản workspace): từ tóm tắt của phim, $0
@@ -302,16 +302,26 @@ def dien_trang(ws):
         return False
 
 def them_ws(content_id):
-    """thêm phim thư viện vào workspace Nhà (ensure-clone, idempotent) → mã bản workspace, None khi lỗi"""
-    import urllib.request
+    """thêm phim thư viện vào workspace Nhà (ensure-clone, idempotent) → mã bản workspace, None khi lỗi.
+    THỬ LẠI 3 LẦN (26/11/2026: api-multi-be timeout / 525 từng lúc → 6 dòng CC2 dừng hẳn ở bước ws vì một lần timeout; gọi lại sau đó trả đúng bản cũ).
+    Lỗi cuối ghi vào them_ws.loi để lý do chặn nói đúng câu API trả."""
+    import urllib.request, urllib.error, time
     T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
-    try:
-        r = urllib.request.urlopen(urllib.request.Request(f"https://api-multi-be.ethopex.dev/api/v2/contents/{int(content_id)}/ensure-clone", method="POST",
-                                                          headers={"authorization": "Bearer " + T, "user-agent": "mos2-etp"}), timeout=60)
-        d = json.load(r); d = d.get("data", d) if isinstance(d, dict) else {}
-        return int(d.get("id") or 0) or None
-    except Exception:
-        return None
+    for lan in range(3):
+        try:
+            r = urllib.request.urlopen(urllib.request.Request(f"https://api-multi-be.ethopex.dev/api/v2/contents/{int(content_id)}/ensure-clone", method="POST",
+                                                              headers={"authorization": "Bearer " + T, "user-agent": "mos2-etp"}), timeout=60)
+            d = json.load(r); d = d.get("data", d) if isinstance(d, dict) else {}
+            if int(d.get("id") or 0): them_ws.loi = ""; return int(d["id"])
+            them_ws.loi = f"API trả không có id: {str(d)[:120]}"
+        except urllib.error.HTTPError as e:
+            them_ws.loi = f"HTTP {e.code}"
+            if e.code < 500 and e.code != 429: return None   # 4xx = API từ chối thật, thử lại vô ích
+        except Exception as e:
+            them_ws.loi = type(e).__name__
+        if lan < 2: time.sleep(15 * (lan + 1))
+    return None
+them_ws.loi = ""
 
 def giu_boi_nguoi_khac(content_id, tk):
     """NHẬN PHIM (anh 02/11/2026: thành viên nhận phim, giữ quyền 24 giờ, quá hạn chưa lên camp thì nhả): phim đang được NGƯỜI KHÁC giữ (etp.phim_nhan_v giu)

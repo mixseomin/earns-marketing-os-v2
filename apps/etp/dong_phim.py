@@ -225,6 +225,8 @@ def b_ws(d):
     if "vừa được máy" in ly or "còn thiếu" in ly:
         box("systemctl start --no-block etp-dong-bo", 30)   # đồng bộ kho trang phim ngay, không chờ 10 phút
         return "cho", ly, None
+    # ensure-clone lỗi = API Ethopex chập chờn (timeout / 5xx, them_ws đã thử 3 lần), không phải luật chặn → 'loi' (đường lỗi mạng tự thử lại 3 lượt ở chay_buoc, rồi Mạnh mục 6); 4xx mới là API từ chối thật (26/11/2026: 6 dòng CC2 dừng hẳn vì một lần timeout)
+    if "ensure-clone lỗi" in ly and not re.search(r"HTTP 4(?!29)", ly): return "loi", ly, None
     return "dung", ly, None
 
 def b_poster(d):
@@ -808,7 +810,7 @@ def lam_buoc(d, buoc):
     if sql(f"select huy::text from etp.dong_buoc where dong_id = {d['id']} and buoc = '{buoc}'") == "true" and ket != "xong":
         ket, ghi = "loi", f"bị huỷ (Mạnh / nút Dừng) — {ghi}"
     k_mang = (d["id"], buoc, int(((d.get("buoc") or {}).get(buoc) or {}).get("lan") or 0))   # đếm RIÊNG lượt thử lại vì mạng của LẦN bật này — `lan` đếm cả FIX tay và không tăng khi thử lại (05/11/2026: #51 đã FIX 4 lần → không bao giờ được thử lại)
-    if ket == "loi" and re.search(r"ssh:|Connection (closed|reset|refused|timed out)|kex_exchange|Operation timed out|Broken pipe|mux_client|Session open refused|Control ?[Ss]ocket", ghi or "") and THU_MANG.get(k_mang, 0) < 3:
+    if ket == "loi" and re.search(r"ssh:|Connection (closed|reset|refused|timed out)|kex_exchange|Operation timed out|Broken pipe|mux_client|Session open refused|Control ?[Ss]ocket|ensure-clone lỗi", ghi or "") and THU_MANG.get(k_mang, 0) < 3:
         THU_MANG[k_mang] = THU_MANG.get(k_mang, 0) + 1
         ket, ghi = "cho", f"lỗi mạng tới box3, thử lại {THU_MANG[k_mang]}/3 — {ghi[:200]}"   # LỖI MẠNG TỰ THỬ LẠI (04/11/2026: 3 dòng chết vì box3 ngắt ssh) — tối đa 3 lượt · mux_client / Session open refused = kênh ssh dùng chung bị box3 từ chối (22:08 04/11: #15 #21 #51)
     if ket == "cho":

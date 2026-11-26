@@ -462,6 +462,8 @@ export const LUAT = [
   { card: 'mau-poster-0411', tep: 'apps/etp/soat_18_ai.py', co: 'Fail blood only for GRAPHIC gore', vi: 'vết máu / bầm trên mặt poster không phải lỗi, chỉ chặn máu me ghê (Big Mistake 171236, anh 04/11/2026)' },
   { card: 'manh-cam-nhan-0411', tep: 'apps/etp/manh.py', co: "d.dau_dung is distinct from x.dau", vi: 'Mạnh mở lại dòng dừng theo DẤU cổng phim (sổ cấm · nhóm gốc · creative đạt CTA) đổi — không đọc chữ lý do (dòng #47, anh 04/11/2026)' },
   { card: 'tu-nap-0411', tep: 'apps/etp/dong_phim.py', co: 'os.execv(sys.executable, [sys.executable, "-u", os.path.abspath(__file__), *a])', vi: 'máy chạy dòng tự nạp mã mới khi tệp đổi (chạy liền giữ mã cũ — --tay chưa có hiệu lực, dòng #49)' },
+  { card: 'ke-chuyen-len-2711', tep: 'apps/etp/dong_phim.py', co: 'try: dong_bo_launchd()', vi: 'kéo main xong thì cài lại plist launchd trỏ bản sao bám main (máy sinh kể chuyện chạy launcher cây cũ → len-creative thiếu cổng Chờ lên, tv5776 loại oan)' },
+  { card: 'ke-chuyen-len-2711', tep: 'apps/etp/deploy/com.htuan.ethopex-may-sinh-ke-chuyen.plist', co: '/Users/htuan/may-ky-su/etp-dong-phim/apps/etp/deploy/ethopex-may-sinh-ke-chuyen.sh', vi: 'agent máy sinh kể chuyện chạy từ bản sao bám main' },
   { card: 'tay-trung-doi-0411', tep: 'apps/etp/dong_phim.py', co: '--tay --bo', vi: 'dòng phim (anh bấm chạy) lên camp với --tay' },
   { card: 'xu-ly-0411', tep: 'apps/web/src/components/etp-dong.tsx', co: 'export const xuLy = (tt: string)', vi: 'mọi lý do dừng / lỗi kèm bước giải quyết (anh 04/11/2026)' },
   { card: 'xu-ly-0411', tep: 'apps/web/src/components/etp-view.tsx', co: "ten: 'Xử lý', mau: '#60a5fa', chu: xuLy(tt)!", vi: 'hover đồng hồ Sản xuất hiện bước Xử lý' },

@@ -1162,6 +1162,14 @@ def tu_kiem():
     assert ngon_ngu_link("https://www.dramaboxdb.com/ep/42000026686_get-out-of-my-bugatti/701580673_Episode-1") == "en" and ngon_ngu_link("https://www.dramaboxdb.com/es/ep/42000028394_x/1_Episode-1") == "es" and ngon_ngu_link("https://www.dramaboxdb.com/movie/42000026686/x") == "en" and ngon_ngu_link("https://www.reelshort.com/es/x") == "", "đọc ngôn ngữ link DramaBox"
     assert lech_ngon_ngu(82854) == "" and lech_ngon_ngu(85055) == "", "Bugatti es đã sửa link es, bản en đúng en"
     print("✓ link tập sai ngôn ngữ: DramaBox /es/ ↔ phim es, bản không tiền tố = en")
+    g = "/Users/htuan/may-ky-su/etp-dong-phim"; moi_ = f"<string>{g}/apps/etp/deploy/x.sh</string>"; cu_ = "<string>/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/etp/deploy/x.sh</string>"
+    assert can_cai("com.htuan.ethopex-may-sinh-ke-chuyen.plist", moi_, cu_, g), "plist repo trỏ bản sao bám main, bản cài trỏ cây cũ → phải cài lại"
+    assert not can_cai("com.htuan.ethopex-sua-tu-choi.plist", cu_, cu_ + " ", g), "plist repo chưa trỏ bản sao bám main → không đụng"
+    assert not can_cai("com.htuan.x.plist", moi_, None, g) and not can_cai("com.htuan.x.plist", moi_, moi_, g), "chưa cài / đã giống → không đụng"
+    assert not can_cai("com.htuan.etp-dong-phim.plist", moi_, cu_, g), "không tự nạp lại chính máy dòng phim"
+    for f_ in ("com.htuan.ethopex-may-sinh-ke-chuyen.plist", "com.htuan.etp-dong-phim.plist"):
+        assert f"<string>{g}/apps/etp/deploy/" in open(os.path.join(R, "deploy", f_)).read(), f"{f_} trong repo phải trỏ bản sao bám main"
+    print("✓ đồng bộ launchd: agent đã cài trỏ cây cũ → cài lại theo repo (bản sao bám main), chưa cài / máy dòng phim thì bỏ")
     print("✓ dong_phim.py tự kiểm (sản xuất theo chợ: bước chờ phanh, kho dự trữ hồi chợ, mở lại không trùng)")
 
 # BẢN SAO BÁM MAIN (anh 20/11/2026 "tiếp và hoàn thiện b3"): máy từng chạy từ cây làm việc chung /Users/htuan/Me/GitHub/earns-marketing-os-v2 — cây đó chậm main 327 commit
@@ -1179,6 +1187,34 @@ def bao_tg(chu):
     try: subprocess.run([*SSH, B, "python3 -c " + shlex.quote(TG_BOX)], input=chu, capture_output=True, text=True, timeout=60)
     except Exception as e: print(f"báo Telegram lỗi: {e}", flush=True)
 
+# ĐỒNG BỘ AGENT LAUNCHD THEO REPO (etp:ke-chuyen-len|tv5776, 27/11/2026): plist cài trên iMac vẫn trỏ launcher ở cây làm việc chung (chậm main) → máy sinh kể chuyện
+# chạy len-creative cũ chưa có cổng Chờ lên, API chặn bulk-jobs, IndexError 3 nhịp → tv5765 / tv5776 bị loại oan; bản sửa ở launcher không bao giờ chạy vì launchd đọc
+# launcher của cây cũ. Nay: sau mỗi lần kéo main được, plist repo nào TRỎ VÀO BẢN SAO BÁM MAIN mà bản cài khác → ghi đè + nạp lại agent đó.
+# Chỉ agent ĐÃ cài (không tự cài agent mới), bỏ chính máy dòng phim (tự bootout = tự giết), agent đang chạy dở thì chờ lần kéo sau.
+LA = os.path.expanduser("~/Library/LaunchAgents")
+def can_cai(ten, repo_txt, cai_txt, goc=None):
+    goc = goc or GOC_REPO
+    return ten != "com.htuan.etp-dong-phim.plist" and cai_txt is not None and repo_txt != cai_txt and f"<string>{goc}/" in repo_txt
+def dong_bo_launchd():
+    if sys.platform != "darwin": return
+    import glob, plistlib
+    uid = os.getuid()
+    for f in sorted(glob.glob(os.path.join(GOC_REPO, "apps", "etp", "deploy", "*.plist"))):
+        ten = os.path.basename(f); dich = os.path.join(LA, ten)
+        repo_txt = open(f).read(); cai_txt = open(dich).read() if os.path.exists(dich) else None
+        if not can_cai(ten, repo_txt, cai_txt): continue
+        p = plistlib.loads(repo_txt.encode()); nhan = p["Label"]; chay_ = (p.get("ProgramArguments") or [""])[0]
+        if not os.path.exists(chay_): print(f"đồng bộ launchd: bỏ {nhan} — chưa có {chay_}", flush=True); continue
+        tt = subprocess.run(["launchctl", "print", f"gui/{uid}/{nhan}"], capture_output=True, text=True, timeout=30).stdout
+        if re.search(r"^\s*state = running", tt, re.M): print(f"đồng bộ launchd: {nhan} đang chạy dở — chờ lần kéo sau", flush=True); continue
+        open(dich, "w").write(repo_txt)
+        subprocess.run(["launchctl", "bootout", f"gui/{uid}/{nhan}"], capture_output=True, text=True, timeout=60)
+        b = subprocess.run(["launchctl", "bootstrap", f"gui/{uid}", dich], capture_output=True, text=True, timeout=60)
+        if b.returncode:
+            print(f"đồng bộ launchd: nạp {nhan} lỗi: {(b.stderr or b.stdout).strip()[-200:]}", flush=True)
+            bao_tg(f"⛔ [{MAY}] đã ghi plist mới cho {nhan} nhưng nạp lại lỗi — agent có thể đang tắt.\n{(b.stderr or b.stdout).strip()[-200:]}")
+        else: print(f"[{time.strftime('%H:%M:%S')}] đồng bộ launchd: {nhan} → {chay_}", flush=True)
+
 def bam_main():
     """KÉO MAIN cho bản sao máy (có tệp .may-bam-main) mỗi 10 phút. 25–26/11/2026 máy đứng ở mã 25/11 hơn một ngày vì tệp sửa cục bộ cũ (.pyc, anh-tinh.py)
     chặn ff-only, lỗi chỉ nằm trong log → (1) tệp cục bộ chặn kéo: tự CẤT bằng git stash (giữ bản, không xoá) rồi kéo lại;
@@ -1194,7 +1230,10 @@ def bam_main():
         r = keo()
     if not r.returncode:
         if BAM[1]: bao_tg(f"✅ [{MAY}] máy dòng phim kéo được main lại")
-        BAM[1] = 0.0; return
+        BAM[1] = 0.0
+        try: dong_bo_launchd()
+        except Exception as e: print(f"đồng bộ launchd lỗi: {str(e)[:160]}", flush=True)
+        return
     loi = (r.stderr or r.stdout).strip()[-300:]
     print(f"[{time.strftime('%H:%M:%S')}] kéo main cho bản sao máy dòng phim lỗi: {loi[-200:]}", flush=True)
     BAM[1] = BAM[1] or time.time()

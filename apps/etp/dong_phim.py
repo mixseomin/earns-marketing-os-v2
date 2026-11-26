@@ -29,6 +29,16 @@ KHUON = {"en": 65110, "es": 65734}   # camp mẫu cùng tiếng (dot-phim-moi.KH
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import so_dang as DG   # SỔ DẠNG một nơi (apps/web/src/lib/etp-dang.json, anh 08/11/2026)
 import cong as CG   # khoá trần camp / ngày + câu đếm camp hôm nay dùng chung với cổng
 LOAI = DG.DONG   # mã loại dòng phim → dạng creative (etp.creative.dang)
+# CC2 — CẢNH CUỐI LOGO (anh 26/11/2026: "CC thì ko làm, phải dùng dạng CC kết hợp với cách lên của Kiên. Cc phải luôn dùng logo cắt đẹp như AD. Đặt tên loại CC2"; "Cc2 ko cần caption trên màn hình"):
+# cắt như CC (cat-canh dung_tap) nhưng 5 giây cuối = logo cắt từ poster + nút WATCH NOW / VER AHORA (lop-logo-cc2.py, cùng hàm logo của AD), không chữ nào khác;
+# lên camp bằng chữ KIỂU KIÊN của chính phim (apps/etp/chu-kieu.json "kien", ap-form-chu.py --kieu kien) → phim chưa có chữ Kiên thì không cắt.
+CC2 = "CC2"
+def DS_KIEN():
+    try: return [k for k in (json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "chu-kieu.json"))).get("kien") or {}) if k.isdigit()]
+    except Exception: return []
+def chu_kien(cid):
+    try: return str(int(cid)) in (json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "chu-kieu.json"))).get("kien") or {})
+    except Exception: return False
 # KIỂU TĨNH (anh 08/11/2026 "chọn cả 3 để xem hiệu suất"): mỗi loại một kiểu của tinh-ba-kieu.py, cùng khuôn AT — tự tải tập, 3 bản, 3 camp $1
 TINH = {x["dong"]: (("tinh-ba-kieu.py", ["--kieu", x["kieu"]]) if x.get("kieu") else ("anh-tinh.py", [])) for x in DG.DS if x.get("tinh")}
 # MẪU POSTER ĐỘNG MÁY DỰNG (anh 08/11/2026 "Trước mắt vẫn dùng mẫu PO ban đầu" → "Có mẫu PO5 mới trộn cùng PO"): máy dòng phim ép --mau theo danh sách này, xoay theo
@@ -229,7 +239,7 @@ def b_poster(d):
     nhan_lai(cid)   # poster qua (kể cả sau khi bỏ chặn) → phim phải đang được Nhà giữ
     return "xong", (out.splitlines() or ["poster sạch"])[-1][:300], None
 
-def doi_at(d, ly, loai=("CC", None)):
+def doi_at(d, ly, loai=("CC", CC2, None)):
     """CẤM BỎ CUỘC (anh 07/11/2026 "thử đa dạng cấm bỏ cuộc"): dòng CC không ra đoạn / hết khung mới → xếp dòng AT (ảnh tĩnh) cho cùng phim, không xếp đôi (dong_phim_mot).
     loai: các loại dòng được chuyển — dạng trượt cổng chấm (b_cat) chuyển cả LT."""
     if d.get("loai") not in loai: return ""
@@ -244,14 +254,15 @@ def b_cat(d):
     # DẠNG TRƯỢT CỔNG CHẤM (anh 07/11/2026, việc 3 — Vengeance of the Dragon Princess 25/29 cảnh thật trượt meta.bao_luc): phần lớn bản dạng này của phim trượt cùng
     # một tiêu chí → không cắt thêm (chắc chắn trượt, tốn giờ máy + tiền chấm), dừng dòng và chuyển ảnh tĩnh. Luật một chỗ: apps/etp/cuu_cham.py dang_truot
     tr = CU.dang_truot(sql, cid, d.get("loai"))
-    if tr: return "dung", tr + doi_at(d, "dạng trượt cổng chấm", ("CC", "LT", None)), None
+    if tr: return "dung", tr + doi_at(d, "dạng trượt cổng chấm", ("CC", CC2, "LT", None)), None
+    if d.get("loai") == CC2 and not chu_kien(cid): return "dung", f"CC2 lên bằng chữ kiểu Kiên — sổ apps/etp/chu-kieu.json \"kien\" chưa có phim {cid}, không cắt", None
     r = sql(f"select ten, url, locale, nguon from ethopex_content where id = {cid}", spy=True).split("\t")
     if len(r) < 2 or not r[1]:   # kho spy thiếu link (693 phim, 20/11/2026: American Sniper 49428) → link tập 1 của trang phim Nhà (etp.phim.url — cùng nguồn các dòng ảnh tĩnh dùng, tai-tap tự mở link rút gọn)
         u = sql(f"select coalesce(url, '') || chr(9) || coalesce(ten, '') || chr(9) || coalesce(locale, 'en') from etp.phim where content_id = {int(cid)}").split("\t")
         if not u[0]: return "loi", "không tìm thấy link tập: kho spy ethopex_content và trang phim Nhà (etp.phim.url) đều trống", None
         r = [(r[0] if r and r[0] else u[1]), u[0], (r[2] if len(r) > 2 and r[2] else u[2]), (r[3] if len(r) > 3 else "")]
     sql(f"""delete from etp.viec where lo = '{lo}';   -- lô riêng của dòng: chạy lại bước = xếp lại từ đầu
-            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else (max(2, int(d.get("so_camp") or 0) - san_cua(cid, d.get("loai"))) + 1 if d.get("so_camp") else 2), **({"kieu": "tap"} if d.get("loai") == "LT" else {}), "cam_them": json.loads(sql(f"select coalesce((select gia_tri->'{int(cid)}' from etp.cau_hinh where khoa = 'cam_them'), '[]'::jsonb)::text") or "[]")})}) on conflict do nothing""")
+            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else (max(2, int(d.get("so_camp") or 0) - san_cua(cid, d.get("loai"))) + 1 if d.get("so_camp") else 2), **({"kieu": "tap"} if d.get("loai") == "LT" else {}), **({"logo": True} if d.get("loai") == CC2 else {}), "cam_them": json.loads(sql(f"select coalesce((select gia_tri->'{int(cid)}' from etp.cau_hinh where khoa = 'cam_them'), '[]'::jsonb)::text") or "[]")})}) on conflict do nothing""")
     if d["id"] in CAT_NGOAI:   # chế độ ngoài (CAT_NGOAI): việc đã vào hàng chung — chờ HP / VPS nhận, quá CHO_NGOAI không ai nhận thì iMac cắt
         t0 = time.time()
         try:
@@ -308,7 +319,7 @@ def b_creative(d, truoc):
         if not doan: return "loi", "bước soát không để lại đoạn sạch", None
         ma = f"dp{d['id']}l{tr.get('lan') or 1}"; lf = os.path.join(C, "ra", f"dp{d['id']}", f"len-{ma}.json")
         json.dump([{**x, "lo": f"dp{d['id']}"} for x in doan], open(lf, "w"), ensure_ascii=False)
-        rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "len-creative.py"), lf, ma, "canh cuoi", "--da-soat"], dict(BUOC)["creative"] - 300, {"ETP_KHONG_CAT": "1"})
+        rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "len-creative.py"), lf, ma, DG.KHONG_DAU[LOAI[CC2]] if d.get("loai") == CC2 else "canh cuoi", "--da-soat"], dict(BUOC)["creative"] - 300, {"ETP_KHONG_CAT": "1"})
         lj = os.path.join(C, "ra", ma, "len.json")
         kq = json.load(open(lj)) if os.path.exists(lj) else []
         x = next((y for y in kq if y.get("ok") and y.get("creative_id")), None)
@@ -331,7 +342,7 @@ def b_creative_lt(d, truoc):
         if not doan: return "loi", "bước soát không để lại đoạn sạch", None
         ma = f"dp{d['id']}lt"; lf = os.path.join(C, "ra", f"dp{d['id']}", f"len-{ma}.json")
         json.dump([{**x, "lo": f"dp{d['id']}"} for x in doan], open(lf, "w"), ensure_ascii=False)
-        rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "len-creative.py"), lf, ma, "tap nguyen", "--da-soat"], dict(BUOC)["creative"] - 300, {"ETP_KHONG_CAT": "1"})
+        rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "len-creative.py"), lf, ma, DG.KHONG_DAU[LOAI[CC2]] if d.get("loai") == CC2 else "tap nguyen", "--da-soat"], dict(BUOC)["creative"] - 300, {"ETP_KHONG_CAT": "1"})
         lj = os.path.join(C, "ra", ma, "len.json"); kq = json.load(open(lj)) if os.path.exists(lj) else []
         ds = [y for y in kq if y.get("ok") and y.get("creative_id")]
         if not ds:
@@ -345,27 +356,52 @@ def b_creative_lt(d, truoc):
     if not sach: return "dung", f"cả {len(ds)} creative bị cổng chấm chặn / giữ", {"ds": ds}
     return "xong", f"{len(sach)}/{len(ds)} creative chấm sạch: " + ", ".join(f"#{x['creative_id']}" for x in sach), {"ds": ds, "sach": sach}
 
+# MỖI MỨC ROAS MỘT CREATIVE MỚI (anh 25/11/2026 "ở mức level 0.9, 1.0, 1.1 của từng phim. Mỗi mức đó cần 1 creative riêng mới để ko cạnh tranh nhau"):
+# etp.khoi.muc = các mức ★ ROAS (migration 0472); phim lên so_camp camp, camp thứ i ★ ROAS muc[i] (thiếu thì mức cuối) và MỘT creative riêng — không creative nào chạy hai camp.
+# Cùng công thức bên etp2: apps/etp2/src/lib/etp-khoi-muc.ts (mucCampKhoi).
+def muc_camp(k, so=None):
+    muc = [float(x) for x in (k.get("muc") or []) if x is not None] or [float(k["roas"])]
+    n = max(1, int(so or k.get("cr_camp") or len(muc)))
+    return [muc[min(i, len(muc) - 1)] for i in range(n)]
+
+def cr_mau_moi(ma, cid, bo_ra):
+    """creative của (mẫu, phim) đã dựng mà CHƯA có camp, mỗi khung một cái (2 bản giọng cùng khung = cùng hình → chỉ lấy bản đầu), theo thứ tự dựng"""
+    ids = [int(x) for x in re.findall(r"\d+", sql(f"select coalesce(array_to_string(creative_ids, ' '), '') from etp.mau_dung where mau = {s(ma)} and content_id = {int(cid)}"))]
+    if not ids: return []
+    khung = {int(a): b for a, b in (l.split("\t") for l in sql(f"""select t.creative_id, coalesce(substring(t.ghi from 'khung [^ ·]+'), t.id::text) from etp.thu_vien t
+              where t.creative_id in ({','.join(map(str, ids))})""").splitlines() if l.count("\t") == 1)}
+    co_camp = {int(x) for x in sql(f"select distinct creative_id from etp.camp where creative_id in ({','.join(map(str, ids))})").split()}
+    ra, da_k = [], set()
+    for c in ids:
+        k_ = khung.get(c, str(c))
+        if c in co_camp or c in bo_ra or k_ in da_k: da_k.add(k_); continue
+        da_k.add(k_); ra.append(c)
+    return ra
+
 def b_creative_khoi(d):
-    """KHỐI có mẫu (etp.khoi.mau, vd dt_anh_dong_logo): dung-mau.py <mẫu> <phim> --ban 1 trên iMac (môi trường poster-mau) → MỘT creative tiếng của phim → cổng chấm.
-    Kế hoạch etp2 (⚙ Thiết lập · Đang lên kế hoạch) hứa đúng điều này: 1 creative theo mẫu × cr_camp camp chép khuôn. Bản đã dựng (etp.mau_dung.creative_ids) thì dùng lại, không dựng lần hai."""
-    k = d["khoi"]; ma = str(k["mau"]); cid = int(d["content_id"])
+    """KHỐI có mẫu (etp.khoi.mau, vd dt_anh_dong_logo): mỗi camp của phim (mức ★ ROAS muc_camp) cần MỘT creative mới riêng chưa có camp → dung-mau.py <mẫu> <phim> --ban <thiếu>
+    trên iMac (môi trường poster-mau; mỗi bản một khung khác, máy dựng nhớ khung đã dùng) → cổng chấm. Bản đã dựng chưa có camp thì dùng lại, không dựng lần hai.
+    Lượt chạy quá hạn bước thì lượt sau đọc lại etp.mau_dung.creative_ids, chỉ dựng phần còn thiếu."""
+    k = d["khoi"]; ma = str(k["mau"]); cid = int(d["content_id"]); muc = muc_camp(k, d.get("so_camp"))
     tr = (d.get("buoc") or {}).get("creative") or {}; kq0 = tr.get("ket_qua") or {}
-    ids = [int(x["creative_id"]) for x in kq0.get("ds") or []]
-    if not ids: ids = [int(x) for x in re.findall(r"\d+", sql(f"select coalesce(array_to_string(creative_ids, ' '), '') from etp.mau_dung where mau = {s(ma)} and content_id = {cid}"))][:1]
-    if not ids:
-        rc, out = chay_tien_trinh(d["id"], "creative", [os.path.expanduser("~/.venvs/poster-mau/bin/python"), os.path.join(E, "dung-mau.py"), ma, str(cid), "--ban", "1"], dict(BUOC)["creative"] - 120)
-        j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("[")), None)
-        ids = [int(x) for x in j or []][:1]
-        if not ids: return ("loi" if rc == -9 or j is None else "dung"), f"dựng mẫu {ma} không ra creative: {out[-300:]}", None
+    ids = [int(x["creative_id"]) for x in kq0.get("ds") or []][:len(muc)]
+    if len(ids) < len(muc): ids += cr_mau_moi(ma, cid, set(ids))[:len(muc) - len(ids)]
+    if len(ids) < len(muc):
+        rc, out = chay_tien_trinh(d["id"], "creative", [os.path.expanduser("~/.venvs/poster-mau/bin/python"), os.path.join(E, "dung-mau.py"), ma, str(cid), "--ban", str(len(muc) - len(ids))], dict(BUOC)["creative"] - 120)
+        ids += cr_mau_moi(ma, cid, set(ids))[:len(muc) - len(ids)]
+        if not ids: return ("loi" if rc == -9 else "dung"), f"dựng mẫu {ma} không ra creative: {out[-300:]}", None
+        if len(ids) < len(muc): return ("loi" if rc == -9 else "dung"), f"mẫu {ma}: mới có {len(ids)}/{len(muc)} creative riêng cho {len(muc)} mức ★ ROAS — {out[-240:]}", {"ds": [{"creative_id": c} for c in ids]}
     sql(f"update etp.dong_phim set creative_id = {ids[0]} where id = {d['id']}")
-    kq = {"creative_id": ids[0], "ds": [{"creative_id": c} for c in ids]}
+    kq = {"creative_id": ids[0], "ds": [{"creative_id": c, "roas": muc[i]} for i, c in enumerate(ids)]}
     r = {int(l.split(chr(9))[0]): (l.split(chr(9))[1:] + ["", ""])[:2] for l in sql(f"""select r.creative_id, coalesce(r.lang, 'en'), coalesce(g.duoc_len::text, '')
             from etp.creative r left join etp.cham_cong g using (creative_id) where r.creative_id in ({','.join(map(str, ids))})""").splitlines() if chr(9) in l}
-    if len(r) < len(ids): return "cho", f"creative mẫu {ma} #{ids[0]} đã tạo — chờ đồng bộ kho etp", kq
-    if any(v[1] == "" for v in r.values()): return "cho", f"creative mẫu {ma} #{ids[0]} — chờ máy chấm", kq
-    kq["sach"] = [{"creative_id": c, "lang": r[c][0]} for c in ids if r[c][1] == "true"]
-    if not kq["sach"]: return "dung", f"creative mẫu {ma} #{ids[0]} bị cổng chấm chặn", kq
-    return "xong", f"creative mẫu {ma} #{ids[0]} chấm sạch", kq
+    ten = ", ".join(f"#{c}" for c in ids)
+    if len(r) < len(ids): return "cho", f"creative mẫu {ma} {ten} đã tạo — chờ đồng bộ kho etp", kq
+    if any(v[1] == "" for v in r.values()): return "cho", f"creative mẫu {ma} {ten} — chờ máy chấm", kq
+    bi = [c for c in ids if r[c][1] != "true"]
+    if bi: return "dung", f"creative mẫu {ma} {', '.join(f'#{c}' for c in bi)} bị cổng chấm chặn — mỗi mức ★ ROAS cần một creative sạch riêng", kq
+    kq["sach"] = [{"creative_id": c, "lang": r[c][0], "roas": muc[i]} for i, c in enumerate(ids)]
+    return "xong", f"{len(ids)} creative mẫu {ma} chấm sạch, mỗi mức một cái: " + " · ".join(f"★{muc[i]} #{c}" for i, c in enumerate(ids)), kq
 
 def b_creative_kt(d):
     """KT: dòng đứng đầu hàng đợi máy sinh kể chuyện (hang-ke-chuyen.mts bậc 5000) → chờ creative kể chuyện MỚI của phim (tạo sau lúc bước này bắt đầu) → cổng chấm"""
@@ -492,7 +528,7 @@ def ai_dong(d, chu):
 def b_camp_mr(d, truoc):
     """MỞ RỘNG (anh bấm ＋ ở dòng phim, chọn số camp): creative sạch vừa làm + creative sạch có sẵn chưa có camp của phim → lên đúng so_camp camp ★ ROAS (bộ của phim; mặc định nhan-ban từ 24/11/2026)"""
     cr = truoc.get("creative") or {}; moi = [int(x["creative_id"]) for x in (cr.get("sach") or ([cr] if cr.get("creative_id") else []))]
-    san = san_dung_lai(d["content_id"], d.get("loai"))   # kiểu tĩnh: chỉ creative đúng dạng đó (lọc trong san_dung_lai)
+    san = [] if d.get("loai") == CC2 else san_dung_lai(d["content_id"], d.get("loai"))   # CC2: chỉ creative logo vừa dựng · kiểu tĩnh: chỉ creative đúng dạng đó (lọc trong san_dung_lai)
     cu = camp_co_san(moi)   # creative của chính dòng đã có camp (lượt trước bị huỷ giữa chừng / máy luật lấy thay) = đã lên, tính vào số camp
     ds = [c for c in dict.fromkeys(moi + san) if c not in cu][:max(0, int(d["so_camp"]) - len(cu))]
     if not ds and not cu: return "dung", "không có creative sạch nào để lên camp", None
@@ -513,36 +549,54 @@ def b_camp_mr(d, truoc):
     return ket, (f"{len(xong) + len(cu)}/{d['so_camp']} camp · " + ghi + (f" · thiếu {thieu} (không đủ creative sạch)" if thieu > 0 and not loi else "")) if ket == "xong" else ghi, kq
 
 # KHỐI CAMP (anh 25/11/2026 "Nếu lên theo khối của phim thì sẽ phải nhìn thấy đủ các thành phần, các camp đang sx", etp.khoi — migration 0470):
-# dòng thuộc khối lên camp bằng ĐÚNG tham số khối (★ ROAS · $/ngày · khuôn theo tiếng có miền = khối.mien), mỗi creative cr_camp camp — không đọc hoi_cho / KHUON.
-# Một creative nhiều camp chỉ đi được bằng vé trực tiếp (nhan-ban chặn creative đã có camp khi không có vé) → dòng khối mang ai DONG_TRUC_TIEP, mỗi camp một vé
+# dòng thuộc khối lên camp bằng ĐÚNG tham số khối (★ ROAS theo mức muc_camp · $/ngày · khuôn theo tiếng có miền = khối.mien), MỖI CAMP MỘT CREATIVE RIÊNG — không đọc hoi_cho / KHUON.
+# Camp khối đi bằng vé trực tiếp → dòng khối mang ai DONG_TRUC_TIEP, mỗi camp một vé
 # trong số camp của etp.cau_hinh.nhiem_vu_ngay (cong.py cấp theo câu anh). Hết vé = chờ, không có đường tự lên.
 def b_camp_khoi(d, truoc):
     k = d["khoi"]
     if k.get("trang_thai") != "chay": return "cho", f"khối #{k['id']} {k.get('ten') or ''} chưa duyệt (trạng thái {k.get('trang_thai')})", None
-    cr = truoc.get("creative") or {}; ds = [int(x["creative_id"]) for x in (cr.get("sach") or ([cr] if cr.get("creative_id") else []))]
-    if not ds: return "loi", "chưa có creative sạch", None
+    cr = truoc.get("creative") or {}; sach = cr.get("sach") or []
+    muc = muc_camp(k, d.get("so_camp"))
+    if len(sach) < len(muc): return "loi", f"mới có {len(sach)}/{len(muc)} creative sạch — mỗi mức ★ ROAS cần một creative riêng", None
     bo = str(d.get("bo") or "").strip() or sql(CG.SQL_BO_PHIM.format(cid=int(d['content_id'])))
     if not bo: return "loi", "không đọc được bộ của phim", None
+    ds = [int(x["creative_id"]) for x in sach[:len(muc)]]
+    # creative anh / máy đã LOẠI (etp.cham_duyet ok=false — vd trùng hình chỉ khác giọng, anh 25/11/2026 "Vi phạm nghiêm trọng luật") KHÔNG BAO GIỜ lên camp, kể cả đã nằm trong danh sách sạch của khối
+    bo_loai = {int(x) for x in sql(f"select creative_id from etp.cham_duyet where ok is false and creative_id in ({','.join(map(str, ds))})").split() if x.isdigit()} if ds else set()
+    if bo_loai: ds = [c for c in ds if c not in bo_loai]; muc = muc[:len(ds)]
     xong, loi, gan, may_ = [], [], [], False
     da = {int(a): int(b) for a, b in (l.split("\t") for l in sql(f"select creative_id, count(*) from etp.camp where creative_id in ({','.join(map(str, ds))}) group by 1").splitlines() if l.count("\t") == 1)}
-    for c in ds:
+    for i, c in enumerate(ds):
+        if da.get(c): continue   # mỗi creative đúng MỘT camp — đã có thì mức này xong
         lang = sql(f"select coalesce(lang, 'en') from etp.creative where creative_id = {c}") or "en"
         khuon = int((k.get("khuon") or {}).get(lang) or 0)
         if not khuon: loi.append(f"#{c}: khối #{k['id']} không có khuôn tiếng {lang}"); continue
         mien = sql(f"select coalesce(mien, '') from etp.camp where camp_id = {khuon}")
         if k.get("mien") and mien != k["mien"]: return "dung", f"khuôn #{khuon} miền {mien or '?'} khác miền khối {k['mien']} — sửa etp.khoi.khuon", None
-        for i_ in range(max(0, int(k.get("cr_camp") or 1) - da.get(c, 0))):
-            ve = ve_dong(d)
-            if not ve: return ("cho", f"đã lên {len(xong)} camp · chờ vé nhiệm vụ ngày cho phim {d['content_id']} (cong.py --ve-truc-tiep nhan_ban --phim {d['content_id']})", None) if not xong else ket_camp(d, xong, loi + ["hết vé"], {}, gan, may_)
-            sql(f"update etp.dong_buoc set ghi = {s(f'khối #{k['id']}: lên camp {len(xong) + 1} (creative #{c})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")
-            ten = re.sub(r"[^ -~]|['\"$`\\]", "", f"dp{d['id']} {d.get('ten') or ''} {lang.upper()} - khoi {k['id']} cr moi #{c}")
-            rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {khuon} --roas {float(k["roas"])} --ns {int(float(k["ns"]))} --tay --bo {bo} --creative {c} --content {d["content_id"]} --ten "{ten}" --that --luat "khối #{k['id']} (anh 25/11/2026)" --ai "{ai_dong(d, f"khối #{k['id']} etp2")}"'""", 1500, ve=ve)
-            j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None) or {}
-            if j.get("ok") and j.get("moi"): xong.append(int(j["moi"])); gan.append({"creative_id": c, "camp": int(j["moi"])})
-            else: loi.append(f"#{c}: {(j.get('loi') or out[-120:])[:120]}"); may_ = may_ or not j or bool(j.get("may")); break
-    return ket_camp(d, xong, loi, {}, gan, may_) if xong or loi else ("xong", f"khối #{k['id']}: mọi creative đã đủ {k.get('cr_camp')} camp", None)
+        ve = ve_dong(d)
+        if not ve: return ("cho", f"đã lên {len(xong)} camp · chờ vé nhiệm vụ ngày cho phim {d['content_id']} (cong.py --ve-truc-tiep nhan_ban --phim {d['content_id']})", None) if not xong else ket_camp(d, xong, loi + ["hết vé"], {}, gan, may_)
+        ke = sql(f"select roas from etp.ke_cr where creative_id = {c} limit 1")   # MỘT nguồn mức (view 0476) — cùng mức etp2 / lenh_cho.py hiện + lên khi anh duyệt
+        if ke: muc[i] = float(ke)
+        sql(f"update etp.dong_buoc set ghi = {s(f'khối #{k['id']}: lên camp ★{muc[i]:g} (creative #{c})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")
+        ten = re.sub(r"[^ -~]|['\"$`\\]", "", f"dp{d['id']} {d.get('ten') or ''} {lang.upper()} - khoi {k['id']} roas {muc[i]} cr moi #{c}")
+        rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {khuon} --roas {muc[i]} --ns {int(float(k["ns"]))} --tay --bo {bo} --creative {c} --content {d["content_id"]} --ten "{ten}" --that --luat "khối #{k['id']} ★{muc[i]} (anh 25/11/2026)" --ai "{ai_dong(d, f"khối #{k['id']} etp2")}"'""", 1500, ve=ve)
+        j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None) or {}
+        if j.get("ok") and j.get("moi"): xong.append(int(j["moi"])); gan.append({"creative_id": c, "camp": int(j["moi"]), "roas": muc[i]})
+        else: loi.append(f"#{c}: {(j.get('loi') or out[-120:])[:120]}"); may_ = may_ or not j or bool(j.get("may")); break
+    return ket_camp(d, xong, loi, {}, gan, may_) if xong or loi else ("xong", f"khối #{k['id']}: đủ {len(muc)} camp, mỗi mức ★ ROAS một creative riêng", None)
+
+def ap_kien(d, truoc):
+    """CC2: creative vừa dựng → chữ kiểu Kiên của phim (ap-form-chu.py --kieu kien, chỉ creative nhà chưa gắn camp) trước khi nhan-ban; lỗi → (kết, ghi), ổn → None"""
+    cr = truoc.get("creative") or {}; ds = [int(x["creative_id"]) for x in (cr.get("sach") or ([cr] if cr.get("creative_id") else []))]
+    if not ds: return None
+    rc, out = box(f"bash -c 'cd apps/etp && python3 ap-form-chu.py --kieu kien {' '.join(map(str, ds))}'", 600)
+    j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{")), None)
+    if j is None: return "loi", f"áp chữ Kiên không trả kết quả: {out[-300:]}"
+    hong = {k: v for k, v in j.items() if v not in ("ok", "không đổi") and "đã gắn camp" not in str(v)}
+    return ("dung", "áp chữ Kiên: " + " · ".join(f"#{k}: {v}" for k, v in hong.items())[:400]) if hong else None
 
 def b_camp(d, truoc):
+    if d.get("loai") == CC2 and (h := ap_kien(d, truoc)): return h[0], h[1], None
     if d.get("khoi"): return b_camp_khoi(d, truoc)
     if d.get("loai") in TINH and not str(d.get("ai") or "").startswith("máy: bù camp"): d = {**d, "so_camp": max(int(d.get("so_camp") or 0), AT_BAN)}   # 3 camp $1 / phim (anh 08/11/2026); dòng bù giữ đúng k (09/11)
     if d.get("so_camp"): return b_camp_mr(d, truoc)
@@ -703,7 +757,7 @@ def gac_ly(ma):
 
 def sang_ke_chuyen(d, buoc, ghi):
     if d.get("loai") == "KT" or buoc not in ("cat", "soat", "creative") or not HET_NL.search(ghi or ""): return None
-    if gac_kt(): return (doi_at(d, "hết nguyên liệu cắt", ("CC", "LT", None)).lstrip(" ·") or None)   # gác KT → ảnh tĩnh
+    if gac_kt(): return (doi_at(d, "hết nguyên liệu cắt", ("CC", CC2, "LT", None)).lstrip(" ·") or None)   # gác KT → ảnh tĩnh
     cid = int(d["content_id"])
     if CG.phim_cam(cts=[cid], q=sql): return None
     co = sql(f"select id from etp.dong_phim where content_id = {cid} and loai = 'KT' and tao_luc > now() - interval '3 days' order by id desc limit 1")
@@ -782,20 +836,21 @@ def luat_cu():
 
 def mo_doi_lai():
     if time.time() - DOI_LAI[0] < 600 or dung_camp_moi() or luat_cu(): return
-    if "CC" in gac_dang(): return   # CC gác (anh 21/11 + 26/11/2026 "ko sx cc/ct", gac_dang) → không tự xếp dòng CC mỗi 24 giờ rồi để vòng sau dừng
+    if CC2 in gac_dang(): return   # CC2 gác → không tự xếp; CC đã thay bằng CC2 (anh 26/11/2026) — trước: CC gác (anh 21/11 + 26/11/2026 "ko sx cc/ct", gac_dang) → không tự xếp dòng CC mỗi 24 giờ rồi để vòng sau dừng
     con = (SX[0].get("kho") or {}).get("con")
     if SX[0].get("phanh") or (con is not None and con <= 0): return   # sản xuất theo chợ (anh 18/11/2026): phanh / đủ ~1 ngày chỗ lên → không xếp dòng mở rộng
     DOI_LAI[0] = time.time()
     for l in sql("""begin; select pg_advisory_xact_lock(4390);
         insert into etp.dong_phim (content_id, ten, loai, ai, so_camp)
-        select d.content_id, p.ten, 'CC', 'máy: phim đội lãi ROI ' || d.roi || '% trên $' || round(d.chi) || ' (' || coalesce((g.gia_tri->>'ngay'), '3') || ' ngày đã khép, nhà + đội)',
+        select d.content_id, p.ten, 'CC2', 'máy: phim đội lãi ROI ' || d.roi || '% trên $' || round(d.chi) || ' (' || coalesce((g.gia_tri->>'ngay'), '3') || ' ngày đã khép, nhà + đội)',
           case when m.pha = 'dinh' then least(2, coalesce((g.gia_tri->>'so_camp')::int, 5)) else coalesce((g.gia_tri->>'so_camp')::int, 5) end
         from etp.phim_doi_lai d left join etp.phim p using (content_id) left join etp.mo_rong m using (content_id), (select (select gia_tri from etp.cau_hinh where khoa = 'len_doi_lai') gia_tri) g
         -- ĐỒNG HỒ THỊ TRƯỜNG (etp.mo_rong.pha, anh 06/11/2026 "các đồng hồ đang có chưa dùng đến à"): vượt sức chứa → không mở · quanh tối ưu → 2 camp · còn dư địa / chưa đủ số → so_camp
         where coalesce(p.nhom_goc, 'au_my') = 'au_my' and m.pha is distinct from 'bao_hoa'
+          and d.content_id = any('{@KIEN@}'::bigint[])   -- CC2 chỉ phim có chữ Kiên (chu-kieu.json)
           and not exists (select 1 from etp.dong_phim x where x.content_id = d.content_id and x.trang_thai = 'chay')
           and not exists (select 1 from etp.dong_phim x where x.content_id = d.content_id and x.ai like 'máy: phim đội lãi%' and x.tao_luc > now() - interval '24 hours')
-        returning id, content_id; commit;""").splitlines():
+        returning id, content_id; commit;""".replace("@KIEN@", ",".join(DS_KIEN()))).splitlines():
         if "\t" in l: print(f"[{time.strftime('%H:%M:%S')}] phim đội lãi → xếp dòng mở rộng #{l.split(chr(9))[0]} phim {l.split(chr(9))[1]}", flush=True)
 
 # MỞ LẠI KHÔNG TRÙNG (18/11/2026: 1.197 dòng huỷ "FIX bỏ qua" / 24 giờ): mọi đường tự FIX (mo_tran_*, Mạnh muc5 / muc6) chỉ mở dòng d khi phim CHƯA có dòng cùng loại

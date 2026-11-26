@@ -1884,4 +1884,11 @@ export const LUAT = [
   { card: 'r2-xoa-2611', tep: 'apps/etp/kho-r2.py', co: 'if (cr and cr <= chet) or (not cr and nhom.get(k) in NHOM_CHET)', vi: 'tệp còn một creative sống trỏ tới thì giữ' },
   { card: 'r2-xoa-2611', tep: 'apps/etp/kho-r2.py', co: '# ghi sổ TRƯỚC khi xoá: cửa API chặn ngay từ lúc này', vi: 'etp.kho_xoa ghi trước lệnh rclone delete' },
   { card: 'r2-xoa-2611', tep: 'apps/etp/ethopex_api.py', co: 'from etp.kho_xoa where creative_id in', vi: 'cửa API chặn lên camp mới bằng creative đã xoá tệp R2' },
+  { card: 'cc2-2611', tep: 'apps/etp/dong_phim.py', co: '**({"logo": True} if d.get("loai") == CC2 else {})', vi: 'CC2: việc cắt mang cờ logo → cat-canh ghép logo cắt từ poster + nút ở 5 giây cuối (anh 26/11/2026 "Cc phải luôn dùng logo cắt đẹp như AD. Đặt tên loại CC2")' },
+  { card: 'cc2-2611', tep: 'apps/etp/dong_phim.py', co: 'ap-form-chu.py --kieu kien', vi: 'CC2 lên camp bằng chữ kiểu Kiên của phim (chu-kieu.json), không chữ form Dol' },
+  { card: 'cc2-2611', tep: 'apps/etp/dong_phim.py', co: "select d.content_id, p.ten, 'CC2', 'máy: phim đội lãi", cam: "select d.content_id, p.ten, 'CC', 'máy: phim đội lãi", vi: 'máy tự xếp dòng mở rộng dạng CC2, không còn CC ("CC thì ko làm")' },
+  { card: 'cc2-2611', tep: 'apps/etp/tho.py', co: '"ETP_LOGO_CC2": "1"', vi: 'thợ cắt bật dựng lớp logo CC2 khi việc có cờ logo' },
+  { card: 'cc2-2611', tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', co: 'os.environ.get("ETP_LOGO")', vi: 'dung_tap dùng lớp logo CC2 thay ô tên phim, không nhãn All Episodes ("Cc2 ko cần caption trên màn hình")' },
+  { card: 'cc2-2611', tep: 'apps/web/src/lib/etp-dang.json', co: '"ma": "CC2"', vi: 'sổ dạng có CC2' },
+  { card: 'cc2-2611', tep: 'apps/etp2/src/lib/etp-dang.json', co: '"ma": "CC2"', vi: 'sổ dạng etp2 có CC2' },
 ];

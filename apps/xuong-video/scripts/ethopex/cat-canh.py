@@ -102,7 +102,12 @@ def dung_tap(nguon, tu, den, ten, out, nut="WATCH NOW", cam=()):
     """cam = các giây (trên nguồn) dính thoại / khung cấm → bỏ cửa sổ ±1,5s quanh mỗi giây, phần còn lại nối liền (anh 28/10/2026: "đoạn nào vi phạm
     chủ động cắt bỏ luôn. Ko cần phải liền mạch") — không bỏ cả tập như trước"""
     if CQ.sai_luat(nut): raise SystemExit(f"CTA CHAN: chữ '{nut}' dính '{CQ.sai_luat(nut)}'")
-    tmp = os.path.splitext(out)[0]; the_ten(ten, nut, tmp + "-the-ten.png")
+    tmp = os.path.splitext(out)[0]
+    # CC2 (anh 26/11/2026): ETP_LOGO = lớp logo gốc + nút (lop-logo-cc2.py) thay ô chữ tên phim — không caption nào khác; tệp của cat-cuoi-lo, không xoá ở đây
+    lop = os.environ.get("ETP_LOGO") or ""
+    if lop and not os.path.exists(lop): raise SystemExit(f"thiếu lớp logo CC2 {lop}")
+    if not lop: the_ten(ten, nut, tmp + "-the-ten.png")
+    lop = lop or tmp + "-the-ten.png"
     kh = []
     for g in sorted(float(x) for x in cam if tu <= float(x) <= den):
         a_, z_ = max(tu, g - 1.5), min(den, g + 1.5)
@@ -119,7 +124,7 @@ def dung_tap(nguon, tu, den, ten, out, nut="WATCH NOW", cam=()):
            f"[1:v]format=rgba,fade=in:st={L - O_CUOI}:d=0.3:alpha=1[o];[c][o]overlay=0:0:enable='gte(t,{L - O_CUOI})'[v];"
            f"[0:a]atrim=0:{den - tu},asetpts=PTS-STARTPTS,{ca}afade=in:d=0.2,afade=out:st={L - 0.6}:d=0.6[a]")
     if kh: print("bỏ giây cấm:", ", ".join(f"{a_:.1f}–{z_:.1f}s" for a_, z_ in kh), file=sys.stderr)
-    gx.sh("ffmpeg", "-v", "error", "-y", *TUA(nguon, tu, den), "-loop", "1", "-t", f"{L}", "-i", tmp + "-the-ten.png", "-filter_complex", loc, "-map", "[v]", "-map", "[a]", "-t", f"{L}",
+    gx.sh("ffmpeg", "-v", "error", "-y", *TUA(nguon, tu, den), "-loop", "1", "-t", f"{L}", "-i", lop, "-filter_complex", loc, "-map", "[v]", "-map", "[a]", "-t", f"{L}",
           *MA_HOA, "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out, han=3600)
     dv, da = gx.dur_luong(out)
     if abs(dv - L) > 1.5 or abs(da - L) > 1.5: raise RuntimeError(f"đoạn ra hình {dv:.1f}s / tiếng {da:.1f}s khác độ dài tính {L:.1f}s — nguồn lỗi mối nối, bỏ đoạn")

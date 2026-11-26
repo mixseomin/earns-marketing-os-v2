@@ -1898,4 +1898,6 @@ export const LUAT = [
   { card: 1897, tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'LOGO_BAN = 6', vi: 'logo đã nhớ của mọi phim tách lại theo cách mới' },
   { card: 1897, tep: 'apps/etp/dong_phim.py', co: 'ids = [c for c in ids if c not in loai][:len(muc)]', vi: 'khối creative bỏ bản anh đã Loại / Sửa lại để máy dựng bản thay, không chờ duyệt mãi' },
   { card: 1897, tep: 'apps/etp/dong_phim.py', co: 'cr_mau_moi(ma, cid, set(ids) | loai)', vi: 'bản bị loại không được nhặt lại làm creative mới của khối' },
+  { card: 1897, tep: 'apps/etp/dong_phim.py', co: 'if c in co_camp or c in bo_ra or c in cu or k_ in da_k', vi: 'bản đã dựng bằng logo cũ (cụt chữ) không được dùng lại làm creative mới của khối' },
+  { card: 1897, tep: 'apps/etp/dong_phim.py', co: 'extract(epoch from tao) > {tach}', vi: 'logo đã lên bản mới thì chỉ giữ bản dựng sau lúc tách logo' },
 ];

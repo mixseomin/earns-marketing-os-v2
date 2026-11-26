@@ -382,6 +382,24 @@ def muc_camp(k, so=None):
     n = max(1, int(so or k.get("cr_camp") or len(muc)))
     return [muc[min(i, len(muc) - 1)] for i in range(n)]
 
+MAU_LOGO = {"dt_anh_dong_logo", "dt_logo_chat_lieu", "dt_logo_goc"}   # mẫu đặt LOGO GỐC của phim (dung-mau.py logo_goc → ~/.cache/ethopex/anh-tinh/<phim>/logo-goc.png)
+
+def logo_cu(ma, cid, ids):
+    """creative mẫu logo dựng bằng logo CŨ (trước khi máy tách logo sửa — LOGO_BAN của dung-mau.py tăng) = mang lỗi cũ (26/11/2026 #1897: #116377/#116434
+    dựng bằng logo bản 5 cụt chữ KING) → không được dùng lại làm creative mới của khối. Logo trên đĩa chưa lên bản mới → bỏ hết bản đã dựng (dung-mau tách lại rồi dựng);
+    đã lên bản mới → chỉ giữ bản dựng SAU lúc tách logo."""
+    if ma not in MAU_LOGO or not ids: return set()
+    try:
+        ban = int(re.search(r"^LOGO_BAN\s*=\s*(\d+)", open(os.path.join(E, "dung-mau.py"), encoding="utf-8").read(), re.M).group(1))
+    except Exception: return set()
+    tm = os.path.expanduser(f"~/.cache/ethopex/anh-tinh/{int(cid)}"); png = os.path.join(tm, "logo-goc.png")
+    try: moi = json.load(open(os.path.join(tm, "logo-goc.json"))).get("ban") == ban and os.path.exists(png)
+    except Exception: return set()   # chưa có logo trên đĩa (don-kho giữ logo-goc.*, nên đây là phim chưa từng tách) → không biết bản nào cũ, không chặn
+    if not moi: return set(ids)
+    tach = os.path.getmtime(png)
+    sau = {int(a) for a in sql(f"select creative_id from etp.thu_vien where creative_id in ({','.join(map(str, ids))}) and extract(epoch from tao) > {tach}").split() if a.isdigit()}
+    return set(ids) - sau
+
 def cr_mau_moi(ma, cid, bo_ra):
     """creative của (mẫu, phim) đã dựng mà CHƯA có camp, mỗi khung một cái (2 bản giọng cùng khung = cùng hình → chỉ lấy bản đầu), theo thứ tự dựng"""
     ids = [int(x) for x in re.findall(r"\d+", sql(f"select coalesce(array_to_string(creative_ids, ' '), '') from etp.mau_dung where mau = {s(ma)} and content_id = {int(cid)}"))]
@@ -389,10 +407,11 @@ def cr_mau_moi(ma, cid, bo_ra):
     khung = {int(a): b for a, b in (l.split("\t") for l in sql(f"""select t.creative_id, coalesce(substring(t.ghi from 'khung [^ ·]+'), t.id::text) from etp.thu_vien t
               where t.creative_id in ({','.join(map(str, ids))})""").splitlines() if l.count("\t") == 1)}
     co_camp = {int(x) for x in sql(f"select distinct creative_id from etp.camp where creative_id in ({','.join(map(str, ids))})").split()}
+    cu = logo_cu(ma, cid, ids)
     ra, da_k = [], set()
     for c in ids:
         k_ = khung.get(c, str(c))
-        if c in co_camp or c in bo_ra or k_ in da_k: da_k.add(k_); continue
+        if c in co_camp or c in bo_ra or c in cu or k_ in da_k: da_k.add(k_); continue
         da_k.add(k_); ra.append(c)
     return ra
 

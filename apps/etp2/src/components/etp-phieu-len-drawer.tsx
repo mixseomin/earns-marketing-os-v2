@@ -51,14 +51,47 @@ function OSo({ t, chi, thu }: { t: string; chi: number; thu: number }) {
   const r = roi(chi, thu);
   return <span style={{ fontSize: 11, whiteSpace: 'nowrap' }}>{t} {r != null ? <>{usd(chi)}→{usd(thu)} <b style={{ color: r >= 0 ? XANH : DO }}>{r >= 0 ? '+' : ''}{r}%</b></> : <span style={{ color: MO_SO }}>chưa tiêu</span>}</span>;
 }
+// XEM TRƯỚC creative dùng lại (anh 27/11/2026 "bấm vào thì phải xem được Preview của creative này gồm cả Form text liên quan"): video + chữ form camp cũ của nó, khuôn mẫu QC Facebook
+function XemCr({ c, onClose }: { c: CrCu; onClose: () => void }) {
+  const ds = (t: string, xs: string[] | null) => <div style={{ marginTop: 8 }}><div style={{ fontSize: 11, fontWeight: 700, color: MO_SO }}>{t}{xs && xs.length > 1 ? ` (${xs.length})` : ''}</div>
+    {xs?.length ? xs.map((x, i) => <div key={i} style={{ fontSize: 12.5, whiteSpace: 'pre-wrap', padding: '3px 0', borderBottom: i < xs.length - 1 ? `1px dashed ${VIEN}` : undefined }}>{x}</div>)
+      : <div style={{ fontSize: 12, color: MO_SO }}>— không có —</div>}</div>;
+  return <div data-xem-cr={c.nguon} onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-1, #111)', border: `1px solid ${VIEN}`, borderRadius: 12, padding: 14, display: 'flex', gap: 14, maxWidth: 820, width: '100%', maxHeight: 'calc(100vh - 32px)', overflow: 'auto' }}>
+      <div style={{ flex: 'none', width: 300 }}>
+        {c.video ? <video key={c.video} src={c.video} controls autoPlay playsInline poster={c.anh ?? undefined} style={{ width: '100%', aspectRatio: '9 / 16', maxHeight: 'calc(100vh - 80px)', background: '#000', borderRadius: 8, display: 'block' }} />
+          : c.anh ? <img src={c.anh} alt="" style={{ width: '100%', borderRadius: 8, display: 'block' }} /> : <div style={{ width: '100%', aspectRatio: '9 / 16', background: VIEN, borderRadius: 8 }} />}
+        {c.video ? <a href={c.video} target="_blank" rel="noreferrer" style={{ fontSize: 11.5 }}>mở video ở tab mới ↗</a> : null}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 700 }}>#{c.nguon}</span>
+          <span style={{ fontSize: 11.5, color: c.nha ? MO_SO : VANG }}>{c.nha ? 'nhà' : `đội · ${c.doi ?? 'chưa rõ người'}`}</span>
+          <span style={{ flex: 1 }} /><button onClick={onClose} style={{ ...chip(false), padding: '0 9px' }} title="đóng (bấm ra ngoài cũng đóng)">✕</button>
+        </div>
+        <div style={{ fontSize: 11.5, color: MO_SO, marginTop: 2 }}>{c.n_camp} camp · 7n ${c.chi7.toFixed(2)}→${c.thu7.toFixed(2)} · tổng ${c.chi.toFixed(2)}→${c.thu.toFixed(2)}</div>
+        <div style={{ fontSize: 12, fontWeight: 700, marginTop: 10 }}>✍ Form text camp cũ</div>
+        {c.pt || c.hl || c.de ? <>{ds('Primary text', c.pt)}{ds('Headline', c.hl)}{ds('Description', c.de)}</>
+          : <div style={{ fontSize: 12, color: MO_SO, marginTop: 4 }}>sổ chưa có chữ form của creative này (etp.bai_cr chưa đồng bộ)</div>}
+        <div style={{ fontSize: 12, marginTop: 10, color: MO_SO }}>nút FB: <b>{c.fb ?? '?'}</b> · link: <b>{c.link ?? '?'}</b></div>
+        <div style={{ fontSize: 11, color: MO_SO, marginTop: 6 }}>bản lên lại dùng video này với chữ của phiếu (khối Form text bên dưới), không chép chữ cũ</div>
+      </div>
+    </div></div>;
+}
+
 function DsDungLai({ ds, chon, bat }: { ds: CrCu[]; chon: number[]; bat: (n: number) => void }) {
+  const [xem, setXem] = useState<CrCu | null>(null);
   if (!ds.length) return <div style={{ fontSize: 12, color: MO_SO }}>chưa có creative dùng lại được</div>;
   return <div style={{ maxHeight: 260, overflowY: 'auto', border: `1px solid ${VIEN}`, borderRadius: 8 }} data-ds-cu>
+    {xem ? <XemCr c={xem} onClose={() => setXem(null)} /> : null}
     {ds.map((c) => { const on = chon.includes(c.nguon);
       return <label key={c.nguon} title={`đã dùng: ${c.n_ban} bản · ${c.n_camp} camp ${c.nha ? 'nhà' : 'đội'} (${c.n_chi} có tiêu)${c.gan_camp ? ` · camp gần nhất #${c.gan_camp} ${c.gan_tt ?? ''}` : ''}${c.goc !== c.nguon ? ` · gốc #${c.goc}` : ''}`}
         style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 8px', borderBottom: `1px solid ${VIEN}`, cursor: 'pointer', background: on ? 'rgba(37,99,235,.10)' : undefined }}>
         <input type="checkbox" checked={on} onChange={() => bat(c.nguon)} />
-        {c.anh ? <img src={c.anh} alt="" style={{ width: 26, height: 40, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <div style={{ width: 26, height: 40, background: VIEN, borderRadius: 3, flex: 'none' }} />}
+        <button type="button" data-xem-cr-nut={c.nguon} title="xem trước creative này + form text camp cũ" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setXem(c); }}
+          style={{ padding: 0, border: 0, background: 'none', cursor: 'zoom-in', flex: 'none', position: 'relative' }}>
+          {c.anh ? <img src={c.anh} alt="" style={{ width: 26, height: 40, objectFit: 'cover', borderRadius: 3, display: 'block' }} /> : <div style={{ width: 26, height: 40, background: VIEN, borderRadius: 3 }} />}
+          {c.video ? <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#fff', textShadow: '0 0 3px #000' }}>▶</span> : null}</button>
         <Badge d={maDang(c.dang)} />
         <span style={{ fontSize: 12.5, fontWeight: 600, flex: 'none' }}>#{c.nguon}</span>
         {c.nha ? <span data-cr-nha style={{ fontSize: 11, color: MO_SO, flex: 'none' }} title={c.doi ? `nhà đã dùng · đội cũng dùng: ${c.doi}` : 'creative của nhà'}>nhà{c.doi ? ` · cùng ${c.doi}` : ''}</span>

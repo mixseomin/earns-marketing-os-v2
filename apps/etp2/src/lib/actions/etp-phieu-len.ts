@@ -40,7 +40,12 @@ export type CrCu = { goc: number; nguon: number; dang: string | null; anh: strin
   doi: string | null; nha: boolean;
   // CTA của creative (anh 27/11/2026 "dùng lại thì phải hiện CTA của creative đang chọn"): fb = nút Facebook camp cũ của nó (etp.bai_cr.cta), cta_dat = video đạt luật CTA mới
   // (studio ethopex_cta_dat, ghi = lời soát), bản lên lại luôn mang nút form chữ (len-phieu.py)
-  fb: string | null; cta_dat: boolean; cta_ghi: string | null };
+  fb: string | null; cta_dat: boolean; cta_ghi: string | null;
+  // XEM TRƯỚC (anh 27/11/2026 "bấm vào thì phải xem được Preview của creative này gồm cả Form text liên quan"): video + chữ form camp cũ của nó (etp.bai_cr: chinh / tieu_de / mo_ta / link)
+  video: string | null; pt: string[] | null; hl: string[] | null; de: string[] | null; link: string | null };
+/** chữ form camp cũ của một creative (etp.bai_cr) — dùng chung docCrCu / docCrDoi: a = mã creative ưu tiên, b = mã dự phòng (creative gốc) */
+const CHU_CR = (a: ReturnType<typeof sql.raw>, b: ReturnType<typeof sql.raw>) => sql`left join lateral (select bc.chinh pt, bc.tieu_de hl, bc.mo_ta de, bc.link from etp.bai_cr bc
+    where bc.creative_id in (${a}, ${b}) and bc.chinh is not null order by (bc.creative_id = ${a}) desc limit 1) chu on true`;
 // DÙNG LẠI POST (anh 27/11/2026 "thêm option used post đang có và cũng show chi tiết hiệu suất giống với của Creative"): bài đăng FB nhà của phim (etp.bai_viet_v, chỉ camp nhà —
 // bài của đội không có trong sổ). Camp mới = ★ ROAS clone bài (nhan-ban.py <goc> --roas): ad chỉ mang effective_object_story_id → chữ / link / nút là của BÀI, phiếu không đổi được.
 // Luật 25/11 của nhan-ban: miền link của bài phải bằng domain lên camp (phiếu chọn, mặc định mien_len) — khác thì máy chặn, nên drawer khoá sẵn bài khác miền.
@@ -141,8 +146,9 @@ async function docCrCu(cid: number): Promise<CrCu[]> {
     round(coalesce(so.chi, 0)::numeric, 2)::float chi, round(coalesce(so.thu, 0)::numeric, 2)::float thu, round(coalesce(so.chi7, 0)::numeric, 2)::float chi7, round(coalesce(so.thu7, 0)::numeric, 2)::float thu7,
     so.ngay, gan.camp_id gan_camp, gan.trang_thai gan_tt, dn.ten doi, coalesce(nh.nha, false) nha,
     (select b.cta from etp.bai_cr b where b.creative_id = ng.nguon and b.cta is not null limit 1) fb, coalesce(c.cta_dat, false) cta_dat,
-    (select k.gia_tri -> ng.nguon::text ->> 'ghi' from xv_khoa_ngoai k where k.ten = 'ethopex_cta_dat') cta_ghi
-  from ng left join so using (goc) left join gan using (goc) left join nh using (goc) left join dn using (goc) left join etp.creative c on c.creative_id = ng.nguon order by coalesce(so.chi7, 0) desc, coalesce(so.chi, 0) desc, ng.nguon desc limit 40`);
+    (select k.gia_tri -> ng.nguon::text ->> 'ghi' from xv_khoa_ngoai k where k.ten = 'ethopex_cta_dat') cta_ghi, c.video, chu.pt, chu.hl, chu.de, chu.link
+  from ng left join so using (goc) left join gan using (goc) left join nh using (goc) left join dn using (goc) left join etp.creative c on c.creative_id = ng.nguon
+  ${CHU_CR(sql.raw('ng.nguon'), sql.raw('ng.goc'))} order by coalesce(so.chi7, 0) desc, coalesce(so.chi, 0) desc, ng.nguon desc limit 40`);
 }
 
 /** CREATIVE ĐỘI TỰ DỰNG (anh 27/11/2026 phim #180973 "bên tk của đội có sẵn nhiều creative đang lãi sao lại ko có"): creative chỉ có trong etp.camp_ngoai
@@ -162,8 +168,9 @@ async function docCrDoi(cid: number): Promise<CrCu[]> {
   select so.creative_id goc, so.creative_id nguon, 'DOI' dang, a.anh, null giong, 1 n_ban, so.n_camp::int, so.n_chi::int,
     round(so.chi::numeric, 2)::float chi, round(so.thu::numeric, 2)::float thu, round(so.chi7::numeric, 2)::float chi7, round(so.thu7::numeric, 2)::float thu7,
     so.ngay, gan.camp_id gan_camp, gan.trang_thai gan_tt, ten.ten doi, false nha,
-    (select b.cta from etp.bai_cr b where b.creative_id = so.creative_id and b.cta is not null limit 1) fb, false cta_dat, null cta_ghi
+    (select b.cta from etp.bai_cr b where b.creative_id = so.creative_id and b.cta is not null limit 1) fb, false cta_dat, null cta_ghi, a.video, chu.pt, chu.hl, chu.de, chu.link
   from so join etp.anh_cr a on a.creative_id = so.creative_id and a.video is not null left join gan on gan.creative_id = so.creative_id left join ten on ten.creative_id = so.creative_id
+  ${CHU_CR(sql.raw('so.creative_id'), sql.raw('so.creative_id'))}
   order by (so.thu7 > so.chi7) desc, so.chi7 desc limit 30`);
 }
 

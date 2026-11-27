@@ -968,6 +968,8 @@ const LUAT = [
   { card: 'cau-doc-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-sinh-cau', vi: 'khối Câu đọc có nút sinh thêm câu kiểu khác (anh 27/11/2026)' },
   { card: 'cau-doc-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: "const cau = dsCau(lc, await docCauThem(), ten);", vi: 'câu đọc = mẫu sổ + câu sinh thêm (etp.cau_hinh cau_doc_them)' },
   { card: 'cau-doc-2711', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: "khoa = 'cau_doc_them'", vi: 'máy dựng đọc cùng sổ câu sinh thêm, id lc:i khớp etp2' },
+  { card: 'xem-cr-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-xem-cr-nut={c.nguon}', vi: 'bấm ảnh creative dùng lại → xem trước video + form text camp cũ (anh 27/11/2026)' },
+  { card: 'xem-cr-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: 'const CHU_CR = ', vi: 'creative dùng lại mang chữ form etp.bai_cr + video' },
   { card: 'cu-doi-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: 'docCrDoi(id)', vi: 'dùng lại: danh sách gồm cả creative đội tự dựng (nhà chưa có trong etp.creative) — phim 180973 có creative lãi của Kiên (anh 27/11/2026)' },
   { card: 'cu-doi-2711', tep: 'apps/etp/luot2.py', co: "'creative đội #{goc} đang chạy", vi: 'dựng bản nhà từ creative đội: ghi etp.creative + dòng chấm để nhan-ban không xếp hàng chấm' },
   { card: 'cu-doi-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: "string_agg(distinct t.nguoi, ', ') ten", vi: 'creative cũ kèm tên thành viên đội dùng nó' },

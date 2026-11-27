@@ -5,14 +5,16 @@
 // Dạng: AD (mẫu ảnh động) + mọi dạng dòng phim (loaiPhieu: dạng máy làm được, phiếu không gác) + Dùng lại (creative cũ của phim, không dựng mới)
 // + Dùng lại post (bài đăng nhà đã chạy: clone bài sang camp mới — chữ / link / nút là của bài, không đổi; miền của bài phải trùng domain phiếu).
 // Form text: chọn ngôn ngữ để SINH chữ K (phieu_len.lang vẫn là ngôn ngữ phim — camp theo khuôn K); mỗi dòng K có ↻ sinh lại riêng dòng đó (máy AI, không gõ tay).
-// ROAS "máy chọn (theo phim)" = etp.muc_roas: mức có ít camp ★ ROAS nhất của phim trong 7 ngày; mọi mức tắt được, không mức nào thì không cho Gửi.
+// ROAS mặc định 0.9 (anh 27/11/2026 "0.9 = default"); "máy chọn (theo phim)" = etp.muc_roas: mức có ít camp ★ ROAS nhất của phim trong 7 ngày; mọi mức tắt được, không mức nào thì không cho Gửi.
+// Bộ tk (anh 27/11/2026 "thiếu chọn bộ tk"): '' = máy chọn (etp.cau_hinh bo_phim_moi) hoặc một bộ của sổ ethopex_bo_tk; Dùng lại post đi bộ của camp gốc.
+// Hover dòng chữ = câu dịch + MẪU ĐỘI ĐANG THẮNG cùng mục (chữ creative đội lãi 7 ngày, người kien xếp trước — p.mau_doi) để so; chỉ xem, không chép vào phiếu.
 // Loại 'etp-phieu-len' của EtpDrawerHost, id = mã phim. Action: @/lib/actions/etp-phieu-len.
 // ngan-moi-ok: phiếu lên camp của một phim — chưa ngăn nào có (etp-cr-phim là thư viện creative, etp-phim là chi tiết phim)
 // tra-repo-ok: form nội bộ dựng từ Drawer / GuardedButton / InfoHint dùng chung của etp2 + action etp-phieu-len
 import { useEffect, useState } from 'react';
 import { Drawer, GuardedButton, InfoHint } from '@/components/ui';
 import { MO_SO } from '@/components/etp-so';
-import { docPhieu, sinhChuK, guiPhieu, type PhieuMo, type DangPhieu, type CrCu, type BaiCu, type DangMo } from '@/lib/actions/etp-phieu-len';
+import { docPhieu, sinhChuK, guiPhieu, type PhieuMo, type DangPhieu, type CrCu, type BaiCu, type DangMo, type MauDoi } from '@/lib/actions/etp-phieu-len';
 import { TEN_GIONG, MO_TA_GIONG, tenGiong } from '@/lib/etp-dang';
 import type { ChuQc } from '@/lib/etp-chu-so';
 import BL from '@/lib/etp-bang-luat.json';
@@ -94,11 +96,20 @@ function Hang({ ten, children }: { ten: string; children: React.ReactNode }) {
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', flex: 1, minWidth: 0 }}>{children}</div></div>;
 }
 type Muc = 'pt' | 'hl' | 'de';
-function KhoiChu({ c, sua, dongSinh, sinhDong, bv }: { c: ChuQc; sua: boolean; dongSinh: string | null; sinhDong: (m: Muc, i: number) => void; bv: BanVi }) {
+// mẫu đội cùng mục: tối đa 6 câu khác nhau, mỗi câu ghi người · phim · lãi 7 ngày
+function MauDoiPop({ m, ds }: { m: Muc; ds: MauDoi[] }) {
+  const seen = new Set<string>(), hang: { x: string; d: MauDoi }[] = [];
+  for (const d of ds) for (const x of d[m] ?? []) { const k = x.trim().toLowerCase(); if (k && !seen.has(k) && hang.length < 6) { seen.add(k); hang.push({ x, d }); } }
+  if (!hang.length) return null;
+  return <div data-mau-doi={m}><div style={{ fontWeight: 700, marginBottom: 3 }}>🏆 Mẫu đội đang thắng (7 ngày)</div>
+    {hang.map(({ x, d }, i) => <div key={i} style={{ padding: '3px 0', borderTop: i ? '1px dashed var(--line-2)' : undefined }}>
+      <div>{x}</div><div style={{ color: MO_SO, fontSize: 11 }}>{d.nguoi ?? '?'} · {d.phim ?? '?'} · lãi ${(d.thu7 - d.chi7).toFixed(0)} / chi ${d.chi7.toFixed(0)}</div></div>)}</div>;
+}
+function KhoiChu({ c, sua, dongSinh, sinhDong, bv, mau }: { c: ChuQc; sua: boolean; dongSinh: string | null; sinhDong: (m: Muc, i: number) => void; bv: BanVi; mau: MauDoi[] }) {
   // mỗi mục chữ là một Hang (nhãn trái · dòng chữ thẳng cột lựa chọn như mọi hàng khác — anh 27/11/2026 "các option này phải thẳng cột trái với nhau")
   const ds = (m: Muc, t: string, xs: string[]) => xs.length ? <Hang ten={`${t} · ${xs.length}`}>
     {xs.map((x, i) => <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', fontSize: 12.5, padding: '3px 0', width: '100%', borderBottom: `1px dashed ${VIEN}` }} data-dong-chu>
-      <span style={{ flex: 1, opacity: dongSinh === `${m}${i}` ? 0.4 : 1 }}><ChuVi goc={x} b={bv} /></span>
+      <span style={{ flex: 1, opacity: dongSinh === `${m}${i}` ? 0.4 : 1 }}><ChuVi goc={x} b={bv} them={mau.length ? <MauDoiPop m={m} ds={mau} /> : undefined} /></span>
       {sua ? <button data-sinh-dong={`${m}${i}`} disabled={!!dongSinh} onClick={() => sinhDong(m, i)} title="máy AI sinh lại riêng dòng này (~100–300₫)"
         style={{ ...chip(false, !!dongSinh), padding: '0 7px', fontSize: 12 }}>{dongSinh === `${m}${i}` ? '…' : '↻'}</button> : null}
     </div>)}</Hang> : null;
@@ -144,7 +155,7 @@ function Preview({ p, chu, xem, setXem, media, mien, nut, tom }: { p: PhieuMo; c
 
 // NHÁP PHIẾU theo phim (localStorage, khoá etp-phieu-nhap-<cid>): F5 / đóng mở lại không mất lựa chọn + chữ đã sinh; hết hạn 3 ngày; Gửi xong xoá
 type Nhap = { kieu?: 'kien' | 'dol'; chuK?: ChuQc | null; nn?: 'en' | 'es'; dang?: DangPhieu; link?: string; mien?: string; roas?: string[]; ns?: number | null; nsTxt?: string;
-  gio?: string; gioTay?: string; cu?: number[]; bai?: string[]; giong?: string; cau?: string; cta?: string; tien?: number; luc?: number };
+  gio?: string; gioTay?: string; cu?: number[]; bai?: string[]; bo?: string; giong?: string; cau?: string; cta?: string; tien?: number; luc?: number };
 const khoaNhap = (cid: number) => `etp-phieu-nhap-${cid}`;
 function docNhap(cid: number): Nhap | null {
   try { const n = JSON.parse(localStorage.getItem(khoaNhap(cid)) ?? 'null') as Nhap | null; return n && Date.now() - (n.luc ?? 0) < 3 * 864e5 ? n : null; } catch { return null; }
@@ -164,9 +175,10 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   const [dang, setDang] = useState<DangPhieu>('AD');
   const [link, setLink] = useState('search.com');
   const [mien, setMien] = useState('');
-  const [roas, setRoas] = useState<string[]>(['dan']);                  // nhiều mức: mỗi mức một creative MỚI + một camp; tắt hết được (khi đó không cho Gửi)
+  const [roas, setRoas] = useState<string[]>(['0.9']);                  // nhiều mức: mỗi mức một creative MỚI + một camp; tắt hết được (khi đó không cho Gửi)
   const batRoas = (v: string) => setRoas((xs) => xs.includes(v) ? xs.filter((x) => x !== v) : ROAS.map((r) => r.v).filter((x) => x === v || xs.includes(x)));
   const [ns, setNs] = useState<number | null>(5);
+  const [bo, setBo] = useState('');                                     // '' = máy chọn (bo_phim_moi)
   const [nsTxt, setNsTxt] = useState('5');                              // ô số tự nhập: gõ tự do, kiểm lúc rời ô
   const [gio, setGio] = useState('lich');
   const [gioTay, setGioTay] = useState('');
@@ -211,14 +223,15 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       if (n.bai) setBai(n.bai.filter((x) => p0.bai.some((b) => b.bai === x)));
       if (n.giong) setGiong(n.giong); if (n.cau && p0.cau.some((c) => c.id === n.cau)) setCau(n.cau); if (n.cta && p0.cta.includes(n.cta)) setCta(n.cta);
       if (n.tien) setTien(n.tien);
+      if (n.bo && p0.bo.some((b) => b.ma === n.bo)) setBo(n.bo);
     }
     if (n?.chuK?.pt?.length) setChuK(n.chuK);   // chữ K đã sinh (tốn tiền AI) không sinh lại khi F5
     else if (r.p.chu.K) setChuK(r.p.chu.K); else void sinhK(n?.nn ?? l);   // phim chưa có chữ K trong sổ → máy sinh ngay (K là mặc định)
     setNapXong(true);
   }); }, [cid]);   // eslint-disable-line react-hooks/exhaustive-deps
   // lưu phiếu đang dở theo phim mỗi lần đổi (anh 27/11/2026 "đang lên camp, các option, text đã chọn thì F5 không bị mất"); Gửi xong thì xoá
-  useEffect(() => { if (napXong && !gui.ok) ghiNhap(cid, { kieu, chuK, nn, dang, link, mien, roas, ns, nsTxt, gio, gioTay, cu, bai, giong, cau, cta, tien }); },
-    [napXong, cid, kieu, chuK, nn, dang, link, mien, roas, ns, nsTxt, gio, gioTay, cu, bai, giong, cau, cta, tien, gui.ok]);
+  useEffect(() => { if (napXong && !gui.ok) ghiNhap(cid, { kieu, chuK, nn, dang, link, mien, roas, ns, nsTxt, gio, gioTay, cu, bai, bo, giong, cau, cta, tien }); },
+    [napXong, cid, kieu, chuK, nn, dang, link, mien, roas, ns, nsTxt, gio, gioTay, cu, bai, bo, giong, cau, cta, tien, gui.ok]);
 
   const lc = (p?.lang ?? 'en').toLowerCase();
   const chu = kieu === 'kien' ? chuK : p?.chu.D ?? null;
@@ -253,7 +266,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   const guiDi = async () => {
     if ((!chu && !laBai) || ns == null) return; setGui({ dang: true });
     const r = await guiPhieu({ cid, kieu, chu: chu && !laBai ? { pt: chu.pt, hl: chu.hl, de: chu.de } : { pt: [], hl: [], de: [] }, link, dang, mien: mien || null, roas, ns, gio: gioChon,
-      ...(laCu ? { cr_cu: cu } : {}), ...(laBai ? { bai } : {}), ...(dang === 'AD' && (giong || cau) ? { giong: { ...(cau ? { id: cau } : {}), ...(giong ? { kieu: giong } : {}) } } : {}),
+      ...(laCu ? { cr_cu: cu } : {}), ...(laBai ? { bai } : {}), ...(!laBai && bo ? { bo } : {}), ...(dang === 'AD' && (giong || cau) ? { giong: { ...(cau ? { id: cau } : {}), ...(giong ? { kieu: giong } : {}) } } : {}),
       ...(dang === 'AD' && cta ? { cta: `${lc}:${cta}` } : {}) });
     setGui('loi' in r ? { loi: r.loi } : { ok: r.chu });
     if (!('loi' in r)) xoaNhap(cid);
@@ -263,6 +276,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   const tom: [string, string][] = p ? [
     ['Creative', laBai ? `${bai.length} post dùng lại (clone bài, không dựng mới)` : laCu ? `${cu.length} creative dùng lại (không dựng mới)` : `${dang} · máy dựng ${roas.length || 0} bản mới`],
     ['Camp', `${soCamp}${laCu ? ` = ${cu.length} × ${roas.length} mức` : laBai ? ` = ${bai.length} post × ${roas.length} mức` : ''}`],
+    ['Bộ tk', laBai ? 'bộ của camp gốc' : bo ? (p.bo.find((b) => b.ma === bo)?.ten ?? `bộ ${bo}`) : `máy chọn (bộ ${p.bo_mac ?? '?'})`],
     ['ROAS', roas.length ? roas.map((x) => x === 'dan' ? 'máy chọn' : x).join(' / ') : '—'],
     ['Ngân sách', ns != null ? `$${ns}/camp · tổng $${ns * soCamp}/ngày` : '—'],
     ['Form', laBai ? 'chữ của bài đăng' : `${kieu === 'kien' ? 'K' : 'D'} · ${(kieu === 'kien' ? nn : lc).toUpperCase()}`],
@@ -335,12 +349,19 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
           onClick={() => { if (l !== nn) { setNn(l); void sinhK(l); } }}>{l.toUpperCase()}{l === lc ? ' ★' : ''}</button>)}
         <InfoHint>★ = ngôn ngữ phim; đổi là máy sinh lại bộ K bằng ngôn ngữ đó (camp vẫn theo khuôn ngôn ngữ phim)</InfoHint>
       </Hang> : <Hang ten="Ngôn ngữ"><span style={{ fontSize: 11.5, color: MO_SO }}>D là form cố định theo ngôn ngữ phim — không sinh lại</span></Hang>}
-      {chu ? <KhoiChu c={chu} sua={kieu === 'kien'} dongSinh={dongSinh} sinhDong={(m, i) => void sinhDong(m, i)} bv={bv} /> : null}
+      {chu ? <KhoiChu c={chu} sua={kieu === 'kien'} dongSinh={dongSinh} sinhDong={(m, i) => void sinhDong(m, i)} bv={bv} mau={p.mau_doi} /> : null}
     </Khoi>}
 
     <Khoi icon="🔗" ten="Link · Domain">
       {laBai ? <Hang ten="Link"><span style={{ fontSize: 11.5, color: MO_SO }}>link của bài đăng — không đổi</span></Hang> : <Hang ten="Link">{[...new Set(['search.com', 'info.com', link])].map((l) => <button key={l} style={chip(link === l)} onClick={() => setLink(l)}>{l}</button>)}</Hang>}
       <Hang ten="Domain">{p.mien.map((m) => <button key={m} style={chip(mien === m)} onClick={() => setMien(m)} title={m === p.mien_mac ? 'domain mặc định' : undefined}>{m}{m === p.mien_mac ? ' ★' : ''}</button>)}</Hang>
+    </Khoi>
+
+    <Khoi icon="🏦" ten="Bộ tài khoản" phu={laBai ? 'post dùng lại lên đúng bộ của camp gốc' : 'tk QC + Page lên camp'}>
+      {laBai ? <Hang ten="Bộ"><span style={{ fontSize: 11.5, color: MO_SO }}>theo camp gốc của bài — không đổi</span></Hang> : <Hang ten="Bộ">
+        <button style={chip(!bo)} onClick={() => setBo('')} data-bo="" title="máy chọn: bộ mặc định cho phim mới (etp.cau_hinh bo_phim_moi)">máy chọn (bộ {p.bo_mac ?? '?'})</button>
+        {p.bo.map((b) => <button key={b.ma} style={chip(bo === b.ma)} onClick={() => setBo(b.ma)} data-bo={b.ma} title={`${b.ten} · tk ${b.tk ?? '?'} · ${b.n7} camp nhà tạo 7 ngày`}>bộ {b.ma} · {b.ten.split(' · ')[0]}</button>)}
+      </Hang>}
     </Khoi>
 
     <Khoi icon="🎯" ten="Bid ROAS" phu="chọn nhiều mức — mỗi mức một creative + một camp; bấm lại để bỏ">

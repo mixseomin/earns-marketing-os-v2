@@ -77,7 +77,7 @@ def ghi_kq(cl, pid, camp, loi):
 
 def chay(cl):
     r = q(f"""select row_to_json(t) from (select c.id cl, c.trang_thai, c.creative_id, c.camp_id, c.loi, p.id, p.content_id, coalesce(p.lang, c.lang) lang, p.kieu, p.link, p.dang,
-            p.mien, coalesce(c.phieu_roas, p.roas_ds[1], p.roas) roas, p.ns, p.gio, p.tu_do, p.chu, (c.muc ->> 'cr_cu')::int cr_cu, c.muc ->> 'bai' bai, (c.muc ->> 'goc')::int goc, f.ten phim from etp.cho_len c join etp.phieu_len p on p.id = c.phieu_id left join etp.phim f on f.content_id = p.content_id
+            p.mien, coalesce(c.phieu_roas, p.roas_ds[1], p.roas) roas, p.ns, p.gio, p.tu_do, p.chu, p.bo, (c.muc ->> 'cr_cu')::int cr_cu, c.muc ->> 'bai' bai, (c.muc ->> 'goc')::int goc, f.ten phim from etp.cho_len c join etp.phieu_len p on p.id = c.phieu_id left join etp.phim f on f.content_id = p.content_id
           where c.id = {int(cl)}) t""")
     if not r: raise SystemExit(f"cho_len #{cl} không có phiếu — không lên")
     p = json.loads(r)
@@ -104,9 +104,17 @@ def chay(cl):
         if time.time() - t0 > CHO_GIAY: ghi_kq(cl, p["id"], None, HET_VE + (f" (tải lỗi: {x['loi']})" if x.get("loi") else "")); return
         time.sleep(15)
     cr = int(x["creative_id"])
-    bo = q("select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi'")
-    if not bo: ghi_kq(cl, p["id"], None, "thiếu bộ lên camp (etp.cau_hinh bo_phim_moi)"); return
+    bo = chon_bo(p)   # anh chọn bộ trên phiếu (0491 phieu_len.bo, anh 27/11/2026) — trống = bộ mặc định phim mới
+    if not bo: ghi_kq(cl, p["id"], None, "thiếu bộ lên camp (phiếu không chọn bộ và etp.cau_hinh bo_phim_moi trống)"); return
     chay_lenh(cl, p, lenh(p, cr, bo), cr)
+
+def chon_bo(p):
+    """bộ tk của phiếu: phieu_len.bo (anh chọn) hoặc etp.cau_hinh bo_phim_moi"""
+    b = str(p.get("bo") or "").strip()
+    if b:
+        if not b.isdigit(): raise SystemExit(f"bộ tk lạ trên phiếu: {b}")
+        return b
+    return q("select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi'")
 
 def body_cu(p):
     """chữ + link của phiếu cho bản mới từ creative cũ (CTA theo form như mọi bản nhà)"""
@@ -150,6 +158,10 @@ def tu_kiem():
     assert b[1] == "65110" and b[b.index("--roas") + 1] == "1.1" and b[b.index("--ns") + 1] == "8" and "--mien" not in b and b[b.index("--gio") + 1] == "2026-11-28 03:30" and "--gio-tu-do" in b
     assert "--gio-tu-do" not in lenh({**p, "gio": "2026-11-28 22:00", "tu_do": False}, 5, "42") and "--that" in a and "Kiên" not in " ".join(a) and "Dol" not in " ".join(a)
     assert CHO_GIAY > 60
+    assert chon_bo({"bo": "3"}) == "3"
+    try: chon_bo({"bo": "3; drop"}); raise AssertionError("bộ lạ phải chặn")
+    except SystemExit: pass
+    assert lenh(p, 5, chon_bo({"bo": "4"}))[lenh(p, 5, "4").index("--bo") + 1] == "4"
     try: lenh({**p, "roas": "dan,1.1"}, 5, "42"); raise AssertionError("danh sách mức phải bị từ chối — mỗi thẻ một mức")
     except SystemExit: pass
     b = body_cu({"id": 7, "link": "search.com", "chu": {"pt": ["a"], "hl": ["b"], "de": []}})

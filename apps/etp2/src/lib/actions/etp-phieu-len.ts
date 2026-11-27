@@ -67,7 +67,11 @@ export type PhieuMo = {
   dang: DangMo[];                                    // mọi dạng dòng phim máy làm được (LOAI chay) — phiếu không gác
   cta: string[];                                     // chữ nút CTA trong video theo ngôn ngữ phim (sổ nut.chu)
   nhom_goc: string | null;                           // dòng phim chỉ chạy phim Âu-Mỹ
+  bo: BoTk[]; bo_mac: string | null;                 // BỘ TÀI KHOẢN lên camp (anh 27/11/2026 "thiếu chọn bộ tk"): sổ ethopex_bo_tk; mặc định = etp.cau_hinh bo_phim_moi (len-phieu.py)
+  mau_doi: MauDoi[];                                 // chữ QC creative ĐỘI đang lãi 7 ngày, cùng ngôn ngữ phim (etp.chu_doi, dong-bo.py) — hover dòng chữ hiện ra
 };
+export type BoTk = { ma: string; ten: string; tk: string | null; n7: number };
+export type MauDoi = { nguoi: string | null; phim: string | null; chi7: number; thu7: number; pt: string[]; hl: string[]; de: string[] };
 
 /** mở phiếu: poster + tên + ngôn ngữ, chữ K (sổ) / D (form-chu), danh sách domain, hai khung giờ chính */
 export async function docPhieu(cid: number): Promise<{ ok: true; p: PhieuMo } | { loi: string }> {
@@ -87,9 +91,30 @@ export async function docPhieu(cid: number): Promise<{ ok: true; p: PhieuMo } | 
   const cau = (CAU[lc] ?? []).map((m, i) => ({ id: `${lc}:${i}`, chu: m.map((v) => v.replace('{t}', ten)).join(' ') }));
   const cu = (await docCrCu(id)).map((x) => ({ ...x, anh: anhUrl(x.anh) }));
   const bai = (await docBai(id)).map((x) => ({ ...x, anh: anhUrl(x.anh) }));
+  const [bo, mau_doi] = await Promise.all([docBo(), docMauDoi(lc)]);
   return { ok: true, p: { cid: id, ten: f.ten, lang: f.lang, poster: anhUrl(f.poster), logo: lg ? { url: lg.url, kieu: lg.kieu } : null,
     the_loai: f.the_loai, giong: { mac: GIONG_MAC, the_loai: THE_LOAI_GIONG[f.the_loai ?? ''] ?? null }, cau, cu, bai, chu: { K: so.kien(id), D: so.dol }, mien, mien_mac: m?.mac ?? null, khung: haiKhung(), dang_cho: dang,
-    dang: await loaiPhieu(), cta: NUT[lc] ?? [], nhom_goc: f.nhom_goc } };
+    dang: await loaiPhieu(), cta: NUT[lc] ?? [], nhom_goc: f.nhom_goc, bo: bo.ds, bo_mac: bo.mac, mau_doi } };
+}
+
+/** BỘ TÀI KHOẢN: sổ xv_khoa_ngoai ethopex_bo_tk ({"1": {tk, ten…}}) + số camp nhà tạo 7 ngày trên tk của bộ; mặc định = etp.cau_hinh bo_phim_moi */
+async function docBo(): Promise<{ ds: BoTk[]; mac: string | null }> {
+  const ds = await run<BoTk>(sql`select b.key ma, coalesce(b.value ->> 'ten', b.value ->> 'name', 'bộ ' || b.key) ten, coalesce(b.value ->> 'tk', b.value ->> 'ad_account_id') tk,
+      (select count(*) from etp.camp m where m.tao > now() - interval '7 days' and m.ad_account_id::text = coalesce(b.value ->> 'tk', b.value ->> 'ad_account_id'))::int n7
+    from xv_khoa_ngoai k, jsonb_each(k.gia_tri) b where k.ten = 'ethopex_bo_tk' and jsonb_typeof(k.gia_tri) = 'object' order by b.key`);
+  const [m] = await run<{ m: string | null }>(sql`select gia_tri #>> '{}' m from etp.cau_hinh where khoa = 'bo_phim_moi'`);
+  return { ds, mac: m?.m ?? null };
+}
+
+/** MẪU CHỮ ĐỘI ĐANG THẮNG (anh 27/11/2026 "hover vào thì show thêm các mẫu mà các camp đang thắng của Kiên và đội đang áp dụng"): creative đội có camp lãi 7 ngày,
+ *  chữ đọc từ Ethopex (etp.chu_doi ← dong-bo.py), cùng ngôn ngữ phim, Kiên xếp trước rồi theo lãi. Chỉ để XEM — chữ phiếu vẫn là K (máy sinh) / D (form-chu). */
+async function docMauDoi(lc: string): Promise<MauDoi[]> {
+  return run<MauDoi>(sql`with so as (select c.creative_id, sum(n.chi) chi7, sum(n.thu) thu7 from etp.camp_ngoai c join etp.so_ngay_ngoai n using (camp_id)
+      where n.ngay > current_date - 7 and c.creative_id is not null group by c.creative_id having sum(n.thu) > sum(n.chi) and sum(n.chi) >= 5)
+    select d.nguoi, coalesce(p.ten, v.ten) phim, round(so.chi7::numeric, 2)::float chi7, round(so.thu7::numeric, 2)::float thu7, d.pt, d.hl, d.de
+    from so join etp.chu_doi d using (creative_id) left join etp.phim p on p.content_id = d.content_id left join etp.thu_vien_phim v on v.content_id = d.content_id
+    where (case when coalesce(p.locale, v.locale, 'en') like 'es%' then 'es' else 'en' end) = ${lc}
+    order by (d.nguoi ilike '%kien%' or d.nguoi ilike '%kiên%') desc, so.thu7 - so.chi7 desc limit 12`);
 }
 
 /** CREATIVE CŨ của phim, gom theo GỐC (bản lượt 2 / bản phiếu cũ tính về creative gốc của nó): số bản, số camp NHÀ (cr_co_camp.doi = false — số đội không tính),
@@ -118,7 +143,9 @@ async function docCrCu(cid: number): Promise<CrCu[]> {
   from ng left join so using (goc) left join gan using (goc) left join nh using (goc) left join dn using (goc) left join etp.creative c on c.creative_id = ng.nguon order by coalesce(so.chi7, 0) desc, coalesce(so.chi, 0) desc, ng.nguon desc limit 40`);
 }
 
-/** BÀI ĐĂNG NHÀ của phim: số camp / đang bật / chi / thu (tổng + 7 ngày) từ etp.bai_viet_v; goc = camp nhà MỚI NHẤT mang bài (nhan-ban đọc khuôn camp + ad từ đó),
+/** BÀI ĐĂNG NHÀ của phim — KHÔNG lấy bài của đội (anh 27/11/2026 "check dashboard Ethopex có hỗ trợ chưa, chưa thì tạm pause không cho dùng lại bài của đội"):
+ *  Ethopex chia Page / tk QC theo nhóm tài sản (used_by_asset_group), camp nhà chỉ chạy được bài trên Page nhóm nhà → bài đội TẠM KHOÁ, guiPhieu cũng chặn bài không phải nhà.
+ *  Bài nhà: số camp / đang bật / chi / thu (tổng + 7 ngày) từ etp.bai_viet_v; goc = camp nhà MỚI NHẤT mang bài (nhan-ban đọc khuôn camp + ad từ đó),
  *  miền = etp.camp.mien của camp đó (nhan-ban mien_goc), ảnh = ảnh creative của bài */
 async function docBai(cid: number): Promise<BaiCu[]> {
   return run<BaiCu>(sql`select b.bai_viet bai, g.camp_id goc, b.page_ten page, b.creative_id,
@@ -151,6 +178,7 @@ export async function sinhChuK(cid: number, lang?: 'en' | 'es'): Promise<{ ok: t
 
 export type PhieuGui = { cid: number; kieu: Kieu; chu: { pt: string[]; hl: string[]; de: string[] }; link: string; dang: DangPhieu; mien: string | null;
   roas: string[]; ns: number; gio: string;
+  bo?: string;                           // bộ tk anh chọn ('1'…'5', sổ ethopex_bo_tk) — bỏ trống = máy chọn (bo_phim_moi); BAI dùng bộ của camp gốc nên bỏ qua
   bai?: string[];                        // dạng BAI: mã bài đăng (BaiCu.bai) — mỗi bài × mỗi mức ROAS = một camp clone bài
   cr_cu?: number[];                      // dạng CU: creative NGUỒN (CrCu.nguon) anh chọn — mỗi creative × mỗi mức ROAS = một camp
   giong?: { id?: string; kieu?: string };
@@ -189,6 +217,8 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
   const gio = String(g.gio ?? 'lich').trim().replace('T', ' ').slice(0, 16);
   if (gio !== 'lich' && !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(gio)) return { loi: `giờ chạy không hợp lệ: ${g.gio}` };
   const tuDo = gio !== 'lich' && !laKhung(gio);
+  const bo = !laBai && g.bo ? String(g.bo).trim() : null;
+  if (bo && !(await docBo()).ds.some((x) => x.ma === bo)) return { loi: `bộ tài khoản lạ: ${bo}` };
   if (baiDs.length * roasDs.length > CAMP_TOI_DA) return { loi: `${baiDs.length} bài × ${roasDs.length} mức ROAS = ${baiDs.length * roasDs.length} camp — tối đa ${CAMP_TOI_DA} mỗi phiếu` };
   if (crCu.length * roasDs.length > CAMP_TOI_DA) return { loi: `${crCu.length} creative × ${roasDs.length} mức ROAS = ${crCu.length * roasDs.length} camp — tối đa ${CAMP_TOI_DA} mỗi phiếu` };
   const [f] = await run<{ lang: string | null; ten: string | null; cam: string | null }>(sql`select coalesce(p.locale, v.locale) lang, coalesce(p.ten, v.ten) ten,
@@ -212,8 +242,8 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
   const [trung] = g.dang === 'CU' || laBai ? [] : await run<{ id: number }>(sql`select id from etp.phieu_len where content_id = ${cid} and dang = ${g.dang} and trang_thai = 'dung' and tao > now() - interval '2 days'`);
   if (trung) return { loi: `phim này đang có phiếu #${trung.id} dạng ${g.dang} chờ máy dựng — chờ bản dựng vào Chờ lên rồi gửi phiếu mới` };
   const chu = laBai ? null : JSON.stringify({ pt, hl, de });
-  const [p] = await run<{ id: number }>(sql`insert into etp.phieu_len (content_id, lang, kieu, chu, link, dang, mien, roas, roas_ds, ns, gio, tu_do, ai)
-    values (${cid}, ${f?.lang ?? null}, ${g.kieu}, ${chu}::jsonb, ${link}, ${g.dang}, ${mien}, ${roas}, ${`{${roas}}`}::text[], ${ns}, ${gio}, ${tuDo}, ${me.email}) returning id`);
+  const [p] = await run<{ id: number }>(sql`insert into etp.phieu_len (content_id, lang, kieu, chu, link, dang, mien, roas, roas_ds, ns, gio, tu_do, ai, bo)
+    values (${cid}, ${f?.lang ?? null}, ${g.kieu}, ${chu}::jsonb, ${link}, ${g.dang}, ${mien}, ${roas}, ${`{${roas}}`}::text[], ${ns}, ${gio}, ${tuDo}, ${me.email}, ${bo}) returning id`);
   if (!p) return { loi: 'không ghi được phiếu' };
   const k = g.kieu === 'kien' ? 'K' : 'D';
   const loiPhieu = async (l: string) => { await run(sql`update etp.phieu_len set trang_thai = 'loi', loi = ${l.slice(0, 400)}, cap_nhat = now() where id = ${p.id}`); return { loi: l }; };

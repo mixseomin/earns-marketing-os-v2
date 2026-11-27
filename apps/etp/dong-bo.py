@@ -564,6 +564,25 @@ def main():
                              "them": {k: x.get(k) for k in ("account_controls_status", "ads_restricted", "picture_url", "link", "available", "facebook_bm_id", "is_published", "used_by_asset_group", "cache_status") if x.get(k) is not None}})
         ghi("tai_nguyen", rows, ["loai", "id"], {"loai": "text", "id": "bigint", "external_id": "text", "ten": "text", "trang_thai": "text", "them": "jsonb"})
     except Exception as e: loi.append(f"tai_nguyen: {e}")
+    moc('chữ QC đội')
+    # ── CHỮ QC CỦA ĐỘI (anh 27/11/2026 "hover thì show các mẫu mà các camp đang thắng của Kiên và đội đang áp dụng"): creative của camp đội lãi 7 ngày
+    # chưa có trong etp.chu_doi → đọc /api/v1/creatives/<id>.asset_spec (chỉ đọc), tối đa 80 / lượt; phiếu lên camp etp2 đọc bảng này
+    try:
+        moi = [int(x) for x in q("""select c.creative_id from etp.camp_ngoai c join etp.so_ngay_ngoai n using (camp_id)
+            where n.ngay > current_date - 7 and c.creative_id is not null and not exists (select 1 from etp.chu_doi d where d.creative_id = c.creative_id)
+            group by c.creative_id having sum(n.thu) > sum(n.chi) and sum(n.chi) >= 5 order by sum(n.thu) - sum(n.chi) desc limit 80""").split()]
+        def doc_cr(i):
+            try: return i, api(f"/api/v1/creatives/{i}")
+            except Exception: return i, None
+        rows = []
+        with ThreadPoolExecutor(8) as ex:
+            for i, d in ex.map(doc_cr, moi):
+                if not d: continue
+                sp = d.get("asset_spec"); sp = json.loads(sp) if isinstance(sp, str) and sp.strip().startswith("{") else (sp or {})
+                rows.append({"creative_id": i, "content_id": d.get("content_id"), "nguoi": d.get("user_name"),
+                             "pt": sp.get("primaryTexts") or ([d["body"]] if d.get("body") else []), "hl": sp.get("headlines") or ([d["title"]] if d.get("title") else []), "de": sp.get("descriptions") or []})
+        kq["so_chu_doi"] = ghi("chu_doi", rows, ["creative_id"], {"creative_id": "int", "content_id": "int", "nguoi": "text", "pt": "jsonb", "hl": "jsonb", "de": "jsonb"}) if rows else 0
+    except Exception as e: loi.append(f"chu_doi: {e}")
     moc('TRANG PHIM TRONG WORKSPACE')
     # ── TRANG PHIM TRONG WORKSPACE (anh 02/11/2026: tab Phim — phim đã "thêm content" chưa, đủ mô tả / cốt truyện / link tập 1 chưa): trang_phim.py, chỉ đọc Ethopex
     try:

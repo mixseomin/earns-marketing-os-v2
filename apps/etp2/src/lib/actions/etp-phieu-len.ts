@@ -128,6 +128,8 @@ async function docBai(cid: number): Promise<BaiCu[]> {
     from etp.bai_viet_v b
     join lateral (select camp_id, mien from etp.camp m where m.bai_viet = b.bai_viet order by m.tao desc nulls last, m.camp_id desc limit 1) g on true
     where b.content_id = ${cid} and b.bai_viet ~ '^[0-9]+_[0-9]+$'
+      -- chỉ bài ĐANG CÓ LÃI (anh 27/11/2026): có tiêu 7 ngày thì xét lãi 7 ngày, không thì xét lãi tổng
+      and (case when coalesce(b.chi7, 0) > 0 then coalesce(b.thu7, 0) > b.chi7 else coalesce(b.thu, 0) > coalesce(b.chi, 0) end)
     order by coalesce(b.chi7, 0) desc, coalesce(b.chi, 0) desc limit 40`);
 }
 

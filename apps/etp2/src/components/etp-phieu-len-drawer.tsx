@@ -69,7 +69,7 @@ function DsDungLai({ ds, chon, bat }: { ds: CrCu[]; chon: number[]; bat: (n: num
 }
 
 function DsBai({ ds, chon, bat, mien }: { ds: BaiCu[]; chon: string[]; bat: (b: string) => void; mien: string }) {
-  if (!ds.length) return <div style={{ fontSize: 12, color: MO_SO }}>phim chưa có bài đăng nào của nhà</div>;
+  if (!ds.length) return <div style={{ fontSize: 12, color: MO_SO }}>phim chưa có bài đăng nào của nhà đang có lãi</div>;
   return <div style={{ maxHeight: 260, overflowY: 'auto', border: `1px solid ${VIEN}`, borderRadius: 8 }} data-ds-bai>
     {ds.map((b) => { const on = chon.includes(b.bai); const lech = !!b.mien && !!mien && b.mien !== mien;
       return <label key={b.bai} data-bai={b.bai} title={lech ? `bài mang miền ${b.mien} — chọn domain ${b.mien} ở khối Link · Domain mới dùng lại được` : `post ${b.bai} · camp gốc #${b.goc}${b.creative_id ? ` · creative #${b.creative_id}` : ''} · ${b.mien ?? 'chưa rõ miền'}`}
@@ -287,7 +287,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
           return <button key={d.ma} style={chip(dang === d.ma, !!k)} onClick={() => { if (!k) setDang(d.ma); }} data-dang={d.ma} aria-disabled={!!k} title={k ? `${d.ten}: ${k}` : `${d.ten} — ${d.mo_ta}`}>{d.ma}{k ? ' 🔒' : ''}</button>; })}
         <button style={chip(laCu)} onClick={() => setDang('CU')} data-dang="CU" title="dùng lại creative đã có của phim — mỗi creative × mỗi mức ROAS một camp">Dùng lại ({p.cu.length})</button>
         {dangChon ? <div style={{ fontSize: 12, color: MO_SO, width: '100%' }}><b style={{ color: 'inherit' }}>{dangChon.ten}</b> — {dangChon.mo_ta}</div> : null}
-        <button style={chip(laBai)} onClick={() => setDang('BAI')} data-dang="BAI" title="dùng lại bài đăng (post) nhà đã chạy — clone bài sang camp mới; chữ / link / nút là của bài, không đổi được">Dùng lại post ({p.bai.length})</button>
+        <button style={chip(laBai)} onClick={() => setDang('BAI')} data-dang="BAI" title="dùng lại bài đăng (post) nhà đang có lãi (lãi 7 ngày; chưa tiêu 7 ngày thì lãi tổng) — clone bài sang camp mới; chữ / link / nút là của bài, không đổi được">Dùng lại post ({p.bai.length})</button>
         {laCu ? <div style={{ width: '100%' }}><DsDungLai ds={p.cu} chon={cu} bat={batCu} /></div> : null}
         {laBai ? <div style={{ width: '100%' }}><DsBai ds={p.bai} chon={bai} bat={batBai} mien={mienPhieu} />
           <div style={{ fontSize: 11.5, color: MO_SO, marginTop: 4 }} data-bai-ghi>used post: chữ form, link, nút CTA lấy nguyên từ bài — không chọn form text khác được (muốn chữ mới trên cùng video thì dùng “Dùng lại” creative). Bài mang miền khác domain phiếu thì khoá.</div></div> : null}

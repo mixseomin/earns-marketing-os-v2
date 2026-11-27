@@ -1014,6 +1014,7 @@ const LUAT = [
   { card: 'bai-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: 'bai:${p.id}', vi: 'gửi phiếu post tạo thẻ Chờ lên theo bài' },
   { card: 'bai-2711', tep: 'apps/etp/len-phieu.py', co: "muc ->> 'bai'", vi: 'máy lên camp đọc bài của thẻ' },
   { card: 'bai-2711', tep: 'apps/etp/len-phieu.py', co: 'def lenh_bai(', vi: 'thẻ post lên bằng nhan-ban.py clone bài' },
+  { card: 'bai-lai-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: 'then coalesce(b.thu7, 0) > b.chi7 else coalesce(b.thu, 0) > coalesce(b.chi, 0) end', vi: 'anh 27/11/2026: post để chọn chỉ hiện bài đang có lãi' },
 ];
 
 const loi = [];

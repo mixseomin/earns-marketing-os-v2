@@ -1,0 +1,8 @@
+{
+  "tieu_de": "EL CLÁSICO",
+  "phu_de": "Physics decides",
+  "doi": [
+    { "ten": "Real Madrid", "ngan": "RMA", "kieu": "tron", "mau": ["#f4f4f4", "#d4af37"], "chu": "#1b2a6b", "tm": ["#2b2b2b", "#d4af37"] },
+    { "ten": "Barcelona", "ngan": "FCB", "kieu": "soc", "mau": ["#a50044", "#004d98"], "chu": "#ffd84a", "tm": ["#18c37e", "#0b5a3a"] }
+  ]
+}

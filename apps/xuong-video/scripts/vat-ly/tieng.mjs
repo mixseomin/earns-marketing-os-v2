@@ -67,6 +67,8 @@ export function tongHop(g) {
     return b;
   };
 
+  if (g.kieu === 'tran') return tiengTran(g, { N, L, Rr, cong, ngau, kick, kenNot, ghi: () => ghiWav(N, L, Rr) });
+
   // ngũ cung C: C D E G A trên 3 quãng tám
   const NGU = []; for (const o of [0, 1, 2]) for (const s of [0, 2, 4, 7, 9]) NGU.push(261.63 * Math.pow(2, (s + 12 * o) / 12));
   const x0 = 540;
@@ -117,6 +119,39 @@ export function tongHop(g) {
   // mở cổng sau đoạn giới thiệu
   [783.99, 1046.5].forEach((f, k) => cong(dau + k * 0.1, marimba(f, 0.3, 0.6)));
 
+  return ghiWav(N, L, Rr);
+}
+
+// Trận bóng: tiếng sút (q), bóng đập tường (v), lưới rung (l), va người (b), còi (coi), bàn thắng = khán đài gầm + kèn; nền = tiếng đám đông.
+function tiengTran(g, { N, cong, ngau, kick, kenNot, ghi }) {
+  const DAI = g.DAI, x0 = g.luat.cx ?? 960;
+  const nhieu = (dai, loc, env) => { const n = Math.floor(dai * SR), b = new Float32Array(n); let lp = 0; for (let k = 0; k < n; k++) { lp += (ngau() - lp) * loc; b[k] = lp * env(k / SR); } return b; };
+  const sut = (vol) => { const n = Math.floor(0.12 * SR), b = new Float32Array(n); let ph = 0, lp = 0; for (let k = 0; k < n; k++) { const t = k / SR; ph += 2 * Math.PI * (70 + 160 * Math.exp(-t * 60)) / SR; lp += (ngau() - lp) * 0.5; b[k] = vol * (0.8 * Math.sin(ph) * Math.exp(-t * 35) + 0.5 * lp * Math.exp(-t * 90)); } return b; };
+  const coi = (dai, vol) => { const n = Math.floor(dai * SR), b = new Float32Array(n); for (let k = 0; k < n; k++) { const t = k / SR, f = 2900 + 180 * Math.sin(2 * Math.PI * 28 * t); b[k] = vol * Math.sin(2 * Math.PI * f * t) * (0.6 + 0.4 * Math.sign(Math.sin(2 * Math.PI * 28 * t))) * Math.min(1, t * 80) * Math.min(1, (dai - t) * 30); } return b; };
+  let sauQ = -1, sauV = -1, sauB = -1;
+  for (const e of g.suKien) {
+    if (e.t >= DAI) continue;
+    const p = g.khung[Math.min(g.khung.length - 1, Math.round(e.t * 30))]?.p?.[e.i ?? 10];
+    const pan = p ? Math.max(-0.7, Math.min(0.7, (p[0] - x0) / 440)) : 0;
+    if (e.k === 'q') { if (e.t - sauQ < 0.05) continue; sauQ = e.t; cong(e.t, sut(Math.min(1, (e.l ?? 4) / 8) * 0.35), pan); }
+    else if (e.k === 'v') { if (e.t - sauV < 0.06) continue; sauV = e.t; cong(e.t, nhieu(0.18, 0.15, (t) => Math.min(1, (e.l ?? 4) / 9) * 0.35 * Math.exp(-t * 25)), pan); }
+    else if (e.k === 'l') cong(e.t, nhieu(0.5, 0.6, (t) => 0.25 * Math.exp(-t * 7)), pan);
+    else if (e.k === 'b') { if (e.t - sauB < 0.08) continue; sauB = e.t; cong(e.t, nhieu(0.05, 0.3, (t) => 0.12 * Math.exp(-t * 120)), pan); }
+    else if (e.k === 'coi') { if (e.loai === 'kt') { cong(e.t, coi(0.35, 0.12)); cong(e.t + 0.45, coi(0.35, 0.12)); cong(e.t + 0.9, coi(1.1, 0.12)); } else if (e.loai === 'hiep') { cong(e.t, coi(0.35, 0.12)); cong(e.t + 0.45, coi(0.9, 0.12)); } else cong(e.t, coi(0.7, 0.12)); }
+    else if (e.k === 'ban') {
+      // khán đài gầm: tiếng ồn dải giữa phồng lên 0,3 s rồi tắt dần trong 3 s, kèm hai nốt kèn
+      cong(e.t, nhieu(3.4, 0.25, (t) => 0.55 * Math.min(1, t / 0.3) * Math.exp(-Math.max(0, t - 0.4) * 0.9)), pan * 0.4);
+      [392, 523.25, 659.25].forEach((f, k) => cong(e.t + 0.1 + k * 0.12, kenNot(f, 0.1, 1.6)));
+    }
+  }
+  // nền khán đài: tiếng rì rầm suốt trận, to hơn ở 15 phút cuối
+  const tKt = g.ketThuc?.t ?? DAI, nen = nhieu(DAI, 0.08, (t) => { const m = Math.max(0, Math.min(1, (t - g.dauGiay) / 1)); const cuoi = t > tKt - 15 && t < tKt ? 1 + 0.6 * (1 - (tKt - t) / 15) : 1; return 0.07 * m * cuoi * (t > tKt ? Math.max(0.5, 1.6 - (t - tKt) * 0.2) * 1.8 : 1); });
+  cong(0, nen);
+  if (g.ketThuc?.thang >= 0) [523.25, 659.25, 783.99, 1046.5].forEach((f, k) => cong(tKt + 1 + k * 0.14, kenNot(f, 0.14, 2.8 - k * 0.14)));
+  return ghi();
+}
+
+function ghiWav(N, L, Rr) {
   // chuẩn hoá + giới hạn mềm
   let dinh = 0; for (let k = 0; k < N; k++) dinh = Math.max(dinh, Math.abs(L[k]), Math.abs(Rr[k]));
   const he = dinh > 0 ? 1.4 / dinh : 1;

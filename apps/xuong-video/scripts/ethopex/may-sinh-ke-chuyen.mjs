@@ -3,7 +3,7 @@
 // Mỗi nhịp (launchd com.htuan.ethopex-may-sinh-ke-chuyen, 5 phút — nhịp chờ render thoát ngay, không mở Chrome; launchd không chạy chồng hai lượt) làm TIẾP đúng một phim, theo sổ ~/.cache/ethopex/vx-kc/may.json:
 //   chon  hàng đợi hiệu quả (box3 hang-ke-chuyen.mts) → viết kịch bản ckey + tạo tập studio (box3 viet-ke-chuyen.mts, ~25₫)
 //   sinh  giọng + ảnh + clip trên VideoExpress ($0, ≤ 5 clip song song — vx-ke-chuyen.mts; chưa xong thì nhịp sau làm tiếp)
-//   nap   box3 nạp R2 + xuất thân phim (vx-nap-tap.mts, cổng không câm) → cta  thẻ cuối mẫu CTA v2 (vx-ke-chuyen --cta, cổng câm / giọng đè)
+//   nap   box3 nạp R2 + xuất thân phim (vx-nap-tap.mts, cổng không câm) → cta  thẻ cuối kiểu AD: logo gốc + nút màu logo nảy theo giọng, chuyển động VideoExpress 0₫ (vx-ke-chuyen --cta → cta-logo.py, cổng câm / giọng đè)
 //   xong  đưa vào thư viện etp (thu-vien-them.mts, trạng thái "sẵn sàng")
 //   len   TỰ ĐƯA LÊN THÀNH CREATIVE (anh 29/10/2026 "làm đi" — kế hoạch KT cho phim đang chạy): mỗi nhịp, bản "sẵn sàng" chưa có creative → thu-vien-len.py
 //         (len-creative: kho + chữ QC + chấm Meta/AFS). Chấm Sạch rồi thì nhịp ethopex của cty lên camp KT $1 cho phim (worker ethopex.mjs, khối PHIM MỚI / KT).
@@ -66,7 +66,7 @@ insert into etp.thu_vien (content_id, dang, lang, ten, tap_id, nguon, trang_thai
   where not exists (select 1 from etp.thu_vien where tap_id = ${Number(d.tap)});`); }
   catch (e) { ghi(`  không ghi được dòng thư viện: ${String(e).slice(0, 120)}`); }
 }
-const buocChu = (d) => { const t = tienDo(d); return d.buoc === 'sinh' ? `giọng ${t.am}/6 · ảnh ${t.anh}/6 · clip ${t.vid}/6` : d.buoc === 'nap' ? 'xuất thân phim' : d.buoc === 'cta' ? 'gắn thẻ cuối CTA v2' : d.buoc; };
+const buocChu = (d) => { const t = tienDo(d); return d.buoc === 'sinh' ? `giọng ${t.am}/6 · ảnh ${t.anh}/6 · clip ${t.vid}/6` : d.buoc === 'nap' ? 'xuất thân phim' : d.buoc === 'cta' ? 'gắn thẻ cuối kiểu AD (logo + nút)' : d.buoc; };
 
 function hong(loi) {
   const d = so.dang; d.lan = (d.lan ?? 0) + 1; d.loi = String(loi).slice(0, 400);
@@ -114,7 +114,7 @@ try {
     const n = so.ngay[ngay()] ?? 0;
     if (n >= TRAN) { ghi(`đủ trần ${TRAN} phim hôm nay — nghỉ`); dong(); process.exit(0); }
     const bo = new Set(so.bo.map((x) => x.content_id));
-    const hang = JSON.parse(ssh('scripts/ethopex/hang-ke-chuyen.mts --so=8').split('\n').pop()).filter((x) => !bo.has(x.content_id));
+    const hang = JSON.parse(ssh('scripts/ethopex/hang-ke-chuyen.mts --so=8').split('\n').pop()).filter((x) => !bo.has(x.content_id) && x.nhom_goc === 'au_my');   // chặn lần hai phía iMac: chỉ phim Âu-Mỹ (bản hàng đợi cũ trên box3 không in nhom_goc → hàng trống, không lọt)
     if (!hang.length) { ghi('hàng đợi trống'); dong(); process.exit(0); }
     const p = hang[0];
     ghi(`chọn ${p.ten} (${p.lang}, điểm ${p.diem}, lãi 14 ngày $${p.lai14}) → viết kịch bản`);
@@ -152,11 +152,11 @@ try {
     Object.assign(d, { url, buoc: 'cta', lan: 0 }); luu(); ghi(`  xuất thân phim: ${url}`); dongTv(d, 'dang_sinh', buocChu(d));
   }
   if (d.buoc === 'cta') {
-    const r = tsx(['scripts/ethopex/vx-ke-chuyen.mts', `--tap=${d.tap}`, `--cta=${d.url}`], 15 * 60, d.env ?? {});
+    const r = tsx(['scripts/ethopex/vx-ke-chuyen.mts', `--tap=${d.tap}`, `--cta=${d.url}`, `--cid=${d.content_id}`], 20 * 60, d.env ?? {});
     if (r.status !== 0) throw new Error((r.stderr || r.stdout || 'CTA lỗi').slice(-400));
-    const tep = `${C}/${d.tap}/${d.tap}-cta-v2.mp4`;
+    const tep = `${C}/${d.tap}/${d.tap}-kt.mp4`;
     execFileSync('rsync', ['-a', tep, `${B}:/var/tmp/vx-kc/${d.tap}/`], { timeout: 600e3 });
-    const ra = ssh(`scripts/ethopex/thu-vien-them.mts ${d.tap} /var/tmp/vx-kc/${d.tap}/${d.tap}-cta-v2.mp4 --chi-vnd=${d.chi_vnd ?? 0} --ghi=${q(`máy sinh ${d.bat_dau} → ${gio()}`)}`, 600);
+    const ra = ssh(`scripts/ethopex/thu-vien-them.mts ${d.tap} /var/tmp/vx-kc/${d.tap}/${d.tap}-kt.mp4 --chi-vnd=${d.chi_vnd ?? 0} --ghi=${q(`máy sinh ${d.bat_dau} → ${gio()}`)}`, 600);
     ghi(`  ${ra.split('\n').pop()}`);
     if (d.lam_lai) { psql(`update etp.thu_vien set creative_id = null, trang_thai = 'san_sang', ghi = ${lit(`làm lại: ${d.ly ?? ''}`)}, cap_nhat = now() where tap_id = ${Number(d.tap)};`); ghi('  làm lại xong → thư viện "sẵn sàng", nhịp sau đưa lên creative mới'); }
     so.ngay[ngay()] = (so.ngay[ngay()] ?? 0) + 1;

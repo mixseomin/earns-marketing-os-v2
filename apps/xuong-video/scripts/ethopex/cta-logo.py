@@ -26,7 +26,11 @@ def main(than, cid, khung, ra, so_cau=0):
     p, lang, ten, tm = DM.ngu_canh(cid)
     ng = AT.sql(f"select coalesce(nhom_goc, '') from etp.phim where content_id = {int(cid)}")   # chỉ phim Âu-Mỹ (anh 29/10 + 28/11/2026) — chặn trước khi tốn AI / VE
     if ng != "au_my": raise SystemExit(f"phim #{cid} nhóm gốc '{ng or 'chưa chấm'}' — chỉ dựng phim Âu-Mỹ (etp.phim.nhom_goc)")
-    if not os.path.exists(os.path.join(tm, "poster.jpg")): raise SystemExit(f"thiếu {tm}/poster.jpg — logo gốc tách từ poster phim")
+    pj = os.path.join(tm, "poster.jpg")
+    if not os.path.exists(pj) and p.get("url"):   # logo gốc tách từ poster CÔNG KHAI của trang phim (og:image) — poster studio không mang logo, logo rơi về kiểu dải (166081, 27/11/2026)
+        TT = DM._nap("tai_tap", "tai-tap.py"); link = TT.og_anh(TT.mo_rong(p["url"]))
+        if link: AT.sh("curl", "-sSfL", "-A", "Mozilla/5.0", "-o", pj, link)
+    if not os.path.exists(pj) or os.path.getsize(pj) < 5000: raise SystemExit(f"thiếu {pj} — không lấy được poster công khai của phim (logo gốc tách từ đó)")
     goc = os.path.join(tm, "kt-goc.png")
     im = Image.open(khung).convert("RGB"); k = max(W / im.width, H / im.height); im = im.resize((round(im.width * k), round(im.height * k)), Image.LANCZOS)
     im.crop(((im.width - W) // 2, (im.height - H) // 2, (im.width - W) // 2 + W, (im.height - H) // 2 + H)).save(goc)

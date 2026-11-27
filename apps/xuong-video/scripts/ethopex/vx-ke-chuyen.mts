@@ -7,7 +7,7 @@
 // Ghép MP4 = scripts/ethopex/vx-nap-tap.mts trên box3 (nạp R2 + ghi xv_canh + chayXuat của studio, 0đ).
 //   ~/bin/br use 677 && ~/bin/br goto https://app.videoexpress.ai/
 //   cd /Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video && ../../node_modules/.bin/tsx scripts/ethopex/vx-ke-chuyen.mts --tap=646 [--giong=en-US-AvaMultilingualNeural] [--toc=1.1]
-//   xuất xong trên box3 → ../../node_modules/.bin/tsx scripts/ethopex/vx-ke-chuyen.mts --tap=646 --cta=<url MP4 vx-nap-tap in ra>  → bản CTA v2 để lên creative
+//   xuất xong trên box3 → ../../node_modules/.bin/tsx scripts/ethopex/vx-ke-chuyen.mts --tap=646 --cta=<url MP4 vx-nap-tap in ra> --cid=<content_id>  → bản KT thẻ cuối kiểu AD (cta-logo.py) để lên creative
 // VideoExpress chỉ cho 5 clip render song song và giữ file 40 ngày → gửi theo nhịp ≤ 5, tải về ngay.
 import { execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -34,7 +34,7 @@ if (!existsSync(tepTap)) {
   writeFileSync(tepTap, JSON.stringify({ meta, canh }, null, 1));
 }
 const { meta, canh } = JSON.parse(readFileSync(tepTap, 'utf8')) as { meta: { phim: number; poster_url: string; lang: string; cast_: string }; canh: Canh[] };
-// CHỈ SINH THÂN PHIM: cảnh thẻ cuối của studio (phan_doan 'cta') bị bước CTA v2 thay bằng poster thật — sinh ảnh / clip / giọng cho nó là phí một chỗ render (tối ưu 29/10)
+// CHỈ SINH THÂN PHIM: cảnh thẻ cuối của studio (phan_doan 'cta') bị bước thẻ cuối kiểu AD (cta-logo.py) thay — sinh ảnh / clip / giọng cho nó là phí một chỗ render (tối ưu 29/10)
 const canhSinh = canh.filter((c) => c.pd !== 'cta');
 const tepSo = `${D}/so.json`;
 const so: { poster?: number; giong?: string; canh: Record<string, Ghi> } = existsSync(tepSo) ? JSON.parse(readFileSync(tepSo, 'utf8')) : { canh: {} };
@@ -54,27 +54,33 @@ const g = (c: Canh) => (so.canh[c.so] ??= {});
 const giayTep = (f: string) => Number(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 ${JSON.stringify(f)}`, { encoding: 'utf8' }).trim());
 const tai = (url: string, f: string) => execFileSync('curl', ['-sSfL', '-o', f, url]);
 
-// ── 4. THẺ CUỐI = MẪU ĐIỂM CHẠM CTA v2 (anh 29/10/2026 "Cta đang theo mẫu điểm chạm nào nhìn lởm thế?"): thẻ cuối của studio (ảnh AI + chữ trắng) KHÔNG phải mẫu
-// đang chạy — mọi creative Ethopex (cả bản kể chuyện thắng #55604) kết bằng cat-canh.py: nút đỏ chỉ ở thẻ cuối (bỏ nút đè từ giây 3, anh 02/11/2026) + poster SẠCH + "WHAT HAPPENS NEXT?" + giọng CTA v2 (cta_qc.py).
-// --cta=<url bản xuất studio> (in ra ở vx-nap-tap.mts): lấy thân phim = mọi cảnh trừ cảnh thẻ cuối, ghép CTA v2 → <thư mục>/<tập>-cta-v2.mp4 (bản để lên creative)
+// ── 4. THẺ CUỐI KIỂU AD (anh 27/11/2026 "CTA dùng loại của AD làm chuẩn : logo + button động"; 28/11 "Kiểu KT vừa nãy là ok rồi" — thay CTA v2 cat-canh):
+// khung cuối của clip VideoExpress cảnh cuối → cta-logo.py: VideoExpress chuyển động (0₫) + logo gốc của phim + "All Episodes Released" + nút màu logo nảy đúng lúc giọng đọc câu CTA.
+// --cta=<url bản xuất studio> (in ra ở vx-nap-tap.mts) --cid=<content_id>: thân phim = mọi cảnh trừ cảnh thẻ cuối của studio → <thư mục>/<tập>-kt.mp4 (bản để lên creative).
+// cta-logo.py tự chặn phim ngoài Âu-Mỹ (etp.phim.nhom_goc) trước khi tốn VideoExpress / giọng.
 const urlXuat = gia('cta');
 if (urlXuat) {
+  const cid = Number(gia('cid'));
+  if (!cid) { console.error('--cta cần --cid=<content_id> (logo gốc + nút của đúng phim)'); process.exit(1); }
   const than = canhSinh.reduce((a, c) => a + Math.round(Math.min(g(c).vidGiay ?? c.giay, (g(c).amGiay ?? c.giay) + 0.35) * 10) / 10, 0);   // cùng công thức phat_s của vx-nap-tap
-  const nguon = `${D}/xuat-studio.mp4`, ra = `${D}/${tap}-cta-v2.mp4`, E = new URL('.', import.meta.url).pathname;
+  const nguon = `${D}/xuat-studio.mp4`, tepThan = `${D}/than.mp4`, khung = `${D}/khung-cuoi.png`, ra = `${D}/${tap}-kt.mp4`, E = new URL('.', import.meta.url).pathname;
+  const cuoi = canhSinh[canhSinh.length - 1]!;
+  if (!g(cuoi).vid || !existsSync(g(cuoi).vid!)) { console.error(`thiếu clip cảnh cuối #${cuoi.so} — khung sạch cho thẻ cuối lấy từ đó`); process.exit(1); }
   tai(urlXuat, nguon);
-  const [nut, giong] = execFileSync('python3', ['-c', `import importlib.util as u,json;s=u.spec_from_file_location('c',${JSON.stringify(`${E}cta_qc.py`)});m=u.module_from_spec(s);s.loader.exec_module(m);c=m.CTA[${JSON.stringify(meta.lang === 'es' ? 'es' : 'en')}];print(json.dumps([c['nut'],c['giong']]))`], { encoding: 'utf8' }).trim().split('\n').map((x) => x).slice(-1).map((x) => JSON.parse(x) as string[])[0]!;
-  console.log(execFileSync('python3', [`${E}cat-canh.py`, nguon, '0', than.toFixed(1), `${D}/poster.png`, '-', nut!, ra, giong!], { encoding: 'utf8', env: { ...process.env, ETP_LOI_DAN: '1', ETP_TEN: String(meta.ten_phim ?? '') } }).trim());
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', nguon, '-t', than.toFixed(2), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-c:a', 'aac', '-b:a', '160k', tepThan]);
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-sseof', '-0.2', '-i', g(cuoi).vid!, '-frames:v', '1', '-update', '1', khung]);   // khung cuối clip cảnh cuối = khung sạch (không chữ studio)
+  const py = `${process.env.HOME}/.venvs/poster-mau/bin/python`;
+  console.log(execFileSync(existsSync(py) ? py : 'python3', [`${E}cta-logo.py`, tepThan, String(cid), khung, ra], { encoding: 'utf8', timeout: 18 * 60e3, maxBuffer: 64 << 20 }).trim().split('\n').slice(-4).join('\n'));
   // CỔNG KẾT QUẢ (anh 29/10/2026 "lần sau kiểu đéo gì mày cũng lặp lại lỗi này?") — đo bản ra, sai thì ĐỎ, không đưa tệp đi lên creative:
   // (1) không câm: mọi giây của thân phim phải có tiếng (giọng kể / nhạc) — lần đầu bộ xuất bỏ giọng, cả MP4 −91 dB mà không ai đo
-  // (2) giọng CTA không đè câu kể cuối: câu cuối dứt trước cú cắt (giọng cảnh cuối ngắn hơn giây phát), cat-canh chạy ETP_LOI_DAN=1 (vào sau cú cắt)
-  // (3) thẻ cuối không kéo méo poster: cat-canh giữ tỉ lệ khi poster khác 9:16 — kiểm mã ở scripts/check-etp-gop-y.mjs
+  // (2) giọng CTA không đè câu kể cuối: câu cuối dứt trước cú cắt (giọng cảnh cuối ngắn hơn giây phát) — đoạn cuối mang giọng CTA nối SAU thân
   const loi: string[] = [];
   const db = (t0: number, t1: number) => Number(/mean_volume: (-?[\d.]+) dB/.exec(execSync(`ffmpeg -hide_banner -ss ${t0} -t ${t1 - t0} -i ${JSON.stringify(ra)} -af volumedetect -f null - 2>&1`, { encoding: 'utf8' }))?.[1] ?? -99);
   for (let t = 0; t + 1 <= than; t += 1) { const v = db(t, t + 1); if (v < -45) loi.push(`câm ở ${t}–${t + 1}s (${v} dB)`); }
-  const cuoi = canhSinh[canhSinh.length - 1]!, phatCuoi = Math.round(Math.min(g(cuoi).vidGiay ?? cuoi.giay, (g(cuoi).amGiay ?? cuoi.giay) + 0.35) * 10) / 10;
+  const phatCuoi = Math.round(Math.min(g(cuoi).vidGiay ?? cuoi.giay, (g(cuoi).amGiay ?? cuoi.giay) + 0.35) * 10) / 10;
   if ((g(cuoi).amGiay ?? 0) > phatCuoi) loi.push(`câu kể cảnh #${cuoi.so} (${g(cuoi).amGiay!.toFixed(1)}s) dài hơn giây phát ${phatCuoi}s — sẽ đè giọng CTA`);
-  if (loi.length) { console.error(`✗ CỔNG BẢN CTA — không dùng tệp này:\n  ${loi.join('\n  ')}`); execSync(`mv ${JSON.stringify(ra)} ${JSON.stringify(ra.replace(/\.mp4$/, '.LOI.mp4'))}`); process.exit(1); }
-  console.log(`✓ bản CTA v2 (thân ${than.toFixed(1)}s, qua cổng: có tiếng suốt thân, giọng CTA không đè): ${ra}`);
+  if (loi.length) { console.error(`✗ CỔNG BẢN KT — không dùng tệp này:\n  ${loi.join('\n  ')}`); execSync(`mv ${JSON.stringify(ra)} ${JSON.stringify(ra.replace(/\.mp4$/, '.LOI.mp4'))}`); process.exit(1); }
+  console.log(`✓ bản KT thẻ cuối kiểu AD (thân ${than.toFixed(1)}s, qua cổng: có tiếng suốt thân, giọng CTA không đè): ${ra}`);
   process.exit(0);
 }
 

@@ -2004,5 +2004,78 @@
         "trang_thai": "chua"
       }
     ]
+  },
+  "orbiball": {
+    "ten": "Orbiball · YouTube @orbiball (chưa tạo kênh)",
+    "cap_nhat": "2026-11-28",
+    "muc_tieu": "kênh mô phỏng vật lý không lời, một tên riêng (kiểu MIKAN) đăng nhiều dạng: bóng thoát vòng, đua bi, trận bóng hai đội trong sân tròn ăn từ khoá trận thật + tên cầu thủ thật; máy tự dựng 0₫ trên iMac, đăng YouTube dài + Shorts",
+    "dinh_vi": {
+      "cho_ai": "người xem toàn cầu thích video vật lý / đua bi / bóng đá, không cần biết tiếng",
+      "dich": "lượt xem + người đăng ký kênh YouTube @orbiball (handle còn trống, dò 28/11/2026); tên miền orbiball.net còn trống, orbiball.com đã có người đăng ký",
+      "ngon_ngu": "không lời (chữ EN tối thiểu: tên đội, tên cầu thủ, GOAL)",
+      "giong": "âm thanh va chạm tổng hợp + tiếng đám đông, không giọng đọc"
+    },
+    "luat": [
+      "Tiêu đề luôn có chữ Marble / Physics / Simulation để rõ là mô phỏng, không phải trận thật",
+      "Tên đội, tên trận, tên cầu thủ dùng được; CẤM logo, huy hiệu đội, ảnh / video trận thật, mặt cầu thủ",
+      "Đội hình lấy từ Wikipedia bằng apps/xuong-video/scripts/vat-ly/doi-hinh.mjs, không gõ tay tên cầu thủ",
+      "Kênh mới: 1 video / nền / ngày, cách nhau ≥ 3 giờ (máy đăng nhip-an-toan)",
+      "Kết quả trận do hạt giống mô phỏng quyết định, không chỉnh tay tỉ số"
+    ],
+    "playlist": [
+      {
+        "ma": "tran-dau",
+        "ten": "Marble Football",
+        "trang_thai": "de_xuat",
+        "ngay": "chưa xếp lịch, chờ tạo kênh",
+        "noi_dung": "trận hai đội 11 đấu 11 trong sân tròn, đội hình thật, ghi tên người ghi bàn (El Clásico, derby, trận đang hot theo lịch thi đấu)",
+        "vi_du": []
+      },
+      {
+        "ma": "thoat-vong",
+        "ten": "Escape the Ring",
+        "trang_thai": "de_xuat",
+        "ngay": "chưa xếp lịch",
+        "noi_dung": "bóng màu thoát vòng xoay, đếm ngược, bảng xếp hạng kiểu F1",
+        "vi_du": []
+      }
+    ],
+    "giai_doan": [
+      {
+        "ma": "G0",
+        "ten": "Định dạng + máy dựng",
+        "viec": "mô phỏng matter-js có hạt giống, dựng hình + âm thanh 0₫, chấm điểm chọn trận hay (apps/xuong-video/scripts/vat-ly/lam.mjs); trận bóng có đội hình thật (commit f82a42724)",
+        "anh": "không",
+        "trang_thai": "xong"
+      },
+      {
+        "ma": "G1",
+        "ten": "Tên + thương hiệu",
+        "viec": "tên Orbiball (con chọn 28/11/2026 theo lệnh anh), handle @orbiball; còn logo, ảnh đại diện, ảnh bìa",
+        "anh": "duyệt logo",
+        "trang_thai": "dang"
+      },
+      {
+        "ma": "G2",
+        "ten": "Tạo kênh YouTube",
+        "viec": "tạo kênh @orbiball + gắn vào máy đăng (nen-dang.json, xv_may.dang)",
+        "anh": "bảo tạo",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G3",
+        "ten": "Lịch đăng",
+        "viec": "1 video dài / ngày + Shorts cắt từ bàn thắng, theo lịch thi đấu thật",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G4",
+        "ten": "Đo + chỉnh",
+        "viec": "đo lượt xem theo playlist, dạng kém giảm suất, dạng tốt thêm suất",
+        "anh": "chốt ngưỡng",
+        "trang_thai": "chua"
+      }
+    ]
   }
 }

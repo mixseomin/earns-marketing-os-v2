@@ -129,7 +129,10 @@ def xong(lo, out, ai_mac="len-creative"):
             cr = int(o["creative_id"])
             _sql(f"""update etp.cho_len set trang_thai = 'da_len', creative_id = {cr}, ket = {j(o)}, loi = null, cap_nhat = now() where id = {x['_cho_len']};
                 insert into etp.cham_duyet (creative_id, ok, ai, ghi) select {cr}, true, coalesce(duyet_ai, 'anh'), 'duyệt trước khi lên (etp2 › Chờ lên #{x['_cho_len']})' from etp.cho_len where id = {x['_cho_len']}
-                  on conflict (creative_id) do nothing;""" + (f" update etp.thu_vien set creative_id = {cr}, trang_thai = 'da_len', cap_nhat = now() where id = {int(x['tv'])} and creative_id is null;" if x.get("tv") else ""))
+                  on conflict (creative_id) do nothing;""" + (f" update etp.thu_vien set creative_id = {cr}, trang_thai = 'da_len', cap_nhat = now() where id = {int(x['tv'])} and creative_id is null;"
+                     # việc dựng mẫu (etp.mau_dung) đang 'cho_duyet' vì bản này → xong + creative_id (dung-mau ghi tv_ids lúc nạp thư viện)
+                     f" update etp.mau_dung set creative_ids = array_append(creative_ids, {cr}), buoc = 'xong', trang_thai = 'xong', ghi = 'creative #{cr} đã lên (duyệt ở Chờ lên #{x['_cho_len']})', cap_nhat = now()"
+                     f" where {int(x['tv'])} = any(tv_ids) and not ({cr} = any(creative_ids));" if x.get("tv") else ""))
         else:
             _sql(f"update etp.cho_len set trang_thai = 'duyet', loi = {s(str(o.get('loi') or 'không tạo được creative')[:400])}, cap_nhat = now() where id = {x['_cho_len']}")
 

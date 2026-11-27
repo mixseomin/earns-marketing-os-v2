@@ -946,7 +946,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
         elif ma in CAN_CAU and (da_cau or "cau" not in _NHO[cid]): c_, n_, v = cau_nhu(ten, _NHO[cid].get("mo_ta") or TB.mo_ta(p["url"]), lang, tuple(da_cau)); vnd += v; _NHO[cid]["cau"] = (c_, n_)
         cau, nhan = _NHO[cid].get("cau", ("", "")) if ma in CAN_CAU or (tc.get("cau") or "").strip() else ("", "")
         if (tc.get("cau") or "").strip(): _NHO[cid].pop("cau", None)   # câu anh gõ chỉ dùng cho đúng bản này
-        cr = []; ly_len = "cổng chữ / studio loại — xem nhật ký dung-mau"   # lý do mặc định khi bước tải lên không in lỗi nào
+        cr = []; cho_duyet = []; ly_len = "cổng chữ / studio loại — xem nhật ký dung-mau"   # lý do mặc định khi bước tải lên không in lỗi nào
         for b in range(ban):
             cao_cho = CAN_CHO[ma]({"tm": tm, "ten": ten, "p": p, "cid": cid}) if ma in CAN_CHO else None; vnd += _CHI_LOGO[0]; _CHI_LOGO[0] = 0   # tách logo TRƯỚC khi chọn khung: không có logo thì dừng luôn, chưa tốn gì
             tot = None   # (che mặt, khung, nền, lớp, c) tốt nhất đã thử
@@ -1022,14 +1022,19 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
                 if phieu: AT.sql(SQL_GAN_PHIEU.format(p=phieu, dk=f"c.khoa = 'tv{int(tv)}'")); phieu_tt("cho_duyet")
                 c_id = AT.sql(f"select coalesce(creative_id::text, '') from etp.thu_vien where id = {int(tv)}")
                 if c_id: cr.append(int(c_id)); AT.sql(f"update etp.mau_dung set creative_ids = array_append(creative_ids, {int(c_id)}) where mau = {s_(ma)} and content_id = {int(cid)}")
+                else:   # cổng mẫu đặt bản vào hàng CHỜ ANH DUYỆT (etp.cho_len) thay vì tải ngay — không phải lỗi (27/11/2026: 14 bản chờ duyệt / đã lên bị ghi "dựng xong nhưng không thành creative")
+                    h_ = AT.sql(f"select id from etp.cho_len where khoa = 'tv{int(tv)}' and trang_thai in ('cho', 'duyet', 'dang_len') order by id desc limit 1")
+                    if h_: cho_duyet.append(f"tv{int(tv)} (#{h_})")
             if thu: continue
             AT.sql(f"update etp.mau_dung set khung_dung = array_append(khung_dung, {s_(khoa(k) + '|' + (k.get('cam_xuc') or ''))})"
                    + (f", cau_dung = array_append(cau_dung, {s_(cau.replace(';', ','))})" if cau else "") + f" where mau = {s_(ma)} and content_id = {int(cid)}")
             uv = [u for u in uv if khoa(u) != khoa(k)]; da_khung.append(khoa(k) + "|" + (k.get("cam_xuc") or ""))
         if not xem:
             if cr: tt("xong", "xong", f"{len(cr)} creative: " + ", ".join(f"#{x}" for x in cr), vnd=vnd); soan_tt("xong", f"creative #{cr[-1]} đã vào thư viện", creative_id=cr[-1])
+            elif cho_duyet:   # "cho_duyet" (KHÔNG "cho": --hang + dong_phim nhặt "cho" dựng lại → tốn tiền); creative_id do cho_len.xong ghi (→ xong) khi bản lên
+                g_ = "chờ anh duyệt ở etp2 › Camp › Chờ lên: " + ", ".join(cho_duyet); tt("creative", "cho_duyet", g_, vnd=vnd); soan_tt("dung", g_)
             else: tt("creative", "loi", f"dựng xong nhưng không thành creative — {ly_len}", vnd=vnd); soan_tt("loi", f"dựng xong nhưng không thành creative — {ly_len}")
-            if not cr: phieu_tt("loi", f"dựng xong nhưng không thành creative — {ly_len}")
+            if not cr and not cho_duyet: phieu_tt("loi", f"dựng xong nhưng không thành creative — {ly_len}")
             if soan or phieu: AT.sql(f"update etp.mau_dung set tuy_chon = null where mau = {s_(ma)} and content_id = {int(cid)}")
         return cr
     except Exception as e:

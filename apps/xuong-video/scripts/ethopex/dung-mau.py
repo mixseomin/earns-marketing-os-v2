@@ -986,7 +986,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
             tt("giong", g="giọng đọc (cổng giọng chung)")
             kg, ng = AT.giong_phim(p, _NHO[cid].get("giong"), str((o_.get("giong") or {}).get("kieu") or "") or None)   # giọng theo phim + chủ đề phim (anh 25/11/2026)
             out0 = out
-            for kg, ng in AT.giong_ban(kg, ng, len(da_khung) + b):   # MỘT giọng mỗi khung — hai giọng xoay qua các bản / hình (anh 25/11/2026 "chỉ đổi giọng mà ko đổi hình thì ko đc coi là khác nhau")
+            for kg, ng in AT.giong_ban(kg, ng, len(da_khung) + b):   # MỘT giọng mỗi khung = giọng của phim, không xoay về giọng cố định (anh 27/11/2026)
                 out = out0 if kg == AT.GIONG_MAC_DINH else out0.replace(".mp4", f"-g{kg}.mp4")
                 print(f"giọng: {kg} · {AT.KIEU_GIONG[kg][0]} · {ng}" + (f" — {_NHO[cid]['giong_ly_do']}" if ng.startswith("AI") and _NHO[cid].get("giong_ly_do") else ""), flush=True)
                 so_cau = g_ghim % len(AT.CAU[lang]) if g_ghim is not None else (len(da_khung) + b) % len(AT.CAU[lang]); mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, so_cau); vnd += v   # câu đọc xoay theo số bản đã dựng

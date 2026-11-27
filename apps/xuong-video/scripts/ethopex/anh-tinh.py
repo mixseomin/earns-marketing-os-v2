@@ -530,13 +530,11 @@ assert giong_phim({}, "ky_di")[0] == "ky_di" and giong_phim({}, None, "ky_di")[0
 assert giong_phim({"the_loai": "mafia"}) == ("gao", "thể loại mafia") and giong_phim({}, "tinh_nghich")[0] == "tinh_nghich" and giong_phim({}, "x", "cam_xuc")[0] == "cam_xuc" and giong_phim({})[0] == GIONG_MAC_DINH
 
 def giong_ban(kg, ng, thu=0):
-    """GIỌNG của MỘT khung hình — đúng MỘT giọng (anh 25/11/2026 "Creatives mà chỉ đổi giọng mà ko đổi hình thì ko đc coi là khác nhau"):
-    hai giọng (mặc định sổ luật + theo chủ đề phim, anh 25/11 "có 2 phiên bản") giờ XOAY theo thứ tự bản → mỗi giọng nằm trên một hình khác;
-    anh ghim giọng thì đúng giọng đó. thu = số khung đã dựng của (mẫu, phim) + bản đang dựng. → [(kiểu, nguồn)] một phần tử"""
-    if ng == "anh ghim" or kg == GIONG_MAC_DINH: return [(kg, ng)]
-    return [[(GIONG_MAC_DINH, "mặc định sổ luật"), (kg, ng)][thu % 2]]
-assert all(len(giong_ban(k, "AI theo chủ đề phim", t)) == 1 for k in ("hao_hung", "gao", GIONG_MAC_DINH) for t in range(4)), "một khung chỉ MỘT giọng"
-assert GIONG_MAC_DINH == "hao_hung" or [giong_ban("hao_hung", "AI", t)[0][0] for t in range(2)] == [GIONG_MAC_DINH, "hao_hung"], "hai giọng xoay qua hai bản (hai hình)"
+    """GIỌNG của MỘT khung hình — đúng MỘT giọng, là giọng của phim (anh ghim → AI theo chủ đề → thể loại → mặc định). thu giữ cho chỗ gọi cũ. → [(kiểu, nguồn)]"""
+    # GIỌNG LUÔN THEO PHIM (anh 27/11/2026 "Giọng thì phải theo phim và nội dung. Tao đéo chọn giọng nào cố định hết"): bỏ xoay bản chẵn về giọng mặc định —
+    # cách đó làm tv5793 (phim mẹ bị ép vào viện, AI chọn cam_xuc) và tv5794 (AI chọn gao) ra George đọc phẳng. Mặc định sổ luật chỉ còn là chỗ lùi khi AI không chọn được.
+    return [(kg, ng)]
+assert all(giong_ban(k, "AI theo chủ đề phim", t) == [(k, "AI theo chủ đề phim")] for k in ("hao_hung", "gao", "cam_xuc") for t in range(4)), "mọi bản đọc đúng giọng theo phim, không xoay về giọng cố định"
 assert giong_ban("gao", "anh ghim", 1) == [("gao", "anh ghim")]
 
 def cau_doc(lang, so_mau, kieu, ten, hook=None):

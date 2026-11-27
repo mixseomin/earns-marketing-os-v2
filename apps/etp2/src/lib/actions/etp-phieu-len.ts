@@ -289,12 +289,13 @@ export async function sinhCauDoc(cid: number, huong?: string): Promise<{ ok: tru
 }
 
 /** chọn K (hoặc bấm K lần nữa) → máy sinh bộ chữ K mới cho phim (apps/etp/sinh-chu-kien.py --lai --xem --json: không ghi sổ, chữ chỉ đi theo phiếu khi gửi) */
-export async function sinhChuK(cid: number, lang?: 'en' | 'es', khac?: string): Promise<{ ok: true; chu: ChuQc; vnd: number; lang: string } | { loi: string }> {
+// chữ K luôn sinh theo NGÔN NGỮ PHIM — không nhận tham số ngôn ngữ, sinh-chu-kien.py tự đọc ngôn ngữ phim (anh 27/11/2026 #1909 "khoá theo ngôn ngữ phim, ko cho sửa")
+export async function sinhChuK(cid: number, khac?: string): Promise<{ ok: true; chu: ChuQc; vnd: number; lang: string } | { loi: string }> {
   if (!(await laAdmin())) return { loi: 'chỉ admin' };
   const id = Math.trunc(Number(cid)); if (!(id > 0)) return { loi: 'mã phim không hợp lệ' };
   const tep = path.join(process.cwd(), '..', 'etp', 'sinh-chu-kien.py');
   const link = (await soChu([])).kien(0)?.link ?? 'search.com';
-  return await new Promise((ok) => execFile('python3', [tep, String(id), '--lai', '--xem', '--json', ...(lang === 'en' || lang === 'es' ? ['--lang', lang] : []), ...(typeof khac === 'string' && khac.trim() ? ['--khac', khac.trim().slice(0, 600)] : [])], { timeout: 240_000, maxBuffer: 1 << 20, cwd: path.join(process.cwd(), '..', '..') }, (e, out, err) => {
+  return await new Promise((ok) => execFile('python3', [tep, String(id), '--lai', '--xem', '--json', ...(typeof khac === 'string' && khac.trim() ? ['--khac', khac.trim().slice(0, 600)] : [])], { timeout: 240_000, maxBuffer: 1 << 20, cwd: path.join(process.cwd(), '..', '..') }, (e, out, err) => {
     const ra = `${out ?? ''}`, dong = ra.split('\n').find((l) => l.startsWith('JSON:'));
     if (!dong) return ok({ loi: `sinh chữ K lỗi: ${(ra.split('\n').find((l) => l.startsWith('✗'))?.slice(2) ?? `${err ?? ''}`.trim().split('\n').slice(-2).join(' ') ?? e?.message ?? '?').slice(0, 400)}` });
     try {

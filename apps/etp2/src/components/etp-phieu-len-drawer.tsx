@@ -223,7 +223,6 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   const [loiMo, setLoiMo] = useState<string | null>(null);
   const [kieu, setKieu] = useState<'kien' | 'dol'>('kien');
   const [chuK, setChuK] = useState<ChuQc | null>(null);
-  const [nn, setNn] = useState<'en' | 'es'>('en');                     // ngôn ngữ SINH chữ K (mặc định = ngôn ngữ phim)
   const [sinh, setSinh] = useState<{ dang: boolean; loi?: string }>({ dang: false });
   const [dongSinh, setDongSinh] = useState<string | null>(null);         // dòng đang sinh lại: 'pt0', 'hl2'…
   const [tien, setTien] = useState(0);                                  // ₫ AI đã tiêu trong phiếu này
@@ -248,9 +247,11 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   const [xem, setXem] = useState(0);
   const [napXong, setNapXong] = useState(false);                        // đã đọc phiếu + nháp → từ đây mới ghi nháp (không đè nháp bằng mặc định)
 
-  const sinhK = async (l: 'en' | 'es') => {
+  // ngôn ngữ chữ K = ngôn ngữ phim, khoá cứng, không có nút đổi (anh 27/11/2026 #1909)
+  const nn: 'en' | 'es' = (p?.lang ?? 'en').toLowerCase() === 'es' ? 'es' : 'en';
+  const sinhK = async () => {
     setKieu('kien'); setSinh({ dang: true });
-    const r = await sinhChuK(cid, l);
+    const r = await sinhChuK(cid);
     if ('loi' in r) setSinh({ dang: false, loi: r.loi }); else { setChuK(r.chu); setSinh({ dang: false }); setTien((t) => t + (r.vnd || 0)); }
   };
   const [sinhCau, setSinhCau] = useState<{ dang: boolean; loi?: string; ghi?: string }>({ dang: false });
@@ -265,7 +266,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   };
   const sinhDong = async (m: Muc, i: number) => {
     setDongSinh(`${m}${i}`);
-    const r = await sinhChuK(cid, nn, chuK?.[m]?.[i]);   // gửi chữ đang có → máy viết KHÁC hẳn (anh 27/11/2026 "bấm vào thì giống hệt lúc trước")
+    const r = await sinhChuK(cid, chuK?.[m]?.[i]);   // gửi chữ đang có → máy viết KHÁC hẳn (anh 27/11/2026 "bấm vào thì giống hệt lúc trước")
     setDongSinh(null);
     if ('loi' in r) return setSinh({ dang: false, loi: r.loi });
     setTien((t) => t + (r.vnd || 0));
@@ -275,10 +276,10 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   useEffect(() => { docPhieu(cid).then((r) => {
     if ('loi' in r) return setLoiMo(r.loi);
     const l = (r.p.lang ?? 'en').toLowerCase() === 'es' ? 'es' : 'en';
-    setP(r.p); setMien(r.p.mien_mac ?? r.p.mien[0] ?? ''); setNn(l);
+    setP(r.p); setMien(r.p.mien_mac ?? r.p.mien[0] ?? '');
     const n = docNhap(cid), p0 = r.p;
     if (n) {   // phiếu đang dở của phim này (F5 / đóng mở lại): trả đúng lựa chọn + chữ đã sinh, thứ không còn hợp lệ thì bỏ
-      if (n.kieu) setKieu(n.kieu); if (n.nn) setNn(n.nn); if (n.link) setLink(n.link);
+      if (n.kieu) setKieu(n.kieu); if (n.link) setLink(n.link);
       if (n.mien && p0.mien.includes(n.mien)) setMien(n.mien);
       if (n.dang && (n.dang === 'AD' || n.dang === 'CU' || n.dang === 'BAI' || p0.dang.some((d) => d.ma === n.dang))) setDang(n.dang);
       if (n.roas) setRoas(n.roas.filter((x) => ROAS.some((r) => r.v === x)));
@@ -290,8 +291,8 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       if (n.tien) setTien(n.tien);
       if (n.bo && p0.bo.some((b) => b.ma === n.bo)) setBo(n.bo);
     }
-    if (n?.chuK?.pt?.length) setChuK(n.chuK);   // chữ K đã sinh (tốn tiền AI) không sinh lại khi F5
-    else if (r.p.chu.K) setChuK(r.p.chu.K); else void sinhK(n?.nn ?? l);   // phim chưa có chữ K trong sổ → máy sinh ngay (K là mặc định)
+    if (n?.chuK?.pt?.length && (!n.nn || n.nn === l)) setChuK(n.chuK);   // chữ K đã sinh (tốn tiền AI) không sinh lại khi F5 — nháp sinh khác ngôn ngữ phim (trước #1909) thì bỏ
+    else if (r.p.chu.K) setChuK(r.p.chu.K); else void sinhK();   // phim chưa có chữ K trong sổ → máy sinh ngay (K là mặc định)
     setNapXong(true);
   }); }, [cid]);   // eslint-disable-line react-hooks/exhaustive-deps
   // lưu phiếu đang dở theo phim mỗi lần đổi (anh 27/11/2026 "đang lên camp, các option, text đã chọn thì F5 không bị mất"); Gửi xong thì xoá
@@ -422,15 +423,13 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
 
     {laBai ? null : <Khoi icon="✍" ten="Form text" phu={tien > 0 ? `AI đã tiêu ${Math.round(tien).toLocaleString('vi-VN')}₫ trong phiếu này` : undefined}>
       <Hang ten="Bộ chữ">
-        <button style={chip(kieu === 'kien')} onClick={() => void sinhK(nn)} title={kieu === 'kien' ? 'bấm lần nữa = máy sinh lại cả bộ K' : 'máy sinh bộ chữ K cho phim'} data-chon-k>K{kieu === 'kien' ? ' ↻' : ''}</button>
+        <button style={chip(kieu === 'kien')} onClick={() => void sinhK()} title={kieu === 'kien' ? 'bấm lần nữa = máy sinh lại cả bộ K' : 'máy sinh bộ chữ K cho phim'} data-chon-k>K{kieu === 'kien' ? ' ↻' : ''}</button>
         <button style={chip(kieu === 'dol')} onClick={() => setKieu('dol')} data-chon-d>D</button>
         {sinh.dang ? <span style={{ fontSize: 12, color: MO_SO }}>máy đang sinh chữ K…</span> : sinh.loi ? <span style={{ fontSize: 12, color: DO }}>{sinh.loi}</span> : null}
       </Hang>
-      {kieu === 'kien' ? <Hang ten="Ngôn ngữ sinh">
-        {(['en', 'es'] as const).map((l) => <button key={l} style={chip(nn === l, sinh.dang)} data-chon-nn={l} disabled={sinh.dang}
-          onClick={() => { if (l !== nn) { setNn(l); void sinhK(l); } }}>{l.toUpperCase()}{l === lc ? ' ★' : ''}</button>)}
-        <InfoHint>★ = ngôn ngữ phim; đổi là máy sinh lại bộ K bằng ngôn ngữ đó (camp vẫn theo khuôn ngôn ngữ phim)</InfoHint>
-      </Hang> : <Hang ten="Ngôn ngữ"><span style={{ fontSize: 11.5, color: MO_SO }}>D là form cố định theo ngôn ngữ phim — không sinh lại</span></Hang>}
+      <Hang ten="Ngôn ngữ"><span style={{ ...chip(true), cursor: 'default' }} data-nn-khoa={nn}>{nn.toUpperCase()}</span>
+        <InfoHint>khoá theo ngôn ngữ phim — {kieu === 'kien' ? 'chữ K luôn sinh bằng ngôn ngữ này' : 'D là form cố định của ngôn ngữ này'}, không đổi được</InfoHint>
+      </Hang>
       {chu ? <KhoiChu c={chu} sua={kieu === 'kien'} dongSinh={dongSinh} sinhDong={(m, i) => void sinhDong(m, i)} bv={bv} mau={p.mau_doi} /> : null}
     </Khoi>}
 

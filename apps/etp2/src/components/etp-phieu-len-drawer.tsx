@@ -239,7 +239,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       </Hang>
       <Hang ten="Câu đọc">
         <button style={chip(!cau)} onClick={() => setCau('')} title="mỗi bản một câu, xoay vòng theo sổ">máy xoay</button>
-        {p.cau.map((c, i) => <button key={c.id} style={{ ...chip(cau === c.id), textAlign: 'left', borderRadius: 8, width: '100%' }} onClick={() => setCau(c.id)} data-cau={c.id}><CoVi goc={c.chu} b={bv} />{i + 1}. {c.chu}</button>)}
+        {p.cau.map((c, i) => <div key={c.id} style={{ display: 'flex', alignItems: 'center', width: '100%' }} data-hang-cau><CoVi goc={c.chu} b={bv} /><button style={{ ...chip(cau === c.id), textAlign: 'left', borderRadius: 8, flex: 1, minWidth: 0 }} onClick={() => setCau(c.id)} data-cau={c.id}>{i + 1}. {c.chu}</button></div>)}
       </Hang>
     </Khoi> : NOI_DUNG_VIDEO[dang] ? <Khoi icon="🎞" ten={`Nội dung trong video · ${dang}`} phu="máy dựng theo khuôn cố định — chưa có tuỳ chọn">
       <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5 }} data-noi-dung-video>{NOI_DUNG_VIDEO[dang].map((x) => <li key={x}>{x}</li>)}</ul>
@@ -250,7 +250,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       <Hang ten="Trong video">
         {dang === 'AD' ? <>
           <button style={chip(!cta)} onClick={() => setCta('')} data-cta="">mặc định mẫu (WATCH MORE)</button>
-          {p.cta.map((c) => <button key={c} style={chip(cta === c)} onClick={() => setCta(c)} data-cta={c}><CoVi goc={c} b={bv} />{c}</button>)}
+          {p.cta.map((c) => <span key={c} style={{ display: 'inline-flex', alignItems: 'center' }}><CoVi goc={c} b={bv} /><button style={chip(cta === c)} onClick={() => setCta(c)} data-cta={c}>{c}</button></span>)}
         </> : <><span style={{ ...chip(true), cursor: 'default' }}>{nut}</span>{dang === 'CC2' ? <span style={{ fontSize: 11.5, color: MO_SO }}>CC2 cố định nút này</span> : null}</>}
       </Hang>
     </Khoi>

@@ -8,16 +8,17 @@ import type { ReactNode } from 'react';
 import { IconInfo } from './icons';
 
 export function InfoHint({
-  children, size = 13, align = 'left', label,
+  children, size = 13, align = 'left', label, icon,
 }: {
   children: ReactNode;
+  icon?: ReactNode;          // thay chữ ⓘ (vd cờ 🇻🇳 của bản dịch — etp-co-vi.tsx)
   size?: number;
   align?: 'left' | 'right';
   label?: string;            // a11y: mô tả ngắn cho screen-reader/title fallback
 }) {
   return (
     <span data-comp="ui.InfoHint" className="info-hint" tabIndex={0} role="note" aria-label={label ?? 'Thông tin'}>
-      <IconInfo size={size} />
+      {icon ?? <IconInfo size={size} />}
       <span className={`info-hint__pop${align === 'right' ? ' right' : ''}`}>{children}</span>
     </span>
   );

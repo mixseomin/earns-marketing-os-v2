@@ -807,7 +807,7 @@ def dung_imac():
 
 # ---------------- vòng chính ----------------
 def doc_dong():
-    j = sql("""select coalesce(json_agg(x), '[]') from (select p.id, p.content_id, p.ten, p.trang_thai, p.camp_id, p.loai, p.so_camp, p.ai, p.bo, p.khoi_id,
+    j = sql("""select coalesce(json_agg(x), '[]') from (select p.id, p.content_id, p.ten, p.trang_thai, p.camp_id, p.loai, p.so_camp, p.ai, p.bo, p.khoi_id, p.phieu_id,
                (select row_to_json(k) from etp.khoi k where k.id = p.khoi_id) khoi,
                (select json_object_agg(b.buoc, json_build_object('trang_thai', b.trang_thai, 'ket_qua', b.ket_qua, 'lan', b.lan, 'fix', b.fix, 'huy', b.huy,
                        'tuoi', extract(epoch from now() - coalesce(b.nhip, b.bat_dau))::int)) from etp.dong_buoc b where b.dong_id = p.id) buoc
@@ -1009,7 +1009,7 @@ def vong():
                 if b and d["trang_thai"] == "chay" and kieu_nang(d["id"], b, d.get("loai")) and ((d.get("buoc") or {}).get(b) or {}).get("trang_thai") == "cho"}
     for d in ds_dong:
         bs = d.get("buoc") or {}
-        if d.get("loai") in gac and d["trang_thai"] == "chay" and not any((bs.get(b) or {}).get("trang_thai") in ("dang", "xong") for b in ("camp", "chay")):   # đã tới bước lên camp thì để chạy nốt
+        if d.get("loai") in gac and not d.get("phieu_id") and d["trang_thai"] == "chay" and not any((bs.get(b) or {}).get("trang_thai") in ("dang", "xong") for b in ("camp", "chay")):   # đã tới bước lên camp thì để chạy nốt
             with KHOA: pr = [p for (i, _), p in DANG.items() if i == d["id"]]
             for p in pr: giet_cay(p.pid)
             sql(f"""update etp.dong_buoc set trang_thai = 'dung', ket_thuc = now(), ghi = {s(gac_ly(d["loai"]))}, fix = false where dong_id = {d['id']} and trang_thai in ('dang', 'cho') and buoc not in ('camp', 'chay');

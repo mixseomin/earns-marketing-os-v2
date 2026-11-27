@@ -2,7 +2,7 @@
 // NGĂN PHIẾU LÊN CAMP (anh 27/11/2026) — YDNI hai cột: trái = form theo khối (Creative · Tuỳ chọn dạng · Nội dung CTA · Form text · Link/Domain · ROAS · Ngân sách · Giờ),
 // phải = PREVIEW dính (mẫu quảng cáo Facebook + tóm tắt camp), chân dính = còn thiếu gì + nút Gửi (GuardedButton: thiếu thì khoá, hover nói lý do).
 // Gửi = máy dựng creative → Chờ lên → anh duyệt creative là lên camp đúng phiếu. Nhãn chữ chỉ "K" / "D" — không ghi tên người.
-// Dạng: AD (mẫu ảnh động) + mọi dạng dòng phim (loaiPhieu: gác / khoá vẫn HIỆN, kèm lý do) + Dùng lại (creative cũ của phim, không dựng mới).
+// Dạng: AD (mẫu ảnh động) + mọi dạng dòng phim (loaiPhieu: dạng máy làm được, phiếu không gác) + Dùng lại (creative cũ của phim, không dựng mới).
 // Form text: chọn ngôn ngữ để SINH chữ K (phieu_len.lang vẫn là ngôn ngữ phim — camp theo khuôn K); mỗi dòng K có ↻ sinh lại riêng dòng đó (máy AI, không gõ tay).
 // ROAS "máy chọn (theo phim)" = etp.muc_roas: mức có ít camp ★ ROAS nhất của phim trong 7 ngày; mọi mức tắt được, không mức nào thì không cho Gửi.
 // Loại 'etp-phieu-len' của EtpDrawerHost, id = mã phim. Action: @/lib/actions/etp-phieu-len.
@@ -15,6 +15,7 @@ import { docPhieu, sinhChuK, guiPhieu, type PhieuMo, type DangPhieu, type CrCu, 
 import { TEN_GIONG, MO_TA_GIONG, tenGiong } from '@/lib/etp-dang';
 import type { ChuQc } from '@/lib/etp-chu-so';
 import BL from '@/lib/etp-bang-luat.json';
+import { CoVi, useDichDs, type BanVi } from '@/components/etp-co-vi';
 
 const DO = '#dc2626', VANG = '#b45309', XANH = '#15803d', VIEN = 'var(--line-2, #d4d4d8)';
 const chip = (on: boolean, khoa = false): React.CSSProperties => ({ padding: '4px 12px', borderRadius: 14, border: `1px solid ${on ? 'var(--accent, #2563eb)' : VIEN}`,
@@ -73,10 +74,10 @@ function Hang({ ten, children }: { ten: string; children: React.ReactNode }) {
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', flex: 1, minWidth: 0 }}>{children}</div></div>;
 }
 type Muc = 'pt' | 'hl' | 'de';
-function KhoiChu({ c, sua, dongSinh, sinhDong }: { c: ChuQc; sua: boolean; dongSinh: string | null; sinhDong: (m: Muc, i: number) => void }) {
+function KhoiChu({ c, sua, dongSinh, sinhDong, bv }: { c: ChuQc; sua: boolean; dongSinh: string | null; sinhDong: (m: Muc, i: number) => void; bv: BanVi }) {
   const ds = (m: Muc, t: string, xs: string[]) => xs.length ? <div style={{ marginBottom: 6 }}><div style={{ fontSize: 11, color: MO_SO }}>{t} · {xs.length}</div>
     {xs.map((x, i) => <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', fontSize: 12.5, padding: '3px 0', borderBottom: `1px dashed ${VIEN}` }}>
-      <span style={{ flex: 1, opacity: dongSinh === `${m}${i}` ? 0.4 : 1 }}>{x}</span>
+      <span style={{ flex: 1, opacity: dongSinh === `${m}${i}` ? 0.4 : 1 }}>{x}<CoVi goc={x} b={bv} /></span>
       {sua ? <button data-sinh-dong={`${m}${i}`} disabled={!!dongSinh} onClick={() => sinhDong(m, i)} title="máy AI sinh lại riêng dòng này (~100–300₫)"
         style={{ ...chip(false, !!dongSinh), padding: '0 7px', fontSize: 12 }}>{dongSinh === `${m}${i}` ? '…' : '↻'}</button> : null}
     </div>)}</div> : null;
@@ -169,12 +170,14 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
 
   const lc = (p?.lang ?? 'en').toLowerCase();
   const chu = kieu === 'kien' ? chuK : p?.chu.D ?? null;
+  // cờ 🇻🇳 cuối mỗi câu ngoại ngữ, rê = câu dịch (anh 27/11/2026) — câu đọc · nút CTA · chữ form; một nguồn dịch etp-co-vi
+  const bv = useDichDs(p ? [...p.cau.map((c) => c.chu), ...p.cta, ...(chu ? [...chu.pt, ...chu.hl, ...chu.de] : [])] : []);
   const gioChon = gio === 'tay' ? gioTay.replace('T', ' ') : gio;
   const gioKhung = new Set(p?.khung.map((k) => k.gio.slice(11, 16)) ?? []);
   const ngoaiKhung = gio === 'tay' && !!gioTay && !gioKhung.has(gioTay.slice(11, 16));
   const laCu = dang === 'CU';
   const soCamp = laCu ? cu.length * roas.length : roas.length;
-  const khoaDang = (d: DangMo): string | null => !d.chay ? (d.khoa ?? 'chưa chạy được') : d.gac ? `đang gác — ${d.gac}` : p?.nhom_goc && p.nhom_goc !== 'au_my' ? `phim nhóm gốc '${p.nhom_goc}' — dòng phim chỉ chạy phim Âu-Mỹ` : null;
+  const khoaDang = (d: DangMo): string | null => !d.chay ? (d.khoa ?? 'chưa chạy được') : p?.nhom_goc && p.nhom_goc !== 'au_my' ? `phim nhóm gốc '${p.nhom_goc}' — dòng phim chỉ chạy phim Âu-Mỹ` : null;   // phiếu KHÔNG xét gác (anh 27/11/2026)
   const dsDang = p ? [...p.dang].sort((a, b) => (a.ma === 'CC2' ? -1 : b.ma === 'CC2' ? 1 : 0)) : [];
   const dangChon = dsDang.find((d) => d.ma === dang) ?? null;
   const nut = dang === 'AD' ? (cta || 'WATCH MORE (mặc định mẫu)') : dang === 'CC2' ? (lc === 'es' ? 'VER GRATIS' : 'WATCH FREE') : laCu ? 'giữ nguyên như video cũ' : 'theo dòng phim (máy)';
@@ -225,7 +228,6 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
         <button style={chip(laCu)} onClick={() => setDang('CU')} data-dang="CU" title="dùng lại creative đã có của phim — mỗi creative × mỗi mức ROAS một camp">Dùng lại ({p.cu.length})</button>
       </div>
       {dangChon ? <div style={{ fontSize: 12, color: MO_SO, marginBottom: 4 }}><b style={{ color: 'inherit' }}>{dangChon.ten}</b> — {dangChon.mo_ta}</div> : null}
-      {dsDang.some((d) => khoaDang(d)) ? <div style={{ fontSize: 11, color: MO_SO }} data-dang-khoa title={dsDang.filter((d) => khoaDang(d)).map((d) => `${d.ma}: ${khoaDang(d)}`).join('\n')}>🔒 {dsDang.filter((d) => khoaDang(d)).length} dạng đang gác / khoá — rê chuột lên nút để xem lý do</div> : null}
       {laCu ? <div style={{ marginTop: 6 }}><DsDungLai ds={p.cu} chon={cu} bat={batCu} /></div> : null}
     </Khoi>
 
@@ -237,7 +239,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       </Hang>
       <Hang ten="Câu đọc">
         <button style={chip(!cau)} onClick={() => setCau('')} title="mỗi bản một câu, xoay vòng theo sổ">máy xoay</button>
-        {p.cau.map((c, i) => <button key={c.id} style={{ ...chip(cau === c.id), textAlign: 'left', borderRadius: 8, width: '100%' }} onClick={() => setCau(c.id)} data-cau={c.id}>{i + 1}. {c.chu}</button>)}
+        {p.cau.map((c, i) => <button key={c.id} style={{ ...chip(cau === c.id), textAlign: 'left', borderRadius: 8, width: '100%' }} onClick={() => setCau(c.id)} data-cau={c.id}>{i + 1}. {c.chu}<CoVi goc={c.chu} b={bv} /></button>)}
       </Hang>
     </Khoi> : NOI_DUNG_VIDEO[dang] ? <Khoi icon="🎞" ten={`Nội dung trong video · ${dang}`} phu="máy dựng theo khuôn cố định — chưa có tuỳ chọn">
       <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5 }} data-noi-dung-video>{NOI_DUNG_VIDEO[dang].map((x) => <li key={x}>{x}</li>)}</ul>
@@ -248,7 +250,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       <Hang ten="Trong video">
         {dang === 'AD' ? <>
           <button style={chip(!cta)} onClick={() => setCta('')} data-cta="">mặc định mẫu (WATCH MORE)</button>
-          {p.cta.map((c) => <button key={c} style={chip(cta === c)} onClick={() => setCta(c)} data-cta={c}>{c}</button>)}
+          {p.cta.map((c) => <button key={c} style={chip(cta === c)} onClick={() => setCta(c)} data-cta={c}>{c}<CoVi goc={c} b={bv} /></button>)}
         </> : <><span style={{ ...chip(true), cursor: 'default' }}>{nut}</span>{dang === 'CC2' ? <span style={{ fontSize: 11.5, color: MO_SO }}>CC2 cố định nút này</span> : null}</>}
       </Hang>
     </Khoi>
@@ -264,7 +266,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
           onClick={() => { if (l !== nn) { setNn(l); void sinhK(l); } }}>{l.toUpperCase()}{l === lc ? ' ★' : ''}</button>)}
         <InfoHint>★ = ngôn ngữ phim; đổi là máy sinh lại bộ K bằng ngôn ngữ đó (camp vẫn theo khuôn ngôn ngữ phim)</InfoHint>
       </Hang> : <div style={{ fontSize: 11.5, color: MO_SO, marginBottom: 6 }}>D là form cố định theo ngôn ngữ phim — không sinh lại</div>}
-      {chu ? <KhoiChu c={chu} sua={kieu === 'kien'} dongSinh={dongSinh} sinhDong={(m, i) => void sinhDong(m, i)} /> : null}
+      {chu ? <KhoiChu c={chu} sua={kieu === 'kien'} dongSinh={dongSinh} sinhDong={(m, i) => void sinhDong(m, i)} bv={bv} /> : null}
     </Khoi>
 
     <Khoi icon="🔗" ten="Link · Domain">

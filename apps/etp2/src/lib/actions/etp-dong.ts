@@ -92,12 +92,12 @@ export async function formDong(contentId: number): Promise<{ loai: LoaiNoiDung[]
       return { dangChay: x?.n ?? 0, kPlan: x?.k ?? null, sanCr: x?.san ?? 0, lyPlan: x?.ly ?? null }; })()) };
 }
 
-/** DẠNG cho Phiếu lên camp (etp-phieu-len): mọi mục LOAI + dạng đang gác kèm lý do (anh 27/11/2026 "Phải hiện thêm các dạng khác") — một nguồn với form dòng phim */
-export async function loaiPhieu(): Promise<{ ma: string; ten: string; mo_ta: string; gia: string; thoi_gian: string; chay: boolean; khoa: string | null; gac: string | null }[]> {
+/** DẠNG cho Phiếu lên camp (etp-phieu-len): mọi mục LOAI máy làm được — KHÔNG đọc gác (anh 27/11/2026 "Bỏ hết gác đi … Tao bảo mấy lần rồi"):
+ *  gác dạng chỉ chặn máy TỰ xếp dòng; phiếu là lệnh trực tiếp của anh → chayDong(…, phieu) bỏ qua gác, dong_phim.py không dừng dòng có phieu_id.
+ *  Dạng chưa có máy (chay: false — CT, KM) không hiện: hiện ra mà bấm không chạy = lại là một cái khoá. */
+export async function loaiPhieu(): Promise<{ ma: string; ten: string; mo_ta: string; gia: string; thoi_gian: string; chay: boolean; khoa: string | null }[]> {
   if (!(await quyen())) return [];
-  const { gac, ly } = await docGac();
-  return LOAI.map((l) => ({ ma: l.ma, ten: l.ten, mo_ta: l.mo_ta, gia: l.gia, thoi_gian: l.thoi_gian, chay: l.chay, khoa: l.khoa ?? null,
-    gac: gac.includes(l.ma) ? (ly[l.ma] ?? 'đang gác — chưa ghi lý do') : null }));
+  return LOAI.filter((l) => l.chay).map((l) => ({ ma: l.ma, ten: l.ten, mo_ta: l.mo_ta, gia: l.gia, thoi_gian: l.thoi_gian, chay: l.chay, khoa: l.khoa ?? null }));
 }
 
 /** dạng dòng phim anh đang gác — CÙNG luật apps/etp/dong_phim.py gac_dang(): etp.cau_hinh.gac_dang (mảng mã) + gac_kt = true tính như có 'KT' */
@@ -148,12 +148,14 @@ export async function loaiThaoTac(): Promise<{ ma: string; ten: string; chay: bo
   });
   return [...ds.filter((x) => x.chay), ...ds.filter((x) => !x.chay)];   // máy làm được đứng trước, dạng khoá theo thứ tự sổ
 }
-export async function chayDong(contentId: number, loai: string, theLoai: string, soCamp?: number, bo?: string | null): Promise<{ ok: true; id: number } | { loi: string }> {
+export async function chayDong(contentId: number, loai: string, theLoai: string, soCamp?: number, bo?: string | null, phieu?: number): Promise<{ ok: true; id: number } | { loi: string }> {
   const me = await quyen(); if (!me) return { loi: 'chỉ chủ / admin chạy dòng phim tự động' };
   const id = Math.trunc(Number(contentId)); if (!(id > 0)) return { loi: 'mã phim không hợp lệ' };
   const l = LOAI.find((x) => x.ma === loai); if (!l) return { loi: 'loại nội dung lạ' }; if (!l.chay) return { loi: `${l.ten}: ${l.khoa}` };
   // DẠNG ĐANG GÁC (#1598): máy dòng phim (dong_phim.py gac_dang) dừng ngay dòng dạng gác trong ~15 s → dòng anh vừa bấm biến mất không lời. Chặn từ lúc bấm, nói rõ vì sao.
-  if ((await dangGac()).includes(loai)) return { loi: await chuGacLoi(loai) };
+  // Phiếu lên camp (phieu = etp.phieu_len.id) là lệnh trực tiếp của anh → KHÔNG xét gác (anh 27/11/2026 "Bỏ hết gác đi"); dòng mang phieu_id, máy không dừng nó
+  const ph_id = phieu && phieu > 0 ? Math.trunc(phieu) : null;
+  if (!ph_id && (await dangGac()).includes(loai)) return { loi: await chuGacLoi(loai) };
   const [ph] = await run<{ ten: string | null; nhom_goc: string | null }>(sql`select coalesce(p.ten, v.ten) ten, p.nhom_goc from (select ${id}::int content_id) k
     left join etp.phim p using (content_id) left join etp.thu_vien_phim v using (content_id)`);
   if (ph?.nhom_goc && ph.nhom_goc !== 'au_my') return { loi: `phim nhóm gốc '${ph.nhom_goc}' — chỉ chạy phim Âu-Mỹ` };   // chưa có nhóm gốc: bước Nhận của dòng tự chấm poster (anh 04/11/2026 "chạy đủ các bước")
@@ -163,7 +165,7 @@ export async function chayDong(contentId: number, loai: string, theLoai: string,
       jsonb_build_object('tl', ${theLoai}::text, 'ten', ${ph?.ten ?? ''}::text, 'nguon', 'anh'), true) where ten = 'ethopex_the_loai'`);   // thể loại anh chọn đè máy đoán (the-loai.py đọc cùng sổ)
   const so = soCamp ? Math.trunc(Number(soCamp)) : null; if (so != null && !(so >= 1 && so <= 30)) return { loi: 'số camp mới phải từ 1 tới 30' };
   const b = bo ? String(bo) : null; if (b != null && !/^[1-5]$/.test(b)) return { loi: 'bộ tài khoản phải là 1–5' };   // null = máy chọn bộ (cong.SQL_BO_PHIM)   // MỞ RỘNG phim đang chạy (0416, anh 04/11/2026)
-  const [r] = await run<{ id: number }>(sql`insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp, bo) values (${id}, ${ph?.ten ?? null}, ${theLoai || null}, ${loai}, ${me.displayName ?? me.email ?? 'admin'}, ${so}, ${b}) returning id`);
+  const [r] = await run<{ id: number }>(sql`insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp, bo, phieu_id) values (${id}, ${ph?.ten ?? null}, ${theLoai || null}, ${loai}, ${me.displayName ?? me.email ?? 'admin'}, ${so}, ${b}, ${ph_id}) returning id`);
   return r ? { ok: true, id: r.id } : { loi: 'không ghi được' };
 }
 

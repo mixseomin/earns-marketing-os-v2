@@ -4,7 +4,8 @@
 // (tên miền · tiêu đề · mô tả · nút CTA đúng loại của camp). Chữ THẬT từ kho (docBaiQc ← apps/etp/bai-qc.py), không chữ mẫu.
 // Chấm điểm / lý do chặn KHÔNG nằm trong khung — chỗ gọi đặt TheCr bên ngoài.
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { docBaiQc, dichChu, type BaiQc, type NoiDungCr } from '@/lib/actions/etp-bai';
+import { docBaiQc, type BaiQc, type NoiDungCr } from '@/lib/actions/etp-bai';
+import { layDich, trungGoc } from '@/components/etp-co-vi';
 import { VideoXem } from '@/components/ui/video-xem';
 
 const CACHE = new Map<string, Promise<BaiQc | { loi: string }>>();
@@ -46,12 +47,6 @@ const DONG = (n: number): React.CSSProperties => ({ display: '-webkit-box', Webk
 type Dv = { vi: string } | { loi: string } | 'cho' | null;
 type LayVi = (goc: string | null | undefined) => Dv;
 const viCua = (d: Dv) => (d && typeof d === 'object' && 'vi' in d ? d.vi : null);
-const DICH = new Map<string, Promise<{ vi: Record<string, string> } | { loi: string }>>();
-const layDich = (ds: string[]) => {
-  const k = [...ds].sort().join('\u0001'); let p = DICH.get(k);
-  if (!p) { p = dichChu(ds); DICH.set(k, p); p.then((r) => { if ('loi' in r) DICH.delete(k); }, () => DICH.delete(k)); }
-  return p;
-};
 function useDich(b: BaiQc | null): LayVi {
   const [vi, setVi] = useState<Record<string, string>>({}); const [loi, setLoi] = useState<string | null>(null);
   useEffect(() => {
@@ -69,8 +64,6 @@ function useDich(b: BaiQc | null): LayVi {
   return (g) => { if (!g || !b || !(g in b.dich)) return null; const v = vi[g]; return v ? (trungGoc(g, v) ? null : { vi: v }) : loi ? { loi } : 'cho'; };
 }
 // bản dịch y hệt chữ gốc (tên phim, tên riêng: "Get Out of My Bugatti" → "Get Out of My Bugatti") = dòng thừa, không hiện (anh #1778 "trình bày cho hợp lý")
-const chuanSo = (s: string) => s.toLowerCase().normalize('NFC').replace(/[\s\p{P}\p{S}]+/gu, '');
-const trungGoc = (g: string, v: string) => chuanSo(g) === chuanSo(v);
 /** dòng dịch dưới chữ gốc — sang = nằm trong khung bài trắng (chữ xám tối).
  *  #1862 (anh: "Phần dịch chỉ hiện cờ vn. Hover vào mới lên nội dung tương ứng"): mặc định CHỈ một lá cờ 🇻🇳; rê chuột (máy tính) hoặc chạm (điện thoại,
  *  không có rê chuột) vào cờ mới mở bản dịch ngay dưới — YDNI chữ phụ gập vào rê. Lỗi dịch vẫn hiện đỏ đủ câu (lỗi phải kêu to, không gập). */

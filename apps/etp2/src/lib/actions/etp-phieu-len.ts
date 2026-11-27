@@ -39,7 +39,7 @@ const MAU_AD = 'dt_anh_dong_logo';
 // CTA (anh 27/11/2026 "Thêm 1 khối nữa là Nội dung CTA"): nút Facebook cố định WATCH_MORE (form-chu.json, cổng dung_form chặn khác); chữ nút TRONG VIDEO của AD chọn được
 // từ sổ etp-mau-cr.json › thu_vien.nut.chu (dung-mau.py đọc tuy_chon.o.cta.id = 'en:WATCH MORE'); CC2 cố định WATCH FREE / VER GRATIS (lop-logo-cc2.py NUT_CC2)
 const NUT = (SO_MAU as unknown as { thu_vien: { nut: { chu: Record<string, string[]> } } }).thu_vien.nut.chu;
-export type DangMo = { ma: string; ten: string; mo_ta: string; gia: string; thoi_gian: string; chay: boolean; khoa: string | null; gac: string | null };
+export type DangMo = { ma: string; ten: string; mo_ta: string; gia: string; thoi_gian: string; chay: boolean; khoa: string | null };
 const ROAS_MUC = ['dan', '0.9', '1', '1.1', '1.2'] as const;
 // NHIỀU MỨC ROAS (0489, anh 27/11/2026): N mức = N creative MỚI (AD: dung-mau tuy_chon.ban = N, mỗi bản một khung) + N camp, thẻ thứ i lên mức roas_ds[i]
 export type PhieuMo = {
@@ -52,7 +52,7 @@ export type PhieuMo = {
   chu: { K: ChuQc | null; D: ChuQc };
   mien: string[]; mien_mac: string | null; khung: { gio: string; chu: string }[];
   dang_cho: { id: number; dang: string; trang_thai: string; tao: string }[];   // phiếu đang dở của phim (để anh không gửi trùng)
-  dang: DangMo[];                                    // mọi dạng dòng phim (LOAI) + gác / khoá kèm lý do
+  dang: DangMo[];                                    // mọi dạng dòng phim máy làm được (LOAI chay) — phiếu không gác
   cta: string[];                                     // chữ nút CTA trong video theo ngôn ngữ phim (sổ nut.chu)
   nhom_goc: string | null;                           // dòng phim chỉ chạy phim Âu-Mỹ
 };
@@ -130,9 +130,8 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
   const ld = g.dang === 'AD' || g.dang === 'CU' ? null : dsDang.find((x) => x.ma === g.dang);
   if (g.dang !== 'AD' && g.dang !== 'CU' && !ld) return { loi: `kiểu creative lạ: ${g.dang}` };
   if (ld && !ld.chay) return { loi: `${ld.ten}: ${ld.khoa}` };
-  if (ld?.gac) return { loi: `dạng ${ld.ma} đang gác — ${ld.gac}` };
   const cta = g.dang === 'AD' && g.cta ? String(g.cta) : null;
-  if (cta) { const [l, ...r] = cta.split(':'); if (!(NUT[l] ?? []).includes(r.join(':'))) return { loi: `chữ nút CTA lạ: ${cta}` }; }
+  if (cta) { const [l, ...r] = cta.split(':'); if (!(NUT[l ?? ''] ?? []).includes(r.join(':'))) return { loi: `chữ nút CTA lạ: ${cta}` }; }
   const crCu = g.dang === 'CU' ? [...new Set((g.cr_cu ?? []).map((x) => Math.trunc(Number(x))).filter((x) => x > 0))] : [];
   if (g.dang === 'CU' && !crCu.length) return { loi: 'chọn ít nhất một creative cũ' };
   if (crCu.length > CU_TOI_DA) return { loi: `tối đa ${CU_TOI_DA} creative cũ mỗi phiếu` };
@@ -188,7 +187,7 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
       where etp.mau_dung.trang_thai in ('loi', 'cho', 'xong', 'dung') returning mau`);
     if (!r[0]) return await loiPhieu('việc dựng AD của phim đang ở trạng thái không nhận bản mới');
   } else {
-    const r = await chayDong(cid, g.dang, '');
+    const r = await chayDong(cid, g.dang, '', undefined, null, p.id);
     if ('loi' in r) return await loiPhieu(`dòng ${g.dang}: ${r.loi}`);
   }
   const chuGio = gio === 'lich' ? `khung gần nhất (${haiKhung()[0]?.chu ?? ''})` : `${gio}${tuDo ? ' ⚠ ngoài khung' : ''}`;

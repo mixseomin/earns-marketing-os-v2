@@ -1936,4 +1936,8 @@ export const LUAT = [
   { card: 'sinh-kien-2711', tep: 'apps/etp/dong_phim.py', co: 'SK.ds("kien")', vi: 'máy dòng phim biết phim có chữ K từ cả sổ máy sinh' },
   { card: 'sinh-kien-2711', tep: 'apps/etp2/src/lib/etp-chu-so.ts', co: 'from etp.chu_kieu', vi: 'thẻ Chờ lên + phiếu lên camp đọc chữ K máy sinh qua MỘT sổ soChu, không ép D' },
   { card: 'sinh-kien-2711', tep: 'apps/etp2/src/components/etp-cho-len.tsx', co: 'data-sinh-chu-kien', vi: 'phim chưa có chữ K → nút Sinh chữ Kiên ngay trên thẻ' },
+  { card: 1911, tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: 'VO[int(cid)] = {"cau": cau, "giong": None}', vi: 'mọi giọng đọc hook (AD / AT / PO / mẫu) ghi câu vừa đọc theo phim — không chỉ nằm trong mp3' },
+  { card: 1911, tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: 'gan_vo(kq["tv"], cid)', vi: 'bản AT nạp thư viện kèm câu đọc hook (chu_qc.vo)' },
+  { card: 1911, tep: 'apps/xuong-video/scripts/ethopex/tinh-ba-kieu.py', co: 'AT.gan_vo(tv, cid)', vi: 'cửa nạp chung (PO / mẫu AD / dựng lại logo) gắn câu đọc hook vào bản thư viện' },
+  { card: 1911, tep: 'apps/xuong-video/scripts/ethopex/thu-vien-len.py', co: '**({"vo": r["vo"]} if r.get("vo") else {})', vi: 'câu đọc hook đi tiếp vào Chờ lên (muc.vo) → thẻ không còn ghi "không có giọng đọc hook"' },
 ];

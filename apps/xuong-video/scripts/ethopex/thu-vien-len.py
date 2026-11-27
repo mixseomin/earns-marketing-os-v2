@@ -13,7 +13,7 @@ def sql(q):
 
 ids = [int(x) for x in sys.argv[1:] if x.isdigit()]
 if not ids: sys.exit(__doc__)
-rows = json.loads(sql(f"select coalesce(json_agg(row_to_json(v)), '[]') from (select id, content_id, dang, lang, ten, video, giay, creative_id, trang_thai, ghi, chu_qc->>'chu_dau' chu_dau, coalesce((chu_qc->>'lop_free')::boolean, false) lop_free from etp.thu_vien where id in ({','.join(map(str, ids))})) v") or "[]")
+rows = json.loads(sql(f"select coalesce(json_agg(row_to_json(v)), '[]') from (select id, content_id, dang, lang, ten, video, giay, creative_id, trang_thai, ghi, chu_qc->>'chu_dau' chu_dau, coalesce((chu_qc->>'lop_free')::boolean, false) lop_free, chu_qc->'vo' vo from etp.thu_vien where id in ({','.join(map(str, ids))})) v") or "[]")
 lo, tm = [], os.path.join(C, "thu-vien"); os.makedirs(tm, exist_ok=True)
 # CỔNG CHỜ ANH DUYỆT TRƯỚC KHI LÊN (anh 27/11/2026, cho_len.py): bản đang chờ thì không tải lại video mỗi nhịp; bản anh bỏ / đã lên thì ghi đúng trạng thái
 cl = {}
@@ -34,7 +34,8 @@ for r in rows:
     f = os.path.join(tm, f"tv{r['id']}.mp4")
     subprocess.run(["curl", "-sSfL", "-o", f, r["video"]], check=True)
     lo.append({"tv": r["id"], "content_id": r["content_id"], "lang": r["lang"] or "en", "ten": r["ten"], "tu": 0, "den": round(float(r["giay"] or 0), 1), "file": f, "lo": "tv", "dang": r["dang"] or "kể chuyện", "goi_y": r.get("ghi") or "",   # goi_y: ghi chú bản dựng (vd "PO.5") → len-creative chọn đúng công thức trong sổ mẫu
- **({"chu_dau": r["chu_dau"]} if r.get("chu_dau") else {}), **({"lop_free": True} if r.get("lop_free") else {})})   # ATT: primary text đầu (chu-qc.py)
+ **({"chu_dau": r["chu_dau"]} if r.get("chu_dau") else {}), **({"lop_free": True} if r.get("lop_free") else {}),
+ **({"vo": r["vo"]} if r.get("vo") else {})})   # ATT: primary text đầu (chu-qc.py) · vo: câu đọc hook (anh-tinh.gan_vo) → etp2 › Chờ lên hiện câu đọc 3s đầu (#1911)
 if not lo: sys.exit("không có bản nào để đưa lên")
 # MỖI DẠNG MỘT LÔ (29/10/2026: thư viện có thêm kiểu dựng 0đ kieu-moi.py — "chọn phe", "bình luận"…): len-creative ghi dạng cho cả lô → tách lô theo dạng của từng bản
 nhom = {}

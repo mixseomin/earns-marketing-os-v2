@@ -90,7 +90,9 @@ def nap(cid, lang, f, dang, ghi, vnd, chu_dau=None):
         t = f + ".chu.txt"; open(t, "w").write(chu_dau); AT.sh("scp", "-q", t, f"{AT.B}:{xa}/{os.path.basename(t)}"); them = f" --chu-dau-tep={xa}/{os.path.basename(t)}"
     r = AT.sh("ssh", AT.B, f"{AT.XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(f)} --content={cid} --dang='{dang}' --nguon=tinh_ba_kieu --lang={lang} --chi-vnd={vnd} --ghi='{ghi}' --them{them}{' --lop-free' if AT.CO_FREE else ''}", han=600)   # lớp Free là luật chung dạng tĩnh (chu_tinh) → dấu cho cổng chữ sau
     if r.returncode != 0: raise RuntimeError(f"thư viện: {(r.stderr or r.stdout)[-200:]}")
-    return int(AT.sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{dang}' and nguon = 'tinh_ba_kieu' and creative_id is null order by id desc limit 1") or 0)
+    tv = int(AT.sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{dang}' and nguon = 'tinh_ba_kieu' and creative_id is null order by id desc limit 1") or 0)
+    AT.gan_vo(tv, cid)   # câu đọc hook của bản (AT.giong / doc_giong vừa đọc) → thu_vien.chu_qc.vo → Chờ lên (anh 27/11/2026 #1911; dung-mau / dung-lai-logo cũng qua đây)
+    return tv
 
 # MẪU POSTER ĐỘNG (anh 08/11/2026 "PO đang dùng poster của nhà sản xuất nên chỉ có 1 mẫu. Tự thiết kế mới hoặc thêm bớt chi tiết… nhưng là dạng poster"):
 # --ban N xoay vòng các mẫu dưới, mỗi bản một mẫu (ghi vào sổ điểm chạm để đo từng mẫu). Chỉ dùng poster gốc + khung phim AI đã xếp hạng + tên phim tách từ poster — không sinh ảnh AI.

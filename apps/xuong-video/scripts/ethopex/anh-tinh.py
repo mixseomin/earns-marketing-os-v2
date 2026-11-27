@@ -676,8 +676,19 @@ def danh_dau(tv, kieu, lang, ten, so_mau=0, them=None, hook=None):
 
 # GIỌNG = CỔNG GIỌNG CHUNG scripts/lich-su/giong-ckey.mjs trên box3 (anh 08/11/2026 "chuyển vào cơ chế chung. Mọi AI API đều phải qua fallback"):
 # ckey ElevenLabs v3 theo MÃ giọng (156₫ / câu) → fal eleven-v3 khi ckey hỏng. Không gọi API giọng riêng ở đây.
+# CÂU ĐỌC HOOK ĐI THEO BẢN DỰNG (anh 27/11/2026 #1911 "Tại sao ko có HOok"): bản AD / AT / PO có đọc giọng thật nhưng câu đọc chỉ nằm trong mp3 →
+# etp2 › Chờ lên (cho_len.muc.vo) ghi "không có giọng đọc hook". MỘT chỗ ghi: mọi giọng đọc đi qua doc_giong → VO[cid] = câu vừa đọc (giong() thêm kiểu / mẫu / hook);
+# MỘT chỗ gắn: hai cửa nạp thư viện (anh-tinh main + tinh-ba-kieu.nap, dùng chung bởi dung-mau / dung-lai-logo) gọi gan_vo → thu_vien.chu_qc.vo
+# → thu-vien-len đưa vào muc.vo của Chờ lên. gan_vo LẤY RA (pop) nên bản sau không mang nhầm câu bản trước.
+VO = {}
+def gan_vo(tv, cid):
+    vo = VO.pop(int(cid), None)
+    if tv and vo: sql(f"update etp.thu_vien set chu_qc = coalesce(chu_qc, '{{}}'::jsonb) || jsonb_build_object('vo', $Q${json.dumps(vo, ensure_ascii=False).replace('$Q$', '')}$Q$::jsonb) where id = {int(tv)}")
+    return vo
+
 def doc_giong(cid, lang, v, cau, tm):
     """một câu → mp3 trong tm (dùng lại khi cùng giọng + câu) → (tệp, ₫ thật theo dòng cuối của cổng)"""
+    VO[int(cid)] = {"cau": cau, "giong": None}   # câu thật vừa đọc — gan_vo gắn vào bản nạp kế tiếp của phim
     h = hashlib.sha1(f"{v}|{cau}".encode()).hexdigest()[:10]; f = os.path.join(tm, f"giong-{h}.mp3")
     if os.path.exists(f) and os.path.getsize(f) > 3000: return f, 0
     xa = f"/var/tmp/anh-tinh/{cid}"; job = os.path.join(tm, "giong.json")
@@ -696,6 +707,7 @@ def giong(cid, lang, ten, kieu, tm, so_mau=0, hook=None):
     if hook is None: hook, v0 = hook_phim(cid, lang, ten, thu=so_mau)   # bản khác (mẫu câu khác) → hook khác, không đọc trùng câu (anh 27/11/2026)
     hook = hook or None
     f, vnd = doc_giong(cid, lang, KIEU_GIONG[kieu][0], cau_doc(lang, so_mau, kieu, ten, (hook or {}).get("cau")), tm)
+    VO[int(cid)].update({"giong": kieu, "mau": so_mau, **({"hook": hook} if hook else {})})
     return f, vnd + v0, kieu
 
 def dung(nen, chu, mp3, ra):
@@ -769,6 +781,7 @@ def mot(p, xem, kieu, ban=1):
                 r = sh("ssh", B, f"{XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(out)} --content={cid} --dang='{DANG}' --nguon={NGUON} --lang={lang} --chi-vnd={kq['vnd']} --ghi='{ghi}' --them{' --lop-free' if k.get('free') else ''}", han=600)   # --them: mỗi bản một dòng thư viện
                 if r.returncode != 0: raise RuntimeError(f"thư viện: {(r.stderr or r.stdout)[-200:]}")
                 kq["tv"] = int(sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{DANG}' and nguon = '{NGUON}' and creative_id is null order by id desc limit 1") or 0)
+                gan_vo(kq["tv"], cid)   # câu đọc hook của bản này → Chờ lên hiện đúng câu (#1911)
                 # MỌI bản ảnh tĩnh chờ anh duyệt trên etp2 › Camp (0460) — anh 22/11/2026 cho khung chỉ định --anh; 26/11/2026 "SX Creative nào cần để tao duyệt" → mọi bản
                 if kq["tv"]: sql(f"insert into etp.cho_anh_duyet (tv_id, ghi) values ({kq['tv']}, '{'khung chỉ định --anh' if KHUNG_CHI else 'ảnh tĩnh máy dựng'}') on conflict do nothing")
                 ghi_khung(tm, DANG, k)

@@ -2,7 +2,443 @@
   "tieu_de": "EL CLÁSICO",
   "phu_de": "Physics decides",
   "doi": [
-    { "ten": "Real Madrid", "ngan": "RMA", "kieu": "tron", "mau": ["#f4f4f4", "#d4af37"], "chu": "#1b2a6b", "tm": ["#2b2b2b", "#d4af37"] },
-    { "ten": "Barcelona", "ngan": "FCB", "kieu": "soc", "mau": ["#a50044", "#004d98"], "chu": "#ffd84a", "tm": ["#18c37e", "#0b5a3a"] }
-  ]
+    {
+      "ten": "Real Madrid",
+      "ngan": "RMA",
+      "kieu": "tron",
+      "mau": [
+        "#f4f4f4",
+        "#d4af37"
+      ],
+      "chu": "#1b2a6b",
+      "tm": [
+        "#2b2b2b",
+        "#d4af37"
+      ],
+      "wiki": {
+        "trang": "Real_Madrid_CF",
+        "khung": "Template:Real_Madrid_CF_squad"
+      },
+      "xi": [
+        1,
+        12,
+        3,
+        22,
+        18,
+        8,
+        14,
+        5,
+        7,
+        10,
+        11
+      ],
+      "cauthu": [
+        {
+          "so": 1,
+          "ten": "Thibaut Courtois",
+          "vt": "GK",
+          "qt": "BEL",
+          "ngan": "Courtois"
+        },
+        {
+          "so": 2,
+          "ten": "Raúl Asencio",
+          "vt": "DF",
+          "qt": "ESP",
+          "ngan": "Asencio"
+        },
+        {
+          "so": 3,
+          "ten": "Éder Militão",
+          "vt": "DF",
+          "qt": "BRA",
+          "ngan": "Militão"
+        },
+        {
+          "so": 4,
+          "ten": "Dean Huijsen",
+          "vt": "DF",
+          "qt": "ESP",
+          "ngan": "Huijsen"
+        },
+        {
+          "so": 5,
+          "ten": "Jude Bellingham",
+          "vt": "MF",
+          "qt": "ENG",
+          "ngan": "Bellingham"
+        },
+        {
+          "so": 6,
+          "ten": "Eduardo Camavinga",
+          "vt": "MF",
+          "qt": "FRA",
+          "ngan": "Camavinga"
+        },
+        {
+          "so": 7,
+          "ten": "Vinícius Júnior",
+          "vt": "FW",
+          "qt": "BRA",
+          "ngan": "Vinícius Jr."
+        },
+        {
+          "so": 8,
+          "ten": "Federico Valverde",
+          "vt": "MF",
+          "qt": "URU",
+          "ngan": "Valverde"
+        },
+        {
+          "so": 9,
+          "ten": "Endrick",
+          "vt": "FW",
+          "qt": "BRA",
+          "ngan": "Endrick"
+        },
+        {
+          "so": 10,
+          "ten": "Kylian Mbappé",
+          "vt": "FW",
+          "qt": "FRA",
+          "ngan": "Mbappé"
+        },
+        {
+          "so": 11,
+          "ten": "Rodrygo",
+          "vt": "FW",
+          "qt": "BRA",
+          "ngan": "Rodrygo"
+        },
+        {
+          "so": 12,
+          "ten": "Trent Alexander-Arnold",
+          "vt": "DF",
+          "qt": "ENG",
+          "ngan": "Alexander-Arnold"
+        },
+        {
+          "so": 13,
+          "ten": "Andriy Lunin",
+          "vt": "GK",
+          "qt": "UKR",
+          "ngan": "Lunin"
+        },
+        {
+          "so": 14,
+          "ten": "Aurélien Tchouaméni",
+          "vt": "MF",
+          "qt": "FRA",
+          "ngan": "Tchouaméni"
+        },
+        {
+          "so": 15,
+          "ten": "Arda Güler",
+          "vt": "MF",
+          "qt": "TUR",
+          "ngan": "Güler"
+        },
+        {
+          "so": 16,
+          "ten": "Ibrahima Konaté",
+          "vt": "DF",
+          "qt": "FRA",
+          "ngan": "Konaté"
+        },
+        {
+          "so": 17,
+          "ten": "Marc Cucurella",
+          "vt": "DF",
+          "qt": "ESP",
+          "ngan": "Cucurella"
+        },
+        {
+          "so": 18,
+          "ten": "Álvaro Carreras",
+          "vt": "DF",
+          "qt": "ESP",
+          "ngan": "Carreras"
+        },
+        {
+          "so": 19,
+          "ten": "Carlos Espí",
+          "vt": "FW",
+          "qt": "ESP",
+          "ngan": "Espí"
+        },
+        {
+          "so": 20,
+          "ten": "Bernardo Silva",
+          "vt": "MF",
+          "qt": "POR",
+          "ngan": "Silva"
+        },
+        {
+          "so": 21,
+          "ten": "Brahim Díaz",
+          "vt": "FW",
+          "qt": "MAR",
+          "ngan": "Brahim"
+        },
+        {
+          "so": 22,
+          "ten": "Antonio Rüdiger",
+          "vt": "DF",
+          "qt": "GER",
+          "ngan": "Rüdiger"
+        },
+        {
+          "so": 23,
+          "ten": "Ferland Mendy",
+          "vt": "DF",
+          "qt": "FRA",
+          "ngan": "Mendy"
+        },
+        {
+          "so": 24,
+          "ten": "Denzel Dumfries",
+          "vt": "DF",
+          "qt": "NED",
+          "ngan": "Dumfries"
+        },
+        {
+          "so": 25,
+          "ten": "Yan Diomande",
+          "vt": "FW",
+          "qt": "CIV",
+          "ngan": "Diomande"
+        },
+        {
+          "so": 27,
+          "ten": "Thiago Pitarch",
+          "vt": "MF",
+          "qt": "ESP",
+          "ngan": "Pitarch"
+        }
+      ]
+    },
+    {
+      "ten": "Barcelona",
+      "ngan": "FCB",
+      "kieu": "soc",
+      "mau": [
+        "#a50044",
+        "#004d98"
+      ],
+      "chu": "#ffd84a",
+      "tm": [
+        "#18c37e",
+        "#0b5a3a"
+      ],
+      "wiki": {
+        "trang": "FC_Barcelona",
+        "khung": "Template:FC_Barcelona_squad"
+      },
+      "xi": [
+        1,
+        23,
+        5,
+        24,
+        3,
+        8,
+        21,
+        6,
+        10,
+        9,
+        11
+      ],
+      "cauthu": [
+        {
+          "so": 1,
+          "ten": "Joan Garcia",
+          "vt": "GK",
+          "qt": "ESP",
+          "ngan": "J. Garcia"
+        },
+        {
+          "so": 2,
+          "ten": "João Cancelo",
+          "vt": "DF",
+          "qt": "POR",
+          "ngan": "Cancelo"
+        },
+        {
+          "so": 3,
+          "ten": "Alejandro Balde",
+          "vt": "DF",
+          "qt": "ESP",
+          "ngan": "Balde"
+        },
+        {
+          "so": 4,
+          "ten": "Brian Fariñas",
+          "vt": "MF",
+          "qt": "ESP",
+          "ngan": "Fariñas"
+        },
+        {
+          "so": 5,
+          "ten": "Pau Cubarsí",
+          "vt": "DF",
+          "qt": "ESP",
+          "ngan": "Cubarsí"
+        },
+        {
+          "so": 6,
+          "ten": "Gavi",
+          "vt": "MF",
+          "qt": "ESP",
+          "ngan": "Gavi"
+        },
+        {
+          "so": 7,
+          "ten": "Fermín López",
+          "vt": "MF",
+          "qt": "ESP",
+          "ngan": "Fermín"
+        },
+        {
+          "so": 8,
+          "ten": "Pedri",
+          "vt": "MF",
+          "qt": "ESP",
+          "ngan": "Pedri"
+        },
+        {
+          "so": 9,
+          "ten": "Gabriel Jesus",
+          "vt": "FW",
+          "qt": "BRA",
+          "ngan": "G. Jesus"
+        },
+        {
+          "so": 10,
+          "ten": "Lamine Yamal",
+          "vt": "FW",
+          "qt": "ESP",
+          "ngan": "Yamal"
+        },
+        {
+          "so": 11,
+          "ten": "Raphinha",
+          "vt": "FW",
+          "qt": "BRA",
+          "ngan": "Raphinha"
+        },
+        {
+          "so": 12,
+          "ten": "Xavi Espart",
+          "vt": "DF",
+          "qt": "ESP",
+          "ngan": "Espart"
+        },
+        {
+          "so": 13,
+          "ten": "Wojciech Szczęsny",
+          "vt": "GK",
+          "qt": "POL",
+          "ngan": "Szczęsny"
+        },
+        {
+          "so": 14,
+          "ten": "Karim Adeyemi",
+          "vt": "FW",
+          "qt": "GER",
+          "ngan": "Adeyemi"
+        },
+        {
+          "so": 15,
+          "ten": "Andreas Christensen",
+          "vt": "DF",
+          "qt": "DEN",
+          "ngan": "Christensen"
+        },
+        {
+          "so": 16,
+          "ten": "Rodri",
+          "vt": "MF",
+          "qt": "ESP",
+          "ngan": "Rodri"
+        },
+        {
+          "so": 17,
+          "ten": "Anthony Gordon",
+          "vt": "FW",
+          "qt": "ENG",
+          "ngan": "Gordon"
+        },
+        {
+          "so": 18,
+          "ten": "Gerard Martín",
+          "vt": "DF",
+          "qt": "ESP",
+          "ngan": "Martín"
+        },
+        {
+          "so": 19,
+          "ten": "Roony Bardghji",
+          "vt": "FW",
+          "qt": "SWE",
+          "ngan": "Bardghji"
+        },
+        {
+          "so": 20,
+          "ten": "Dani Olmo",
+          "vt": "MF",
+          "qt": "ESP",
+          "ngan": "Olmo"
+        },
+        {
+          "so": 21,
+          "ten": "Frenkie de Jong",
+          "vt": "MF",
+          "qt": "NED",
+          "ngan": "De Jong"
+        },
+        {
+          "so": 22,
+          "ten": "Marc Bernal",
+          "vt": "MF",
+          "qt": "ESP",
+          "ngan": "Bernal"
+        },
+        {
+          "so": 23,
+          "ten": "Jules Koundé",
+          "vt": "DF",
+          "qt": "FRA",
+          "ngan": "Koundé"
+        },
+        {
+          "so": 24,
+          "ten": "Eric Garcia",
+          "vt": "DF",
+          "qt": "ESP",
+          "ngan": "E. Garcia"
+        },
+        {
+          "so": 25,
+          "ten": "Dominik Livaković",
+          "vt": "GK",
+          "qt": "CRO",
+          "ngan": "Livaković"
+        },
+        {
+          "so": 27,
+          "ten": "Jesse Bisiwu",
+          "vt": "FW",
+          "qt": "BEL",
+          "ngan": "Bisiwu"
+        },
+        {
+          "so": 29,
+          "ten": "Hamza Abdelkarim",
+          "vt": "FW",
+          "qt": "EGY",
+          "ngan": "Hamza"
+        }
+      ]
+    }
+  ],
+  "nguon": "Wikipedia (đội hình đội một), lấy 2026-11-27"
 }

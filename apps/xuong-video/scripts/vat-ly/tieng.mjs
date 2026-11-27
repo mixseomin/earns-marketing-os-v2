@@ -131,7 +131,7 @@ function tiengTran(g, { N, cong, ngau, kick, kenNot, ghi }) {
   let sauQ = -1, sauV = -1, sauB = -1;
   for (const e of g.suKien) {
     if (e.t >= DAI) continue;
-    const p = g.khung[Math.min(g.khung.length - 1, Math.round(e.t * 30))]?.p?.[e.i ?? 10];
+    const p = g.khung[Math.min(g.khung.length - 1, Math.round(e.t * 30))]?.p?.[e.i ?? g.bi ?? 10];
     const pan = p ? Math.max(-0.7, Math.min(0.7, (p[0] - x0) / 440)) : 0;
     if (e.k === 'q') { if (e.t - sauQ < 0.05) continue; sauQ = e.t; cong(e.t, sut(Math.min(1, (e.l ?? 4) / 8) * 0.35), pan); }
     else if (e.k === 'v') { if (e.t - sauV < 0.06) continue; sauV = e.t; cong(e.t, nhieu(0.18, 0.15, (t) => Math.min(1, (e.l ?? 4) / 9) * 0.35 * Math.exp(-t * 25)), pan); }

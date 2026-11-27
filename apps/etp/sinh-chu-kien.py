@@ -95,8 +95,9 @@ Write ONE new set for "{ten}":
 - description: one plain line in {nn}, max 55 characters, no ending question.
 Facebook-safe: no sexual words or innuendo (no breast, naked, bed, seduce, sleep with, wet nurse, milk), no violence words (kill, dead, blood, murder), no slurs, no emojis, no hashtags, no click/tap words."""
 
-def sinh(cid):
+def sinh(cid, nn=None):
     ten, lang, mo = phim(cid)
+    if nn in ("en", "es"): lang = nn   # phiếu lên camp etp2: anh chọn ngôn ngữ chữ (--lang)
     if not ten: return None, 0, f"phim {cid}: không có trong etp.phim / Ethopex"
     if len(mo) < 80: return None, 0, f"phim {cid}: không đọc được cốt truyện (Ethopex + trang nguồn) — không sinh để khỏi bịa"
     vd = "\n".join(f"- hook: {v['primaryTexts'][0].rsplit(DUOI, 1)[0].strip()}\n  headline: {v['headlines'][0]}\n  description: {v['descriptions'][0]}" for v in mau(lang))
@@ -114,11 +115,11 @@ def ghi(b, vnd):
           {s(b['lang'])}, {s(b['mo_hinh'])}, {round(vnd)}) on conflict (content_id, kieu) do update set pt = excluded.pt, hl = excluded.hl, de = excluded.de,
           lang = excluded.lang, mo_hinh = excluded.mo_hinh, vnd = excluded.vnd, tao = now()""")
 
-def chay(ids, lai=False, xem=False, js=False):
+def chay(ids, lai=False, xem=False, js=False, nn=None):
     tong, loi = 0.0, 0
     for c in dict.fromkeys(int(x) for x in ids):
         if not lai and SK.bo("kien", c): print(f"phim {c}: đã có chữ Kiên — bỏ qua"); continue
-        b, vnd, l = sinh(c); tong += vnd
+        b, vnd, l = sinh(c, nn); tong += vnd
         if l: print(f"✗ {l}", flush=True); loi += 1; continue
         if not xem: ghi(b, vnd)
         if js: print("JSON:" + json.dumps({**b, "vnd": round(vnd)}, ensure_ascii=False), flush=True)   # phiếu lên camp etp2 (sinh lại chữ K, --xem: không ghi sổ) đọc dòng này
@@ -156,4 +157,6 @@ if __name__ == "__main__":
         print("sinh-chu-kien tự kiểm ok"); sys.exit(0)
     ids = cho() if "--cho" in sys.argv else [x for x in sys.argv[1:] if x.isdigit()]
     if not ids: raise SystemExit(__doc__)
-    sys.exit(1 if chay(ids, "--lai" in sys.argv, "--xem" in sys.argv, "--json" in sys.argv) else 0)
+    _nn = sys.argv[sys.argv.index("--lang") + 1] if "--lang" in sys.argv[:-1] else None
+    if _nn not in (None, "en", "es"): raise SystemExit(f"--lang phải là en hoặc es (nhận {_nn})")
+    sys.exit(1 if chay(ids, "--lai" in sys.argv, "--xem" in sys.argv, "--json" in sys.argv, _nn) else 0)

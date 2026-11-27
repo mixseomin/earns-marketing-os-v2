@@ -75,7 +75,10 @@ def loc(lo, ma):
 SQL_GAN_PHIEU = ("update etp.cho_len c set phieu_id = p.id, phieu_roas = coalesce(p.roas_ds, array[p.roas])[1 + (select count(*) from etp.cho_len x where x.phieu_id = p.id and x.trang_thai <> 'bo')] "
                  "from etp.phieu_len p where p.id = {p} and {dk} and c.phieu_id is null "
                  "and (select count(*) from etp.cho_len x where x.phieu_id = p.id and x.trang_thai <> 'bo') < coalesce(array_length(p.roas_ds, 1), 1)")
-PHIEU_DANG = {"canh cuoi logo": "CC2", "cảnh cuối logo": "CC2", "ảnh động": "AD"}   # dạng ghi ở etp.cho_len → mã dạng của phiếu (etp.phieu_len.dang)
+PHIEU_DANG = {"canh cuoi logo": "CC2", "cảnh cuối logo": "CC2", "ảnh động": "AD", "anh dong": "AD",
+              "cảnh cuối": "CC", "canh cuoi": "CC", "kể chuyện": "KT", "ke chuyen": "KT", "ảnh tĩnh": "AT", "anh tinh": "AT",
+              "ảnh tĩnh tóm tắt": "ATT", "anh tinh tom tat": "ATT", "poster động": "PO", "poster dong": "PO",
+              "câu thoại sốc": "CTS", "cau thoai soc": "CTS", "tập nguyên": "LT", "tap nguyen": "LT"}   # dạng ghi ở etp.cho_len → mã dạng của phiếu (etp.phieu_len.dang)
 
 def ghi_cho(moi, anh, ma, dang):
     """bản mới đã đẩy kho → ghi 'cho' kèm link xem; trả dòng len.json"""

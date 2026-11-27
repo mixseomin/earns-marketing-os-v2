@@ -92,6 +92,14 @@ export async function formDong(contentId: number): Promise<{ loai: LoaiNoiDung[]
       return { dangChay: x?.n ?? 0, kPlan: x?.k ?? null, sanCr: x?.san ?? 0, lyPlan: x?.ly ?? null }; })()) };
 }
 
+/** DẠNG cho Phiếu lên camp (etp-phieu-len): mọi mục LOAI + dạng đang gác kèm lý do (anh 27/11/2026 "Phải hiện thêm các dạng khác") — một nguồn với form dòng phim */
+export async function loaiPhieu(): Promise<{ ma: string; ten: string; mo_ta: string; gia: string; thoi_gian: string; chay: boolean; khoa: string | null; gac: string | null }[]> {
+  if (!(await quyen())) return [];
+  const { gac, ly } = await docGac();
+  return LOAI.map((l) => ({ ma: l.ma, ten: l.ten, mo_ta: l.mo_ta, gia: l.gia, thoi_gian: l.thoi_gian, chay: l.chay, khoa: l.khoa ?? null,
+    gac: gac.includes(l.ma) ? (ly[l.ma] ?? 'đang gác — chưa ghi lý do') : null }));
+}
+
 /** dạng dòng phim anh đang gác — CÙNG luật apps/etp/dong_phim.py gac_dang(): etp.cau_hinh.gac_dang (mảng mã) + gac_kt = true tính như có 'KT' */
 export async function dangGac(): Promise<string[]> {
   const [g] = await run<{ ds: unknown; kt: boolean | null }>(sql`select (select gia_tri from etp.cau_hinh where khoa = 'gac_dang') ds,

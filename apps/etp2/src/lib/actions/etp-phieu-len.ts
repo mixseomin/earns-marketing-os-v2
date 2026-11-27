@@ -6,6 +6,7 @@
 // Luồng: guiPhieu ghi etp.phieu_len 'dung' (0488) → AD: etp.mau_dung dt_anh_dong_logo tuy_chon.phieu (dung-mau.py, iMac) · CC2: dòng phim (chayDong, cho_len.py nối phiếu)
 // → bản dựng vào etp2 › Chờ lên mang phieu_id → anh ✓ Duyệt (etp-cho-len.ts) = vé trực tiếp + apps/etp/len-phieu.py tải creative rồi tạo camp đúng phiếu.
 // Nhãn hiện cho anh chỉ "K" / "D" (anh: "Khi show chỉ viết K hay D. Cấm ghi tên chi tiết").
+import { anhUrl } from '@/lib/etp-anh-url';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
@@ -41,7 +42,7 @@ export async function docPhieu(cid: number): Promise<{ ok: true; p: PhieuMo } | 
   const mien = [...new Set([m?.mac, ...(m?.ds ?? [])].filter((x): x is string => !!x))];
   const dang = await run<{ id: number; dang: string; trang_thai: string; tao: string }>(sql`select id, dang, trang_thai, tao::text tao from etp.phieu_len
     where content_id = ${id} and trang_thai in ('dung', 'cho_duyet', 'len', 'loi') and tao > now() - interval '3 days' order by tao desc`);
-  return { ok: true, p: { cid: id, ten: f.ten, lang: f.lang, poster: f.poster, chu: { K: so.kien(id), D: so.dol }, mien, mien_mac: m?.mac ?? null, khung: haiKhung(), dang_cho: dang } };
+  return { ok: true, p: { cid: id, ten: f.ten, lang: f.lang, poster: anhUrl(f.poster), chu: { K: so.kien(id), D: so.dol }, mien, mien_mac: m?.mac ?? null, khung: haiKhung(), dang_cho: dang } };
 }
 
 /** chọn K (hoặc bấm K lần nữa) → máy sinh bộ chữ K mới cho phim (apps/etp/sinh-chu-kien.py --lai --xem --json: không ghi sổ, chữ chỉ đi theo phiếu khi gửi) */

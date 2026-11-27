@@ -679,6 +679,8 @@ def dt_ten_tren_nut_duoi(c):
 # ---------- ẢNH ĐỘNG: khung sạch → VideoExpress chuyển động (scripts/vx-mot.mts, 0₫ — anh 27/11/2026 cấm cổng video trả tiền cho AD) → lớp phủ hiện ở giây 1,5 ----------
 DONG = {"dt_anh_dong_logo"}   # mẫu có nền chuyển động (dạng ảnh tĩnh mở rộng thành ảnh động)
 DONG_GIAY, DONG_HIEN = 8, 1.5   # giây clip AI · giây lớp phủ (logo + nút) hiện
+DONG_LENH2 = ("Continue this exact shot from a short drama with subtle cinematic motion: slow camera pull-back to a slightly wider framing, gentle movement of hair, clothes "
+              "and light, natural breathing and small eye movement. Keep every face, person, outfit and the composition exactly the same, no new people, no text, no logo, no cuts, no scene change.")
 DONG_LENH = ("Subtle cinematic motion of this exact still frame from a short drama: slow camera push-in, gentle movement of hair, clothes and light, natural breathing "
              "and small eye movement. Keep every face, person, outfit and the composition exactly the same, no new people, no text, no logo, no cuts, no scene change.")
 LAT_LECH = 4.0   # chênh trung bình (/255) tối đa giữa khung lật và gương của khung cũ để coi là cùng khung
@@ -692,7 +694,7 @@ def chuyen_dong(nen, tm, cid, ma, b):
     if os.path.exists(ra) and os.path.exists(jpg):
         cu = Image.open(jpg).convert("RGB")
         if cu.size == moi.size and sum(ImageStat.Stat(ImageChops.difference(cu, moi)).mean) / 3 < 1.0:
-            print(f"chuyển động: dùng lại clip đã trả tiền của đúng khung này ({ra}) · 0₫", flush=True); return ra, 0
+            print(f"chuyển động: dùng lại clip đã trả tiền của đúng khung này ({ra}) · 0₫", flush=True); return ghep_hai(ra, cid, ma, b), 0
     # KHUNG LẬT (mot(lat=True)): khung mới = gương của một khung đã có clip trong thư mục phim → clip đó lật ngang (ffmpeg hflip), 0₫
     import glob
     guong = ImageOps.mirror(moi); lech = lambda a, b: sum(ImageStat.Stat(ImageChops.difference(a, b)).mean) / 3
@@ -704,18 +706,25 @@ def chuyen_dong(nen, tm, cid, ma, b):
         if d < LAT_LECH:
             r = AT.sh("ffmpeg", "-v", "error", "-y", "-i", mp, "-vf", "hflip", "-an", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", ra)
             if r.returncode or not os.path.exists(ra): raise RuntimeError(f"lật clip lỗi: {r.stderr[-200:]}")
-            moi.save(jpg, quality=92); print(f"chuyển động: khung lật của {os.path.basename(j)} → clip đó lật ngang · 0₫", flush=True); return ra, 0
+            if os.path.exists(mp[:-4] + "-2.mp4"):   # clip nối tiếp của khung gốc cũng lật theo
+                r = AT.sh("ffmpeg", "-v", "error", "-y", "-i", mp[:-4] + "-2.mp4", "-vf", "hflip", "-an", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", ra[:-4] + "-2.mp4")
+                if r.returncode: raise RuntimeError(f"lật clip nối tiếp lỗi: {r.stderr[-200:]}")
+            moi.save(jpg, quality=92); print(f"chuyển động: khung lật của {os.path.basename(j)} → clip đó lật ngang · 0₫", flush=True); return ghep_hai(ra, cid, ma, b), 0
     if CHI_LAT[0]: raise RuntimeError(f"--lat: không tìm thấy clip đã trả tiền khớp khung gốc của bản lật (lệch /255, ngưỡng {LAT_LECH}: {', '.join(ds_lech) or 'không có clip'}) — không gửi AI (giữ giá ~0₫)")
     moi.save(jpg, quality=92)
     # CHỈ VIDEOEXPRESS (anh 27/11/2026: "AD chỉ lên qua ckey hoặc VideoExpress · dùng videoexpress để làm video") — ckey không bán video, cổng AI chung
     # rơi xuống Kie veo3_lite 4.550₫/bản. VideoExpress = tài khoản đã mua trọn, 0₫, chạy qua phiên br trên iMac (scripts/vx-mot.mts). Lỗi thì DỪNG, không lùi về cổng trả tiền.
-    # Sổ uuid ghi TRƯỚC khi chờ: lỗi giữa chừng thì lần chạy sau chỉ chờ + tải đúng việc đã gửi, không gửi trùng.
-    so = os.path.expanduser(f"~/.cache/ethopex/anh-dong/{int(cid)}-{ma}-{b}.vx.json"); os.makedirs(os.path.dirname(so), exist_ok=True)
+    vx_clip(jpg, DONG_LENH, ra, os.path.expanduser(f"~/.cache/ethopex/anh-dong/{int(cid)}-{ma}-{b}.vx.json"))
+    return ghep_hai(ra, cid, ma, b), 0
+def vx_clip(anh, lenh_chu, ra, so):
+    """một ảnh khung đầu + câu chuyển động → clip VideoExpress tại ra (scripts/vx-mot.mts, 0₫). Lỗi thì dừng kêu to.
+    Sổ uuid (so) ghi TRƯỚC khi chờ: lỗi giữa chừng thì lần chạy sau chỉ chờ + tải đúng việc đã gửi, không gửi trùng."""
+    os.makedirs(os.path.dirname(so), exist_ok=True)
     g = json.load(open(so)) if os.path.exists(so) and time.time() - os.path.getmtime(so) < 24 * 3600 else {}
-    lenh = os.path.join(tm, f"dong-{ma}-{b}.txt"); open(lenh, "w").write(DONG_LENH)
+    lenh = os.path.splitext(ra)[0] + ".txt"; open(lenh, "w").write(lenh_chu)
     xv = os.path.normpath(os.path.join(D, "..", ".."))
     for lan in range(2):   # lần 2: uuid cũ VideoExpress bỏ việc → gửi lại một lần
-        th = ["--ra", ra, *(["--uuid", g["uuid"]] if g.get("uuid") else ["--anh", jpg, "--prompt-tep", lenh])]
+        th = ["--ra", ra, *(["--uuid", g["uuid"]] if g.get("uuid") else ["--anh", anh, "--prompt-tep", lenh])]
         tsx = next((x for x in (os.path.join(xv, "..", "..", "node_modules", ".bin", "tsx"), os.path.expanduser("~/Me/GitHub/earns-marketing-os-v2/node_modules/.bin/tsx")) if os.path.exists(x)), None)
         if not tsx: raise RuntimeError("không thấy tsx (node_modules của repo) để chạy scripts/vx-mot.mts")
         p = subprocess.Popen([tsx, "scripts/vx-mot.mts", *th], cwd=xv, stdout=subprocess.PIPE, text=True,
@@ -732,7 +741,28 @@ def chuyen_dong(nen, tm, cid, ma, b):
     if not kq.get("ok"): raise RuntimeError(f"VideoExpress chuyển động hỏng: {kq.get('loi')}")
     print(f"chuyển động: videoexpress xong · {kq.get('giay')}s {kq.get('kho')} · 0₫", flush=True)
     os.remove(so)
-    return ra, 0
+    return ra
+def ghep_hai(ra, cid, ma, b):
+    """HAI CLIP VIDEOEXPRESS NỐI LIỀN (anh 27/11/2026 "Videoexpress sinh 2 video ghép vào cho đa dạng hơn là dùng 1 cái rồi cắt lên xuống"):
+    clip 2 sinh tiếp từ KHUNG CUỐI clip 1 với câu kéo lùi máy (clip 1 đẩy vào) → 16s chuyển động liền mạch, hết lặp clip 2 về gần khung đầu nên vòng lặp
+    không giật. Thay xuôi-ngược một clip. Clip 2 đã có thì không gửi lại; --lat (cấm gửi AI) mà thiếu clip 2 → trả clip 1 (dung_dong xuôi-ngược như cũ)."""
+    g_ = ra[:-4]; ra2, ghep = g_ + "-2.mp4", g_ + "-ghep.mp4"
+    if not os.path.exists(ra2):
+        if CHI_LAT[0]: return ra
+        cuoi = g_ + "-cuoi.png"
+        r = AT.sh("ffmpeg", "-v", "error", "-y", "-sseof", "-0.15", "-i", ra, "-update", "1", "-frames:v", "1", cuoi)
+        if r.returncode or not os.path.exists(cuoi): raise RuntimeError(f"lấy khung cuối clip 1 lỗi: {r.stderr[-200:]}")
+        print("chuyển động: clip 2 sinh tiếp từ khung cuối clip 1 (videoexpress, 0₫)", flush=True)
+        vx_clip(cuoi, DONG_LENH2, ra2, os.path.expanduser(f"~/.cache/ethopex/anh-dong/{int(cid)}-{ma}-{b}-2.vx.json"))
+    if not os.path.exists(ghep) or os.path.getmtime(ghep) < max(os.path.getmtime(ra), os.path.getmtime(ra2)):
+        w_, h_ = AT.sh("ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", ra).stdout.strip().split(",")[:2]
+        kc = f"fps=30,scale={w_}:{h_}:force_original_aspect_ratio=increase,crop={w_}:{h_},setsar=1"
+        r = AT.sh("ffmpeg", "-v", "error", "-y", "-i", ra, "-i", ra2, "-filter_complex",
+                  f"[0:v]{kc}[a];[1:v]trim=start_frame=1,setpts=PTS-STARTPTS,{kc}[b];[a][b]concat=n=2:v=1:a=0[v]",   # bỏ khung đầu clip 2 (trùng khung cuối clip 1)
+                  "-map", "[v]", "-an", "-c:v", "libx264", "-crf", "16", "-preset", "veryfast", ghep + ".tmp.mp4")
+        if r.returncode: raise RuntimeError(f"ffmpeg nối hai clip: {r.stderr[-300:]}")
+        os.replace(ghep + ".tmp.mp4", ghep)
+    return ghep
 GIONG_TRE = 0.4   # giọng vào sau 0,4s (adelay của dung_dong)
 NHIP_GIAY, NHIP_NAY = 1.8, 0.5   # độ dài hiệu ứng nút · giây mỗi nhịp nảy
 def moc_cta(mp3, cau_cta):
@@ -770,8 +800,8 @@ def dung_dong(clip, chu, mp3, ra, nhip=None):
     hình đứng im ~14s chỉ còn nút nảy). Xuôi-ngược dựng ở độ phân giải gốc của clip (720p, reverse giữ cả clip trong RAM), 0₫, không gọi AI thêm.
     nhip = (thư mục khung nhip_nut, x, y, giây bắt đầu) → nút nảy chồng đúng chỗ nút tĩnh lúc giọng đọc câu CTA."""
     L = max(AT.GIAY_MIN + 1, float(AT.sh("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", mp3).stdout) + 1.4)
-    bo = os.path.splitext(clip)[0] + "-xn.mp4"   # xuôi + ngược, nối liền (bỏ khung trùng ở hai đầu mối)
-    if not os.path.exists(bo) or os.path.getmtime(bo) < os.path.getmtime(clip):
+    bo = clip if clip.endswith("-ghep.mp4") else os.path.splitext(clip)[0] + "-xn.mp4"   # hai clip đã nối (ghep_hai) lặp thẳng; còn một clip thì xuôi + ngược
+    if bo != clip and (not os.path.exists(bo) or os.path.getmtime(bo) < os.path.getmtime(clip)):
         r = AT.sh("ffmpeg", "-v", "error", "-y", "-i", clip, "-filter_complex", "[0:v]split[a][b];[b]reverse,trim=start_frame=1,setpts=PTS-STARTPTS[r];[a][r]concat=n=2:v=1:a=0[v]",
                   "-map", "[v]", "-an", "-c:v", "libx264", "-crf", "16", "-preset", "veryfast", bo + ".tmp.mp4")
         if r.returncode != 0: raise RuntimeError(f"ffmpeg xuôi-ngược: {r.stderr[-300:]}")

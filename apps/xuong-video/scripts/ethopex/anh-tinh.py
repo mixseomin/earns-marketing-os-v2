@@ -312,7 +312,9 @@ def xep_ai(ten, uv, mo_ta="", the_loai="", poster=None, chon_giong=None):
 def giong_tu(a, b):
     """hai từ coi là MỘT khi máy đọc chữ đọc lệch một ký tự (21/11/2026: chữ viết tay "Bugatti" đọc thành "Bugattis" → không khớp tên, logo bị coi là chữ khác và cắt mất)"""
     if a == b: return True
-    if min(len(a), len(b)) < 4 or abs(len(a) - len(b)) > 1: return False
+    # từ 4 ký tự đọc RỤNG một ký tự ra 3 ký tự cũng tính (27/11/2026 The Lion God 203055: chữ I kiểu cách đọc thành "LON" → máy tưởng tên thiếu "lion", bỏ ảnh khoá màu sạch,
+    # logo lốm đốm). Chỉ rụng, không đổi ký tự: từ 3 ký tự đổi một ký tự khớp nhầm quá dễ
+    if min(len(a), len(b)) < (3 if len(a) != len(b) else 4) or abs(len(a) - len(b)) > 1: return False
     if len(a) > len(b): a, b = b, a
     i = 0
     while i < len(a) and a[i] == b[i]: i += 1

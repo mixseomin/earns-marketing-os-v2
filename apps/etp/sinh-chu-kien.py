@@ -30,19 +30,35 @@ def phim(cid):
         lang = lang or str(it.get("locale") or it.get("language") or "")
         mo = " ".join(str(it.get(k) or "") for k in ("description", "storyline", "synopsis")).strip()
     except Exception as e: print(f"phim {cid}: đọc mô tả Ethopex lỗi ({str(e)[:100]})", file=sys.stderr)
-    if len(mo) < 80: mo = truyen(q(f"select coalesce(url, '') from etp.phim where content_id = {int(cid)}")) or mo
+    if len(mo) < 80: mo = truyen(q(f"select coalesce(url, '') from etp.phim where content_id = {int(cid)}"), ten) or mo
     lang = "es" if lang.lower().startswith("es") else "en"
     return ten, lang, mo
 
-def truyen(url):
-    """cốt truyện trên trang nguồn của phim (ReelShort meta description · DramaBox "introduction" trong dữ liệu trang) — chỉ đọc; không có → ''"""
+_BO = set("the a an of to and in on my his her by for with is be from at no not".split()) | set("el la los las de del y en mi su un una por con".split())
+def tu_ten(ten):
+    """từ khoá của tên phim (bỏ từ nối, ≥ 3 chữ cái)"""
+    return {w for w in re.findall(r"[^\W\d_]{3,}", ten.lower()) if w not in _BO}
+
+def chon_truyen(ds, ten):
+    """trang nguồn chứa cả đoạn giới thiệu của PHIM GỢI Ý (DramaBox 27/11/2026: phim 157026 'Claimed by the Prince' bốc nhầm truyện
+    'billionaire professor Colton' của phim khác vì lấy đoạn DÀI NHẤT) → chỉ nhận đoạn nhắc tên phim, rồi đoạn trùng nhiều từ khoá tên nhất (≥ 1);
+    không đoạn nào khớp → '' (từ chối sinh, không đoán)"""
+    tt, kt = re.sub(r"\W+", " ", ten.lower()).strip(), tu_ten(ten)
+    co_ten = [d for d in ds if tt and tt in re.sub(r"\W+", " ", d.lower())]
+    if co_ten: return max(co_ten, key=len)
+    diem = [(len(kt & tu_ten(d)), len(d), d) for d in ds]
+    diem = [x for x in diem if x[0] >= 1]
+    return max(diem)[2] if diem else ""
+
+def truyen(url, ten=""):
+    """cốt truyện trên trang nguồn của phim (ReelShort meta description · DramaBox "introduction" trong dữ liệu trang) — chỉ đọc; không có / không khớp tên phim → ''"""
     if not url.startswith("http"): return ""
     try: t = urllib.request.urlopen(urllib.request.Request(url, headers={"user-agent": "Mozilla/5.0"}), timeout=30).read().decode("utf8", "ignore")
     except Exception as e: print(f"trang nguồn {url[:80]}: lỗi {str(e)[:80]}", file=sys.stderr); return ""
     ds = [html.unescape(m) for m in re.findall(r'<meta[^>]+(?:name|property)="(?:og:)?description"[^>]+content="([^"]+)"', t)]
     ds += [json.loads('"' + m + '"') for m in re.findall(r'"(?:introduction|intro|synopsis|description)"\s*:\s*"((?:[^"\\]|\\.){80,3000})"', t)]
-    ds = [d.strip() for d in ds if not re.search(r"watch online\s*$", d, re.I)]
-    return max(ds, key=len, default="")
+    ds = [d.strip() for d in ds if len(d.strip()) >= 80 and not re.search(r"watch online\s*$", d, re.I)]
+    return chon_truyen(ds, ten) if ten else ""
 
 def mau(lang, n=3):
     """bộ chữ tay cùng ngôn ngữ (sổ chu-kieu.json) làm mẫu giọng"""
@@ -129,6 +145,13 @@ if __name__ == "__main__":
             e = kiem({"hook": v["primaryTexts"][0].rsplit(DUOI, 1)[0].strip(), "headline": v["headlines"][0], "description": v["descriptions"][0]}, l, soat=False)
             assert e is None, f"bộ tay {c} không qua khuôn: {e}"
         assert len(mau("en")) and len(mau("es")), "sổ tay phải có mẫu cả en lẫn es"
+        # trang nguồn có đoạn của phim gợi ý dài hơn → vẫn chọn đúng đoạn của phim; không đoạn nào khớp → rỗng (từ chối)
+        _dung = "A commoner widow, Clara, spends one night with a stranger, never knowing he's Crown Prince Gabriel, then is chosen as the castle wet nurse."
+        _khac = "She kissed a stranger to get back at her cheating ex, never guessing he's Colton Denizen, the billionaire professor she respects, and now a dangerous hunt begins for everyone."
+        assert chon_truyen([_khac, _dung], "Claimed by the Prince:The Forbidden Wet Nurse") == _dung
+        assert chon_truyen([_khac, "Claimed by the Prince The Forbidden Wet Nurse Episode 1 " + _dung], "Claimed by the Prince:The Forbidden Wet Nurse").startswith("Claimed")
+        assert chon_truyen([_khac], "Claimed by the Prince:The Forbidden Wet Nurse") == ""
+        assert truyen("https://x", "") == "" and truyen("khong-phai-link", "Ten") == ""
         print("sinh-chu-kien tự kiểm ok"); sys.exit(0)
     ids = cho() if "--cho" in sys.argv else [x for x in sys.argv[1:] if x.isdigit()]
     if not ids: raise SystemExit(__doc__)

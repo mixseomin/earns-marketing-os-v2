@@ -188,7 +188,8 @@ def main():
                  creative_id = case when coalesce(n.creative_id, 0) = 0 then g.creative_id else n.creative_id end
                from (select camp_id, content_id, creative_id from etp.camp_ngoai union all select camp_id, content_id, creative_id from etp.camp) g
                where (coalesce(n.content_id, 0) = 0 or coalesce(n.creative_id, 0) = 0) and coalesce(g.content_id, 0) > 0
-                 and g.camp_id = substring(lower(n.ten) from '(?:duplicate by|dup by|_d)[_\\s]*(\\d{5,})')::int""")
+                 and g.camp_id = substring(lower(n.ten) from '(?:duplicate by|dup by|_d|[_\\s]by)[_\\s]*(\\d{5,})')::int""")
+        # ↑ "[_\s]by" (#1916 27/11/2026 "sao ko có tên phim"): đội Sơn đặt "ROAS1.1_…-V3_D1_By 108635" — "_D1" không phải id gốc, id nằm sau "_By" → 4 camp dồn "#0"
         # #1576 (12/11/2026 "sao vẫn còn 29 cái chưa phân loại"): team đặt tên dup "…_D_85382" (gạch dưới sau D) → mẫu cũ "_d\s*" trượt; bản dup
         # không ghi id gốc ("…_V1_D3_Start-Today-12-11", "ROAS1.3_…_V1_D30", "…_x1_ROAS-1.2", "…_D2 (ROAS)") → Ethopex trả ad 0/0, camp mất creative
         # → dạng "Chưa rõ loại". Khớp theo TÊN GỐC: bỏ tiền tố ROAS, đuôi Start-Today / ROAS / _D<số ngắn>; chỉ gán khi mọi camp cùng tên gốc chung MỘT creative

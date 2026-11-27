@@ -242,7 +242,7 @@ function dsCau(lc: string, them: Record<string, Mau3[]>, ten: string) {
   const ds = [...(CAU[lc] ?? []), ...(them[lc] ?? []).filter((m) => Array.isArray(m) && m.length === 3)];
   return ds.map((m, i) => ({ id: `${lc}:${i}`, chu: m.map((v) => v.replace('{t}', ten)).join(' ') }));
 }
-const CAU_HUONG = 'FIRST study the TEAM WINNING voice-overs listed at the top (profitable last 7 days, ours are losing). Copy their structure, length, rhythm, the "for free" promise and the call to action as closely as you can, putting {t} where their drama title is. Do not invent a new style and do not use any example that is not in that list. Keep each hook generic (no plot details) so it fits any drama. Write 4 new hooks.';   // phần anh sửa được trong ô prompt ✨ (khuôn a/b/c + luật Free giữ cứng ở system, cổng kiem chấm)
+const CAU_HUONG = 'FIRST study the TEAM WINNING voice-overs listed at the top (profitable last 7 days, ours are losing): keep what makes them work: the length, the spoken rhythm, the "for free" promise and the call to action. But every new hook must open with a DIFFERENT retention angle that makes the viewer stay (a question, a betrayal, a hidden identity, revenge, a shocking line, a countdown...) and must NOT reuse the opening words of any hook listed (winning, existing or the other new ones). Keep each hook generic (no plot details) so it fits any drama. Write 4 new hooks, each clearly different from the others.';   // phần anh sửa được trong ô prompt ✨ (khuôn a/b/c + luật Free giữ cứng ở system, cổng kiem chấm)
 const MO_FREE = /^\W*(for\s+free|free|gratis)\b/i;   // cổng chấm loại câu đọc mở bằng Free / gratis (anh 21/11/2026) — câu đầu phải là tên phim
 
 /** ✨ sinh thêm câu đọc kiểu khác cho ngôn ngữ của phim → ghi sổ cau_doc_them, trả danh sách câu mới (máy xoay dùng luôn các câu này) */
@@ -257,6 +257,11 @@ export async function sinhCauDoc(cid: number, huong?: string): Promise<{ ok: tru
   const co: string[][] = [...(CAU[lc] ?? []), ...(them[lc] ?? [])];
   const khoa = (m: string[]) => m.join(' ').toLowerCase().replace(/[^\p{L}\p{N}{} ]/gu, '').replace(/\s+/g, ' ').trim();
   const daCo = new Set(co.map(khoa));
+  // CHỐNG CÂU GẦN TRÙNG (anh 27/11/2026 "sinh xong mà nó vẫn giống như cũ"): so vế a+b (bỏ {t} + nút), trùng ≥ 60% từ với câu đã có hoặc câu mới khác → loại, máy sinh lại
+  const tu = (m: string[]) => new Set(`${m[0]} ${m[1]}`.toLowerCase().replace(/\{t\}/g, ' ').replace(/[^\p{L}\p{N} ]/gu, ' ').split(/\s+/).filter((w) => w.length > 1));
+  const trung = (a: Set<string>, b: Set<string>) => { if (!a.size || !b.size) return 0; let n = 0; for (const w of a) if (b.has(w)) n++; return n / Math.min(a.size, b.size); };
+  const tuCo = co.map(tu);
+  const locKhac = <T extends { a: string; b: string }>(ds: T[]) => { const da = [...tuCo], ra: T[] = []; for (const m of ds) { const t = tu([m.a, m.b]); if (da.some((x) => trung(t, x) >= 0.6)) continue; da.push(t); ra.push(m); } return ra; };
   const yc = (typeof huong === 'string' ? huong : '').trim().slice(0, 2000) || CAU_HUONG;
   // câu đọc ĐỘI đang lãi cùng ngôn ngữ làm mẫu (anh 27/11/2026 "câu đọc đang chưa khớp với đội nên đây là 1 lý do hiệu suất thấp")
   const doi = await docCauWin(lc, 10);   // câu đọc đội đang lãi, truy vấn riêng (không phụ thuộc số creative đội của phim đang mở)
@@ -275,10 +280,11 @@ export async function sinhCauDoc(cid: number, huong?: string): Promise<{ ok: tru
       const ds = Array.isArray(k?.cau) ? k.cau : [];
       if (!ds.length || ds.length > 8) return 'danh sách cau phải 1–8 câu';
       const hong = ds.find((m) => ![m?.a, m?.b, m?.c].every((x) => typeof x === 'string' && x.trim() && x.length <= 80) || (m.a.match(/\{t\}/g) ?? []).length !== 1 || /\{t\}/.test(m.b + m.c) || MO_FREE.test(m.a));
-      return hong ? `câu sai khuôn (a phải có {t} đúng một lần, không mở bằng Free/gratis, mỗi vế ≤ 80 ký tự): ${JSON.stringify(hong).slice(0, 160)}` : null;
+      if (hong) return `câu sai khuôn (a phải có {t} đúng một lần, không mở bằng Free/gratis, mỗi vế ≤ 80 ký tự): ${JSON.stringify(hong).slice(0, 160)}`;
+      return locKhac(ds).length ? null : 'mọi câu đều gần trùng câu đã có / câu mới khác (≥ 60% từ giống) — mỗi câu phải mở bằng góc giữ chân KHÁC';
     } });
     const moi: Mau3[] = [];
-    for (const m of r.kq.cau) { const x: Mau3 = [m.a.trim(), m.b.trim(), m.c.trim()]; const k = khoa(x); if (daCo.has(k)) continue; daCo.add(k); moi.push(x); }
+    for (const m of locKhac(r.kq.cau)) { const x: Mau3 = [m.a.trim(), m.b.trim(), m.c.trim()]; const k = khoa(x); if (daCo.has(k)) continue; daCo.add(k); moi.push(x); }
     if (!moi.length) return { loi: 'máy sinh ra toàn câu trùng câu đã có — bấm lại' };
     const j = JSON.stringify(moi);
     await run(sql`insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('cau_doc_them', jsonb_build_object(${lc}::text, ${j}::jsonb), 'câu đọc sinh thêm — nút ✨ phiếu lên camp etp2 (sinhCauDoc), nối sau mẫu etp-mau-cr.json', ${r.model})

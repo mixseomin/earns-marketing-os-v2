@@ -68,13 +68,14 @@ FORM_CHU = {"call_to_action": _F["call_to_action"], "link_url": _F["link_url"],
 # KIỂU CHỮ (anh 27/11/2026 "Sinh kiểu Kiên là default và có option chọn sang Dol"): bản qua etp2 › Chờ lên mang x["kieu"] anh chọn lúc duyệt.
 #   kien → bộ chữ CÙNG phim trong apps/etp/chu-kieu.json + link "_link_url" của kiểu (search.com) — đúng chữ anh thấy trên thẻ; dol → FORM_CHU.
 #   Không có x["kieu"] (đường cũ) → dol như trước. Chọn kien mà sổ chưa có chữ phim → DỪNG (không lặng lẽ đổi sang D, không tự viết).
-_K = json.load(open(os.path.join(D, "..", "..", "..", "etp", "chu-kieu.json")))
+import importlib.util as _iuk; _sk = _iuk.spec_from_file_location("so_kieu", os.path.join(D, "..", "..", "..", "etp", "so_kieu.py")); SK = _iuk.module_from_spec(_sk); _sk.loader.exec_module(SK)   # sổ chữ kiểu: chu-kieu.json ∪ etp.chu_kieu (máy sinh)
+
 def chu_theo_kieu(x):
     kieu = x.get("kieu") or "dol"
     if kieu == "dol": return FORM_CHU
-    b = (_K.get(kieu) or {}).get(str(int(x["content_id"])))
-    if not b: raise SystemExit(f"phim {x['content_id']}: anh chọn kiểu {kieu} nhưng apps/etp/chu-kieu.json chưa có chữ phim này — không tạo creative")
-    return {"call_to_action": _F["call_to_action"], "link_url": (_K.get(kieu) or {}).get("_link_url") or _F["link_url"],
+    b = SK.bo(kieu, x["content_id"])
+    if not b: raise SystemExit(f"phim {x['content_id']}: anh chọn kiểu {kieu} nhưng sổ chữ (apps/etp/chu-kieu.json ∪ etp.chu_kieu) chưa có chữ phim này — sinh: python3 apps/etp/sinh-chu-kien.py {x['content_id']} — không tạo creative")
+    return {"call_to_action": _F["call_to_action"], "link_url": SK.link(kieu) or _F["link_url"],
             "asset_spec": {"primaryTexts": b["primaryTexts"], "headlines": b["headlines"], "descriptions": b["descriptions"]}}
 
 def main(lo, tsv, ma_lo, goc_url, ra, ten_tsv=None, dang="phim dai"):

@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { VideoXem } from '@/components/ui/video-xem';
 import { BadgeDangNgan } from '@/components/etp-so';
-import { boChoLen, doiKieuChoLen, dsChoLen, duyetChoLen, type ChoLen, type ChuQc } from '@/lib/actions/etp-cho-len';
+import { boChoLen, doiKieuChoLen, dsChoLen, duyetChoLen, sinhChuKien, type ChoLen, type ChuQc } from '@/lib/actions/etp-cho-len';
 
 const nut: React.CSSProperties = { fontSize: 12, padding: '3px 10px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' };
 const GIAI = 'bản dựng mới CHƯA gửi Ethopex. ✓ Duyệt = máy trên iMac tải lên Ethopex trong ~1–2 phút, thành creative rồi đi tiếp đường thường (ô Chờ anh duyệt / bảng camp). ✕ Bỏ = không bao giờ lên.';
@@ -78,10 +78,14 @@ export function ChoLenEtho() {
                     <div data-cho-len-kieu={kieu} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                       <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
                         <span style={{ color: 'var(--fg-2)' }}>Chữ QC:</span>
-                        {chip('kien', 'K · Kiên', 'chữ Kiên của phim (apps/etp/chu-kieu.json), link search.com — mặc định')}
+                        {chip('kien', 'K · Kiên', 'chữ Kiên của phim (sổ tay apps/etp/chu-kieu.json hoặc máy sinh etp.chu_kieu), link search.com — mặc định')}
                         {chip('dol', 'D · Dol', 'form Dol cố định (apps/etp/form-chu.json), link info.com')}
                       </div>
-                      {!coK ? <div style={{ color: '#fbbf24' }}>phim chưa có chữ kiểu Kiên (apps/etp/chu-kieu.json) — chỉ lên được D · Dol</div> : null}
+                      {!coK ? <div data-sinh-chu-kien style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', color: '#fbbf24' }}>
+                        <span>máy chưa sinh được chữ Kiên cho phim này{sua ? '' : ' — đã lên với D · Dol'}</span>
+                        {sua ? <button type="button" disabled={dg} title="sinh chữ Kiên từ cốt truyện phim (~2₫, apps/etp/sinh-chu-kien.py)" onClick={() => void bam(x.id, () => sinhChuKien(x.id))}
+                          style={{ ...nut, padding: '1px 8px', borderColor: '#a78bfa', color: '#c4b5fd' }}>{dg ? '…' : '✦ Sinh chữ Kiên'}</button> : null}
+                      </div> : null}
                       {c ? <ChuXem c={c} /> : null}
                     </div>); })()}
                 {x.loi && x.trang_thai !== 'da_len' ? <div role="alert" style={{ padding: 6, border: '1px solid #ef4444', borderRadius: 4, background: 'rgba(239,68,68,.12)', color: '#fca5a5' }}>Lần tải lên trước lỗi: {x.loi} — máy tự thử lại</div> : null}

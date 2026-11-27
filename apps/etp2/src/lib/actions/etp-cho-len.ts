@@ -7,6 +7,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { readFileSync } from 'node:fs';
+import { execFile } from 'node:child_process';
 import path from 'node:path';
 
 const run = async <T,>(s: ReturnType<typeof sql>) => (await getDb()!.execute(s)) as unknown as T[];
@@ -18,15 +19,24 @@ export type ChoLen = {
   kieu: Kieu; chu: { kien: ChuQc | null; dol: ChuQc };
 };
 // KIỂU CHỮ QC (anh 27/11/2026 "Khi duyệt creative thì cũng duyệt cả nội dung text luôn. Sinh kiểu Kiên là default và có option chọn sang Dol"):
-// chữ đọc ĐÚNG sổ máy tạo creative dùng (chu-qc.py chu_theo_kieu) — kien = apps/etp/chu-kieu.json kien[content_id] + _link_url, dol = apps/etp/form-chu.json. Không tự viết chữ.
+// chữ đọc ĐÚNG sổ máy tạo creative dùng (chu-qc.py chu_theo_kieu → apps/etp/so_kieu.py) — kien = apps/etp/chu-kieu.json kien[content_id] (tay, ưu tiên) ∪ etp.chu_kieu
+// (máy sinh lúc bản vào hàng chờ: apps/etp/sinh-chu-kien.py, anh 27/11/2026 "Mày phải sinh luôn text cho kiểu Kiên lúc review Ảnh") + _link_url; dol = apps/etp/form-chu.json.
 export type Kieu = 'kien' | 'dol';
 export type ChuQc = { pt: string[]; hl: string[]; de: string[]; link: string };
 const docSo = (f: string) => { try { return JSON.parse(readFileSync(path.join(process.cwd(), '..', 'etp', f), 'utf8')) as Record<string, any>; } catch { return null; } };
-function soChu() {
+async function soChu(cids: number[]) {
   const k = docSo('chu-kieu.json'), f = docSo('form-chu.json');
   if (!f) throw new Error('không đọc được apps/etp/form-chu.json (cwd ' + process.cwd() + ')');
   const dol: ChuQc = { pt: f.primaryTexts ?? [], hl: f.headlines ?? [], de: f.descriptions ?? [], link: f.link_url ?? '' };
-  const kien = (cid: number): ChuQc | null => { const b = k?.kien?.[String(cid)]; return b ? { pt: b.primaryTexts ?? [], hl: b.headlines ?? [], de: b.descriptions ?? [], link: k?.kien?._link_url ?? '' } : null; };
+  const ids = [...new Set(cids.map((c) => Math.trunc(Number(c))).filter((c) => c > 0))];
+  const may = new Map<number, { pt: string[]; hl: string[]; de: string[] }>();
+  if (ids.length) for (const r of await run<{ content_id: number; pt: string[]; hl: string[]; de: string[] }>(sql`select content_id, pt, hl, de from etp.chu_kieu
+      where kieu = 'kien' and content_id = any(${`{${ids.join(',')}}`}::bigint[])`)) may.set(Number(r.content_id), r);
+  const kien = (cid: number): ChuQc | null => {
+    const b = k?.kien?.[String(cid)], link = k?.kien?._link_url ?? '';
+    if (b) return { pt: b.primaryTexts ?? [], hl: b.headlines ?? [], de: b.descriptions ?? [], link };
+    const m = may.get(Number(cid)); return m ? { pt: m.pt ?? [], hl: m.hl ?? [], de: m.de ?? [], link } : null;
+  };
   return { dol, kien };
 }
 
@@ -41,7 +51,7 @@ export async function dsChoLen(): Promise<{ ds: ChoLen[] } | { loi: string }> {
       from etp.cho_len c left join etp.phim f on f.content_id = c.content_id
       where c.trang_thai in ('cho', 'duyet', 'dang_len') or (c.trang_thai = 'da_len' and c.cap_nhat > now() - interval '6 hours')
       order by (c.trang_thai = 'cho') desc, c.tao desc limit 200`);
-    const so = soChu();
+    const so = await soChu(ds.map((x) => x.content_id));
     return { ds: ds.map((x) => ({ ...x, chu: { kien: so.kien(x.content_id), dol: so.dol } })) };
   } catch (e) { return { loi: `đọc etp.cho_len lỗi: ${(e as Error).message}` }; }
 }
@@ -51,7 +61,7 @@ export async function duyetChoLen(id: number): Promise<{ ok: true; chu: string }
   const n = Math.trunc(Number(id));
   // duyệt = duyệt cả chữ QC đang hiện trên thẻ. Phim chưa có chữ Kiên (chu-kieu.json) → thẻ đã hiện chữ D → lưu D đúng thứ anh vừa xem (chu-qc.py dừng nếu K mà thiếu chữ)
   const c = await run<{ content_id: number }>(sql`select content_id from etp.cho_len where id = ${n}`);
-  const epD = !!c[0] && !soChu().kien(c[0].content_id);
+  const epD = !!c[0] && !(await soChu([c[0].content_id])).kien(c[0].content_id);
   const r = await run<{ id: number; kieu: Kieu }>(sql`update etp.cho_len set trang_thai = 'duyet', duyet_ai = ${me.email}, duyet_luc = now(), loi = null, cap_nhat = now(),
       kieu = case when ${epD} then 'dol' else kieu end
     where id = ${n} and trang_thai in ('cho', 'duyet') returning id, kieu`);
@@ -77,4 +87,17 @@ export async function boChoLen(id: number): Promise<{ ok: true; chu: string } | 
   const k = r[0]!.khoa;
   if (/^tv\d+$/.test(k)) await run(sql`update etp.thu_vien set trang_thai = 'loai', ghi = ghi || ' · anh bỏ ở Chờ lên', cap_nhat = now() where id = ${Number(k.slice(2))} and trang_thai <> 'da_len'`);
   return { ok: true, chu: `đã bỏ #${n} — không lên Ethopex` };
+}
+
+/** máy chưa sinh được chữ Kiên lúc bản vào hàng chờ (cổng AI lỗi / thiếu cốt truyện) → anh bấm sinh lại cho phim của thẻ #id (~2₫, chạy apps/etp/sinh-chu-kien.py trên box3) */
+export async function sinhChuKien(id: number): Promise<{ ok: true; chu: string } | { loi: string }> {
+  if (!(await laAdmin())) return { loi: 'chỉ admin' };
+  const c = await run<{ content_id: number }>(sql`select content_id from etp.cho_len where id = ${Math.trunc(Number(id))}`);
+  if (!c[0]) return { loi: `#${id} không có trong hàng chờ — tải lại trang` };
+  const tep = path.join(process.cwd(), '..', 'etp', 'sinh-chu-kien.py');
+  return await new Promise((ok) => execFile('python3', [tep, String(c[0]!.content_id)], { timeout: 240_000, maxBuffer: 1 << 20, cwd: path.join(process.cwd(), '..', '..') }, (e, out, err) => {
+    const ra = `${out ?? ''}`.trim();
+    if (e) return ok({ loi: `sinh chữ Kiên lỗi: ${(ra.split('\n').find((l) => l.startsWith('✗')) ?? `${err ?? ''}`.trim().split('\n').slice(-2).join(' ') ?? e.message).slice(0, 400)}` });
+    ok({ ok: true, chu: ra.split('\n').slice(-1)[0] ?? 'đã sinh' });
+  }));
 }

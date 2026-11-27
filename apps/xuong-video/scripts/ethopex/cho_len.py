@@ -82,7 +82,19 @@ def ghi_cho(moi, anh, ma, dang):
             on conflict (khoa) do update set cap_nhat = now() returning id""").strip()
         ra.append(dong_cho(x, ma, f"{LY} #{id_}"))
     if ra: print(f"{DAU}: {len(ra)} bản mới vào hàng chờ — chưa gửi Ethopex", flush=True)
+    sinh_kien({int(x["content_id"]) for x in moi})
     return ra
+
+def sinh_kien(cids):
+    """phim vừa vào hàng chờ mà chưa có chữ kiểu Kiên → máy sinh NGAY (anh 27/11/2026: "Mày phải sinh luôn text cho kiểu Kiên lúc review Ảnh") để thẻ duyệt
+    hiện ảnh + chữ K cùng lúc. apps/etp/sinh-chu-kien.py tự bỏ qua phim đã có; ~2₫ / phim. Lỗi KHÔNG chặn hàng chờ — in to, thẻ etp2 có nút sinh lại."""
+    if not cids: return
+    tep = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "sinh-chu-kien.py")
+    try:
+        r = subprocess.run(["python3", tep, *map(str, sorted(cids))], capture_output=True, text=True, timeout=600)
+        print(r.stdout.strip(), flush=True)
+        if r.returncode: print(f"⚠️ {DAU}: SINH CHỮ KIÊN LỖI cho {sorted(cids)} — thẻ Chờ lên sẽ báo thiếu chữ K, bấm 'Sinh chữ Kiên' ở etp2\n{r.stderr.strip()[-400:]}", flush=True)
+    except Exception as e: print(f"⚠️ {DAU}: SINH CHỮ KIÊN LỖI ({type(e).__name__}: {str(e)[:200]}) cho {sorted(cids)}", flush=True)
 
 def xong(lo, out, ai_mac="len-creative"):
     """bản đã duyệt vừa lên: 'da_len' + ket · tạo được thì ghi luôn cham_duyet ok (anh đã duyệt trước khi lên, không bắt duyệt lần hai) · thư viện tv<id> gắn creative"""

@@ -33,11 +33,10 @@ LOAI = DG.DONG   # mã loại dòng phim → dạng creative (etp.creative.dang)
 # cắt như CC (cat-canh dung_tap) nhưng 5 giây cuối = logo cắt từ poster + nút WATCH NOW / VER AHORA (lop-logo-cc2.py, cùng hàm logo của AD), không chữ nào khác;
 # lên camp bằng chữ KIỂU KIÊN của chính phim (apps/etp/chu-kieu.json "kien", ap-form-chu.py --kieu kien) → phim chưa có chữ Kiên thì không cắt.
 CC2 = "CC2"
-def DS_KIEN():
-    try: return [k for k in (json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "chu-kieu.json"))).get("kien") or {}) if k.isdigit()]
-    except Exception: return []
+import so_kieu as SK   # sổ chữ kiểu: chu-kieu.json ∪ etp.chu_kieu (máy sinh lúc vào Chờ lên, apps/etp/sinh-chu-kien.py)
+def DS_KIEN(): return SK.ds("kien")
 def chu_kien(cid):
-    try: return str(int(cid)) in (json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "chu-kieu.json"))).get("kien") or {})
+    try: return bool(SK.bo("kien", cid))
     except Exception: return False
 # KIỂU TĨNH (anh 08/11/2026 "chọn cả 3 để xem hiệu suất"): mỗi loại một kiểu của tinh-ba-kieu.py, cùng khuôn AT — tự tải tập, 3 bản, 3 camp $1
 TINH = {x["dong"]: (("tinh-ba-kieu.py", ["--kieu", x["kieu"]]) if x.get("kieu") else ("anh-tinh.py", [])) for x in DG.DS if x.get("tinh")}

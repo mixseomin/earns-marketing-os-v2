@@ -80,7 +80,7 @@ def tu_kiem():
 def chay(n):
     q = CG._q
     doc = lambda f: json.load(open(os.path.join(D, f)))
-    ck = doc("chu-kieu.json"); kl = kieu_link(doc("form-chu.json"), ck)
+    import so_kieu as SK; ck = SK.doc(q); kl = kieu_link(doc("form-chu.json"), ck)
     if not kl: raise SystemExit("KHÔNG đọc được form-chu.json / chu-kieu.json — cột K/D sẽ sai, dừng")
     co_k = {x for x in (ck.get("kien") or {}) if x.isdigit()}
     KIEU = "case " + " ".join(f"when lower(regexp_replace(regexp_replace(coalesce(b.link,''),'^https?://(www\\.)?',''),'/.*$','')) = '{m}' then '{k}'" for m, k in kl.items()) + " else '?' end"

@@ -32,15 +32,15 @@ def ds_l(v):
 #   kien = chữ viết riêng TỪNG PHIM theo khuôn Kiên (hook cốt truyện + câu hỏi + đuôi FREE; tiêu đề cảm thán ngắn; mô tả một dòng), ghi trong sổ
 #          apps/etp/chu-kieu.json theo content_id; CTA theo form, link hiển thị = "_link_url" của kiểu (kien: search.com như camp Kiên), thiếu thì theo form.
 #          Cửa chỉ cho qua ĐÚNG bộ chữ + link trong sổ. Áp: ap-form-chu.py --kieu kien <creative> …
-_KIEU = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "chu-kieu.json")))
-KIEU_DOI = sorted(k for k in _KIEU if not k.startswith("_"))
+import importlib.util as _iuk; _sk = _iuk.spec_from_file_location("so_kieu", os.path.join(os.path.dirname(os.path.abspath(__file__)), "so_kieu.py")); SK = _iuk.module_from_spec(_sk); _sk.loader.exec_module(SK)   # sổ chữ kiểu: chu-kieu.json ∪ etp.chu_kieu (máy sinh)
+KIEU_DOI = SK.kieu_doi()
 def chu_doi(kieu, content_id):
     """bộ chữ kiểu `kieu` cho phim content_id → [(primaryTexts, headlines, descriptions)], [] khi sổ chưa có phim đó"""
-    x = (_KIEU.get(kieu) or {}).get(str(int(content_id)))
+    x = SK.bo(kieu, content_id, _q)
     return [(ds_l(x["primaryTexts"]), ds_l(x["headlines"]), ds_l(x["descriptions"]))] if x else []
 def link_kieu(kieu):
     """link hiển thị của kiểu `kieu` (sổ chu-kieu.json "_link_url"), thiếu → link form"""
-    return (_KIEU.get(kieu) or {}).get("_link_url") or FORM["link_url"]
+    return SK.link(kieu) or FORM["link_url"]
 def dung_form(c):
     """chữ creative đúng MỘT kiểu lên camp: form-chu.json (Dol, link form) hoặc bộ chữ cùng phim trong chu-kieu.json (KIEU_DOI, link của kiểu); CTA luôn theo form"""
     a = c.get("asset_spec") or {}

@@ -222,11 +222,15 @@ export function vanHeThong(sp: SanPhamDe, dang_bai: string): string {
     `Post format: ${dang_bai}. Fill the schema exactly; empty strings / arrays where a field does not apply.`].join('\n');
 }
 export function vanNguoiDung(goc: GocDe, dang_bai: string, daDung: string[], ngonNgu: 'en' | 'vi' = 'en', hooks: HookQc[] = []): string {
+  // Hook mà NGUYÊN CÂU đã là tiêu đề một bài có sẵn của máy → đánh dấu NGAY TRÊN DÒNG hook đó. Đoạn dưới dặn "dùng WORD FOR WORD" và dòng "Hooks already used"
+  // là hai lời mời chép; mô hình rẻ chép y câu cũ rồi bị chặn "tiêu đề trùng" suốt 4 lượt (astrolas 27/11/2026: 0/2 đề, hai lượt đốt 117₫). Dấu nằm cùng dòng
+  // hook thì lượt nào cũng thấy, không phụ thuộc nhánh KHOÁ — và đúng cho mọi máy, không riêng hook "kenh:".
+  const td = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim(), daTieuDe = new Set(daDung.map(td));
   return [`ANGLE (${LOAI_VI[goc.loai] ?? goc.loai}): "${goc.ten}"${goc.mo_ta ? ` — ${goc.mo_ta}` : ''}.`,
     ngonNgu !== 'vi' && CHU_VIET.test(`${goc.ten} ${goc.mo_ta ?? ''}`) ? 'The angle above is an internal note in Vietnamese: translate its meaning and write EVERYTHING in English.' : '',
     `Format "${dang_bai}": ${MO_TA_DANG[dang_bai] ?? ''}`,
-    hooks.length ? `PROVEN AD HOOKS (first lines of real ads that kept running for months — they work):\n${hooks.map((h) => `- [${h.id}] (${bangChungHook(h)}) "${h.chu}"`).join('\n')}\nHooks with an id starting "kenh:" are OUR OWN best videos: keep their frame word for word but change the specific subject (country, word, item, number) to this post's angle, never repeat the same title. For the others, pick the ONE that best fits the angle and use it WORD FOR WORD as the hook (post title AND the on-screen line "moc" if the format has one — both are checked against the hook, a self-written moc is rejected; leave moc empty when the format allows it) — it has been proven for months, your rewrite has not. Edit ONLY when needed: remove a brand / app / advertiser name, flip his/her to fit the angle, or drop a claim our product cannot keep; then change the fewest words and keep its rhythm and its promise (never bolt the product or the angle onto it — the body of the post connects the hook to the angle). Put its id in hook_qc.` : '',
-    daDung.length ? `Hooks already used (write something different): ${daDung.slice(0, 12).map((t) => `"${t}"`).join('; ')}` : '',
+    hooks.length ? `PROVEN AD HOOKS (first lines of real ads that kept running for months — they work):\n${hooks.map((h) => `- [${h.id}] (${bangChungHook(h)}) "${h.chu}"${daTieuDe.has(td(h.chu)) ? ' [ALREADY USED as this machine\'s post title — keep this frame but CHANGE THE SUBJECT, never copy this sentence as the title]' : ''}`).join('\n')}\nHooks with an id starting "kenh:" are OUR OWN best videos: keep their frame word for word but change the specific subject (country, word, item, number) to this post's angle, never repeat the same title. Any hook marked ALREADY USED follows the same rule even without a "kenh:" id. For the rest, pick the ONE that best fits the angle and use it WORD FOR WORD as the hook (post title AND the on-screen line "moc" if the format has one — both are checked against the hook, a self-written moc is rejected; leave moc empty when the format allows it) — it has been proven for months, your rewrite has not. Edit ONLY when needed: remove a brand / app / advertiser name, flip his/her to fit the angle, or drop a claim our product cannot keep; then change the fewest words and keep its rhythm and its promise (never bolt the product or the angle onto it — the body of the post connects the hook to the angle). Put its id in hook_qc.` : '',
+    daDung.length ? `TITLES OF EARLIER POSTS (forbidden, do NOT copy or reuse any of these sentences as your title): ${daDung.slice(0, 12).map((t) => `"${t}"`).join('; ')}` : '',
     'Return the JSON now.'].filter(Boolean).join('\n');
 }
 const MO_TA_DANG: Record<string, string> = {
@@ -337,6 +341,18 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
       // nguyên câu hook ĐÃ là tiêu đề bài cũ mà mô hình viết lại lệch quá xa (esimfares 19/11/2026: kho 6 hook "Landing in X? Do this before your plane touches down"
       // đều đã dùng, lượt khoá viết "Landing abroad? Check passport rules before checkout" giữ 33% → --sinh-kho 0/5) → máy GHÉP: vế đầu hook + vế sau mô hình, hoặc ngược lại.
       else if (loiHook([r.data.chu.title], hookCu.chu).length) { const g = ghepHook(r.data.chu.title, hookCu.chu).find((t) => !daCo.has(tdChuan(t)) && !loiHook([t], hookCu!.chu).length); if (g) r.data.chu.title = g; }
+      // Title chép đúng câu hook mà câu đó ĐÃ là tiêu đề bài cũ → mô hình nghe lời "copy it" dù prompt đã cấm (astrolas 27/11/2026, 4 lượt cùng câu).
+      // Máy tự đổi chủ thể: giữ vế đầu của hook, thay vế sau bằng câu đầu MÔ TẢ vừa viết cho đúng góc này (chữ mới, khác hẳn bài cũ) — ghép cả hai chiều,
+      // chọn bản giữ hook ≥35% chữ, ≤110 ký tự, chưa từng dùng. Ghép không ra thì KHÔNG nạp bài trùng: lượt sau thử lại.
+      if (daCo.has(tdChuan(r.data.chu.title))) {
+        const hc = hookCu, t0 = r.data.chu.title;
+        const mo = (/^(.+?[.?!])(?:\s|$)/u.exec(String(r.data.chu.description ?? '').trim())?.[1] ?? '').trim();
+        // hook MỘT câu (không có vế sau để ghép) thì lấy câu đầu MÔ TẢ mô hình vừa viết cho đúng góc này: ghép sau nguyên câu hook, hoặc dùng riêng nếu hợp trần.
+        const g = [...ghepHook(hc.chu, t0), ...ghepHook(t0, hc.chu), ...(mo ? [...ghepHook(hc.chu, mo), ...ghepHook(mo, hc.chu), `${hc.chu} ${mo}`, mo] : [])]
+          .find((t) => t.length >= 25 && t.length <= 110 && !daCo.has(tdChuan(t)) && !loiHook([t], hc.chu).length);
+        if (g) r.data.chu.title = g;
+        else { loiCu.push(`tiêu đề trùng một bài có sẵn của máy và ghép hook không ra bản mới: "${t0}"`); continue; }
+      }
     }
     const maHook = maHookKhop(hooksLuot, r.data.hook_qc, r.data.chu.title); hookCu = timHook(hooksLuot, maHook) ?? hookCu;
     // mô hình không khai mã hook nào trong kho (bỏ trống / tự viết hook) → lượt sau KHOÁ vào hook gần tiêu đề nhất, đưa nguyên câu làm khuôn

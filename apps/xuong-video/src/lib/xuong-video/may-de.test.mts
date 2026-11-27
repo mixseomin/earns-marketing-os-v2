@@ -32,7 +32,12 @@ assert.ok(kiemDe({ ...topOk, de: { ...deTop, tieu_de: 'Puzzles for a long drive'
 assert.ok(kiemDe({ ...topOk, de: { ...deTop, muc: deTop.muc.slice(0, 2) } }).some((l) => /3–5 mục/.test(l)));
 const t = rapDe({ sp, goc, dang_bai: 'top-n', mau: 'top-n', de: deTop, chu: { title: topOk.title, description: 'Phones die halfway. Three printed pages last the whole trip.' } });
 assert.strictEqual(t.mau, 'top-n'); assert.deepStrictEqual((t.de as { muc: { truy: string }[] }).muc.map((m) => m.truy), ['crossword book car', 'sudoku pad hand', 'word search puzzle page']); assert.strictEqual((t.de as { nhan: string }).nhan, 'Front Porch Puzzles'); assert.ok(!('chu' in (t.de as { muc: object[] }).muc[1]!)); assert.ok(t.slug.startsWith('top-n-37192-3-puzzles'));
-assert.ok(vanHeThong(sp, 'ai-con-nho').includes('no em dashes') && vanNguoiDung(goc, 'ai-con-nho', ['x']).includes('Hooks already used'));
+assert.ok(vanHeThong(sp, 'ai-con-nho').includes('no em dashes') && vanNguoiDung(goc, 'ai-con-nho', ['x']).includes('TITLES OF EARLIER POSTS'));
+// hook nguyên câu đã là tiêu đề bài cũ → dấu ngay trên dòng hook, không để lời "WORD FOR WORD" mời chép (astrolas 27/11/2026)
+{ const h = [{ id: 'kenh:967', chu: 'This powerful blueprint holds the hidden secrets to your Divine Destiny.', ngay: 13, page: 'video thắng' }];
+  assert.ok(vanNguoiDung(goc, 'dung-sai', [h[0]!.chu], 'en', h).includes("[ALREADY USED as this machine"), 'hook trùng tiêu đề cũ: dặn đổi chủ thể ngay trên dòng hook');
+  assert.ok(!vanNguoiDung(goc, 'dung-sai', [], 'en', h).includes("[ALREADY USED as this machine"), 'hook chưa dùng: không dấu');
+}
 // câu nói: tiếng Việt / Anh bị chặn (khán giả nói tiếng Anh, tên góc tiếng Việt chỉ là nhãn nội bộ)
 const cn = { mau: 'cau-noi' as const, dang_bai: 'cau-noi-theo-nuoc', de: { tinh_huong: 'At hotel check-in', ngon_ngu: 'Japanese', truy: 'tokyo hotel desk', cau: [{ ban_ngu: 'チェックイン', doc: 'chekku-in', nghia: 'check in' }, { ban_ngu: '予約', doc: 'yoyaku', nghia: 'reservation' }, { ban_ngu: 'ありがとう', doc: 'arigatou', nghia: 'thanks' }] }, title: 'Say these 3 lines at a Tokyo hotel desk?', description: 'Three short lines for check-in in Japan, with how to say them. https://esimfares.com/', nhan: 'esimfares.com' };
 assert.deepStrictEqual(kiemDe(cn), []); assert.ok(kiemDe({ ...cn, de: { ...cn.de, ngon_ngu: 'Vietnamese', cau: [{ ban_ngu: 'Xin chào', doc: 'sin chao', nghia: 'hello' }, { ban_ngu: 'Cảm ơn', doc: 'cam on', nghia: 'thanks' }, { ban_ngu: 'Đặt phòng', doc: 'dat phong', nghia: 'booking' }] } }).some((l) => /tiếng điểm đến/.test(l)));

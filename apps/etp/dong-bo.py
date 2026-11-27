@@ -253,7 +253,12 @@ def main():
             "ngan_sach": "numeric", "creative_id": "int", "content_id": "int", "ad_id": "int", "goc": "int", "lich": "timestamptz", "loi": "text", "tao": "timestamptz", "cap_nhat_etp": "timestamptz", "roas": "numeric", "chien_luoc": "text",
             "bai_viet": "text", "bai_doc": "timestamptz", "mien": "text"})
         # camp ROAS chạy BÀI ĐĂNG CŨ: ad không mang content/creative → nhận phim của camp gốc (cây camp + số theo phim trên etp.on.tc)
-        q("""update etp.camp c set content_id = g.content_id from etp.camp g where c.goc = g.camp_id and coalesce(c.content_id, 0) = 0 and coalesce(g.content_id, 0) <> 0""")
+        # LEO CẢ CHUỖI GỐC (#1916 anh 27/11/2026 "sao ko có tên phim", camp 112101 → 110959 → 110497): bản nhân của bản nhân — Ethopex trả phim 0 cho MỌI đời,
+        # lượt nào cũng ghi lại 0; câu cập nhật một tầng đọc ảnh chụp trước câu lệnh nên đời cháu thấy cha còn 0 → cây camp mãi "#0". Leo tới tổ tiên gần nhất có phim (≤ 12 đời)
+        q("""with recursive t as (select camp_id, goc, content_id, 0 as sau from etp.camp where coalesce(content_id, 0) = 0 and goc is not null
+                 union all select t.camp_id, g.goc, g.content_id, t.sau + 1 from t join etp.camp g on g.camp_id = t.goc where coalesce(t.content_id, 0) = 0 and t.sau < 12),
+               x as (select distinct on (camp_id) camp_id, content_id from t where coalesce(content_id, 0) <> 0 order by camp_id, sau)
+             update etp.camp c set content_id = x.content_id from x where c.camp_id = x.camp_id and coalesce(c.content_id, 0) = 0""")
     except Exception as e: loi.append(f"camp: {e}")
     moc('MÁY QUÉT PHIM CẤM')
     # ── MÁY QUÉT PHIM CẤM (anh 20/11/2026 01:10 "phim cấm là ko đc bật — tắt, xoá mọi thứ ngay"): ngay sau khi đồng bộ camp (trạng thái mới nhất) —

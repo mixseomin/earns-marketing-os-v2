@@ -16,6 +16,7 @@ import { soChu, type Kieu, type ChuQc } from '@/lib/etp-chu-so';
 import { haiKhung, laKhung } from '@/lib/etp-khung';
 import { chayDong, loaiPhieu } from '@/lib/actions/etp-dong';
 import { giongCr } from '@/lib/etp-ban';
+import { lenNgayPhieu } from '@/lib/actions/etp-cho-len';
 import { TEN_GIONG } from '@/lib/etp-dang';
 import SO_MAU from '@/lib/etp-mau-cr.json';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
@@ -366,7 +367,11 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
     if ('loi' in r) return await loiPhieu(`dòng ${g.dang}: ${r.loi}`);
   }
   const chuGio = gio === 'lich' ? `khung gần nhất (${haiKhung()[0]?.chu ?? ''})` : `${gio}${tuDo ? ' ⚠ ngoài khung' : ''}`;
-  if (laBai) return { ok: true, id: p.id, chu: `đã gửi phiếu #${p.id}: dùng lại ${baiDs.length} post × ${roasDs.length} mức ROAS = ${baiDs.length * roasDs.length} thẻ ở Chờ lên · ${mien ?? 'domain mặc định'} · $${ns} · ${chuGio} — không dựng, chữ / link / nút giữ của bài; anh duyệt thẻ nào là máy clone bài đó sang camp mới` };
-  if (g.dang === 'CU') return { ok: true, id: p.id, chu: `đã gửi phiếu #${p.id}: ${k} · ${crCu.length} creative cũ × ${roasDs.length} mức ROAS = ${crCu.length * roasDs.length} thẻ ở Chờ lên · ${link} · ${mien ?? 'domain mặc định'} · $${ns} · ${chuGio} — không dựng creative mới; anh duyệt thẻ nào là máy tạo bản cùng video với chữ phiếu rồi lên camp` };
+  // không dựng creative mới → không chờ ✓ Duyệt: lên camp luôn, hẹn đúng giờ phiếu (anh 27/11/2026)
+  const tuLen = laBai || g.dang === 'CU' ? await lenNgayPhieu(p.id) : null;
+  const chuLen = !tuLen ? '' : 'loi' in tuLen ? ` · ⚠ chưa tự lên được: ${tuLen.loi} — duyệt tay ở Chờ lên`
+    : ` · đã lệnh lên ${tuLen.len} camp (không chờ duyệt), máy tạo camp hẹn ${chuGio}${tuLen.giu.length ? ` · ⚠ ${tuLen.giu.length} thẻ giữ ở Chờ lên: ${tuLen.giu.join(' · ')}` : ''}`;
+  if (laBai) return { ok: true, id: p.id, chu: `đã gửi phiếu #${p.id}: dùng lại ${baiDs.length} post × ${roasDs.length} mức ROAS = ${baiDs.length * roasDs.length} camp · ${mien ?? 'domain mặc định'} · $${ns} — không dựng, chữ / link / nút giữ của bài${chuLen}` };
+  if (g.dang === 'CU') return { ok: true, id: p.id, chu: `đã gửi phiếu #${p.id}: ${k} · ${crCu.length} creative cũ × ${roasDs.length} mức ROAS = ${crCu.length * roasDs.length} camp · ${link} · ${mien ?? 'domain mặc định'} · $${ns} — không dựng creative mới, máy tạo bản cùng video với chữ phiếu${chuLen}` };
   return { ok: true, id: p.id, chu: `đã gửi phiếu #${p.id}: ${k} · ${g.dang} · ${link} · ${mien ?? 'domain mặc định'} · ROAS ${roasDs.map((x) => x === 'dan' ? 'dàn' : x).join(' / ')} · $${ns} · ${chuGio} — máy dựng ${roasDs.length} creative mới (mỗi mức ROAS một bản), xong hiện ở Chờ lên, anh duyệt bản nào là lên camp mức của bản đó` };
 }

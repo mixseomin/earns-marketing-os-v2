@@ -76,6 +76,21 @@ async function lenTheoPhieu(n: number, me: { email: string }, duyet: boolean): P
   return { ok: true, chu: `${duyet ? 'đã duyệt' : 'gửi lại lệnh'} #${n}: máy iMac tải creative lên Ethopex (~1–2 phút) rồi tạo camp theo phiếu #${c.phieu_id} (${k} · ${c.dang} · $${c.ns})` };
 }
 
+/** PHIẾU KHÔNG DỰNG CREATIVE MỚI tự lên (anh 27/11/2026 "camp mà ko phải review lại creative thì cứ thế push lên chờ giờ chạy luôn, ko phải chờ duyệt nữa"):
+ *  phiếu Dùng lại (CU) / Dùng lại post (BAI) — creative đã chạy rồi, không có gì để duyệt → gửi phiếu = duyệt luôn mọi thẻ của phiếu, len-phieu.py tạo camp hẹn đúng giờ phiếu.
+ *  Phanh vé (canh) không vượt im lặng: thẻ đó giữ ở Chờ lên kèm lời phanh, anh bấm ✓ Duyệt là lên. Phiếu AD / dựng mới vẫn qua ✓ Duyệt (creative mới cần xem). */
+export async function lenNgayPhieu(phieuId: number): Promise<{ ok: true; len: number; giu: string[] } | { loi: string }> {
+  const me = await laAdmin(); if (!me) return { loi: 'chỉ admin' };
+  const ds = await run<{ id: number }>(sql`select c.id from etp.cho_len c join etp.phieu_len p on p.id = c.phieu_id
+    where c.phieu_id = ${Math.trunc(Number(phieuId))} and p.dang in ('CU', 'BAI') and c.trang_thai = 'cho' and c.camp_id is null order by c.id`);
+  let len = 0; const giu: string[] = [];
+  for (const { id } of ds) {
+    const r = await lenTheoPhieu(id, me, true);
+    if ('ok' in r) len++; else giu.push(`#${id}: ${'canh' in r ? r.canh : r.loi}`);
+  }
+  return { ok: true, len, giu };
+}
+
 /** thẻ phiếu đã duyệt mà lên camp lỗi / quá hạn vé → anh bấm Lên camp lại (vé mới) */
 export async function lenCampLaiChoLen(id: number): Promise<{ ok: true; chu: string } | { loi: string } | { canh: string }> {
   const me = await laAdmin(); if (!me) return { loi: 'chỉ admin' };

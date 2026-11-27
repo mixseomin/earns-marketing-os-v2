@@ -224,7 +224,7 @@ function dsCau(lc: string, them: Record<string, Mau3[]>, ten: string) {
   const ds = [...(CAU[lc] ?? []), ...(them[lc] ?? []).filter((m) => Array.isArray(m) && m.length === 3)];
   return ds.map((m, i) => ({ id: `${lc}:${i}`, chu: m.map((v) => v.replace('{t}', ten)).join(' ') }));
 }
-const CAU_HUONG = 'Each new hook must use a DIFFERENT style from the existing ones and from each other (e.g. question, urgency, curiosity, emotional, cliffhanger). Write 4 new hooks.';   // phần anh sửa được trong ô prompt ✨ (khuôn a/b/c + luật Free giữ cứng ở system, cổng kiem chấm)
+const CAU_HUONG = 'Match the wording, rhythm and call to action of the TEAM WINNING voice-overs above (they are profitable, ours are not), e.g. "Watch {t} for free now. ... Watch more now." or "Watch the entire series {t}. Click Watch More to continue the story, hurry up, it\'s free." Keep each hook generic (no plot details) so it fits any drama. Write 4 new hooks.';   // phần anh sửa được trong ô prompt ✨ (khuôn a/b/c + luật Free giữ cứng ở system, cổng kiem chấm)
 const MO_FREE = /^\W*(for\s+free|free|gratis)\b/i;   // cổng chấm loại câu đọc mở bằng Free / gratis (anh 21/11/2026) — câu đầu phải là tên phim
 
 /** ✨ sinh thêm câu đọc kiểu khác cho ngôn ngữ của phim → ghi sổ cau_doc_them, trả danh sách câu mới (máy xoay dùng luôn các câu này) */
@@ -239,7 +239,9 @@ export async function sinhCauDoc(cid: number, huong?: string): Promise<{ ok: tru
   const co: string[][] = [...(CAU[lc] ?? []), ...(them[lc] ?? [])];
   const khoa = (m: string[]) => m.join(' ').toLowerCase().replace(/[^\p{L}\p{N}{} ]/gu, '').replace(/\s+/g, ' ').trim();
   const daCo = new Set(co.map(khoa));
-  const yc = (typeof huong === 'string' ? huong : '').trim().slice(0, 2000) || CAU_HUONG;   // ô prompt của anh; trống = mặc định
+  const yc = (typeof huong === 'string' ? huong : '').trim().slice(0, 2000) || CAU_HUONG;
+  // câu đọc ĐỘI đang lãi cùng ngôn ngữ làm mẫu (anh 27/11/2026 "câu đọc đang chưa khớp với đội nên đây là 1 lý do hiệu suất thấp")
+  const doi = (await docCauDoi(id, lc)).filter((c) => c.chu && c.thu7 > c.chi7).slice(0, 8);   // ô prompt của anh; trống = mặc định
   try {
     const { goiAi, MO_HINH } = await import('@mos2/cong-ai');
     const r = await goiAi<{ cau: { a: string; b: string; c: string }[] }>({ viec: 'etp2-cau-doc', model: MO_HINH.haiku, chi_re: true, max_tokens: 700,
@@ -247,7 +249,7 @@ export async function sinhCauDoc(cid: number, huong?: string): Promise<{ ok: tru
         + '(a must contain {t} exactly once, and must NOT start with the word Free / For free / Gratis), b = short continuation (the "for free" promise goes here), '
         + 'c = call to action telling the viewer to tap the button (Watch More / Learn More / See more). Spoken, punchy, under 9 words per part, no emojis, no hashtags. '
         + 'Write in the requested language only. Never repeat an existing hook word for word. Follow the operator instructions.',
-      noi_dung: `Language: ${lc === 'es' ? 'Spanish (Latin America)' : 'English'}\nExisting hooks (do not repeat these wordings):\n${co.map((m) => `- ${m.join(' | ')}`).join('\n')}\nOperator instructions:\n${yc}\nReturn {"cau":[{"a","b","c"}]} (1 to 8 hooks).`,
+      noi_dung: `Language: ${lc === 'es' ? 'Spanish (Latin America)' : 'English'}\nExisting hooks (do not repeat these wordings):\n${co.map((m) => `- ${m.join(' | ')}`).join('\n')}\n${doi.length ? `TEAM WINNING voice-overs (profitable last 7 days; titles are other dramas, use {t} instead):\n${doi.map((c) => `- ${c.chu}`).join('\n')}\n` : ''}Operator instructions:\n${yc}\nReturn {"cau":[{"a","b","c"}]} (1 to 8 hooks).`,
       schema: { type: 'object', properties: { cau: { type: 'array', items: { type: 'object', properties: { a: { type: 'string' }, b: { type: 'string' }, c: { type: 'string' } }, required: ['a', 'b', 'c'] } } }, required: ['cau'] } },
     { kiem: (k) => {
       const ds = Array.isArray(k?.cau) ? k.cau : [];

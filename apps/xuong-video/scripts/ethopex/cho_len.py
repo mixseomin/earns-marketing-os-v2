@@ -47,7 +47,7 @@ def loc(lo, ma):
     ks = ",".join(s(x["_khoa"]) for x in lo)
     _sql(f"update etp.cho_len set trang_thai = 'duyet', cap_nhat = now(), loi = 'lượt lên trước bị cắt giữa chừng' where trang_thai = 'dang_len' and cap_nhat < now() - interval '{KET_TREO}' and khoa in ({ks})")
     r = {}
-    for l in (_sql(f"select row_to_json(t) from (select id, khoa, trang_thai, creative_id, ket, video, loi, kieu, cap_nhat < now() - interval '{LOI_NGHI}' cu from etp.cho_len where khoa in ({ks})) t") or "").splitlines():
+    for l in (_sql(f"select row_to_json(t) from (select c.id, c.khoa, c.trang_thai, c.creative_id, c.ket, c.video, c.loi, coalesce(p.kieu, c.kieu) kieu, p.chu phieu_chu, p.link phieu_link, c.cap_nhat < now() - interval '{LOI_NGHI}' cu from etp.cho_len c left join etp.phieu_len p on p.id = c.phieu_id where c.khoa in ({ks})) t") or "").splitlines():
         if l.strip(): v = json.loads(l); r[v["khoa"]] = v
     di, moi, ra = [], [], []
     for x in lo:
@@ -61,6 +61,7 @@ def loc(lo, ma):
             if n.strip():
                 x["_cho_len"] = v["id"]
                 x["kieu"] = v.get("kieu") or "kien"   # kiểu chữ anh chọn lúc duyệt (etp2 Chờ lên, mặc định Kiên) → chu-qc.py tạo đúng chữ đó
+                if v.get("phieu_chu"): x["chu_phieu"], x["link_phieu"] = v["phieu_chu"], v.get("phieu_link")   # PHIẾU LÊN CAMP: đúng bộ chữ + link anh chọn lúc gửi phiếu
                 if not x["file"].startswith("box3:") and not os.path.exists(x["file"]):   # tệp gốc đã dọn → kéo bản đã đẩy kho (đúng tệp anh xem)
                     os.makedirs(os.path.join(C, "cho-len"), exist_ok=True); f = os.path.join(C, "cho-len", f"cl{v['id']}.mp4")
                     subprocess.run(["curl", "-sSfL", "-o", f, v["video"]], check=True); x["file"] = f
@@ -70,9 +71,18 @@ def loc(lo, ma):
     if ra: print(f"{DAU}: {sum(1 for o in ra if o.get('cho_anh'))} bản chờ anh duyệt ở etp2 › Camp › Chờ lên", flush=True)
     return di, moi, ra
 
+PHIEU_DANG = {"canh cuoi logo": "CC2", "cảnh cuối logo": "CC2", "ảnh động": "AD"}   # dạng ghi ở etp.cho_len → mã dạng của phiếu (etp.phieu_len.dang)
+
 def ghi_cho(moi, anh, ma, dang):
     """bản mới đã đẩy kho → ghi 'cho' kèm link xem; trả dòng len.json"""
-    ra = []
+    ra, phieu = [], {}
+    # PHIẾU LÊN CAMP (etp2, 0488): bản của phim có phiếu đang dựng cùng dạng (CC2 qua dòng phim; AD dung-mau.py tự gắn theo tuy_chon.phieu) → mang phieu_id,
+    # anh duyệt ở Chờ lên là lên camp đúng phiếu. Tra một lần cho cả lô để mọi bản của lô cùng vào một phiếu.
+    for cid, dg in {(int(x["content_id"]), x.get("dang") or dang) for x in moi}:
+        dp = PHIEU_DANG.get(dg)
+        if not dp: continue
+        pid = (_sql(f"select id from etp.phieu_len where content_id = {cid} and dang = {s(dp)} and trang_thai = 'dung' and tao > now() - interval '2 days' order by tao desc limit 1") or "").strip()
+        if pid.isdigit(): phieu[(cid, dg)] = int(pid)
     for x in moi:
         a = anh.get(x["ten_tep"][:-4]) or []
         if len(a) < 4 or not str(a[2]).startswith("http"): ra.append(dong_cho(x, ma, "đẩy kho không ra link xem — chưa vào hàng chờ duyệt", False)); continue
@@ -80,7 +90,10 @@ def ghi_cho(moi, anh, ma, dang):
             values ({s(x['_khoa'])}, {int(x['content_id'])}, {s(x.get('lang'))}, {s(x.get('dang') or dang)}, {s(x.get('ten'))}, {s(ma)}, {s(x.get('mau'))},
                     {s(a[2])}, {s(a[3])}, {float(a[1] or 0)}, {j(_muc(x))}, {s(os.environ.get('ETP_GHI_DUYET') or x.get('goi_y') or x.get('ghi') or '')})
             on conflict (khoa) do update set cap_nhat = now() returning id""").strip()
+        pid = phieu.get((int(x["content_id"]), x.get("dang") or dang))
+        if pid and id_.isdigit(): _sql(f"update etp.cho_len set phieu_id = {pid} where id = {int(id_)} and phieu_id is null")
         ra.append(dong_cho(x, ma, f"{LY} #{id_}"))
+    for pid in set(phieu.values()): _sql(f"update etp.phieu_len set trang_thai = 'cho_duyet', cap_nhat = now() where id = {pid} and trang_thai = 'dung' and exists (select 1 from etp.cho_len where phieu_id = {pid})")
     if ra: print(f"{DAU}: {len(ra)} bản mới vào hàng chờ — chưa gửi Ethopex", flush=True)
     sinh_kien({int(x["content_id"]) for x in moi})
     return ra

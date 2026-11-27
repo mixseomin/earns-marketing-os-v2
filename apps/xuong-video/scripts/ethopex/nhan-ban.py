@@ -649,6 +649,15 @@ def main(a):
     xt_lich = xem_truoc and "--theo-lich" in a   # 👁 xem trước của nút "⏱ Lên theo lịch" (etp2 #1772): chạy khô ĐI ĐƯỜNG LỊCH (lich_len / gio_roas) như vé thường, không như vé trực tiếp
     if xt_lich: truc = False
     if (gio or cu) and not truc: raise SystemExit("--gio / --thay-cho chỉ đi cùng vé TRỰC TIẾP (ETP_VE từ nút etp2, cong.py --ve-truc-tiep)")
+    # DOMAIN ANH CHỌN Ở PHIẾU LÊN CAMP (etp2, anh 27/11/2026 "Các trường link thì cũng cho chọn… Tương tự với domain"): --mien đè MIEN_LEN cho đúng lệnh này,
+    # CHỈ đi cùng vé trực tiếp và chỉ nhận miền nhà đã từng chạy (etp.camp.mien) hoặc mien_len — gõ sai một ký tự là camp trỏ trang lạ
+    m_ = (lay("--mien") or "").strip().lower()
+    if m_:
+        global MIEN_LEN
+        if not truc: raise SystemExit("--mien chỉ đi cùng vé TRỰC TIẾP (phiếu lên camp etp2)")
+        if not re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", m_) or (m_ != MIEN_LEN and not q(f"select 1 from etp.camp where mien = '{m_}' limit 1")):
+            raise SystemExit(f"--mien {m_!r} không phải miền nhà (mien_len / etp.camp.mien)")
+        MIEN_LEN = m_
     # LÊN NGAY THEO LỆNH ANH (anh 24/11/2026 22:26 VN "Cho nhóm đó về $1 ngân sách và leen luôn bây giờ"): --ngay CHỈ đi cùng vé TRỰC TIẾP — bỏ khung gio_len, chạy ngay (today).
     # Máy tự lên / vé thường không có đường này (luật khung cố định "Cấm tự lên ngay" giữ nguyên).
     ngay = "--ngay" in a

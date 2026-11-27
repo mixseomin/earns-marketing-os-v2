@@ -943,6 +943,14 @@ const LUAT = [
   { card: 'roas-dan-2611', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: 'select etp.muc_roas(', cam: 'hoi_cho.roas', vi: 'lên creative từ dòng phim dàn mức ngoài khối ke_cr' },
   { card: 'roas-dan-2611', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'etp.muc_roas(r.content_id', cam: 'hoi_cho.roas', vi: 'hàng chờ hiện mức sẽ lên' },
   { card: 'roas-dan-2611', tep: 'apps/etp2/src/components/etp-dong.tsx', co: '★ ROAS ${CHU_DAN}', cam: 'RO.roas', vi: 'nút không hứa ROAS cứng' },
+  // PHIẾU LÊN CAMP (anh 27/11/2026): poster + tên + ngôn ngữ → K/D (bấm K lại = sinh lại) → AD/CC2 → link · domain · bid · ngân sách · giờ (ngoài khung cảnh báo) → duyệt creative = lên camp, không duyệt camp lần hai; nhãn chỉ K / D
+  { card: 'phieu-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'onClick={() => void sinhK()}', cam: 'Kiên', vi: 'bấm K lần nữa = máy sinh lại chữ K; không ghi tên người' },
+  { card: 'phieu-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-canh-gio', cam: 'Dol', vi: 'giờ tự đặt ngoài khung cố định hiện cảnh báo' },
+  { card: 'phieu-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: "useState<DangPhieu>('AD')", vi: 'creative mặc định AD' },
+  { card: 'phieu-2711', tep: 'apps/etp2/src/components/etp-view.tsx', co: "openEntityDrawer('etp-phieu-len'", vi: 'menu phim có lối vào Phiếu lên camp' },
+  { card: 'phieu-2711', tep: 'apps/etp2/src/lib/actions/etp-cho-len.ts', co: 'if (ph?.phieu_id) return lenTheoPhieu(n, me, true);', cam: 'Kiên (K', vi: 'duyệt thẻ có phiếu = lên camp luôn (vé trực tiếp + len-phieu.py), nhãn chỉ K/D' },
+  { card: 'phieu-2711', tep: 'apps/etp2/src/components/etp-cho-len.tsx', co: '↻ Lên camp lại', cam: 'K · Kiên', vi: 'thẻ phiếu hiện thiết lập + camp / lỗi, nút Lên camp lại; nhãn chỉ K/D' },
+  { card: 'phieu-2711', tep: 'apps/xuong-video/scripts/ethopex/lop-logo-cc2.py', co: 'GRATIS', vi: 'creative có chữ Free / gratis' },
 ];
 
 const loi = [];

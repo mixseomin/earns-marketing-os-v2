@@ -1286,6 +1286,7 @@ function MenuPhim({ p }: { p: PhimEtpKho }) {
   const [chay, setChay] = useState(false);   // form Chạy tự động (dòng phim, anh 03/11/2026)
   return <>{chay ? <FormChayDong contentId={p.content_id} onClose={() => setChay(false)} /> : null}<MenuBaCham tieuDe="Phim" phu={p.ten ?? `#${p.content_id}`} title={`Thao tác phim #${p.content_id}`} groups={[
     { label: 'Xem', items: [{ label: 'Nội dung, điểm, tiến độ', emoji: '▸', onClick: () => openEntityDrawer('etp-phim', p.content_id) }] },
+    { label: 'Lên camp', items: [{ label: 'Phiếu lên camp (K/D · AD/CC2 · bid · giờ)…', emoji: '🚀', onClick: () => openEntityDrawer('etp-phieu-len', p.content_id) }] },
     // phim cấm (etp:phim-cam-quet-2011): không có Chạy tự động — mục chỉ ghi CẤM + lý do sổ
     { label: 'Tự động', items: [p.cam ? { label: `CẤM — ${p.cam.ly_do ?? 'phim trong sổ cấm'}`.slice(0, 90), emoji: '🚫', onClick: () => setChay(false) }
       : { label: 'Chạy tự động tới khi lên camp…', emoji: '▶', onClick: () => setChay(true) }] },

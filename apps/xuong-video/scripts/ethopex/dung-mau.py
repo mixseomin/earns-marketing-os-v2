@@ -152,8 +152,16 @@ def cta(c, en):
     không ghim thì chữ mặc định của mẫu `en` (bản ES = cùng vị trí trong sổ). Chữ trái luật CTA (Tap / Click / mũi tên) → dừng, không vẽ."""
     g = c.get("cta") or ""; ds = NUT_CHU.get(c["lang"]) or NUT_CHU["en"]
     t = g.split(":", 1)[1] if ":" in g and g.split(":", 1)[0] == (c["lang"] if c["lang"] in NUT_CHU else "en") else (ds[NUT_CHU["en"].index(en)] if en in NUT_CHU["en"] else en)
+    t = co_free(t, c["lang"])
     if CQ.sai_luat(t): raise RuntimeError(f"chữ nút {t!r} trái luật CTA ({CQ.sai_luat(t)!r}) — chọn chữ khác ở ô CTA")
     return t
+
+def co_free(t, lang):
+    """MỌI CREATIVE PHẢI CÓ CHỮ FREE TRONG VIDEO (anh 27/11/2026 "Khi sinh creative phải có phần chữ Free trong video"): chữ nút chưa có free / gratis →
+    đổi sang bản Free cùng cỡ chữ (WATCH FREE / VER GRATIS — hoa thì hoa, thường thì thường). Mọi mẫu vẽ nút đều qua cta() → cả lớp, không vá từng mẫu."""
+    if re.search(r"\bfree\b|\bgratis\b", t, re.I): return t
+    f = "VER GRATIS" if lang == "es" else "WATCH FREE"
+    return f if t.upper() == t else f.title() if lang != "es" else "Ver gratis"
 
 def nut(lop, chu, y, f, nen, chu_mau=(255, 255, 255), vien_mau=None, dem=(56, 26), bo_tron=None, rong_min=0, x_tam=None):
     while f.getlength(chu) + 2 * dem[0] > W - 80 and f.size > 30: f = f.font_variant(size=f.size - 4)   # chữ nút dài (anh ghim "WATCH FREE · LEARN MORE") co lại, không tràn khung
@@ -810,6 +818,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
         if not xem:
             ghi_tt(ma, cid, "tai_tap", "dung", f"PHIM CẤM: {_cam}"[:300])
             AT.sql(f"update etp.cr_soan s set trang_thai = 'loi', ghi = {s_(('PHIM CẤM: ' + _cam)[:300])}, cap_nhat = now() from etp.mau_dung d where d.mau = {s_(ma)} and d.content_id = {int(cid)} and s.id = (d.tuy_chon->>'soan')::int; "
+                   f"update etp.phieu_len p set trang_thai = 'loi', loi = {s_(('PHIM CẤM: ' + _cam)[:300])}, cap_nhat = now() from etp.mau_dung d where d.mau = {s_(ma)} and d.content_id = {int(cid)} and p.id = (d.tuy_chon->>'phieu')::int; "
                    f"update etp.mau_dung set tuy_chon = null where mau = {s_(ma)} and content_id = {int(cid)}")
         print(f"✗ phim #{cid} cấm — không dựng: {_cam[:160]}", flush=True)
         return []
@@ -855,6 +864,10 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
             try: tc = json.loads(AT.sql(f"alter table etp.mau_dung add column if not exists tuy_chon jsonb; select coalesce(tuy_chon::text, '') from etp.mau_dung where mau = {s_(ma)} and content_id = {int(cid)}") or "{}") or {}
             except Exception as e: print("đọc tuỳ chọn bản soạn lỗi — dựng như thường:", e, file=sys.stderr); tc = {}
         soan = int(tc.get("soan") or 0)
+        # PHIẾU LÊN CAMP (etp2, migration 0488, anh 27/11/2026): tuy_chon.phieu = id phiếu → bản dựng vào Chờ lên mang phieu_id; anh duyệt là lên camp đúng phiếu
+        phieu = int(tc.get("phieu") or 0)
+        def phieu_tt(t, g=None):
+            if phieu: AT.sql(f"update etp.phieu_len set trang_thai = {s_(t)}, loi = {s_(g[:400]) if g else 'null'}, cap_nhat = now() where id = {phieu} and trang_thai in ('dung', 'cho_duyet')")
         # Ô ANH GHIM (bước Thành phần): khung = đúng khung đó (không tự đổi khung, kể cả khung bản trước đã dùng) · khung_phu = nhân vật thứ hai · giong = đúng câu đọc
         o_ = tc.get("o") or {}; tim = lambda g: next((u for u in uv_du if g and g.get("nguon") == "khung_phim" and khoa(u) == g.get("id")), None)
         k_ghim, k2_ghim = tim(o_.get("khung")), tim(o_.get("khung_phu"))
@@ -965,6 +978,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
                 AT.sql(f"update etp.mau_dung set tv_ids = array_append(tv_ids, {int(tv)}) where mau = {s_(ma)} and content_id = {int(cid)}")
                 tt("creative", g=f"tải lên Ethopex qua cổng mẫu (tv{tv})")
                 subprocess.run(["python3", os.path.join(D, "thu-vien-len.py"), str(tv)], check=False)
+                if phieu: AT.sql(f"update etp.cho_len set phieu_id = {phieu} where khoa = 'tv{int(tv)}'"); phieu_tt("cho_duyet")
                 c_id = AT.sql(f"select coalesce(creative_id::text, '') from etp.thu_vien where id = {int(tv)}")
                 if c_id: cr.append(int(c_id)); AT.sql(f"update etp.mau_dung set creative_ids = array_append(creative_ids, {int(c_id)}) where mau = {s_(ma)} and content_id = {int(cid)}")
             if thu: continue
@@ -974,13 +988,16 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
         if not xem:
             if cr: tt("xong", "xong", f"{len(cr)} creative: " + ", ".join(f"#{x}" for x in cr), vnd=vnd); soan_tt("xong", f"creative #{cr[-1]} đã vào thư viện", creative_id=cr[-1])
             else: tt("creative", "loi", "dựng xong nhưng không thành creative (cổng chữ / studio loại) — xem nhật ký", vnd=vnd); soan_tt("loi", "dựng xong nhưng không thành creative (cổng chữ / studio loại)")
-            if soan: AT.sql(f"update etp.mau_dung set tuy_chon = null where mau = {s_(ma)} and content_id = {int(cid)}")
+            if not cr: phieu_tt("loi", "dựng xong nhưng không thành creative (cổng chữ / studio loại) — xem nhật ký")
+            if soan or phieu: AT.sql(f"update etp.mau_dung set tuy_chon = null where mau = {s_(ma)} and content_id = {int(cid)}")
         return cr
     except Exception as e:
         if not xem:
             tt("loi", "loi", f"{type(e).__name__}: {str(e)[:300]}", vnd=vnd)
             try:
-                if soan: soan_tt("loi", f"{type(e).__name__}: {str(e)[:300]}"); AT.sql(f"update etp.mau_dung set tuy_chon = null where mau = {s_(ma)} and content_id = {int(cid)}")
+                if soan: soan_tt("loi", f"{type(e).__name__}: {str(e)[:300]}")
+                if phieu: phieu_tt("loi", f"dựng lỗi: {type(e).__name__}: {str(e)[:300]}")
+                if soan or phieu: AT.sql(f"update etp.mau_dung set tuy_chon = null where mau = {s_(ma)} and content_id = {int(cid)}")
             except Exception: pass
         raise
 

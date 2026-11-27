@@ -1926,6 +1926,6 @@ export const LUAT = [
   { card: 'sinh-kien-2711', tep: 'apps/xuong-video/scripts/ethopex/cho_len.py', co: 'sinh_kien({int(x["content_id"]) for x in moi})', vi: 'bản vào hàng chờ là máy sinh luôn chữ Kiên cho phim chưa có (anh 27/11/2026 "sinh luôn text cho kiểu Kiên lúc review Ảnh")' },
   { card: 'sinh-kien-2711', tep: 'apps/etp/ethopex_api.py', co: 'SK.bo(kieu, content_id, _q)', vi: 'chữ K đọc qua MỘT sổ so_kieu (tay chu-kieu.json ∪ máy etp.chu_kieu)' },
   { card: 'sinh-kien-2711', tep: 'apps/etp/dong_phim.py', co: 'SK.ds("kien")', vi: 'máy dòng phim biết phim có chữ K từ cả sổ máy sinh' },
-  { card: 'sinh-kien-2711', tep: 'apps/etp2/src/lib/actions/etp-cho-len.ts', co: 'from etp.chu_kieu', vi: 'thẻ Chờ lên hiện chữ K máy sinh, không ép D' },
+  { card: 'sinh-kien-2711', tep: 'apps/etp2/src/lib/etp-chu-so.ts', co: 'from etp.chu_kieu', vi: 'thẻ Chờ lên + phiếu lên camp đọc chữ K máy sinh qua MỘT sổ soChu, không ép D' },
   { card: 'sinh-kien-2711', tep: 'apps/etp2/src/components/etp-cho-len.tsx', co: 'data-sinh-chu-kien', vi: 'phim chưa có chữ K → nút Sinh chữ Kiên ngay trên thẻ' },
 ];

@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { VideoXem } from '@/components/ui/video-xem';
 import { BadgeDangNgan } from '@/components/etp-so';
-import { boChoLen, doiKieuChoLen, dsChoLen, duyetChoLen, sinhChuKien, type ChoLen, type ChuQc } from '@/lib/actions/etp-cho-len';
+import { boChoLen, doiKieuChoLen, dsChoLen, duyetChoLen, lenCampLaiChoLen, sinhChuKien, type ChoLen, type ChuQc } from '@/lib/actions/etp-cho-len';
 
 const nut: React.CSSProperties = { fontSize: 12, padding: '3px 10px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' };
 const GIAI = 'bản dựng mới CHƯA gửi Ethopex. ✓ Duyệt = máy trên iMac tải lên Ethopex trong ~1–2 phút, thành creative rồi đi tiếp đường thường (ô Chờ anh duyệt / bảng camp). ✕ Bỏ = không bao giờ lên.';
@@ -15,7 +15,8 @@ const TT: Record<ChoLen['trang_thai'], [string, string]> = {
   da_len: ['✓ đã lên Ethopex', '#4ade80'], bo: ['✕ đã bỏ', '#f87171'],
 };
 const gioVn = (t: string) => new Date(t).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
-type Kq = { ok: true; chu: string } | { loi: string };
+type Kq = { ok: true; chu: string } | { loi: string } | { canh: string };
+const ROAS_CHU = (r: string) => (r === 'dan' ? 'dàn' : r);
 // Chữ QC sẽ lên (anh 27/11/2026 "Khi duyệt creative thì cũng duyệt cả nội dung text luôn") — đúng sổ máy tạo creative đọc, không sửa ở đây
 function ChuXem({ c }: { c: ChuQc }) {
   const dong = (nhan: string, ds: string[]) => ds.map((t, i) => <div key={nhan + i} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}><span style={{ color: 'var(--fg-3, #888)' }}>{nhan}: </span>{t}</div>);
@@ -39,7 +40,7 @@ export function ChoLenEtho() {
   if (!ds || !ds.length) return null;
   const bam = async (id: number, f: () => Promise<Kq>) => {
     setDang((s) => new Set(s).add(id)); setBao((b) => ({ ...b, [id]: {} }));
-    try { const r = await f(); setBao((b) => ({ ...b, [id]: 'loi' in r ? { loi: r.loi } : { chu: r.chu } })); }
+    try { const r = await f(); setBao((b) => ({ ...b, [id]: 'loi' in r ? { loi: r.loi } : 'canh' in r ? { loi: `⚠ ${r.canh}` } : { chu: r.chu } })); }
     catch (e) { setBao((b) => ({ ...b, [id]: { loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` } })); }
     setDang((s) => { const n = new Set(s); n.delete(id); return n; }); void tai();
   };
@@ -70,7 +71,15 @@ export function ChoLenEtho() {
                 {x.ghi ? <div style={{ color: 'var(--fg-3, #888)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.ghi}>{x.ghi}</div> : null}
                 <div style={{ color: 'var(--fg-3, #888)' }}>dựng {gioVn(x.tao)}</div>
                 <div style={{ color: mau, fontWeight: 600 }}>{tt}{x.creative_id ? ` → creative #${x.creative_id}` : ''}{x.trang_thai !== 'cho' ? <span style={{ fontWeight: 400, color: 'var(--fg-3, #888)' }}> · {gioVn(x.cap_nhat)}</span> : null}</div>
-                {(() => { const coK = !!x.chu.kien, sua = x.trang_thai === 'cho' || x.trang_thai === 'duyet', kieu = coK ? x.kieu : 'dol', c = kieu === 'kien' ? x.chu.kien : x.chu.dol;
+                {x.phieu ? <div data-cho-len-phieu={x.phieu.id} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <div style={{ color: 'var(--fg-2)' }} title={x.phieu.tu_do ? 'giờ ngoài khung cố định (anh đã đặt)' : undefined}>
+                      phiếu #{x.phieu.id} · <b>{x.phieu.kieu === 'kien' ? 'K' : 'D'}</b> · {x.phieu.dang} · ROAS {ROAS_CHU(x.phieu.roas)} · ${x.phieu.ns} · {x.phieu.gio === 'lich' ? 'khung gần nhất' : x.phieu.gio}{x.phieu.tu_do ? ' ⚠' : ''}</div>
+                    {x.phieu.mien ? <div style={{ color: 'var(--fg-3, #888)' }}>domain {x.phieu.mien}</div> : null}
+                    <ChuXem c={x.phieu.chu} />
+                    {x.camp_id ? <div style={{ color: '#4ade80', fontWeight: 600 }}>✓ camp #{x.camp_id}</div> : null}
+                    {x.camp_loi ? <div role="alert" style={{ padding: 6, border: '1px solid #ef4444', borderRadius: 4, background: 'rgba(239,68,68,.12)', color: '#fca5a5' }}>Lên camp lỗi: {x.camp_loi}</div> : null}
+                    {!x.camp_id && x.camp_loi && x.trang_thai !== 'cho' ? <button type="button" disabled={dg} onClick={() => void bam(x.id, () => lenCampLaiChoLen(x.id))} style={{ ...nut, alignSelf: 'flex-start', borderColor: '#4ade80', color: '#4ade80' }}>{dg ? '…' : '↻ Lên camp lại'}</button> : null}
+                  </div> : (() => { const coK = !!x.chu.kien, sua = x.trang_thai === 'cho' || x.trang_thai === 'duyet', kieu = coK ? x.kieu : 'dol', c = kieu === 'kien' ? x.chu.kien : x.chu.dol;
                   const chip = (k: 'kien' | 'dol', nhan: string, goi: string) => { const on = kieu === k, tat = !sua || dg || (k === 'kien' && !coK);
                     return <button type="button" title={goi} disabled={tat || on} onClick={() => void bam(x.id, () => doiKieuChoLen(x.id, k))}
                       style={{ ...nut, padding: '1px 8px', borderColor: on ? '#a78bfa' : 'var(--line)', background: on ? 'rgba(167,139,250,.25)' : 'transparent', fontWeight: on ? 700 : 400, opacity: tat && !on ? 0.45 : 1, cursor: tat || on ? 'default' : 'pointer' }}>{nhan}</button>; };
@@ -78,20 +87,20 @@ export function ChoLenEtho() {
                     <div data-cho-len-kieu={kieu} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                       <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
                         <span style={{ color: 'var(--fg-2)' }}>Chữ QC:</span>
-                        {chip('kien', 'K · Kiên', 'chữ Kiên của phim (sổ tay apps/etp/chu-kieu.json hoặc máy sinh etp.chu_kieu), link search.com — mặc định')}
-                        {chip('dol', 'D · Dol', 'form Dol cố định (apps/etp/form-chu.json), link info.com')}
+                        {chip('kien', 'K', 'chữ K của phim (sổ tay apps/etp/chu-kieu.json hoặc máy sinh etp.chu_kieu), link search.com — mặc định')}
+                        {chip('dol', 'D', 'form D cố định (apps/etp/form-chu.json), link info.com')}
                       </div>
                       {!coK ? <div data-sinh-chu-kien style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', color: '#fbbf24' }}>
-                        <span>máy chưa sinh được chữ Kiên cho phim này{sua ? '' : ' — đã lên với D · Dol'}</span>
-                        {sua ? <button type="button" disabled={dg} title="sinh chữ Kiên từ cốt truyện phim (~2₫, apps/etp/sinh-chu-kien.py)" onClick={() => void bam(x.id, () => sinhChuKien(x.id))}
-                          style={{ ...nut, padding: '1px 8px', borderColor: '#a78bfa', color: '#c4b5fd' }}>{dg ? '…' : '✦ Sinh chữ Kiên'}</button> : null}
+                        <span>máy chưa sinh được chữ K cho phim này{sua ? '' : ' — đã lên với D'}</span>
+                        {sua ? <button type="button" disabled={dg} title="sinh chữ K từ cốt truyện phim (~2₫, apps/etp/sinh-chu-kien.py)" onClick={() => void bam(x.id, () => sinhChuKien(x.id))}
+                          style={{ ...nut, padding: '1px 8px', borderColor: '#a78bfa', color: '#c4b5fd' }}>{dg ? '…' : '✦ Sinh chữ K'}</button> : null}
                       </div> : null}
                       {c ? <ChuXem c={c} /> : null}
                     </div>); })()}
                 {x.loi && x.trang_thai !== 'da_len' ? <div role="alert" style={{ padding: 6, border: '1px solid #ef4444', borderRadius: 4, background: 'rgba(239,68,68,.12)', color: '#fca5a5' }}>Lần tải lên trước lỗi: {x.loi} — máy tự thử lại</div> : null}
                 {x.trang_thai === 'cho' || x.trang_thai === 'duyet' ? (
                   <div style={{ marginTop: 'auto', display: 'flex', gap: 6 }}>
-                    {x.trang_thai === 'cho' ? <button type="button" disabled={dg} onClick={() => void bam(x.id, () => duyetChoLen(x.id))} style={{ ...nut, borderColor: '#4ade80', color: '#4ade80' }}>{dg ? '…' : '✓ Duyệt · lên Ethopex'}</button> : null}
+                    {x.trang_thai === 'cho' ? <button type="button" disabled={dg} onClick={() => void bam(x.id, () => duyetChoLen(x.id))} style={{ ...nut, borderColor: '#4ade80', color: '#4ade80' }}>{dg ? '…' : x.phieu ? '✓ Duyệt · lên camp' : '✓ Duyệt · lên Ethopex'}</button> : null}
                     <button type="button" disabled={dg} onClick={() => void bam(x.id, () => boChoLen(x.id))} style={{ ...nut, borderColor: '#f87171', color: '#f87171' }}>{dg ? '…' : '✕ Bỏ'}</button>
                   </div>) : null}
                 {b.loi ? <div role="alert" style={{ padding: 6, border: '1px solid #ef4444', borderRadius: 4, background: 'rgba(239,68,68,.12)', color: '#fca5a5' }}>{b.loi}</div> : null}

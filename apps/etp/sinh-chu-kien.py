@@ -114,13 +114,14 @@ def ghi(b, vnd):
           {s(b['lang'])}, {s(b['mo_hinh'])}, {round(vnd)}) on conflict (content_id, kieu) do update set pt = excluded.pt, hl = excluded.hl, de = excluded.de,
           lang = excluded.lang, mo_hinh = excluded.mo_hinh, vnd = excluded.vnd, tao = now()""")
 
-def chay(ids, lai=False, xem=False):
+def chay(ids, lai=False, xem=False, js=False):
     tong, loi = 0.0, 0
     for c in dict.fromkeys(int(x) for x in ids):
         if not lai and SK.bo("kien", c): print(f"phim {c}: đã có chữ Kiên — bỏ qua"); continue
         b, vnd, l = sinh(c); tong += vnd
         if l: print(f"✗ {l}", flush=True); loi += 1; continue
         if not xem: ghi(b, vnd)
+        if js: print("JSON:" + json.dumps({**b, "vnd": round(vnd)}, ensure_ascii=False), flush=True)   # phiếu lên camp etp2 (sinh lại chữ K, --xem: không ghi sổ) đọc dòng này
         print(f"{'(xem) ' if xem else '✓ '}phim {c} {b['ten']!r} [{b['lang']}] {round(vnd)}₫ · {b['mo_hinh']}\n  chữ chính: {b['primaryTexts'][0]}\n  tiêu đề:   {b['headlines'][0]}\n  mô tả:     {b['descriptions'][0]}", flush=True)
     print(f"tổng chi AI: {round(tong)}₫ · lỗi {loi}", flush=True)
     return loi
@@ -155,4 +156,4 @@ if __name__ == "__main__":
         print("sinh-chu-kien tự kiểm ok"); sys.exit(0)
     ids = cho() if "--cho" in sys.argv else [x for x in sys.argv[1:] if x.isdigit()]
     if not ids: raise SystemExit(__doc__)
-    sys.exit(1 if chay(ids, "--lai" in sys.argv, "--xem" in sys.argv) else 0)
+    sys.exit(1 if chay(ids, "--lai" in sys.argv, "--xem" in sys.argv, "--json" in sys.argv) else 0)

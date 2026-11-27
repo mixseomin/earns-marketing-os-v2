@@ -76,10 +76,10 @@ function Hang({ ten, children }: { ten: string; children: React.ReactNode }) {
 type Muc = 'pt' | 'hl' | 'de';
 function KhoiChu({ c, sua, dongSinh, sinhDong, bv }: { c: ChuQc; sua: boolean; dongSinh: string | null; sinhDong: (m: Muc, i: number) => void; bv: BanVi }) {
   const ds = (m: Muc, t: string, xs: string[]) => xs.length ? <div style={{ marginBottom: 6 }}><div style={{ fontSize: 11, color: MO_SO }}>{t} · {xs.length}</div>
-    {xs.map((x, i) => <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', fontSize: 12.5, padding: '3px 0', borderBottom: `1px dashed ${VIEN}` }}>
+    {xs.map((x, i) => <div key={i} style={{ display: 'flex', alignItems: 'flex-start', fontSize: 12.5, padding: '3px 0', marginLeft: 92, borderBottom: `1px dashed ${VIEN}` }} data-dong-chu>
       <CoVi goc={x} b={bv} /><span style={{ flex: 1, opacity: dongSinh === `${m}${i}` ? 0.4 : 1 }}>{x}</span>
       {sua ? <button data-sinh-dong={`${m}${i}`} disabled={!!dongSinh} onClick={() => sinhDong(m, i)} title="máy AI sinh lại riêng dòng này (~100–300₫)"
-        style={{ ...chip(false, !!dongSinh), padding: '0 7px', fontSize: 12 }}>{dongSinh === `${m}${i}` ? '…' : '↻'}</button> : null}
+        style={{ ...chip(false, !!dongSinh), padding: '0 7px', fontSize: 12, marginLeft: 6 }}>{dongSinh === `${m}${i}` ? '…' : '↻'}</button> : null}
     </div>)}</div> : null;
   return <div>{ds('pt', 'Primary text', c.pt)}{ds('hl', 'Headline', c.hl)}{ds('de', 'Description', c.de)}</div>;
 }
@@ -278,9 +278,10 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       <Hang ten="Nút Facebook"><span style={{ ...chip(true), cursor: 'default' }}>WATCH_MORE</span><span style={{ fontSize: 11.5, color: MO_SO }}>cố định theo form chữ</span></Hang>
       <Hang ten="Trong video">
         {dang === 'AD' ? <>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', rowGap: 6, columnGap: 30, width: '100%' }} data-hang-cta>
           <button style={chip(!cta)} onClick={() => setCta('')} data-cta="">mặc định mẫu (WATCH MORE)</button>
           {p.cta.map((c) => <span key={c} style={{ display: 'inline-flex', alignItems: 'center' }}><CoVi goc={c} b={bv} /><button style={chip(cta === c)} onClick={() => setCta(c)} data-cta={c}>{c}</button></span>)}
-        </> : <><span style={{ ...chip(true), cursor: 'default' }}>{nut}</span>{dang === 'CC2' ? <span style={{ fontSize: 11.5, color: MO_SO }}>CC2 cố định nút này</span> : null}</>}
+          </div></> : <><span style={{ ...chip(true), cursor: 'default' }}>{nut}</span>{dang === 'CC2' ? <span style={{ fontSize: 11.5, color: MO_SO }}>CC2 cố định nút này</span> : null}</>}
       </Hang>
     </Khoi>
 

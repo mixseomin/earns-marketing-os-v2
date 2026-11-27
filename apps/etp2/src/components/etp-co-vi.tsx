@@ -32,10 +32,11 @@ export function useDichDs(ds: string[]): BanVi {
   return { vi, loi, cho };
 }
 
-/** cờ ĐẦU câu (anh 27/11/2026 "Cho cờ ở phía trước để ko ảnh hưởng đến bố cục"): ô cờ luôn giữ đúng một bề rộng cố định —
+/** cờ TREO lề trái (anh 27/11/2026 "chữ ở bên phải đường đỏ, cờ bên trái"): marginLeft -24 + 18 + 6 = chiếm 0 chỗ → chữ thẳng mép cột lựa chọn, cờ nằm trong lề;
+ *  chỗ đặt cờ phải chừa ≥ 24px bên trái (cột nhãn Hang, columnGap chip). Gốc: cờ ĐẦU câu (anh 27/11/2026 "Cho cờ ở phía trước để ko ảnh hưởng đến bố cục"): ô cờ luôn giữ đúng một bề rộng cố định —
  *  đang dịch (cờ mờ) → dịch xong (cờ rê = câu dịch) → lỗi (⚠ đỏ) → không cần dịch (ô trống) đều không xô chữ; chữ các dòng thẳng một mép.
  *  Bong bóng mở sang PHẢI vì cờ đứng mép trái. */
-const O: React.CSSProperties = { display: 'inline-flex', justifyContent: 'center', alignItems: 'center', width: 18, flex: 'none', marginRight: 6, verticalAlign: 'middle', fontSize: 13, lineHeight: 1 };
+const O: React.CSSProperties = { display: 'inline-flex', justifyContent: 'center', alignItems: 'center', width: 18, flex: 'none', marginLeft: -24, marginRight: 6, verticalAlign: 'middle', fontSize: 13, lineHeight: 1 };
 export function CoVi({ goc, b }: { goc: string | null | undefined; b: BanVi }) {
   const v = goc && goc.trim() ? b.vi[goc] : undefined;
   if (goc && v && !trungGoc(goc, v)) return <span data-co-vi="co" onClick={(e) => e.stopPropagation()} style={O}>

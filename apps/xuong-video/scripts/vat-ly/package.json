@@ -1,0 +1,10 @@
+{
+  "name": "xv-vat-ly",
+  "private": true,
+  "type": "module",
+  "description": "Kênh mô phỏng vật lý (ý tưởng #4 dang-kenh.json) — chạy trên iMac, 0đ",
+  "dependencies": {
+    "flag-icons": "7.2.3",
+    "matter-js": "0.20.0"
+  }
+}

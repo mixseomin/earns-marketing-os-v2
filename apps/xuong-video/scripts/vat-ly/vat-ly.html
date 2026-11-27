@@ -1,0 +1,135 @@
+<!doctype html>
+<!-- tra-repo-ok: trang vẽ lại bản ghi của mo-phong.mjs cho dung.mjs (window.__dung / __seek / __khung) — không có thư viện thay được, đã tra máy vật lý 28/11/2026 -->
+<!-- Khung 1920×1080: vòng xoay bên trái, bảng xếp hạng sống/loại bên phải, kết bằng vinh danh người thắng. Mọi thứ là hàm thuần của t (tua tới đâu cũng đúng). -->
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#05060d;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const W = 1920, H = 1080, OX = 70, OY = 0;   // lệch vòng sang phải 70 px so với bản ghi (tâm 540,540)
+let G, CO = {}, EVF = [], LOAI = [], FPS = 30, SEG = Math.PI * 2 / 72;
+const FONT = '"Helvetica Neue", Helvetica, Arial, sans-serif';
+
+window.__dung = async () => {
+  G = window.CAU; FPS = G.luat.fps;
+  await Promise.all(G.nuoc.map(([m]) => new Promise((ok) => { const i = new Image(); i.onload = ok; i.onerror = ok; i.src = `node_modules/flag-icons/flags/1x1/${m}.svg`; CO[m] = i; })));
+  // ảnh cờ SVG vẽ ra canvas đệm một lần (vẽ SVG mỗi khung chậm)
+  for (const m in CO) { const k = document.createElement('canvas'); k.width = k.height = 128; k.getContext('2d').drawImage(CO[m], 0, 0, 128, 128); CO[m] = k; }
+  EVF = []; for (const e of G.suKien) { const f = Math.round(e.t * FPS); (EVF[f] ||= []).push(e); }
+  LOAI = G.suKien.filter((e) => e.k === 'loai');
+};
+
+const nuoc = (i) => G.nuoc[i];
+const ease = (x) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+function hash(n) { n = (n ^ 61) ^ (n >>> 16); n = n + (n << 3); n = n ^ (n >>> 4); n = Math.imul(n, 0x27d4eb2d); n = n ^ (n >>> 15); return (n >>> 0) / 4294967296; }
+
+function nen(t) {
+  const r = g.createRadialGradient(540 + OX, 540, 50, 540 + OX, 540, 1100);
+  r.addColorStop(0, '#141a33'); r.addColorStop(1, '#03040a');
+  g.fillStyle = r; g.fillRect(0, 0, W, H);
+  g.fillStyle = 'rgba(255,255,255,0.5)';   // sao tĩnh
+  for (let i = 0; i < 140; i++) { const x = hash(i * 7 + 1) * W, y = hash(i * 13 + 5) * H, s = hash(i * 3 + 2) * 1.6 + 0.3; g.globalAlpha = 0.25 + 0.35 * Math.sin(t * 1.5 + i); g.fillRect(x, y, s, s); }
+  g.globalAlpha = 1;
+}
+
+function vong(t, k) {
+  const L = G.luat, rr = k.R + L.day / 2, cx = 540 + OX, cy = 540;
+  const n = k.khe > 0 ? Math.ceil(k.khe / SEG) : 0;
+  const a0 = k.g - SEG / 2 + n * SEG, a1 = k.g - SEG / 2 + Math.PI * 2;
+  const hue = (t * 40) % 360;
+  g.save(); g.lineCap = 'round';
+  g.shadowColor = `hsl(${hue},100%,60%)`; g.shadowBlur = 40;
+  g.strokeStyle = `hsl(${hue},100%,62%)`; g.lineWidth = L.day;
+  g.beginPath(); n ? g.arc(cx, cy, rr, a0, a1) : g.arc(cx, cy, rr, 0, Math.PI * 2); g.stroke();
+  g.shadowBlur = 0; g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = 3;
+  g.beginPath(); n ? g.arc(cx, cy, rr, a0, a1) : g.arc(cx, cy, rr, 0, Math.PI * 2); g.stroke();
+  g.restore();
+}
+
+function bi(f, k, t) {
+  const r = G.luat.r;
+  // vệt đuôi 8 khung
+  for (let j = 0; j < G.idx.length; j++) {
+    const ma = nuoc(G.idx[j])[0];
+    for (let d = 8; d >= 1; d--) { const q = G.khung[f - d * 1]; if (!q || !q.p[j]) continue; g.globalAlpha = 0.05 * (9 - d) / 2; g.fillStyle = '#9fc4ff'; g.beginPath(); g.arc(q.p[j][0] + OX, q.p[j][1], r * (1 - d / 12), 0, 7); g.fill(); }
+    g.globalAlpha = 1;
+  }
+  const cham = new Set(); for (let d = 0; d < 4; d++) for (const e of EVF[f - d] || []) if (e.k === 'v') cham.add(e.i);
+  for (let j = 0; j < G.idx.length; j++) {
+    const p = k.p[j]; if (!p) continue;
+    const id = G.idx[j], ma = nuoc(id)[0], x = p[0] + OX, y = p[1];
+    g.save(); g.translate(x, y); g.rotate(p[2]);
+    g.beginPath(); g.arc(0, 0, r, 0, 7); g.clip(); g.drawImage(CO[ma], -r, -r, 2 * r, 2 * r); g.restore();
+    g.lineWidth = cham.has(id) ? 5 : 2.5; g.strokeStyle = cham.has(id) ? '#fff' : 'rgba(255,255,255,0.8)';
+    g.beginPath(); g.arc(x, y, r, 0, 7); g.stroke();
+  }
+}
+
+function bang(t) {
+  const daLoai = LOAI.filter((e) => e.t <= t), loaiSet = new Map(daLoai.map((e, i) => [e.i, G.nuoc.length - i]));
+  const con = G.nuoc.length - daLoai.length;
+  const X = 1190, Y = 70, CW = 330, RH = 58;
+  g.fillStyle = 'rgba(255,255,255,0.06)'; g.beginPath(); g.roundRect(X - 30, Y - 40, 2 * CW + 60, 960, 24); g.fill();
+  g.fillStyle = '#fff'; g.font = `800 44px ${FONT}`; g.textBaseline = 'middle';
+  g.fillText('ALIVE', X, Y); g.fillStyle = '#ffd84a'; g.fillText(`${con}`, X + 160, Y); g.fillStyle = 'rgba(255,255,255,0.5)'; g.fillText(`/ ${G.nuoc.length}`, X + 160 + g.measureText(`${con}`).width + 14, Y);
+  g.fillStyle = 'rgba(255,255,255,0.7)'; g.font = `600 34px ${FONT}`; g.textAlign = 'right'; g.fillText(mmss(t), X + 2 * CW, Y); g.textAlign = 'left';
+  // sống trước (giữ thứ tự gốc), loại sau theo hạng
+  const song = G.nuoc.map((_, i) => i).filter((i) => !loaiSet.has(i));
+  const loai = [...daLoai].reverse().map((e) => e.i);
+  const ds = [...song, ...loai];
+  ds.forEach((i, n) => {
+    const c = n % 2, h = Math.floor(n / 2), x = X + c * CW, y = Y + 70 + h * RH;
+    const out = loaiSet.has(i), [ma, ten] = nuoc(i), moi = out && t - LOAI.find((e) => e.i === i).t < 1.2;
+    g.globalAlpha = out ? 0.38 : 1;
+    if (moi) { g.globalAlpha = 1; g.fillStyle = 'rgba(255,70,70,0.35)'; g.beginPath(); g.roundRect(x - 8, y - 24, CW - 16, 48, 10); g.fill(); }
+    g.save(); g.beginPath(); g.arc(x + 20, y, 20, 0, 7); g.clip(); g.drawImage(CO[ma], x, y - 20, 40, 40); g.restore();
+    g.fillStyle = '#fff'; g.font = `${out ? 500 : 700} 28px ${FONT}`; g.fillText(ten, x + 52, y + 1);
+    if (out) { g.fillStyle = '#ff6b6b'; g.font = `700 24px ${FONT}`; g.textAlign = 'right'; g.fillText(`#${loaiSet.get(i)}`, x + CW - 30, y + 1); g.textAlign = 'left'; }
+    g.globalAlpha = 1;
+  });
+}
+
+function bao(t) {   // dòng báo loại góc trên vòng
+  const e = [...LOAI].reverse().find((x) => x.t <= t && t - x.t < 1.8); if (!e) return;
+  const a = Math.min(1, (t - e.t) * 6) * Math.min(1, (1.8 - (t - e.t)) * 4), [ma, ten] = nuoc(e.i);
+  g.globalAlpha = a; g.fillStyle = 'rgba(200,30,40,0.85)'; const s = `${ten} is OUT  ·  ${e.con} left`; g.font = `800 36px ${FONT}`;
+  const w = g.measureText(s).width + 90; g.beginPath(); g.roundRect(540 + OX - w / 2, 1010, w, 56, 28); g.fill();
+  g.save(); g.beginPath(); g.arc(540 + OX - w / 2 + 34, 1038, 20, 0, 7); g.clip(); g.drawImage(CO[ma], 540 + OX - w / 2 + 14, 1018, 40, 40); g.restore();
+  g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText(s, 540 + OX - w / 2 + 66, 1039); g.globalAlpha = 1;
+}
+
+function tieuDe(t) {
+  const L = G.luat;
+  if (t < L.dauGiay + 0.6) {
+    const a = Math.min(1, t * 3) * Math.min(1, (L.dauGiay + 0.6 - t) * 2.5);
+    g.globalAlpha = a; g.fillStyle = 'rgba(0,0,0,0.45)'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = `900 92px ${FONT}`; g.fillText('WHICH COUNTRY', 540 + OX, 440);
+    g.fillStyle = '#ffd84a'; g.fillText('SURVIVES?', 540 + OX, 545);
+    g.fillStyle = 'rgba(255,255,255,0.8)'; g.font = `600 38px ${FONT}`; g.fillText('Fall through the gap = eliminated', 540 + OX, 630);
+    g.textAlign = 'left'; g.globalAlpha = 1;
+  } else { g.fillStyle = 'rgba(255,255,255,0.75)'; g.font = `800 34px ${FONT}`; g.fillText('WHICH COUNTRY SURVIVES?', 40, 50); }
+}
+
+function thang(t) {
+  const kt = G.ketThuc; if (!kt || t < kt.t) return;
+  const u = t - kt.t, a = ease(u / 0.8), [ma, ten] = nuoc(kt.thang);
+  g.fillStyle = `rgba(0,0,0,${0.6 * a})`; g.fillRect(0, 0, W, H);
+  // pháo giấy
+  for (let i = 0; i < 160; i++) { const x = hash(i * 31 + 7) * W, v = 250 + hash(i * 17) * 300, y = -40 + u * v - 80 * hash(i * 5); if (y > H) continue; g.fillStyle = `hsl(${hash(i) * 360},90%,60%)`; g.save(); g.translate(x + Math.sin(u * 3 + i) * 30, y); g.rotate(u * 4 + i); g.fillRect(-7, -4, 14, 8); g.restore(); }
+  const R = 60 + 170 * a, cx = W / 2, cy = 470;
+  g.save(); g.shadowColor = '#ffd84a'; g.shadowBlur = 60 * a; g.beginPath(); g.arc(cx, cy, R, 0, 7); g.fillStyle = '#000'; g.fill(); g.restore();
+  g.save(); g.beginPath(); g.arc(cx, cy, R, 0, 7); g.clip(); g.drawImage(CO[ma], cx - R, cy - R, 2 * R, 2 * R); g.restore();
+  g.lineWidth = 8; g.strokeStyle = '#ffd84a'; g.beginPath(); g.arc(cx, cy, R, 0, 7); g.stroke();
+  g.globalAlpha = a; g.textAlign = 'center'; g.fillStyle = '#ffd84a'; g.font = `900 70px ${FONT}`; g.fillText('WINNER', cx, 790);
+  g.fillStyle = '#fff'; g.font = `900 110px ${FONT}`; g.fillText(ten.toUpperCase(), cx, 900);
+  g.fillStyle = 'rgba(255,255,255,0.7)'; g.font = `600 34px ${FONT}`; g.fillText(`survived ${mmss(kt.t)} against ${G.nuoc.length - 1} countries`, cx, 980);
+  g.textAlign = 'left'; g.globalAlpha = 1;
+}
+
+window.__seek = (t) => {
+  const f = Math.min(G.khung.length - 1, Math.max(0, Math.round(t * FPS))), k = G.khung[f];
+  g.textBaseline = 'middle';
+  nen(t); vong(t, k); bi(f, k, t); bang(Math.min(t, G.ketThuc ? G.ketThuc.t : t)); bao(t); tieuDe(t); thang(t);
+};
+window.__khung = () => cv.toDataURL('image/jpeg', 0.92).split(',')[1];
+</script></body></html>

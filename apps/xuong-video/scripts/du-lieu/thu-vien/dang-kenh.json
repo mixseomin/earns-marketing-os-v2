@@ -766,6 +766,50 @@
     "kenh": "Mô phỏng vật lý",
     "playlist": "Bóng thoát vòng · đua bi · cát rơi",
     "ghi": "không lời, mọi nước xem được"
+   },
+   "trang_thai": "B1–B5 xong: máy mô phỏng + tiếng + chấm hạt giống + 3 tập mẫu 0₫ (apps/xuong-video/scripts/vat-ly/lam.mjs) — chờ anh duyệt video rồi mới mở kênh",
+   "khuon": {
+    "nguon": "Mổ 27/11/2026: MIKAN \"Escape from the Rolling Object\" (27–42 tr lượt, 3,5–5 phút) · đua bi countryballs Fubeca (13 tr) · CodeCraftedPhysics; dạng bóng thoát vòng CHỈ Shorts đã bão hoà (trần ~3.491 lượt)",
+    "kenh_mau": [
+     "MIKAN — video ngang 3,5–5 phút, 27–42 tr lượt: một đề loại dần trong vòng xoay, không lời, chỉ tiếng va chạm + nhạc",
+     "Fubeca — đua bi countryballs 13 tr: cờ nước là nhân vật, người xem chọn phe từ giây đầu",
+     "CodeCraftedPhysics — Shorts bóng nảy trong vòng: nhiều kênh chép, Shorts lẻ trần ~3.491 lượt → không đánh Shorts thuần"
+    ],
+    "dang": [
+     {
+      "ten": "A · Loại dần sinh tồn 2–3 phút ngang 16:9 (\"Which country survives?\")",
+      "nhip": [
+       "0–3 s câu hỏi to giữa vòng, cổng đóng — người xem chọn phe",
+       "3 s cổng mở, tiếng chuông; 30 cờ nước bay không trọng lực, tốc độ giữ đều",
+       "loại đều tay mỗi vài giây: rơi qua khe → tên nước đỏ trên bảng + thẻ \"X is OUT · N left\"",
+       "vòng co dần theo số còn lại, nhịp trống nhanh dần",
+       "chung kết 2 nước 20–40 s: nền ngân trầm phồng dần",
+       "người thắng: cờ to + WINNER + \"survived m:ss against 29 countries\", pháo giấy 6 s"
+      ]
+     },
+     {
+      "ten": "B · Shorts cắt từ chung kết (≤ 60 s dọc)",
+      "nhip": [
+       "mở bằng \"2 left\" + bảng xếp hạng",
+       "cắt từ khi còn 5 tới lúc thắng",
+       "thẻ cuối trỏ về video dài"
+      ]
+     }
+    ],
+    "cong_thuc_tieu_de": [
+     "Which Country Survives the Spinning Ring?",
+     "Last Country Standing Wins | 30 Countries Marble Survival",
+     "Only ONE Country Can Escape… (Physics Simulation)",
+     "<Nước thắng> Survived Against 29 Countries"
+    ],
+    "luat": [
+     "không lời thoại, chữ tiếng Anh tối giản — mọi nước xem được",
+     "mô phỏng tất định theo hạt giống (matter-js bước 1/120 s): cùng hạt ra y hệt, dựng song song",
+     "máy chấm hạt giống chọn kịch tính: tổng 110–210 s, chung kết dài, không loại dồn cục, 0 lần xuyên tường",
+     "mỗi tập đổi nước thắng / màn / luật vòng — không đăng hai tập cùng người thắng liền nhau",
+     "tiếng tổng hợp từ sự kiện (marimba ngũ cung, pốp loại, kèn thắng), chuẩn −14 LUFS",
+     "0₫ mỗi tập: dựng ~1 phút trên iMac, không AI"
+    ]
    }
   },
   {

@@ -645,7 +645,10 @@ def main(a):
     # (cổng chỉ cảnh báo, cùng giờ chạy) để in payload THẬT sẽ gửi — cấm đi cùng --that, nên không bao giờ tạo camp.
     xem_truoc = "--xem-truoc" in a
     if xem_truoc and that: raise SystemExit("--xem-truoc là chạy khô — không đi cùng --that")
-    truc = xem_truoc or bool(CONG.truc_tiep("tao_camp" if moi else "nhan_ban", [] if moi else [goc], moi["content"] if moi else None))
+    # vé nút etp2 gắn PHIM (lenTheoPhieu xin 'tao_camp' --phim) → bản clone camp gốc (dùng lại post) khớp vé qua phim của camp gốc, đúng như cửa API (ethopex_api.py: ct = content_id camp gốc).
+    # Thiếu dòng này: thẻ BAI #90 (phiếu #37, 28/11/2026) anh đã duyệt mà "--mien chỉ đi cùng vé TRỰC TIẾP" vì vé phim 57545 không khớp camp #110876
+    ct_ve = moi["content"] if moi else (q(f"select content_id from etp.camp where camp_id = {int(goc)}") or None)
+    truc = xem_truoc or bool(CONG.truc_tiep("tao_camp" if moi else "nhan_ban", [] if moi else [goc], ct_ve))
     xt_lich = xem_truoc and "--theo-lich" in a   # 👁 xem trước của nút "⏱ Lên theo lịch" (etp2 #1772): chạy khô ĐI ĐƯỜNG LỊCH (lich_len / gio_roas) như vé thường, không như vé trực tiếp
     if xt_lich: truc = False
     if (gio or cu) and not truc: raise SystemExit("--gio / --thay-cho chỉ đi cùng vé TRỰC TIẾP (ETP_VE từ nút etp2, cong.py --ve-truc-tiep)")

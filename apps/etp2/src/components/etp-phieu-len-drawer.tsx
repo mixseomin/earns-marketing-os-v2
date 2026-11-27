@@ -225,7 +225,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
         <button style={chip(laCu)} onClick={() => setDang('CU')} data-dang="CU" title="dùng lại creative đã có của phim — mỗi creative × mỗi mức ROAS một camp">Dùng lại ({p.cu.length})</button>
       </div>
       {dangChon ? <div style={{ fontSize: 12, color: MO_SO, marginBottom: 4 }}><b style={{ color: 'inherit' }}>{dangChon.ten}</b> — {dangChon.mo_ta}</div> : null}
-      {dsDang.some((d) => khoaDang(d)) ? <div style={{ fontSize: 11, color: MO_SO }} data-dang-khoa>🔒 {dsDang.filter((d) => khoaDang(d)).map((d) => `${d.ma}: ${khoaDang(d)}`).join(' · ')}</div> : null}
+      {dsDang.some((d) => khoaDang(d)) ? <div style={{ fontSize: 11, color: MO_SO }} data-dang-khoa title={dsDang.filter((d) => khoaDang(d)).map((d) => `${d.ma}: ${khoaDang(d)}`).join('\n')}>🔒 {dsDang.filter((d) => khoaDang(d)).length} dạng đang gác / khoá — rê chuột lên nút để xem lý do</div> : null}
       {laCu ? <div style={{ marginTop: 6 }}><DsDungLai ds={p.cu} chon={cu} bat={batCu} /></div> : null}
     </Khoi>
 

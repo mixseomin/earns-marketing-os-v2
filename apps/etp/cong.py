@@ -332,12 +332,12 @@ def ve_truc_tiep(viec, camp_id=None, content_id=None, lenh="", ns=None, phien=""
 
 # LỆNH ANH ĐÃ GHI SỔ (anh 27/11/2026 "Nếu đã duyệt sao ko lên camp luôn và chỉ còn đợi giờ chạy ?"): creative anh DUYỆT BẰNG NÚT = lệnh lên camp, chỉ còn chờ khung giờ.
 # Hai bản ghi do chính nút anh bấm để lại, máy không tự viết được: (1) khối etp.khoi trạng thái 'duyet' (nút ▶ Bắt đầu sản xuất, etp2 etp-khoi.ts) mà creative thuộc khối đó
-# theo view etp.ke_cr; (2) etp.cham_duyet ok của TÀI KHOẢN NGƯỜI (ai là email đăng nhập mos2 — nút ✓ Duyệt etp2 etp-cham.ts). Duyệt máy ('máy · kiểu …') KHÔNG tính.
+# theo view etp.ke_cr; (2) etp.cham_duyet ok mà ai là email một tài khoản ADMIN mos2 (nút ✓ Duyệt etp2 / etp cũ etp-cham.ts ghi me.email). Duyệt máy ('máy · kiểu …') KHÔNG tính.
 # hàng lệnh chờ (lenh_cho.len_cr) gọi hàm này lúc lên — vé loai truc_tiep, phiên nut-etp2 (= nút anh bấm), lenh ghi nguồn bản ghi; phim cấm / camp đội vẫn chặn như mọi vé.
-SQL_LENH_GHI = """select coalesce((select 'khối #' || k.id || ' anh duyệt ' || to_char(k.duyet_luc at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') || ': ' || coalesce(k.duyet_ai, '')
+SQL_LENH_GHI = """select coalesce((select 'creative #{cr} · khối #' || k.id || ' anh duyệt ' || to_char(k.duyet_luc at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') || ': ' || coalesce(k.duyet_ai, '')
       from etp.ke_cr e join etp.khoi k on k.id = e.khoi_id and k.trang_thai = 'duyet' where e.creative_id = {cr} limit 1),
     (select 'anh bấm ✓ Duyệt creative #{cr} lúc ' || to_char(u.luc at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') || ' (' || u.ai || ')'
-      from etp.cham_duyet u where u.creative_id = {cr} and u.ok and u.ai like '%@%' and u.ai not like 'máy%'), '')"""
+      from etp.cham_duyet u where u.creative_id = {cr} and u.ok and u.ai in (select x.email from users x join members m on m.user_id = x.id and m.role = 'admin')), '')"""   # người bấm = tài khoản ADMIN thật (bảng members), không đoán qua chuỗi ai
 def lenh_ghi(cr):
     """câu nguồn lệnh anh đã ghi sổ cho creative cr | '' (không có — creative đi đường phanh như cũ)"""
     return _q(SQL_LENH_GHI.format(cr=int(cr))) or ""

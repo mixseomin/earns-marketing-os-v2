@@ -167,7 +167,7 @@ def len_cr(st, chan, luc, xem, bao):
             with open(f"/tmp/etp-len-cr-{cr}.log", "a") as f: f.write(f"{luc} lên camp sau khi phanh nhả: {json.dumps(r, ensure_ascii=False, default=str)[:600]}\n")
         except OSError: pass
         if r.get("ok"): h.update(tt="xong", ly=None, moi=r.get("moi")); bao.append(f"✅ lên camp ★ ROAS creative anh duyệt #{cr}" + (f" → camp #{r['moi']}" if r.get("moi") else ""))
-        elif CHO_LAI.search(str(r.get("loi") or "")): h.update(tt="cho", ly=str(r.get("loi"))[:200])
+        elif CHO_LAI.search(str(r.get("loi") or "")) and not ve: h.update(tt="cho", ly=str(r.get("loi"))[:200])   # có vé trực tiếp mà vẫn bị chặn = lỗi thật → 6 giờ thử lại, không cấp vé + dòng Telegram mỗi nhịp
         else: h.update(tt="loi", ly=str(r.get("loi") or "script không trả kết quả")[:200]); bao.append(f"⚠ creative anh duyệt #{cr} chưa lên camp: {h['ly']}")
         doi = True
     con = {cr for cr, *_ in ds}

@@ -3,7 +3,7 @@
 // lọc "Của tôi", tên hòm trên khung (components/gop-y-mos2.tsx), danh sách trang tĩnh được gửi (api/gop-y-ngoai) đều đọc từ đây.
 // Trang mới = một dòng trong TRANG_RIENG (23/11/2026: worlds / sprawl thiếu dòng → hòm nhúng hiện cả 63 card mos2).
 // Hòm nhúng chạy trong iframe mos2.on.tc/nhung/gop-y?trang=https://<host>/… (host vẫn là mos2) → đọc ?trang= trong Referer.
-// apps/etp2 có luật lọc riêng (chỉ nguồn etp) — đổi nguồn etp thì sửa cả hai. Tự kiểm: gop-y-loc-nguon.test.mts.
+// repo etp2 có luật lọc riêng (chỉ nguồn etp) — đổi nguồn etp thì sửa cả hai. Tự kiểm: gop-y-loc-nguon.test.mts.
 export type LocNguon = { mau: string; khop: boolean };
 
 /** khoa · ten = tên hòm hiện trên khung · host = mẫu tên máy (regex, không neo) · tinh = trang tĩnh gửi qua /api/gop-y-ngoai

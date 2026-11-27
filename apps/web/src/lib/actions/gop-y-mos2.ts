@@ -3,7 +3,7 @@
 // HÒM GÓP Ý CỦA MOS2 + CITY — lõi dùng chung @mos2/gop-y/server (packages/gop-y/CHUAN.md, cùng một bản với cty / studio).
 // Tệp này chỉ gắn người đăng nhập + luật riêng của mos2: team ETP gửi được từ etp.on.tc, tab "Của tôi" mỗi nơi chỉ hiện card
 // gửi từ nơi đó (mos2 ↔ etp/etp2), admin thấy thêm card máy / Claude tạo, trạng thái đi qua setBacklinkSite (cổng "xong phải có kết quả").
-// Góp ý etp.on.tc / etp2.on.tc nằm CHUNG hòm mos2; luật lọc nguồn này có cả ở apps/etp2 — sửa thì sửa cả hai.
+// Góp ý etp.on.tc / etp2.on.tc nằm CHUNG hòm mos2; luật lọc nguồn này có cả ở repo etp2 — sửa thì sửa cả hai.
 import * as hom from '@mos2/gop-y/server';
 import { headers } from 'next/headers';
 import { sql } from 'drizzle-orm';

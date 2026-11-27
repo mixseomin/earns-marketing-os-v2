@@ -393,7 +393,7 @@ def b_creative_lt(d, truoc):
 
 # MỖI MỨC ROAS MỘT CREATIVE MỚI (anh 25/11/2026 "ở mức level 0.9, 1.0, 1.1 của từng phim. Mỗi mức đó cần 1 creative riêng mới để ko cạnh tranh nhau"):
 # etp.khoi.muc = các mức ★ ROAS (migration 0472); phim lên so_camp camp, camp thứ i ★ ROAS muc[i] (thiếu thì mức cuối) và MỘT creative riêng — không creative nào chạy hai camp.
-# Cùng công thức bên etp2: apps/etp2/src/lib/etp-khoi-muc.ts (mucCampKhoi).
+# Cùng công thức bên etp2: repo etp2 › src/lib/etp-khoi-muc.ts (mucCampKhoi).
 def muc_camp(k, so=None):
     muc = [float(x) for x in (k.get("muc") or []) if x is not None] or [float(k["roas"])]
     n = max(1, int(so or k.get("cr_camp") or len(muc)))

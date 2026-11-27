@@ -51,6 +51,13 @@ Trước khi làm bất kỳ module nào, đọc context file tương ứng tron
 
 ---
 
+## etp2 = REPO RIÊNG (27/11/2026)
+
+etp2.on.tc KHÔNG còn ở monorepo: github.com/mixseomin/etp2 · iMac `/Users/htuan/Me/GitHub/etp2` · box3 `/opt/etp2` (lên bản: `bash scripts/day.sh` ở repo đó, không GHA). Góp ý / tính năng etp làm ở repo đó; etp.on.tc (`apps/web` /etp) đóng băng (anh 27/11/2026).
+- `apps/etp2` mọc lại = `scripts/check-etp-gop-y.mjs` đỏ (CI + deploy.sh dừng).
+- `apps/web/goi-etp2/` = bản đóng băng mã etp2 cho Thành phố (etp.on.tc) + widget /home — không cập nhật theo etp2.
+- Máy monorepo đọc tệp etp2 qua `apps/etp/goc_etp2.py` (`ETP2_GOC` hoặc `<cha monorepo>/etp2`) — danh sách tệp trong CLAUDE.md repo etp2.
+
 ## Live infra
 
 | | |

@@ -212,7 +212,7 @@ def do_dung():
 
 # ---------- chữ Telegram ----------
 # LINK MỞ CAMP (anh 11/11/2026 "tk david thì link sang etp2, còn của mọi người thì sang etp"): ngăn camp mở thẳng bằng ?t=camp&ngan=camp:<id>
-# (dauVao.ngan ở cả apps/web lẫn apps/etp2 page.tsx); người team thêm &ng=<id> để trang nạp đúng tài khoản người đó.
+# (dauVao.ngan ở cả apps/web lẫn repo etp2 page.tsx); người team thêm &ng=<id> để trang nạp đúng tài khoản người đó.
 # etp.on.tc: nginx đưa "/" vào /etp của mos2 · etp2.on.tc: app riêng, trang ở /etp
 ETP2, ETP = "https://etp2.on.tc/etp", "https://etp.on.tc/"
 def link_camp(du, cid):

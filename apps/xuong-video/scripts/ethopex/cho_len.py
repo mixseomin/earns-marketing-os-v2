@@ -6,7 +6,7 @@ len-creative.py là đường DUY NHẤT gọi bulk-jobs → cổng đặt ở �
   'duyet'        → nhận ('dang_len', một máy một lần) + kiểu chữ anh chọn (cột kieu: kien mặc định / dol — chu-qc.py tạo đúng chữ đó) → đi tiếp bulk-jobs; xong → 'da_len' + creative_id + ket (dòng len.json)
   'da_len'       → trả lại đúng dòng len.json cũ (không tạo lần hai)
   'bo'           → anh bỏ
-Anh xem + Duyệt / Bỏ ở etp2 › Camp › Chờ lên (apps/etp2/src/lib/actions/etp-cho-len.ts).
+Anh xem + Duyệt / Bỏ ở etp2 › Camp › Chờ lên (repo etp2 › src/lib/actions/etp-cho-len.ts).
 Dùng: python3 cho_len.py len      — chạy len-creative cho mọi bản đã duyệt mà chưa ai nhận (máy dòng phim gọi mỗi phút, dong_phim.cho_len_chay)
       python3 cho_len.py ds       — liệt kê hàng chờ
       python3 cho_len.py --tu-kiem

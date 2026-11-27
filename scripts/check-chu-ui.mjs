@@ -18,10 +18,7 @@ const MAC_DINH = [
   'apps/web/src/components/ethopex-view.tsx',
   'apps/web/src/components/cot-am-duong.tsx',
   'apps/ethopex-ext/ly-do.js',
-  'apps/etp2/src/components/etp-mau-cr.tsx',
-  'apps/etp2/src/components/etp-mau-drawer.tsx',
-  'apps/etp2/src/components/etp-mau-phim-drawer.tsx',
-  'apps/etp2/src/components/etp-mau-dung-drawer.tsx',
+  // màn mẫu creative etp2 (etp-mau-*.tsx) đã sang repo etp2 riêng — repo đó chấm bằng scripts/day.sh
 ];
 const tep = process.argv.slice(2).filter((x) => !x.startsWith('--')).length ? process.argv.slice(2).filter((x) => !x.startsWith('--')) : MAC_DINH;
 // TỰ KIỂM (--tu-kiem): đúng các câu anh chỉ ra 25/10/2026 phải bị chặn; câu lời thường phải qua

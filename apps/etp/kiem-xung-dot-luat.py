@@ -7,7 +7,7 @@ Mỗi ô hỏi "có tăng không" ở từng nơi quyết:
   máy luật   luat-ethopex.py → nhip_tang.qua_cong (cổng theo giờ, _nap_sang, cờ qua_cong) + cong.phanh_cho (_bo_phanh bỏ cả ★ ROAS khỏi danh sách tăng)
   cổng       cong.chan_cua('tang') — phần thuần của cong.kiem (dừng khẩn / phim cấm / phanh chợ; phanh không miễn ROAS, chỉ vé tay)
   worker     /opt/cty/worker/ethopex.mjs — khungCua, congNap thật; quyết định dòng vòng tăng (khungDoi === 'tang' || napDuoc(m)) giữ bằng gop-y-luat.mjs
-  etp2       apps/etp2/src/lib/etp-khung.ts — khungLuc, congTang, quaCong, luatThang (qua kiem-xung-dot-luat.mts, chạy tsx)
+  etp2       <repo etp2>/src/lib/etp-khung.ts — khungLuc, congTang, quaCong, luatThang (qua kiem-xung-dot-luat.mts, chạy tsx)
 ĐỎ khi hai nơi trả lời khác nhau, hoặc thẻ ghi đạt mà worker không tăng và không có lý do hiện ra.
 
 Sau ma trận, lưới TỰ PHÁ THỬ: đổi tạm ngưỡng tang_ngay.roi_duoi phía máy luật (chỉ trong bộ nhớ) → phải đỏ, nếu không đỏ = lưới mù → ĐỎ.
@@ -18,11 +18,13 @@ import datetime as dt, json, os, subprocess, sys
 GOC = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(GOC, "apps", "xuong-video", "scripts", "ethopex"))
 sys.path.insert(0, os.path.join(GOC, "apps", "etp"))
+import goc_etp2 as G2  # noqa: E402  — repo etp2 riêng (27/11/2026)
 import nhip_tang as NT  # noqa: E402
 import cong as CONG  # noqa: E402
 
 GIO, CHI, ROI, NS = (7, 9, 13, 18, 22), (0.35, 0.55, 0.80), (0, 60, 120), 10.0
-TSX = os.path.join(GOC, "node_modules", ".bin", "tsx")
+TSX = next((p for p in (os.path.join(GOC, "node_modules", ".bin", "tsx"), os.path.join(G2.GOC, "node_modules", ".bin", "tsx")) if os.path.exists(p)),
+           os.path.join(GOC, "node_modules", ".bin", "tsx"))   # repo etp2 chạy lưới từ bản kéo nông .mono (không node_modules) → dùng tsx của etp2
 MTS = os.path.join(GOC, "apps", "etp", "kiem-xung-dot-luat.mts")
 WORKER = next((p for p in (os.environ.get("ETP_WORKER"), "/opt/cty/worker/ethopex.mjs",
                            os.path.join(os.path.dirname(GOC), "cty", "worker", "ethopex.mjs")) if p and os.path.exists(p)), None)
@@ -52,8 +54,9 @@ def o_mt():
 def ts(o):
     """phần TS (etp2) + worker thật, qua tsx — None khi máy không có tsx"""
     if not os.path.exists(TSX): return None
+    if not os.path.exists(os.path.join(G2.GOC, "src", "lib", "etp-khung.ts")): print(f"⚠ bỏ so etp2: không thấy repo etp2 ở {G2.GOC} (ETP2_GOC)"); return None
     arg = json.dumps({"o": [[x["h"] + 0.5, x["chi"], x["thu"], NS] for x in o]})
-    kq = subprocess.run([TSX, MTS, arg, WORKER or ""], capture_output=True, text=True, timeout=120, cwd=GOC)
+    kq = subprocess.run([TSX, MTS, arg, WORKER or ""], capture_output=True, text=True, timeout=120, cwd=GOC, env={**os.environ, "ETP2_GOC": G2.GOC, "TSX_TSCONFIG_PATH": os.path.join(G2.GOC, "tsconfig.json")})   # "@/…" của etp-khung.ts theo tsconfig repo etp2
     if kq.returncode: raise SystemExit(f"✗ kiem-xung-dot-luat.mts lỗi: {kq.stderr.strip()[-600:]}")
     return json.loads(kq.stdout.strip().splitlines()[-1])
 
@@ -101,6 +104,7 @@ def main():
     du = "--day-du" in sys.argv
     o = list(o_mt())
     if du and not os.path.exists(TSX): raise SystemExit(f"✗ thiếu {TSX} — không so được etp2 / worker")
+    if du: G2.tep("src", "lib", "etp-khung.ts")   # --day-du: thiếu repo etp2 = ĐỎ
     if du and not WORKER: raise SystemExit("✗ không thấy worker ethopex.mjs (/opt/cty/worker, ETP_WORKER) — không so được worker")
     T = ts(o)
     do = cham(o, T)

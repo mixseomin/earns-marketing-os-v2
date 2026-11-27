@@ -92,7 +92,7 @@ def hop_le(goc, roas, ns):
 # Duyệt = lệnh của anh, xếp hàng ngay. Nhịp đầu tiên phanh_sx nhả → lên camp ★ ROAS (mặc định hoi_cho, anh 24/11/2026) bằng ĐÚNG đường nút (nhan-ban khuôn theo ngôn ngữ, bộ bo_phim_moi,
 # giờ chạy do nhan-ban.lich_len); lỗi do phanh → về hàng; lỗi khác → ghi lý do vào nhật ký /tmp/etp-len-cr-<cr>.log (etp2 hiện ô đỏ + nút Lên camp).
 HOI_CHO = json.load(open(os.path.join(D, "..", "web", "src", "lib", "etp-bang-luat.json")))["hoi_cho"]   # cùng sổ nhan-ban đọc: roas · ns mặc định creative mới
-KHUON_CR = {"en": 65110, "es": 65734}   # trùng KHUON của apps/etp2/src/lib/actions/etp-dong.ts
+KHUON_CR = {"en": 65110, "es": 65734}   # trùng KHUON của repo etp2 › src/lib/actions/etp-dong.ts
 SQL_CR_DUYET = """select h.creative_id, r.content_id, coalesce(r.lang, 'en'), regexp_replace(coalesce(f.ten, r.content_id::text), '[^A-Za-z0-9 .,:!?#-]', '', 'g')
     from etp.cho_anh_duyet_cr h join etp.creative r on r.creative_id = h.creative_id join etp.cham_duyet u on u.creative_id = h.creative_id and u.ok
       left join etp.phim f on f.content_id = r.content_id join etp.cham_cong g on g.creative_id = h.creative_id and g.duoc_len

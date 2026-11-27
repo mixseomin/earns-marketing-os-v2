@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """MÁY DỰNG THEO MẪU HỌC TỪ ĐỐI THỦ — $0 dựng (PIL + ffmpeg trên iMac), chỉ tốn giọng ~156₫ + AI viết câu nhử ~20₫ / bản.
-Anh 19/11/2026: "Tao cần xem trạng thái quá trình dựng ở đó luôn! Chưa có máy thì mày phải dựng lên" — mẫu đối thủ trong sổ (apps/etp2/src/lib/etp-mau-cr.json,
+Anh 19/11/2026: "Tao cần xem trạng thái quá trình dựng ở đó luôn! Chưa có máy thì mày phải dựng lên" — mẫu đối thủ trong sổ (<repo etp2>/src/lib/etp-mau-cr.json,
 dt_*) có hàm vẽ ở đây; phim anh chọn ở tab Mẫu Creative (etp.mau_phim) → dựng → thư viện → creative (cổng mẫu len-creative nhận đúng mẫu qua dấu "mẫu:<mã>").
 Dùng lại máy ảnh tĩnh (anh-tinh.py): tải 3 tập, khung đẹp AI xếp hạng, xoá phụ đề, tên phim tách từ poster, giọng (cổng giọng chung), dựng video phóng chậm.
 TRẠNG THÁI từng bước ghi etp.mau_dung (mau, content_id) → chân thẻ tab Mẫu Creative hiện ngay: cho → tai_tap → chon_khung → ve_mau → giong → video → thu_vien → creative → xong | loi.
@@ -18,7 +18,8 @@ def _nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(D, tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
 AT = _nap("anh_tinh", "anh-tinh.py"); TB = _nap("tinh_ba_kieu", "tinh-ba-kieu.py"); CQ = _nap("cta_qc", "cta_qc.py")
 W, H = AT.W, AT.H
-_SO = json.load(open(os.path.join(D, "..", "..", "..", "etp2", "src", "lib", "etp-mau-cr.json"), encoding="utf-8")); SO = _SO["mau"]
+sys.path.insert(0, os.path.join(D, "..", "..", "..", "etp")); from goc_etp2 import tep as _tep_etp2   # repo etp2 riêng (27/11/2026)
+_SO = json.load(open(_tep_etp2("src", "lib", "etp-mau-cr.json"), encoding="utf-8")); SO = _SO["mau"]
 NUT_CHU = _SO["thu_vien"]["nut"]["chu"]   # chữ nút CTA đúng luật (thư viện ô CTA của ngăn Creative etp2) — en / es cùng vị trí là bản dịch của nhau
 F = "/System/Library/Fonts/Supplemental/"
 PH = {"impact": ("Impact.ttf", 0), "arial_black": ("Arial Black.ttf", 0), "didot": ("Didot.ttc", 0), "bodoni": ("Bodoni 72.ttc", 0), "copper": ("Copperplate.ttc", 2),

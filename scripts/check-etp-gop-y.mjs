@@ -16,20 +16,39 @@
  * bản thứ hai. Không bắt được: chỗ sửa còn nguyên nhưng bị một điều kiện luôn sai vô hiệu hoá.
  * `--tu-kiem` phá thử từng điều kiện (bỏ chuỗi / nhân đôi / chèn dạng cũ) — phải đỏ hết.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 // danh sách điều kiện nằm trong app etp (apps/etp/gop-y-luat.mjs, anh 10/11/2026) — tệp này chỉ còn máy chấm
 import { LUAT as TAT_CA, V } from '../apps/etp/gop-y-luat.mjs';
 
-// LUẬT TRÊN MÃ cty (apps/cty/… — máy Ethopex nằm trong worker cty) — cty tách repo riêng 18/11/2026 (github.com/mixseomin/cty). Luật vẫn MỘT chỗ ở đây,
-// nhưng chấm ở đâu có mã thật: monorepo bỏ qua các luật apps/cty/*; GHA của repo cty chạy chính tệp này với --chi-cty + LUAT_GOC_CTY=<gốc repo cty>
-// (đường apps/cty/x → <gốc cty>/x). Không bao giờ âm thầm bỏ: lượt monorepo in rõ số luật chuyển sang cty.
-const CTY_PREFIX = 'apps/cty/', CHI_CTY = process.argv.includes('--chi-cty'), GOC_CTY = process.env.LUAT_GOC_CTY;
-if (CHI_CTY && !GOC_CTY) { console.error('✗ --chi-cty cần LUAT_GOC_CTY=<gốc repo cty>'); process.exit(1); }
-const laCty = (l) => l.tep.startsWith(CTY_PREFIX);
-const LUAT = (CHI_CTY ? TAT_CA.filter(laCty) : TAT_CA.filter((l) => !laCty(l))).map((l) => (CHI_CTY ? { ...l, tep: `${GOC_CTY}/${l.tep.slice(CTY_PREFIX.length)}` } : l));
-const SANG_CTY = CHI_CTY ? 0 : TAT_CA.length - LUAT.length;
+// LUẬT TRÊN MÃ REPO RIÊNG — cty (tách 18/11/2026, github.com/mixseomin/cty) và etp2 (tách 27/11/2026, github.com/mixseomin/etp2). Luật vẫn MỘT chỗ
+// (apps/etp/gop-y-luat.mjs), chấm ở nơi có mã thật: monorepo bỏ các luật apps/cty/* + apps/etp2/*; repo kia chạy chính tệp này với cờ của nó + biến gốc
+// (đường apps/<app>/x → <gốc>/x; etp2: x không có thì <gốc>/goi/web/x — hai sổ máy đọc nằm ở goi/web). Không bao giờ âm thầm bỏ: lượt monorepo in rõ số luật chuyển đi.
+const NGOAI = [{ app: 'cty', prefix: 'apps/cty/', co: '--chi-cty', bien: 'LUAT_GOC_CTY' }, { app: 'etp2', prefix: 'apps/etp2/', co: '--chi-etp2', bien: 'LUAT_GOC_ETP2', du: ['goi/web'] }];
+const CHI = NGOAI.find((n) => process.argv.includes(n.co));
+const CHI_CTY = !!CHI;   // tên cũ: "đang chấm một repo ngoài" — bỏ các sổ chỉ monorepo có
+if (CHI && !process.env[CHI.bien]) { console.error(`✗ ${CHI.co} cần ${CHI.bien}=<gốc repo ${CHI.app}>`); process.exit(1); }
+const GOC_NGOAI = CHI && process.env[CHI.bien];
+const doiTep = (t) => { const x = t.slice(CHI.prefix.length), a = `${GOC_NGOAI}/${x}`;
+  if (existsSync(a)) return a;
+  for (const d of CHI.du ?? []) { const b = `${GOC_NGOAI}/${d}/${x}`; if (existsSync(b)) return b; }
+  return a; };   // không có ở đâu → giữ đường chính, readFileSync kêu to ENOENT
+const LUAT = (CHI ? TAT_CA.filter((l) => l.tep.startsWith(CHI.prefix)).map((l) => ({ ...l, tep: doiTep(l.tep) }))
+  : TAT_CA.filter((l) => !NGOAI.some((n) => l.tep.startsWith(n.prefix))));
+const SANG = CHI ? [] : NGOAI.map((n) => [n.app, TAT_CA.filter((l) => l.tep.startsWith(n.prefix)).length]).filter(([, k]) => k);
+const NHAN = CHI ? ` (mã ${CHI.app})` : '';
+
+// etp2 đã sang repo riêng (27/11/2026) — tệp nào commit lại vào apps/etp2 là sửa nhầm chỗ: bản đó không bao giờ lên etp2.on.tc. Đọc git (tệp đã theo dõi),
+// không đọc thư mục: trên box3 apps/etp2/.next / node_modules cũ (bỏ qua bởi .gitignore) có thể còn sau git reset --hard.
+if (!CHI) {
+  const r = spawnSync('git', ['ls-files', '--', 'apps/etp2'], { encoding: 'utf8' });
+  const lai = (r.stdout || '').split('\n').filter(Boolean);
+  if (r.status === 0 && lai.length) {
+    console.error(`✗ apps/etp2 mọc lại trong monorepo (${lai.length} tệp, vd ${lai.slice(0, 3).join(', ')}).\n  etp2 đã tách repo riêng github.com/mixseomin/etp2 — iMac /Users/htuan/Me/GitHub/etp2: sửa ở đó, lên bản bằng scripts/day.sh. Gỡ các tệp này khỏi monorepo.`);
+    process.exit(1);
+  }
+}
 
 const dem = (s, x) => s.split(x).length - 1;
 const sai = (l, s) => (l.mot != null ? (dem(s, l.mot) === 1 ? null : `cần đúng 1 lần, đang ${dem(s, l.mot)}: ${l.mot}`)
@@ -45,7 +64,7 @@ if (process.argv.includes('--tu-kiem')) {
     if (sai(l, s)) { lot++; console.error(`✗ bản hiện tại đã đỏ: #${l.card} ${l.vi}`); }
   }
   if (lot) process.exit(1);
-  console.log(`✓ check-etp-gop-y tự kiểm${CHI_CTY ? ' (mã cty)' : ''}: ${LUAT.length} điều kiện, phá thử đều đỏ`);
+  console.log(`✓ check-etp-gop-y tự kiểm${NHAN}: ${LUAT.length} điều kiện, phá thử đều đỏ`);
   process.exit(0);
 }
 
@@ -77,4 +96,4 @@ if (loi.length) {
   console.error(`✗ góp ý etp đã sửa bị quay về bản cũ (${loi.length}):\n${loi.join('\n')}\n  Sửa mã cho đúng lại — KHÔNG xoá điều kiện trong scripts/check-etp-gop-y.mjs trừ khi anh đổi ý.`);
   process.exit(1);
 }
-console.log(`✓ check-etp-gop-y${CHI_CTY ? ' (mã cty)' : ''}: ${LUAT.length} điều kiện giữ nguyên${SANG_CTY ? ` · ${SANG_CTY} điều kiện trên mã cty chấm ở GHA repo cty` : ''}`);
+console.log(`✓ check-etp-gop-y${NHAN}: ${LUAT.length} điều kiện giữ nguyên${SANG.map(([a, k]) => ` · ${k} điều kiện trên mã ${a} chấm ở repo ${a}`).join('')}`);

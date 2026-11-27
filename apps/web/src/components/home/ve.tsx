@@ -155,7 +155,7 @@ export const VE: Record<MaWidget, Ve> = {
   H6: () => <EthopexKhoi chi="cho" />,
   H7: () => <EthopexKhoi chi="test" />,
   H8: () => <EthopexKhoi chi="luat" />,
-  // H9–H19 — vẽ bằng mã Tổng quan 2 của etp2 (components/home/etp2-o.tsx), khoá = mã widget trong sổ apps/etp2/src/lib/etp-widget.json
+  // H9–H19 — vẽ bằng mã Tổng quan 2 của etp2 (components/home/etp2-o.tsx), khoá = mã widget trong sổ repo etp2 › src/lib/etp-widget.json
   H9: () => <Etp2O ma="nam_nhanh" />,
   H10: (n) => <Etp2O ma="nguoi" moc={n.moc} />,
   H11: () => <Etp2O ma="nha_thua" />,

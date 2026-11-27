@@ -44,7 +44,7 @@ def main(lo_f, ma, dang):
         return print(f"không đoạn nào được đẩy — {giu} đoạn chờ soát (python3 {D}/soat_doan.py ds)")
     # CỔNG MẪU — KHÔNG CÒN CREATIVE TỰ DO (anh 19/11/2026: "khi lên creative, phải dựa vào 1 mẫu nào đó! Nếu chưa có mẫu thì phải tìm cho ra hoặc phải bổ sung
     # mới!!"). Tệp này là đường DUY NHẤT tải creative lên Ethopex (so_mau.py --tu-kiem đỏ nếu tệp khác gọi bulk-jobs) → mỗi bản phải gắn một công thức trong sổ mẫu
-    # (apps/etp2/src/lib/etp-mau-cr.json, tab https://etp2.on.tc/?t=mau); không gắn được thì bản đó bị chặn, len.json ghi lý do. Mẫu ghi vào etp.creative_mau.
+    # (repo etp2 › src/lib/etp-mau-cr.json, tab https://etp2.on.tc/?t=mau); không gắn được thì bản đó bị chặn, len.json ghi lý do. Mẫu ghi vào etp.creative_mau.
     sys.path.insert(0, os.path.join(D, "..", "..", "..", "etp")); import so_mau as SM
     chan = []
     for x in lo:

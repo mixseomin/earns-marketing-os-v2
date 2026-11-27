@@ -18,7 +18,7 @@ import json, os, re, subprocess, sys, time
 
 D = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, D)
 SC = os.path.join(D, "..", "xuong-video", "scripts", "ethopex")
-KHUON_CR = {"en": 65110, "es": 65734}   # trùng lenh_cho.KHUON_CR + apps/etp2/src/lib/etp-ke-cr.ts KHUON_CR
+KHUON_CR = {"en": 65110, "es": 65734}   # trùng lenh_cho.KHUON_CR + repo etp2 › src/lib/etp-ke-cr.ts KHUON_CR
 import cong as CG
 import importlib.util as iu
 def _nap(ten):   # ap-form-chu.py / luot2.py tên có gạch → nạp bằng đường dẫn

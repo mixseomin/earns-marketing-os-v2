@@ -1,6 +1,6 @@
 // VÉ THAO TÁC TAY ETHOPEX (anh 18/11/2026 "kiểm soát tuyệt đối" — Huy): nút người bấm xin MỘT vé ngay lúc bấm rồi đưa vé vào tiến trình làm việc qua biến môi trường ETP_VE.
 // Cổng apps/etp/cong.py chỉ miễn phanh chợ / bảo trì / trần camp test khi vé đúng việc + camp (hoặc phim), chưa hết hạn, chưa dùng; cửa API apps/etp/ethopex_api.py đốt vé lúc gửi.
-// Một đường xin vé duy nhất: python3 apps/etp/cong.py --xin-ve (cong.xin_ve) — tệp này chỉ là vỏ gọi, cùng bản apps/etp2/src/lib/etp-ve.ts.
+// Một đường xin vé duy nhất: python3 apps/etp/cong.py --xin-ve (cong.xin_ve) — tệp này chỉ là vỏ gọi, cùng bản repo etp2 › src/lib/etp-ve.ts.
 // CHỈ gọi từ server action của nút người bấm (danh sách cong.VE_XIN, apps/etp/gop-y-luat.mjs giữ) — máy chạy theo luật KHÔNG bao giờ xin vé.
 import 'server-only';
 import { execFile } from 'node:child_process';

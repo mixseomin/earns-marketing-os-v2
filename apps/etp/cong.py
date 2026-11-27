@@ -247,7 +247,8 @@ TRAN_TUYET = 30   # trần tuyệt đối $/camp/ngày (anh 14/11/2026) — kiem
 VE_PHUT = int(_BL["mot_cua"]["ve_phut"])   # sổ luật chung mot_cua (anh 18/11/2026)
 assert _BL["mot_cua"]["mien_phanh"] == ["ve_tay", "truc_tiep"], "phanh chợ chỉ miễn thao tác tay có vé (18/11) + vé lệnh trực tiếp của anh (20/11/2026) — sổ luật mot_cua lệch mã"
 VE_VIEC = {"tang": "tang", "bat": "bat", "nhan_ban": "nhan_ban", "tao_camp": "nhan_ban", "doi_cr": "doi_cr"}   # tạo camp từ creative = cùng loại vé lên camp · doi_cr = gắn lại creative cho ad chưa bị từ chối (chỉ vé trực tiếp, anh 24/11/2026)
-VE_XIN = ("apps/etp2/src/lib/actions/etp-tay.ts", "apps/etp2/src/lib/actions/etp-dong.ts", "apps/etp2/src/lib/actions/etp-sua.ts", "apps/etp2/src/lib/etp-ve.ts",
+VE_XIN = ("etp2/src/lib/actions/etp-tay.ts", "etp2/src/lib/actions/etp-dong.ts", "etp2/src/lib/actions/etp-sua.ts", "etp2/src/lib/etp-ve.ts",   # etp2/… = repo etp2 riêng (27/11/2026)
+
           "apps/web/src/lib/actions/etp-dong.ts", "apps/web/src/lib/actions/etp-sua.ts", "apps/web/src/lib/etp-ve.ts")   # + worker/ethopex.mjs xuNut (nút Telegram) ở repo cty
 def _ma_ve(ma):
     import re
@@ -283,8 +284,8 @@ def ve_hop_le(viec, camp_ids=(), content_id=None, dung=False, cho="", ma=None, l
 # Vé loai 'truc_tiep' chỉ cấp từ CLI `cong.py --ve-truc-tiep` (gop-y-luat.mjs giữ danh sách nơi gọi VE_TRUC_TIEP_XIN — máy luật / worker / dòng phim / kỹ sư máy KHÔNG gọi),
 # mỗi vé ghi nguyên văn câu lệnh + phiên + MỘT dòng Telegram. Miễn MỌI phanh (phanh chợ + báo sớm + rút chợ, bảo trì, khung giờ, nhịp 24 giờ, trần camp test / phim,
 # trần camp mới / ngày, nắp ROI 3 ngày, tran_camp, trần $30, ngân sách ROAS ngoài $15–20, camp mới $1); KHÔNG miễn: phim cấm, camp đội (camp_ngoai), giới hạn của Ethopex / Meta.
-# + nút etp2 ▶ Lên / 🕒 đổi giờ (anh 22/11/2026 "nút bấm Lên ngay = Tao ra lệnh sao phải xin mày ?"): anh bấm = lệnh trực tiếp, vỏ gọi apps/etp2/src/lib/etp-ve.ts xinVeTrucTiep
-VE_TRUC_TIEP_XIN = ("apps/etp/cong.py", "apps/etp2/src/lib/etp-ve.ts")   # CLI của chính tệp này (Claude gõ theo câu anh trong chat) + nút anh bấm trên etp2
+# + nút etp2 ▶ Lên / 🕒 đổi giờ (anh 22/11/2026 "nút bấm Lên ngay = Tao ra lệnh sao phải xin mày ?"): anh bấm = lệnh trực tiếp, vỏ gọi repo etp2 › src/lib/etp-ve.ts xinVeTrucTiep
+VE_TRUC_TIEP_XIN = ("apps/etp/cong.py", "etp2/src/lib/etp-ve.ts")   # CLI của chính tệp này (Claude gõ theo câu anh trong chat) + nút anh bấm trên etp2
 CANH_BAO_PHUT = int(_BL["mot_cua"]["truc_tiep"]["canh_bao_phut"])   # sổ luật mot_cua.truc_tiep (30 phút)
 def truc_tiep(viec, camp_ids=(), content_id=None, ma=None):
     """chữ ai của vé TRỰC TIẾP hợp lệ cho lệnh này (chưa đốt) | None — mọi chỗ phanh hỏi hàm này để miễn"""

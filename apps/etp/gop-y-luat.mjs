@@ -1458,7 +1458,7 @@ export const LUAT = [
   // LỆNH TRỰC TIẾP CỦA ANH (anh 20/11/2026 09:35 "Không PHANH nào được hạn chế quyền trực tiếp từ tao cả … PHANH chỉ được cảnh báo thêm 1 lần")
   { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: 'if not ngoai and truc_tiep(viec, [x for x in (camp_id, goc) if x], ct): return None', vi: 'kiem(): vé trực tiếp miễn mọi phanh sau phim cấm, trừ camp đội' },
   { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: 'if phanh and _q(f"select 1 from etp.ve_canh_bao where', vi: 'cảnh báo một lần: lần đầu có phanh không cấp vé, gọi lại trong 30 phút mới cấp' },
-  { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: 'VE_TRUC_TIEP_XIN = ("apps/etp/cong.py", "apps/etp2/src/lib/etp-ve.ts")', vi: 'nơi được cấp vé trực tiếp: CLI cong.py --ve-truc-tiep + nút anh bấm etp2 (máy luật / worker / dòng phim / kỹ sư máy không gọi)' },
+  { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: 'VE_TRUC_TIEP_XIN = ("apps/etp/cong.py", "etp2/src/lib/etp-ve.ts")', vi: 'nơi được cấp vé trực tiếp: CLI cong.py --ve-truc-tiep + nút anh bấm etp2 (máy luật / worker / dòng phim / kỹ sư máy không gọi)' },
   { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: "_bao_tg(f\"⚡ lệnh trực tiếp của anh:", vi: 'mỗi vé trực tiếp một dòng Telegram 📂 Ethopex' },
   { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: "'truc_tiep', $L${lenh[:1000]}$L$, $S${ph}$S$)", vi: 'vé ghi nguyên văn câu lệnh + phiên gọi' },
   { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: 'raise ValueError(f"phim cấm — lệnh trực tiếp cũng không miễn: {ly_cam}")', vi: 'phim cấm vẫn chặn lệnh trực tiếp' },
@@ -1819,7 +1819,7 @@ export const LUAT = [
   { card: 'thiet-lap-2411', tep: 'packages/bang/src/data-table.tsx', co: 'export function neoNutDuoi(th: HTMLElement)', vi: 'th ghi toạ độ cho nút hover nằm dưới ô' },
   { card: 'thiet-lap-2411', tep: 'packages/bang/src/data-table.tsx', co: 'const heSo = !cuonNgang &&', vi: 'DataTable cuonNgang: không co tỉ lệ cho vừa khung' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', cam: "wordBreak: 'break-word', width: rong", vi: 'ô không khoá cứng bề ngang — khoá thì kéo chuột không thu hẹp được cột' },
-  { card: 'thiet-lap-2411', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: "path.join(process.cwd(), '..', 'etp', 'form-chu.json')", vi: 'ô form so với đúng một nguồn form-chu.json' },
+  { card: 'thiet-lap-2411', tep: 'apps/etp2/src/lib/actions/etp-thiet-lap.ts', co: "monoTep('apps', 'etp', 'form-chu.json')", vi: 'ô form so với đúng một nguồn form-chu.json (repo etp2 đọc monorepo qua mono.ts)' },
   { card: 'thiet-lap-2411', tep: 'apps/etp/bai-qc.py', co: 'add column if not exists du jsonb', vi: 'kho giữ trọn cấu hình Ethopex từng camp (bai_camp.du), camp ACTIVE đọc lại sau 6 giờ' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: "{ key: 'van_de', header: <span", vi: 'cột Vấn đề là cột DUY NHẤT gom mọi vấn đề của camp (form chữ, trạng thái lỗi/treo, ad set dừng, lỗi Meta/kho), không chỉ form chữ (anh 24/11/2026)' },
   { card: 'thiet-lap-2411', tep: 'apps/etp2/src/components/etp-thiet-lap.tsx', co: 'const k = await guiGopY({ loai: \'loi\'', cam: "key: 'form', header:", vi: 'hover ô Vấn đề có nút 🛠 Sửa (AI) gửi góp ý cho kỹ sư sửa tận gốc; không còn cột Form riêng' },

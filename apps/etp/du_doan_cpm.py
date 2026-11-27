@@ -2,13 +2,14 @@
 dong-bo.py gọi chay(q) mỗi lượt (sau khi ghi cpm_ngay). Mỗi ngày Ethopex (UTC) MỘT lần, sau GIO_CHUP giờ UTC (13:00 VN — số hôm qua đã khép):
 chụp dự đoán CPM cho hôm nay + 14 ngày tới vào etp.cau_hinh.cpm_du_doan {ngày làm: {ngày đích: {cpm, h}}}. Widget Thị trường etp2 (lib/etp-thi-truong.ts doiChieu)
 đặt CPM thật cạnh dự đoán làm trước 1 / 3 / 7 ngày.
-CÙNG CÁCH TÍNH với widget (lib/etp-thi-truong.ts: nen · hieuChinh · ngayThiTruong) — hệ số mùa đọc CHUNG apps/etp2/src/lib/etp-mua.json; bài tự kiểm dưới dùng đúng số
+CÙNG CÁCH TÍNH với widget (lib/etp-thi-truong.ts: nen · hieuChinh · ngayThiTruong) — hệ số mùa đọc CHUNG <repo etp2>/src/lib/etp-mua.json; bài tự kiểm dưới dùng đúng số
 của etp-thi-truong.test.mts (22 × 1,8 cho Black Friday) để hai bên không lệch.
 Ngày làm TRƯỚC khi máy bắt đầu chụp (11/11/2026) → DỰNG LẠI một lần bằng đúng cách này trên số cũ, đánh dấu dl = true (bảng ghi "dựng lại", không giả làm bản chụp thật).
 Tự kiểm: python3 apps/etp/du_doan_cpm.py"""
 import json, os, datetime as dt
 
-MUA = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "etp2", "src", "lib", "etp-mua.json")))["mua"]
+import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from goc_etp2 import tep as _tep_etp2   # repo etp2 riêng (27/11/2026)
+MUA = json.load(open(_tep_etp2("src", "lib", "etp-mua.json")))["mua"]
 GIO_CHUP, XA, GIU_NGAY, DUNG_LAI = 6, 14, 60, 21
 
 def he_so(d):

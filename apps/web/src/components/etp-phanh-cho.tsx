@@ -1,7 +1,7 @@
 'use client';
 /** BIỂN PHANH CHỢ (anh 16/11/2026: "Khi ở ngày có cảnh báo thì có dấu hiệu nhìn rõ ràng cho cả team trên etp và etp2").
  * Đọc etp.cau_hinh.phanh_cho do apps/etp/gia_adsense.py xet_phanh ghi (sổ luật chung phanh_cho): đang phanh → dải đỏ trọn bề ngang đầu trang,
- * 13h–20h VN mới là cảnh báo sớm → dải vàng. Tệp này có HAI bản giống hệt (apps/web + apps/etp2) — apps/etp2/kiem-gop-y.mjs chặn khi lệch. */
+ * 13h–20h VN mới là cảnh báo sớm → dải vàng. Tệp này có HAI bản giống hệt (apps/web + repo etp2) — repo etp2 › kiem-gop-y.mjs chặn khi lệch. */
 import { useEffect, useState } from 'react';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import { KhungNoi, useNoi } from '@/components/etp-noi';

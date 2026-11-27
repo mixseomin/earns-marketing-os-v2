@@ -1,4 +1,4 @@
-"""SỔ MẪU CREATIVE cho máy Python — đọc apps/etp2/src/lib/etp-mau-cr.json (một nơi; tab Mẫu Creative của etp2 đọc cùng tệp).
+"""SỔ MẪU CREATIVE cho máy Python — đọc <repo etp2>/src/lib/etp-mau-cr.json (một nơi; tab Mẫu Creative của etp2 đọc cùng tệp).
 LUẬT (anh 19/11/2026): "khi lên creative, phải dựa vào 1 mẫu nào đó! Nếu chưa có mẫu thì phải tìm cho ra hoặc phải bổ sung mới!! Ko còn creative tự do nữa".
 → len-creative.py (cổng DUY NHẤT tải creative lên Ethopex) gọi chon() cho từng bản: không gắn được công thức trong sổ thì bản đó KHÔNG được tải lên;
   bản tải lên được ghi mẫu vào etp.creative_mau (creative_id → mẫu) để tab Mẫu Creative đo hiệu suất từng mẫu.
@@ -10,7 +10,8 @@ Tự kiểm: python3 so_mau.py --tu-kiem  (đỏ nếu dạng có dòng phim mà
 import json, os, re, sys
 _D = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _D); import so_dang as DG
-TEP = os.path.join(_D, "..", "etp2", "src", "lib", "etp-mau-cr.json")
+from goc_etp2 import tep as _tep_etp2, GOC as _GOC_ETP2   # repo etp2 riêng (27/11/2026)
+TEP = _tep_etp2("src", "lib", "etp-mau-cr.json")
 DS = json.load(open(TEP, encoding="utf-8"))["mau"]
 DUOC_LEN = {"may", "thu"}   # công thức có mã dựng — "chua" là tham chiếu, chưa dựng được
 CONG_THUC = [x for x in DS if x.get("loai") == "cong_thuc"]
@@ -34,7 +35,7 @@ def chon(dang, goi_y=""):
 
 def ly_do(dang):
     return (f"CREATIVE TỰ DO BỊ CHẶN: dạng '{dang}' chưa có công thức dựng trong sổ mẫu (luật anh 19/11/2026 — mọi creative phải dựa vào một mẫu). "
-            f"Tìm mẫu hợp hoặc bổ sung mẫu mới ở {TAB} (sổ apps/etp2/src/lib/etp-mau-cr.json) rồi chạy lại.")
+            f"Tìm mẫu hợp hoặc bổ sung mẫu mới ở {TAB} (sổ <repo etp2>/src/lib/etp-mau-cr.json) rồi chạy lại.")
 
 def bang_sql():
     """bảng ghi mẫu của creative — dựng tại chỗ (không đụng migration chung của repo)"""
@@ -51,7 +52,7 @@ def tu_kiem():
         if not chon(dang): loi.append(f"dạng '{dang}' (dòng {dong}) chưa có công thức dựng — máy dòng phim sẽ bị chặn ở bước tải creative")
     # đường tải creative tự do: mọi tệp khác len-creative.py gọi thẳng bulk-jobs
     goc = os.path.normpath(os.path.join(_D, ".."))
-    for thu_muc in ("etp", "xuong-video/scripts", "etp2/src", "web/src"):
+    for thu_muc in ("etp", "xuong-video/scripts", os.path.join(_GOC_ETP2, "src"), "web/src"):   # etp2 = repo riêng (đường tuyệt đối)
         for r, ds, fs in os.walk(os.path.join(goc, thu_muc)):
             ds[:] = [d for d in ds if d not in ("node_modules", "__pycache__", ".next")]
             for f in fs:

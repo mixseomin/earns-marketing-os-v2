@@ -40,23 +40,27 @@ export async function docThietKe(id: number): Promise<ThietKe | null> {
   return r[0] ? { ...ngan(r[0]), du_lieu: r[0].du_lieu } : null;
 }
 
-/** mẫu creative etp (apps/etp2/src/lib/etp-mau-cr.json) để gắn bản thiết kế vào đúng mẫu — ĐỦ thông tin + ảnh xem trước (anh 20/11/2026: "Các mẫu này phải
- *  trực quan, cho xem trước, thông tin đầy đủ chứ không phải mỗi text"). Ảnh: 'mau-cr:<tệp>' = ảnh trong apps/etp2/public/mau-cr (đọc lười bằng anhMauCrS2,
+/** mẫu creative etp (<repo etp2>/src/lib/etp-mau-cr.json) để gắn bản thiết kế vào đúng mẫu — ĐỦ thông tin + ảnh xem trước (anh 20/11/2026: "Các mẫu này phải
+ *  trực quan, cho xem trước, thông tin đầy đủ chứ không phải mỗi text"). Ảnh: 'mau-cr:<tệp>' = ảnh trong <repo etp2>/public/mau-cr (đọc lười bằng anhMauCrS2,
  *  vì vhost studio2 chỉ mở /api/xv/doc|nho|ghi) · https = QC đối thủ gốc (etp.doi_thu_qc) và creative máy đã dựng theo mẫu (etp.creative_mau → etp.creative). */
 export type AnhMau = { src: string; nhan: string };
 export type MauS2 = { ma: string; ten: string; mo_ta: string; nhom: string; loai: string; dang: string; nhan: string; trang_thai: string; dung_cho: string[]; the_loai: string[];
   may: string; quy_trinh: string[]; anh: AnhMau[] };
-const THU_MUC_MAU = () => [path.join(process.cwd(), '../etp2/public/mau-cr'), path.join(process.cwd(), 'apps/etp2/public/mau-cr')];
+// etp2 = repo riêng (27/11/2026, github.com/mixseomin/etp2): ETP2_GOC, không có thì <cha của monorepo>/etp2 (box3 /opt/etp2 · iMac ~/Me/GitHub/etp2) — cùng luật apps/etp/goc_etp2.py.
+// cwd của studio là apps/xuong-video (hoặc gốc monorepo) → gốc monorepo = thư mục có apps/.
+const MONO = () => { const c = process.cwd(); return path.basename(path.dirname(c)) === 'apps' ? path.resolve(c, '../..') : c; };
+const GOC_ETP2 = () => process.env.ETP2_GOC || path.resolve(MONO(), '../etp2');
+const THU_MUC_MAU = () => [path.join(GOC_ETP2(), 'public/mau-cr')];
 const chuoi = (x: unknown) => (x == null ? '' : String(x));
 const ds = (x: unknown) => (Array.isArray(x) ? x.map(String).filter(Boolean) : []);
 const tepMau = (x: unknown) => { const m = /^\/mau-cr\/([\w.-]+\.(?:jpe?g|png|webp))$/i.exec(chuoi(x)); return m ? `mau-cr:${m[1]}` : ''; };
 export async function dsMauCrS2(): Promise<MauS2[]> {
   if (!(await nguoi())) return [];
   let mau: Row[] | null = null;
-  for (const p of [path.join(process.cwd(), '../etp2/src/lib/etp-mau-cr.json'), path.join(process.cwd(), 'apps/etp2/src/lib/etp-mau-cr.json')]) {
+  for (const p of [path.join(GOC_ETP2(), 'src/lib/etp-mau-cr.json')]) {
     try { mau = ((JSON.parse(await readFile(p, 'utf8')) as { mau?: Row[] }).mau ?? []); break; } catch { /* thử đường kế */ }
   }
-  if (!mau) { console.error('[thiết kế] không đọc được etp-mau-cr.json từ', process.cwd()); return []; }
+  if (!mau) { console.error('[thiết kế] không đọc được etp-mau-cr.json ở repo etp2', GOC_ETP2(), '— đặt ETP2_GOC hoặc clone github.com/mixseomin/etp2 cạnh monorepo'); return []; }
   // ảnh trong kho etp: QC đối thủ gốc theo tham_chieu + tối đa 4 creative mới nhất máy đã dựng theo mỗi mẫu (bảng chưa có thì bỏ, không chết cả danh sách)
   const qc = new Map<string, string>(), crMau = new Map<string, AnhMau[]>(), db = getDb();
   if (db) {
@@ -85,7 +89,7 @@ export async function dsMauCrS2(): Promise<MauS2[]> {
 
 const nhoAnh = new Map<string, string>();
 const KIEU: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
-/** ảnh mẫu trong apps/etp2/public/mau-cr dạng data URL (chỉ tên tệp trơn, không đường dẫn) */
+/** ảnh mẫu trong <repo etp2>/public/mau-cr dạng data URL (chỉ tên tệp trơn, không đường dẫn) */
 export async function anhMauCrS2(ten: string): Promise<string | null> {
   if (!(await nguoi())) return null;
   const m = /^([\w.-]+)\.(jpe?g|png|webp)$/i.exec(chuoi(ten).replace(/^mau-cr:/, '')); if (!m) return null;

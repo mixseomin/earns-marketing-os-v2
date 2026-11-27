@@ -19,7 +19,7 @@ export const gioLam = (huong: HuongLuat) => (huong === 'tang' ? KD.tang[0] : KD.
 export const gioVnNay = (now = Date.now()) => { const d = new Date(now + 7 * 3600_000); return d.getUTCHours() + d.getUTCMinutes() / 60; };
 const trong = (h: number, [a, b]: [number, number]) => (a <= b ? h >= a && h < b : h >= a || h < b);   // [21, 7] = qua nửa đêm
 export const khungLuc = (h: number): KhungDoi => (trong(h, KD.giam) ? 'giam' : trong(h, KD.tang) ? 'tang' : KD.sang && trong(h, KD.sang) ? 'sang' : 'bang');
-// CỔNG TĂNG THEO GIỜ — chép đúng apps/etp2/src/lib/etp-khung.ts (máy: nhip_tang.cong): khung sáng sang_nap, ngoài khung sáng luật 12/11 tang_ngay
+// CỔNG TĂNG THEO GIỜ — chép đúng repo etp2 › src/lib/etp-khung.ts (máy: nhip_tang.cong): khung sáng sang_nap, ngoài khung sáng luật 12/11 tang_ngay
 // (anh 19/11/2026 bỏ cổng nap_chi 40% + sang_roi 100%; trang web đọc cùng hàm, không tự tính số riêng nữa)
 const SANG_NAP = (BANG_LUAT.khung_doi as unknown as { sang_nap: { chi: [number, number]; roi: number } }).sang_nap;
 const TN = BANG_LUAT.tang_ngay as { chi: number; roi: number; duoi: number; roi_duoi: number };

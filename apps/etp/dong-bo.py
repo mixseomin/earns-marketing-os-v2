@@ -139,9 +139,11 @@ def main():
     # DỊCH SẴN chữ thẻ creative chạy SONG SONG từ đầu lượt (23/11/2026): đặt cuối lượt thì không bao giờ tới lượt — các bước gọi Ethopex (camp ~220 s,
     # kho thô ~170 s, trang phim ~290 s) đã ăn hết trần 900 s, systemd giết lượt ở 900 s nên etp.dich_cr trống mãi. Chỉ đọc kho lượt trước + gọi AI,
     # không đụng Ethopex; --han 600 để xong trước trần, dấu dịch ghi trước hạn. Cuối lượt chờ nốt (xem 'DỊCH SẴN chữ thẻ creative').
-    _goc = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-    try: DICH = subprocess.Popen([os.path.join(_goc, "node_modules", ".bin", "tsx"), os.path.join(_goc, "apps", "etp2", "scripts", "dich-truoc.mts"), "--so", "80", "--han", "600"],
-                                 stdout=(_dich_ra := tempfile.TemporaryFile("w+")), stderr=subprocess.STDOUT, text=True, cwd=_goc)
+    # dich-truoc.mts nằm ở repo etp2 riêng (27/11/2026) → chạy bằng tsx + cwd của repo đó (goc_etp2.py)
+    try:
+        from goc_etp2 import tep as _tep_etp2, GOC as _goc
+        DICH = subprocess.Popen([_tep_etp2("node_modules", ".bin", "tsx"), _tep_etp2("scripts", "dich-truoc.mts"), "--so", "80", "--han", "600"],
+                                stdout=(_dich_ra := tempfile.TemporaryFile("w+")), stderr=subprocess.STDOUT, text=True, cwd=_goc)
     except Exception as e: DICH = None; print(f"dich-truoc: {e}")
     moc('LỊCH GIỜ')
     # ── LỊCH GIỜ (anh 25/10/2026): bật / tắt camp theo thể loại × khung giờ VN — chạy ĐẦU lượt cho đúng giờ (lượt đồng bộ dài vài phút); lỗi không chặn đồng bộ
@@ -703,7 +705,7 @@ def main():
 
     moc('DỊCH SẴN chữ thẻ creative')
     # ── DỊCH SẴN chữ thẻ creative (anh 23/11/2026: "Phần dịch thì phải làm ngay từ lúc sinh ra creative !! … Chỉ các creative đang, chuẩn bị và sẽ chạy !!") —
-    # apps/etp2/scripts/dich-truoc.mts: camp ACTIVE · dòng thay thế · hàng chờ lên camp → etp.dich (khoá trùng thẻ), etp.dich_cr ghi creative đã dịch đủ.
+    # repo etp2 › scripts/dich-truoc.mts: camp ACTIVE · dòng thay thế · hàng chờ lên camp → etp.dich (khoá trùng thẻ), etp.dich_cr ghi creative đã dịch đủ.
     # Đã khởi chạy SONG SONG ở đầu main() (DICH); đây chỉ chờ nó xong trong phần còn dư của trần TRAN_LUOT rồi in lỗi nếu có.
     try:
         if DICH:

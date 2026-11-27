@@ -19,7 +19,8 @@ Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--ban N bản / phi
   không id = tự chọn N phim (mặc định 10) · --xem = chỉ dựng + tờ khung (~/.cache/ethopex/anh-tinh/to-<giờ>.jpg), không nạp thư viện / tạo creative"""
 import difflib, hashlib, json, os, random, re, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); from goc_etp2 import tep as _tep_etp2   # repo etp2 riêng (27/11/2026)   # CẤM dựng video trên box3 (anh 03/11/2026)
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps, ImageStat
 
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex/anh-tinh")
@@ -28,8 +29,8 @@ XV = f"{ENV}; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../.
 DANG, NGUON, NGAY_MOI, GIAY_MIN, W, H = "ảnh tĩnh", "anh_tinh", 14, 9.0, 1080, 1920
 # MẪU CÂU GIỌNG — mỗi mẫu 3 vế (vế nào cũng được chứa {t} = tên phim · c = câu chốt, thẻ hét đặt trước nó) để KIEU_GIONG chèn thẻ cách đọc. Mỗi creative BỐC NGẪU NHIÊN một mẫu của ngôn ngữ
 # (anh 06/11/2026 "Thêm các mẫu voice này vào AT !!! Khi lên camp dạng AT, switch random giữa chúng"), số mẫu ghi vào etp.diem_cham.cham.voice.mau để đo. Chữ giữ nguyên văn anh đưa.
-# Câu nằm trong SỔ MẪU apps/etp2/src/lib/etp-mau-cr.json › thu_vien.giong.cau (23/11/2026: ngăn soạn creative etp2 cho ghim câu đọc vào ô Giọng — một nguồn cho cả trang lẫn máy).
-CAU = {k: [tuple(m) for m in v] for k, v in json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp2", "src", "lib", "etp-mau-cr.json"), encoding="utf-8"))["thu_vien"]["giong"]["cau"].items()}
+# Câu nằm trong SỔ MẪU <repo etp2>/src/lib/etp-mau-cr.json › thu_vien.giong.cau (23/11/2026: ngăn soạn creative etp2 cho ghim câu đọc vào ô Giọng — một nguồn cho cả trang lẫn máy).
+CAU = {k: [tuple(m) for m in v] for k, v in json.load(open(_tep_etp2("src", "lib", "etp-mau-cr.json"), encoding="utf-8"))["thu_vien"]["giong"]["cau"].items()}
 assert len(CAU.get("en", [])) >= 1 and all(len(m) == 3 for l in CAU.values() for m in l), "sổ mẫu thiếu câu giọng (thu_vien.giong.cau) hoặc câu không đủ 3 vế"
 assert not [m for l in CAU.values() for m in l if re.match(r"\W*(for\s+free|free|gratis)\b", m[0], re.I)], "mẫu giọng mở bằng Free/gratis — câu đầu phải là tên phim (anh 21/11/2026)"
 # GIỌNG THEO PHIM (anh 05/11/2026: "giọng kỳ dị, gào thét, ấn tượng … tuỳ theo film"): kiểu đọc chọn theo thể loại phim (etp.phim.the_loai);
@@ -78,7 +79,7 @@ CO_FREE = True
 #   kinh — nhãn chữ trắng không hộp, hai vạch vàng hai bên · nút trắng chữ tối kèm nút phát đỏ (mẫu khung trình phát)
 #   tim  — kiểu cũ: nhãn tím, nút xanh lá (giữ để so, không nằm trong vòng xoay)
 # KIỂU LẤY TỪ THƯ VIỆN MẪU (anh 20/11/2026 "mọi mẫu creative đều phải lưu vào thư viện và việc sx đều phải dựa vào đó"): danh sách kiểu = các mục của sổ
-# apps/etp2/src/lib/etp-mau-cr.json có trường lop_free và đang dùng được (trang_thai may / thu) — tắt / thêm một kiểu là sửa SỔ (tab Mẫu Creative), không sửa mã.
+# <repo etp2>/src/lib/etp-mau-cr.json có trường lop_free và đang dùng được (trang_thai may / thu) — tắt / thêm một kiểu là sửa SỔ (tab Mẫu Creative), không sửa mã.
 # Sổ không còn kiểu nào → dừng kêu rõ (không tự vẽ kiểu ngoài thư viện). FREE_MAU: kiểu → mã mẫu trong sổ (ghi vào ghi chú bản dựng để đo từng kiểu).
 def _free_tu_so():
     import importlib.util
@@ -87,7 +88,7 @@ def _free_tu_so():
 FREE_MAU = _free_tu_so(); FREE_KIEU = list(FREE_MAU); FREE_BAN = [0]   # FREE_BAN[0] = số bản đang vẽ (anh() / tinh-ba-kieu đặt trước khi vẽ)
 def free_mau(ban=None):
     """mã mẫu thư viện của kiểu nhãn + nút dùng cho bản `ban` (mặc định bản đang vẽ)"""
-    if not FREE_KIEU: raise RuntimeError("thư viện mẫu (apps/etp2/src/lib/etp-mau-cr.json) không còn kiểu nhãn + nút Free nào đang dùng được (trường lop_free) — thêm / bật lại ở tab Mẫu Creative")
+    if not FREE_KIEU: raise RuntimeError("thư viện mẫu (<repo etp2>/src/lib/etp-mau-cr.json) không còn kiểu nhãn + nút Free nào đang dùng được (trường lop_free) — thêm / bật lại ở tab Mẫu Creative")
     return FREE_MAU[FREE_KIEU[(FREE_BAN[0] if ban is None else ban) % len(FREE_KIEU)]]
 VANG_F, DO_F = (240, 200, 112, 255), (225, 29, 46, 255)
 def lop_free(lop, lang, day_ten=None, kieu=None, chi_nhan=False):

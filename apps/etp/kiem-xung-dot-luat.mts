@@ -3,7 +3,11 @@
 // In JSON: khung theo gio cua etp2 (khungLuc) va worker (khungCua), cong sang cua etp2 / worker, quaCong etp2 tung o, luatThang khi phanh / khung giam.
 import { pathToFileURL } from 'node:url';
 import fs from 'node:fs';
-import { khungLuc, congTang, quaCong, luatThang } from '../etp2/src/lib/etp-khung';
+// etp2 = repo riêng (27/11/2026): kiem-xung-dot-luat.py truyền gốc repo etp2 qua ETP2_GOC (apps/etp/goc_etp2.py) — tsx dùng tsconfig của repo đó cho '@/…'
+const ETP2 = process.env.ETP2_GOC;
+if (!ETP2 || !fs.existsSync(`${ETP2}/src/lib/etp-khung.ts`)) { console.error(`✗ không thấy etp-khung.ts ở repo etp2 (ETP2_GOC=${ETP2 ?? 'trống'})`); process.exit(2); }
+const { khungLuc, congTang, quaCong, luatThang } = await import(pathToFileURL(`${ETP2}/src/lib/etp-khung.ts`).href) as {
+  khungLuc: (h: number) => string; congTang: (h: number) => unknown; quaCong: (chi: number, thu: number, ns: number, h: number) => unknown; luatThang: (x: Record<string, boolean>) => unknown };
 
 const vao = JSON.parse(process.argv[2] || '{"o":[]}') as { o: [number, number, number, number][] };
 const tepWorker = process.argv[3] || '';

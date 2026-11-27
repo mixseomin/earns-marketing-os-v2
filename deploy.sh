@@ -26,7 +26,7 @@ git reset --hard origin/main
 NEW_SHA=$(git rev-parse HEAD)
 echo "✓ Code: $PREV_SHA → $NEW_SHA"
 # deploy.sh đổi trong lượt kéo này → CHẠY LẠI bằng bản mới: bash đang đọc dở bản cũ, đoạn mới thêm không chạy
-# (09/11/2026: khối etp2 + dns-on-tc.sh nằm im một lượt deploy, phải chạy tay).
+# (09/11/2026: khối mới + dns-on-tc.sh nằm im một lượt deploy, phải chạy tay).
 if [ -z "${DEPLOY_PREV_SHA:-}" ] && [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qx 'deploy.sh'; then
   echo "↻ deploy.sh đổi — chạy lại bằng bản mới"
   exec env DEPLOY_PREV_SHA="$PREV_SHA" bash "$0" "$@"
@@ -212,24 +212,7 @@ if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only 
   systemctl restart cty-tg-nghe && echo "✓ cty-tg-nghe khởi động lại (sổ luật web đổi)"
 fi
 
-# 5e2. ETP2 (apps/etp2, cổng 3880, mos2-etp2.service, etp2.on.tc) — bản etp riêng của anh (anh 09/11/2026 "tách thành app riêng"; etp.on.tc để yên).
-#      Unit + vhost cài từ repo (apps/etp2/deploy/); bản dựng sẵn từ GHA ở .next.new — có thì thay + khởi động lại, không thì giữ bản đang chạy.
-if ! cmp -s apps/etp2/deploy/mos2-etp2.service /etc/systemd/system/mos2-etp2.service; then
-  cp apps/etp2/deploy/mos2-etp2.service /etc/systemd/system/mos2-etp2.service && systemctl daemon-reload && systemctl enable mos2-etp2 >/dev/null 2>&1 && echo "✓ mos2-etp2 unit cài/cập nhật"
-fi
-if ! cmp -s apps/etp2/deploy/etp2.on.tc.nginx /etc/nginx/sites-enabled/etp2.on.tc; then
-  cp apps/etp2/deploy/etp2.on.tc.nginx /etc/nginx/sites-enabled/etp2.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx etp2.on.tc cài/cập nhật" || { echo "✗ nginx etp2.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/etp2.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
-fi
-if [ -f apps/etp2/.next.new/BUILD_ID ]; then
-  rm -rf apps/etp2/.next.old
-  [ -e apps/etp2/.next ] && mv apps/etp2/.next apps/etp2/.next.old
-  mv apps/etp2/.next.new apps/etp2/.next
-  rm -rf apps/etp2/.next.old
-  systemctl restart mos2-etp2; sleep 1
-  systemctl is-active mos2-etp2 && echo "✓ mos2-etp2 active" || { echo "✗ mos2-etp2 failed"; systemctl status mos2-etp2 --no-pager | tail -20; exit 1; }
-else
-  echo "↺ etp2 unchanged — keep running build"
-fi
+# 5e2. ETP2 đã sang repo riêng (github.com/mixseomin/etp2, /opt/etp2, 27/11/2026) — repo đó tự dựng + cài unit/vhost bằng deploy/len.sh; monorepo không đụng.
 
 # 5e3. STUDIO 2 (apps/studio2/public, studio2.on.tc) — tệp tĩnh sau SSO mos2, không có tiến trình riêng (anh 19/11/2026). git pull là xong mã; ở đây cài vhost
 # + MÃ BẢN của tệp tĩnh: Cloudflare zone on.tc giữ .js / .css 7 ngày dù máy gốc gửi no-cache, nên trang gọi tệp kèm ?v=<băm nội dung> — nginx thay chữ

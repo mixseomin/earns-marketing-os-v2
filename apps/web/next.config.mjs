@@ -1,8 +1,8 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-// THÀNH PHỐ DÙNG CHUNG VỚI etp2 (anh 15/11/2026, card #1605 "mở băng etp.on.tc, dùng chung mã"): tab Thành phố của etp.on.tc import thẳng
-// apps/etp2/src (alias @etp2/thanh-pho). Tệp trong apps/etp2/src gọi '@/…' thì phải về apps/etp2/src, không về apps/web/src — plugin bên dưới đổi đúng chỗ đó.
-const ETP2 = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../etp2/src');
+// THÀNH PHỐ + widget /home dùng mã etp2 (card #1605, anh 15/11/2026). etp2 sang repo riêng 27/11/2026 → dùng BẢN ĐÓNG BĂNG apps/web/goi-etp2/src
+// (anh: "etp.on.tc vẫn giữ nguyên như hiện tại"). Tệp trong goi-etp2/src gọi '@/…' thì về goi-etp2/src, không về apps/web/src — plugin bên dưới đổi đúng chỗ đó.
+const ETP2 = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'goi-etp2/src');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   webpack: (config, { webpack }) => {
@@ -30,8 +30,7 @@ const nextConfig = {
     // by the OOM killer). Lower peak build memory: webpack memory optimizations + cap the
     // page-generation workers so the build fits.
     webpackMemoryOptimizations: true,
-    externalDir: true,   // dựng mã apps/etp2/src (Thành phố dùng chung)
-    cpus: 2,
+        cpus: 2,
   },
 };
 

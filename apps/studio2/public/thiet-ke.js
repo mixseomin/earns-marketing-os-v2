@@ -362,7 +362,7 @@ document.addEventListener('keydown', (e) => {
 // ── chọn mẫu etp BẰNG ẢNH (anh 20/11/2026: "phải trực quan, cho xem trước, thông tin đầy đủ") — #maMau là ô ẩn giữ mã, nút trên thanh hiện ảnh + tên
 const MAU = { ds: [], nhom: '', tim: '', chon: '' };
 const anhNho = new Map();
-/** 'mau-cr:<tệp>' → data URL qua máy chủ (ảnh nằm trong apps/etp2, studio2 không phục vụ thẳng) · link https dùng nguyên */
+/** 'mau-cr:<tệp>' → data URL qua máy chủ (ảnh nằm trong repo etp2, studio2 không phục vụ thẳng) · link https dùng nguyên */
 function srcAnh(src) { if (!/^mau-cr:/.test(src)) return Promise.resolve(src); if (!anhNho.has(src)) anhNho.set(src, doc('anhMauCrS2', src).catch(() => null)); return anhNho.get(src); }
 const xemAnh = new IntersectionObserver((ds) => ds.forEach((d) => { if (!d.isIntersecting) return; xemAnh.unobserve(d.target); const i = d.target;
   srcAnh(i.dataset.src).then((u) => { if (u) i.src = u; else i.replaceWith(Object.assign(document.createElement('span'), { textContent: 'ảnh không tải được' })); }); }), { rootMargin: '200px' });

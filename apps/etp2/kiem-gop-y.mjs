@@ -966,7 +966,6 @@ const LUAT = [
   { card: 'cu-2711', tep: 'apps/etp/len-phieu.py', co: 'AF.ban_nha(nguon', vi: 'creative cũ → bản mới cùng video (không gắn creative_id cũ vào camp mới)' },
   { card: 'cu-2711', tep: 'apps/xuong-video/scripts/ethopex/cho_len.py', co: "? 'cr_cu')", vi: 'máy tải Chờ lên bỏ qua thẻ creative cũ' },
   { card: 'cu-2711', tep: 'apps/etp/ethopex_api.py', co: 'def chu_phieu(', vi: 'cửa form chữ nhận chữ + link của phiếu cùng phim' },
-  { card: 'kt-2711', tep: 'apps/xuong-video/scripts/ethopex/may-sinh-ke-chuyen.mjs', co: "includes('KT') || kt === 'true'", vi: 'máy sinh kể chuyện đọc 🔒 Gác dạng — KT gác thì không sinh / không đưa lên Chờ lên (anh 27/11 "Bỏ form cũ này đi")' },
 ];
 
 const loi = [];

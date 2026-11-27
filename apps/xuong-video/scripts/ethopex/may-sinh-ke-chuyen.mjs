@@ -83,14 +83,6 @@ function hong(loi) {
   else if (d.tap) dongTv(d, 'dang_sinh', `${buocChu(d)} · lỗi lần ${d.lan}, nhịp sau thử lại`);
   luu();
 }
-// ── GÁC DẠNG KT (anh 27/11/2026 "Bỏ form cũ này đi" trên thẻ Chờ lên #25 — bản KT God of Ruin máy này sinh lúc 07:05 dù KT đã nằm trong 🔒 Gác dạng từ 26/11):
-// đọc etp.cau_hinh.gac_dang (cùng chỗ dong_phim.py gac_dang() + nút 🔒 Gác dạng etp2) → có "KT" (hoặc gac_kt = true) thì không sinh, không đưa bản nào lên creative.
-// Không đọc được → dừng (fail-closed: thà nghỉ một nhịp còn hơn làm ra dạng anh đã gác). Mở lại = bỏ KT khỏi Gác dạng trên etp2, không sửa tệp này.
-try {
-  const g = execFileSync('ssh', [B, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -tAc "select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'gac_dang'), '[]') || '|' || coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'gac_kt'), 'false')"`], { encoding: 'utf8', timeout: 60e3 }).trim();
-  const [ds, kt] = g.split('|');
-  if (JSON.parse(ds).map(String).includes('KT') || kt === 'true') { ghi('dạng KT đang gác (etp2 › 🔒 Gác dạng) — không sinh, không đưa lên creative'); dong(); process.exit(0); }
-} catch (e) { ghi(`✗ không đọc được Gác dạng (${String(e?.message ?? e).slice(0, 120)}) — nghỉ nhịp này`); dong(); process.exit(0); }
 // ── ĐƯA BẢN SẴN SÀNG LÊN CREATIVE (tối đa 2 / nhịp, trước khi làm phim dở — bản xong không nằm chờ người chọn) ──
 try {
   const tv = execFileSync('ssh', [B, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -tAc "select id from etp.thu_vien where trang_thai = 'san_sang' and creative_id is null and nguon = 'videoexpress' and not exists (select 1 from etp.cho_len c where c.khoa = 'tv' || etp.thu_vien.id and c.trang_thai in ('cho', 'duyet', 'dang_len')) order by id limit 2"`], { encoding: 'utf8', timeout: 60e3 }).trim().split(/\s+/).filter(Boolean);

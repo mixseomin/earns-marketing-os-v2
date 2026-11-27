@@ -464,7 +464,7 @@ const LUAT = [
   { card: 1667, tep: 'apps/etp2/src/components/etp-view.tsx', co: "dpSong.length ? '' : ' chưa có dự phòng'", vi: 'nút nói rõ khi chưa có phiên dự phòng còn hạn' },
   { card: 1667, tep: 'apps/etp2/src/lib/etp-doc.ts', cam:"k.gia_tri->>'access_token'", vi: 'trang chỉ đọc trạng thái token, không đọc chuỗi token' },
   { card: 1668, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const HIEN_SX_CAY = false;', vi: 'đồng hồ sản xuất ở dòng phim cây Camp tạm ẩn (anh chưa bảo bật lại)' },
-  { card: 1668, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'return HIEN_SX_CAY && k && rs.every((x) => x.content_id === k)', vi: 'ô TT dòng phim cây Camp đi qua cờ ẩn' },
+  { card: 1668, tep: 'apps/etp2/src/components/etp-view.tsx', co: '{HIEN_SX_CAY ? <BadgeSx cid={k} ds={du.dongChay ?? []} kt={ktCua.get(k)} /> : null}', vi: 'ô TT dòng phim cây Camp: đồng hồ các đợt đi qua cờ ẩn (#1903 ô còn nút ＋)' },
   { card: 1672, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "const laBaiCu = (c: { ten: string }) => / bai-cu /.test(c.ten);", vi: 'một hàm nhận used post (tên bai-cu như nhan-ban.py / so-luat.py)' },
   { card: 1672, tep: 'apps/etp2/src/components/etp-view.tsx', co: "k === 'bai_cu' ? laBaiCu(c) : k === 'bai_moi' ? !laBaiCu(c)", vi: 'ô Lọc camp có nhóm Creative: Used post / Creative đăng mới' },
   { card: 1672, tep: 'apps/etp2/src/components/etp-view.tsx', co: "m('bai_cu', '♻ Used post'", vi: 'mục Used post hiện trong ô Lọc' },
@@ -899,6 +899,9 @@ const LUAT = [
   // CAMP ĐANG CHẠY: Ô SỐ LUÔN RÕ (anh 27/11/2026 #1902 "Camp đang chạy thì số vẫn hiện rõ ko mờ")
   { card: '1902', tep: 'apps/etp2/src/components/etp-view.tsx', co: "dangChay(c) && cot !== 'camp' && !laSo)", cam: "dangChay(c) && cot !== 'camp');", vi: 'cây camp: bản nhân đang chạy chung bài post vẫn mờ ô khác nhưng mọi ô số (tiền, ROI, cột ngày) giữ rõ' },
   { card: '1902', tep: 'apps/etp2/src/components/etp-view.tsx', co: "laSo: ['lai_nay', 'chi', 'tong_chi', 'lai', 'roi_ky', 'roi_tong'].includes(k.key) || cotNgay.some((x) => x.key === k.key)", vi: 'cây camp: một danh sách ô số chung cho cả ô trống dòng khối lẫn luật không mờ' },
+  { card: '1903', tep: 'apps/etp2/src/components/etp-view.tsx', cam: '<ChipCrPhim cid={Number(k)} dem={demCr[Number(k)]} />', vi: 'cây camp: dòng phim không còn chip 🎬 N · ＋' },
+  { card: '1903', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<NutMoRong cid={k} cam={rs.find((x) => x.cam)?.cam} vuaTT /></span> : null; }, cell:', cam: '? <NutMoRong cid={k} cam={rs.find((x) => x.cam)?.cam} /> : null; } },', vi: 'cây camp: nút ＋ dòng phim nằm sát phải ô TT, thẳng cột với nút ⏸ (không còn ở cột Tuổi)' },
+  { card: '1903', tep: 'apps/etp2/src/components/etp-view.tsx', co: "...(vuaTT ? { width: 22, textAlign: 'center', flexShrink: 0, boxSizing: 'border-box' } : null)", vi: 'cây camp: nút ＋ cùng bề rộng 22 với nút ⏸ để thẳng cột' },
   { card: '1884', tep: 'packages/bang/src/data-table.tsx', co: '...c.cellRowStyle?.(row, i, truoc) }', vi: 'bảng dùng chung đưa dòng vẽ ngay trên cho cellRowStyle', vi: 'cây camp: mọi cột đọc chung hàm dongMo' },
   // NHÃN BÀI CHUNG: RÊ THẤY BẬT / TẮT + LÃI LỖ, TÔ DÒNG CÙNG BÀI (anh 27/11/2026 #1898)
   { card: '1898', tep: 'apps/etp2/src/components/etp-view.tsx', co: "title={chuBaiChung(x)} onMouseEnter={(e) => toCungBai(e.currentTarget, x)} onMouseLeave={(e) => toCungBai(e.currentTarget, null)}", cam: "(bản Used post nhân từ cùng camp gốc). Các camp này luôn đứng liền nhau trong bảng' : ''}", vi: 'nhãn bài chung: chữ rê liệt kê từng camp BẬT / TẮT + lãi lỗ 7 ngày, rê vào tô dòng cùng bài — không quay về chữ chỉ liệt kê mã camp' },

@@ -968,6 +968,8 @@ const LUAT = [
   { card: 'cau-doc-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-sinh-cau', vi: 'khối Câu đọc có nút sinh thêm câu kiểu khác (anh 27/11/2026)' },
   { card: 'cau-doc-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: "const cau = dsCau(lc, await docCauThem(), ten);", vi: 'câu đọc = mẫu sổ + câu sinh thêm (etp.cau_hinh cau_doc_them)' },
   { card: 'cau-doc-2711', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: "khoa = 'cau_doc_them'", vi: 'máy dựng đọc cùng sổ câu sinh thêm, id lc:i khớp etp2' },
+  { card: 'cau-doi-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: '<CauDoi ds={p.cau_doi} b={bv} />', vi: 'khối Câu đọc hiện câu đọc của đội để so (anh 27/11/2026)' },
+  { card: 'prompt-cau-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'const r = await sinhCauDoc(cid, promptCau ?? undefined);', vi: '✨ sinh câu đọc mở ô prompt sửa được (anh 27/11/2026)' },
   { card: 'tu-len-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: "const tuLen = laBai || g.dang === 'CU' ? await lenNgayPhieu(p.id) : null;", vi: 'phiếu Dùng lại / Dùng lại post lên camp luôn, không chờ duyệt (anh 27/11/2026)' },
   { card: 'xem-cr-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-xem-cr-nut={c.nguon}', vi: 'bấm ảnh creative dùng lại → xem trước video + form text camp cũ (anh 27/11/2026)' },
   { card: 'xem-cr-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: 'const CHU_CR = ', vi: 'creative dùng lại mang chữ form etp.bai_cr + video' },

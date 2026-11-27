@@ -74,8 +74,11 @@ export type PhieuMo = {
   cta: string[];                                     // chữ nút CTA trong video theo ngôn ngữ phim (sổ nut.chu)
   nhom_goc: string | null;                           // dòng phim chỉ chạy phim Âu-Mỹ
   bo: BoTk[]; bo_mac: string | null;                 // BỘ TÀI KHOẢN lên camp (anh 27/11/2026 "thiếu chọn bộ tk"): sổ ethopex_bo_tk; mặc định = etp.cau_hinh bo_phim_moi (len-phieu.py)
+  cau_doi: CauDoi[];                                 // CÂU ĐỌC CỦA ĐỘI để so (anh 27/11/2026): lời đọc creative đội phim này + đội đang lãi cùng ngôn ngữ (etp.cham.lop.giong — máy chấm đội ghi)
+  cau_huong: string;                                 // yêu cầu mặc định của ✨ sinh câu đọc — anh sửa trong ô prompt trước khi sinh
   mau_doi: MauDoi[];                                 // chữ QC creative ĐỘI đang lãi 7 ngày, cùng ngôn ngữ phim (etp.chu_doi, dong-bo.py) — hover dòng chữ hiện ra
 };
+export type CauDoi = { cr: number; nguoi: string | null; phim: string | null; chu: string | null; chi7: number; thu7: number; hang: string | null };
 export type BoTk = { ma: string; ten: string; tk: string | null; n7: number };
 export type MauDoi = { nguoi: string | null; phim: string | null; chi7: number; thu7: number; pt: string[]; hl: string[]; de: string[] };
 
@@ -99,10 +102,10 @@ export async function docPhieu(cid: number): Promise<{ ok: true; p: PhieuMo } | 
   // đang lãi 7 ngày lên đầu (thu7 > chi7), rồi theo chi 7 ngày — creative nhà và creative đội xếp chung
   const cu = [...crNha, ...crDoi].sort((a, b) => Number(b.thu7 > b.chi7) - Number(a.thu7 > a.chi7) || b.chi7 - a.chi7 || b.chi - a.chi).map((x) => ({ ...x, anh: anhUrl(x.anh) }));
   const bai = (await docBai(id)).map((x) => ({ ...x, anh: anhUrl(x.anh) }));
-  const [bo, mau_doi] = await Promise.all([docBo(), docMauDoi(lc)]);
+  const [bo, mau_doi, cau_doi] = await Promise.all([docBo(), docMauDoi(lc), docCauDoi(id, lc)]);
   return { ok: true, p: { cid: id, ten: f.ten, lang: f.lang, poster: anhUrl(f.poster), logo: lg ? { url: lg.url, kieu: lg.kieu } : null,
     the_loai: f.the_loai, giong: { mac: GIONG_MAC, the_loai: THE_LOAI_GIONG[f.the_loai ?? ''] ?? null }, cau, cu, bai, chu: { K: so.kien(id), D: so.dol }, mien, mien_mac: m?.mac ?? null, khung: haiKhung(), dang_cho: dang,
-    dang: await loaiPhieu(), cta: NUT[lc] ?? [], nhom_goc: f.nhom_goc, bo: bo.ds, bo_mac: bo.mac, mau_doi } };
+    dang: await loaiPhieu(), cta: NUT[lc] ?? [], nhom_goc: f.nhom_goc, bo: bo.ds, bo_mac: bo.mac, mau_doi, cau_doi, cau_huong: CAU_HUONG } };
 }
 
 /** BỘ TÀI KHOẢN: sổ xv_khoa_ngoai ethopex_bo_tk ({"1": {tk, ten…}}) + số camp nhà tạo 7 ngày trên tk của bộ; mặc định = etp.cau_hinh bo_phim_moi */
@@ -116,6 +119,24 @@ async function docBo(): Promise<{ ds: BoTk[]; mac: string | null }> {
 
 /** MẪU CHỮ ĐỘI ĐANG THẮNG (anh 27/11/2026 "hover vào thì show thêm các mẫu mà các camp đang thắng của Kiên và đội đang áp dụng"): creative đội có camp lãi 7 ngày,
  *  chữ đọc từ Ethopex (etp.chu_doi ← dong-bo.py), cùng ngôn ngữ phim, Kiên xếp trước rồi theo lãi. Chỉ để XEM — chữ phiếu vẫn là K (máy sinh) / D (form-chu). */
+/** CÂU ĐỌC CỦA ĐỘI: creative đội (tk không phải nhà) của phim này — có lời đọc hay chưa (chưa thì trạng thái hàng chấm; máy chấm đội nap-creative-ngoai --tu-dong tự xếp),
+ *  rồi creative đội ĐANG LÃI 7 ngày (chi ≥ $5) cùng ngôn ngữ phim đã có lời đọc. Lời đọc = etp.cham.lop.giong.noi_dung (Worker etp-cham nghe video ghi ra). */
+async function docCauDoi(cid: number, lc: string): Promise<CauDoi[]> {
+  const da = new Set<string>();   // câu y hệt nhau (cùng một video nhiều creative) chỉ hiện một lần
+  return (await run<CauDoi>(sql`with d as (select n.creative_id, n.content_id, string_agg(distinct t.nguoi, ', ') nguoi from etp.camp_ngoai n left join etp.tai_khoan t using (ad_account_id)
+      where n.creative_id > 0 and not coalesce(t.nha, false) group by 1, 2),
+    so as (select c.creative_id, coalesce(sum(s.chi), 0) chi7, coalesce(sum(s.thu), 0) thu7 from etp.camp_ngoai c join etp.so_ngay_ngoai s using (camp_id)
+      where s.ngay > current_date - 7 group by 1)
+    select d.creative_id cr, d.nguoi, case when d.content_id = ${cid} then null else coalesce(p.ten, v.ten) end phim, nullif(ch.lop -> 'giong' ->> 'noi_dung', '') chu,
+      round(coalesce(so.chi7, 0)::numeric, 2)::float chi7, round(coalesce(so.thu7, 0)::numeric, 2)::float thu7,
+      (select h.trang_thai from etp.cham_hang h where h.creative_id = d.creative_id order by h.luc desc nulls last limit 1) hang
+    from d left join so using (creative_id) left join etp.cham ch using (creative_id) left join etp.phim p on p.content_id = d.content_id left join etp.thu_vien_phim v on v.content_id = d.content_id
+    where d.content_id = ${cid} or (nullif(ch.lop -> 'giong' ->> 'noi_dung', '') is not null and so.thu7 > so.chi7 and so.chi7 >= 5
+      and (case when coalesce(p.locale, v.locale, 'en') like 'es%' then 'es' else 'en' end) = ${lc})
+    order by (d.content_id = ${cid}) desc, (coalesce(so.thu7, 0) > coalesce(so.chi7, 0)) desc, coalesce(so.thu7, 0) - coalesce(so.chi7, 0) desc limit 24`))
+    .filter((c) => { if (!c.chu) return true; const k = c.chu.toLowerCase().replace(/\W+/g, ' ').trim(); if (da.has(k)) return false; da.add(k); return true; }).slice(0, 16);
+}
+
 async function docMauDoi(lc: string): Promise<MauDoi[]> {
   return run<MauDoi>(sql`with so as (select c.creative_id, sum(n.chi) chi7, sum(n.thu) thu7 from etp.camp_ngoai c join etp.so_ngay_ngoai n using (camp_id)
       where n.ngay > current_date - 7 and c.creative_id is not null group by c.creative_id having sum(n.thu) > sum(n.chi) and sum(n.chi) >= 5)
@@ -203,10 +224,11 @@ function dsCau(lc: string, them: Record<string, Mau3[]>, ten: string) {
   const ds = [...(CAU[lc] ?? []), ...(them[lc] ?? []).filter((m) => Array.isArray(m) && m.length === 3)];
   return ds.map((m, i) => ({ id: `${lc}:${i}`, chu: m.map((v) => v.replace('{t}', ten)).join(' ') }));
 }
+const CAU_HUONG = 'Each new hook must use a DIFFERENT style from the existing ones and from each other (e.g. question, urgency, curiosity, emotional, cliffhanger). Write 4 new hooks.';   // phần anh sửa được trong ô prompt ✨ (khuôn a/b/c + luật Free giữ cứng ở system, cổng kiem chấm)
 const MO_FREE = /^\W*(for\s+free|free|gratis)\b/i;   // cổng chấm loại câu đọc mở bằng Free / gratis (anh 21/11/2026) — câu đầu phải là tên phim
 
 /** ✨ sinh thêm câu đọc kiểu khác cho ngôn ngữ của phim → ghi sổ cau_doc_them, trả danh sách câu mới (máy xoay dùng luôn các câu này) */
-export async function sinhCauDoc(cid: number): Promise<{ ok: true; cau: { id: string; chu: string }[]; moi: string[]; chi_usd: number; model: string } | { loi: string }> {
+export async function sinhCauDoc(cid: number, huong?: string): Promise<{ ok: true; cau: { id: string; chu: string }[]; moi: string[]; chi_usd: number; model: string } | { loi: string }> {
   if (!(await laAdmin())) return { loi: 'chỉ admin' };
   const id = Math.trunc(Number(cid)); if (!(id > 0)) return { loi: 'mã phim không hợp lệ' };
   const [f] = await run<{ ten: string | null; lang: string | null }>(sql`select coalesce(p.ten, v.ten) ten, coalesce(p.locale, v.locale) lang
@@ -217,18 +239,19 @@ export async function sinhCauDoc(cid: number): Promise<{ ok: true; cau: { id: st
   const co: string[][] = [...(CAU[lc] ?? []), ...(them[lc] ?? [])];
   const khoa = (m: string[]) => m.join(' ').toLowerCase().replace(/[^\p{L}\p{N}{} ]/gu, '').replace(/\s+/g, ' ').trim();
   const daCo = new Set(co.map(khoa));
+  const yc = (typeof huong === 'string' ? huong : '').trim().slice(0, 2000) || CAU_HUONG;   // ô prompt của anh; trống = mặc định
   try {
     const { goiAi, MO_HINH } = await import('@mos2/cong-ai');
     const r = await goiAi<{ cau: { a: string; b: string; c: string }[] }>({ viec: 'etp2-cau-doc', model: MO_HINH.haiku, chi_re: true, max_tokens: 700,
       system: 'You write voice-over hooks for short-drama video ads (Facebook). Each hook has 3 parts read in order: a = opens with the drama title placeholder {t} '
         + '(a must contain {t} exactly once, and must NOT start with the word Free / For free / Gratis), b = short continuation (the "for free" promise goes here), '
         + 'c = call to action telling the viewer to tap the button (Watch More / Learn More / See more). Spoken, punchy, under 9 words per part, no emojis, no hashtags. '
-        + 'Write in the requested language only. Each new hook must use a DIFFERENT style from the existing ones and from each other (e.g. question, urgency, curiosity, emotional, cliffhanger).',
-      noi_dung: `Language: ${lc === 'es' ? 'Spanish (Latin America)' : 'English'}\nExisting hooks (do not repeat these styles or wordings):\n${co.map((m) => `- ${m.join(' | ')}`).join('\n')}\nWrite 4 new hooks. Return {"cau":[{"a","b","c"}]}.`,
+        + 'Write in the requested language only. Never repeat an existing hook word for word. Follow the operator instructions.',
+      noi_dung: `Language: ${lc === 'es' ? 'Spanish (Latin America)' : 'English'}\nExisting hooks (do not repeat these wordings):\n${co.map((m) => `- ${m.join(' | ')}`).join('\n')}\nOperator instructions:\n${yc}\nReturn {"cau":[{"a","b","c"}]} (1 to 8 hooks).`,
       schema: { type: 'object', properties: { cau: { type: 'array', items: { type: 'object', properties: { a: { type: 'string' }, b: { type: 'string' }, c: { type: 'string' } }, required: ['a', 'b', 'c'] } } }, required: ['cau'] } },
     { kiem: (k) => {
       const ds = Array.isArray(k?.cau) ? k.cau : [];
-      if (!ds.length) return 'thiếu danh sách cau';
+      if (!ds.length || ds.length > 8) return 'danh sách cau phải 1–8 câu';
       const hong = ds.find((m) => ![m?.a, m?.b, m?.c].every((x) => typeof x === 'string' && x.trim() && x.length <= 80) || (m.a.match(/\{t\}/g) ?? []).length !== 1 || /\{t\}/.test(m.b + m.c) || MO_FREE.test(m.a));
       return hong ? `câu sai khuôn (a phải có {t} đúng một lần, không mở bằng Free/gratis, mỗi vế ≤ 80 ký tự): ${JSON.stringify(hong).slice(0, 160)}` : null;
     } });

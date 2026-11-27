@@ -14,7 +14,7 @@
 import { useEffect, useState } from 'react';
 import { Drawer, GuardedButton, InfoHint } from '@/components/ui';
 import { MO_SO } from '@/components/etp-so';
-import { docPhieu, sinhChuK, sinhCauDoc, guiPhieu, type PhieuMo, type DangPhieu, type CrCu, type BaiCu, type DangMo, type MauDoi } from '@/lib/actions/etp-phieu-len';
+import { docPhieu, sinhChuK, sinhCauDoc, guiPhieu, type PhieuMo, type DangPhieu, type CrCu, type BaiCu, type DangMo, type MauDoi, type CauDoi } from '@/lib/actions/etp-phieu-len';
 import { TEN_GIONG, MO_TA_GIONG, tenGiong } from '@/lib/etp-dang';
 import type { ChuQc } from '@/lib/etp-chu-so';
 import BL from '@/lib/etp-bang-luat.json';
@@ -119,6 +119,21 @@ function DsBai({ ds, chon, bat, mien }: { ds: BaiCu[]; chon: string[]; bat: (b: 
       </label>; })}</div>;
 }
 
+const TT_HANG: Record<string, string> = { moi: 'đang xếp chấm', dang: 'đang chấm', xong: 'chấm xong — video không có lời đọc', loi: 'chấm lỗi', giu_phanh: 'giữ (phanh chợ)' };
+/** CÂU ĐỌC CỦA ĐỘI để so với câu nhà (anh 27/11/2026 "câu đọc này cũng phải show của đội để so sánh"): lời đọc creative đội phim này + đội đang lãi cùng ngôn ngữ — chỉ xem, không chọn */
+function CauDoi({ ds, b }: { ds: CauDoi[]; b: BanVi }) {
+  if (!ds.length) return <div style={{ width: '100%', fontSize: 11.5, color: MO_SO }} data-cau-doi-trong>Đội: phim này chưa có creative đội, cũng chưa có creative đội đang lãi cùng ngôn ngữ có lời đọc.</div>;
+  return <div style={{ width: '100%', borderLeft: `3px solid ${VANG}`, paddingLeft: 8, display: 'grid', gap: 4 }} data-cau-doi>
+    <div style={{ fontSize: 11.5, color: MO_SO }}>Câu đọc của đội (để so — lời đọc máy chấm nghe từ video đội):</div>
+    {ds.map((c) => {
+      const lai = c.thu7 > c.chi7, r = roi(c.chi7, c.thu7);
+      return <div key={c.cr} style={{ fontSize: 12.5, lineHeight: 1.4 }} data-cau-doi-cr={c.cr}>
+        <span style={{ fontSize: 11, color: MO_SO }}>#{c.cr} · đội · {c.nguoi ?? '?'}{c.phim ? ` · ${c.phim}` : ''} · 7 ngày {usd(c.chi7)} → <b style={{ color: lai ? XANH : c.chi7 > 0 ? DO : MO_SO }}>{usd(c.thu7)}</b>{r !== null ? ` (${r > 0 ? '+' : ''}${r}%)` : ''}: </span>
+        {c.chu ? <ChuVi goc={c.chu} b={b} /> : <i style={{ color: MO_SO }}>chưa có lời đọc — {c.hang ? TT_HANG[c.hang] ?? c.hang : 'chưa chấm, máy chấm đội tự xếp'}</i>}
+      </div>;
+    })}
+  </div>;
+}
 function Khoi({ icon, ten, phu, children }: { icon: string; ten: string; phu?: React.ReactNode; children: React.ReactNode }) {
   return <section style={{ border: `1px solid ${VIEN}`, borderRadius: 10, padding: '10px 12px', marginBottom: 10 }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}><span style={{ fontSize: 13, fontWeight: 700 }}>{icon} {ten}</span>{phu ? <span style={{ fontSize: 11.5, color: MO_SO }}>{phu}</span> : null}</div>
@@ -232,13 +247,14 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
     if ('loi' in r) setSinh({ dang: false, loi: r.loi }); else { setChuK(r.chu); setSinh({ dang: false }); setTien((t) => t + (r.vnd || 0)); }
   };
   const [sinhCau, setSinhCau] = useState<{ dang: boolean; loi?: string; ghi?: string }>({ dang: false });
+  const [promptCau, setPromptCau] = useState<string | null>(null);   // ✨ bấm → hiện ô prompt sửa được (anh 27/11/2026), null = đóng
   const sinhThemCau = async () => {   // ✨ câu đọc kiểu khác (anh 27/11/2026 "phải cho tao sinh thêm kiểu khác nữa")
     setSinhCau({ dang: true });
-    const r = await sinhCauDoc(cid);
+    const r = await sinhCauDoc(cid, promptCau ?? undefined);
     if ('loi' in r) { setSinhCau({ dang: false, loi: r.loi }); return; }
     const vnd = Math.round((r.chi_usd || 0) * 26000);
     setP((x) => (x ? { ...x, cau: r.cau } : x)); setTien((t) => t + vnd);
-    setSinhCau({ dang: false, ghi: `+${r.moi.length} câu mới · ${r.model} · ${vnd.toLocaleString('vi-VN')}₫` });
+    setSinhCau({ dang: false, ghi: `+${r.moi.length} câu mới · ${r.model} · ${vnd.toLocaleString('vi-VN')}₫` }); setPromptCau(null);
   };
   const sinhDong = async (m: Muc, i: number) => {
     setDongSinh(`${m}${i}`);
@@ -278,7 +294,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   const lc = (p?.lang ?? 'en').toLowerCase();
   const chu = kieu === 'kien' ? chuK : p?.chu.D ?? null;
   // rê vào chữ ngoại ngữ = hiện câu dịch, không cờ (anh 27/11/2026) — câu đọc · nút CTA · chữ form; một nguồn dịch etp-co-vi
-  const bv = useDichDs(p ? [...p.cau.map((c) => c.chu), ...p.cta, ...(chu ? [...chu.pt, ...chu.hl, ...chu.de] : [])] : []);
+  const bv = useDichDs(p ? [...p.cau.map((c) => c.chu), ...p.cau_doi.map((c) => c.chu ?? '').filter(Boolean), ...p.cta, ...(chu ? [...chu.pt, ...chu.hl, ...chu.de] : [])] : []);
   const gioChon = gio === 'tay' ? gioTay.replace('T', ' ') : gio;
   const gioKhung = new Set(p?.khung.map((k) => k.gio.slice(11, 16)) ?? []);
   const ngoaiKhung = gio === 'tay' && !!gioTay && !gioKhung.has(gioTay.slice(11, 16));
@@ -359,8 +375,18 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       <Hang ten="Câu đọc">
         <button style={chip(!cau)} onClick={() => setCau('')} title="mỗi bản một câu, xoay vòng theo sổ">máy xoay</button>
         {p.cau.map((c, i) => <button key={c.id} style={{ ...chip(cau === c.id), textAlign: 'left', borderRadius: 8, width: '100%' }} onClick={() => setCau(c.id)} data-cau={c.id}>{i + 1}. <ChuVi goc={c.chu} b={bv} /></button>)}
-        <button style={chip(false)} disabled={sinhCau.dang} onClick={() => void sinhThemCau()} data-sinh-cau
-          title="máy AI (cổng chung, model rẻ) viết thêm 4 câu đọc kiểu khác cho ngôn ngữ phim — lưu vào sổ, máy xoay và mọi phim cùng ngôn ngữ dùng được">{sinhCau.dang ? 'đang sinh…' : '✨ Sinh thêm câu kiểu khác'}</button>
+        <CauDoi ds={p.cau_doi} b={bv} />
+        {promptCau === null ? <button style={chip(false)} disabled={sinhCau.dang} onClick={() => setPromptCau(p.cau_huong)} data-sinh-cau
+          title="mở ô prompt (sửa được) rồi máy AI (cổng chung, model rẻ) viết thêm câu đọc cho ngôn ngữ phim — lưu vào sổ, máy xoay và mọi phim cùng ngôn ngữ dùng được">✨ Sinh thêm câu kiểu khác</button>
+          : <div style={{ width: '100%', border: `1px solid ${VIEN}`, borderRadius: 8, padding: 8, display: 'grid', gap: 6 }} data-prompt-cau>
+            <div style={{ fontSize: 11.5, color: MO_SO }}>Yêu cầu cho máy (sửa nếu cần — khuôn 3 vế, có tên phim, không mở bằng Free máy vẫn giữ):</div>
+            <textarea value={promptCau} onChange={(e) => setPromptCau(e.target.value)} rows={4} style={{ width: '100%', fontSize: 12.5, padding: 6, borderRadius: 6, border: `1px solid ${VIEN}`, background: 'transparent', color: 'inherit', resize: 'vertical' }} data-prompt-cau-o />
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button style={chip(true)} disabled={sinhCau.dang} onClick={() => void sinhThemCau()} data-prompt-cau-sinh>{sinhCau.dang ? 'đang sinh…' : '✨ Sinh'}</button>
+              <button style={chip(false)} disabled={sinhCau.dang} onClick={() => setPromptCau(p.cau_huong)}>mặc định</button>
+              <button style={chip(false)} disabled={sinhCau.dang} onClick={() => setPromptCau(null)}>đóng</button>
+            </div>
+          </div>}
         {sinhCau.loi ? <div style={{ width: '100%', fontSize: 12, color: DO, border: `1px solid ${DO}`, borderRadius: 6, padding: '4px 8px' }} data-sinh-cau-loi>{sinhCau.loi}</div> : null}
         {sinhCau.ghi ? <div style={{ width: '100%', fontSize: 11.5, color: XANH }}>{sinhCau.ghi}</div> : null}
       </Hang>

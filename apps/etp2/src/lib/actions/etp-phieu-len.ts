@@ -295,7 +295,7 @@ export async function sinhCauDoc(cid: number, huong?: string): Promise<{ ok: tru
     for (const m of locKhac(r.kq.cau)) { const x: Mau3 = [m.a.trim(), m.b.trim(), m.c.trim()]; const k = khoa(x); if (daCo.has(k)) continue; daCo.add(k); moi.push(x); }
     if (!moi.length) return { loi: 'máy sinh ra toàn câu trùng câu đã có — bấm lại' };
     const j = JSON.stringify(moi);
-    await run(sql`insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('cau_doc_them', jsonb_build_object(${lc}::text, ${j}::jsonb), 'câu đọc sinh thêm — nút ✨ phiếu lên camp etp2 (sinhCauDoc), nối sau mẫu etp-mau-cr.json', ${r.model})
+    await run(sql`insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('cau_doc_them', jsonb_build_object(${lc}::text, ${j}::jsonb), 'câu đọc sinh thêm — nút ✨ ngăn Lên camp etp2 (sinhCauDoc), nối sau mẫu etp-mau-cr.json', ${r.model})
       on conflict (khoa) do update set gia_tri = etp.cau_hinh.gia_tri || jsonb_build_object(${lc}::text, coalesce(etp.cau_hinh.gia_tri -> ${lc}::text, '[]'::jsonb) || ${j}::jsonb), ai = excluded.ai, luc = now()`);
     console.log(`[etp2-cau-doc] phim ${id} ${lc}: +${moi.length} câu · ${r.model} · $${r.chi_usd}`);
     return { ok: true, cau: dsCau(lc, await docCauThem(), ten), moi: moi.map((m) => m.map((v) => v.replace('{t}', ten)).join(' ')), chi_usd: r.chi_usd, model: r.model };

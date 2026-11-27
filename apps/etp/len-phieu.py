@@ -33,25 +33,25 @@ def ten_camp(phim, lang, cr):   # cùng etp2 lib/etp-ke-cr.ts tenCampCr
 
 def lenh(p, cr, bo):
     """dòng lệnh nhan-ban cho phiếu p (dict hàng etp.phieu_len + content_id/lang/phim; roas = mức của ĐÚNG thẻ — cho_len.phieu_roas, 0489) và creative cr"""
-    if not re.fullmatch(r"dan|\d+(\.\d+)?", str(p["roas"])): raise SystemExit(f"phiếu #{p['id']}: mức ROAS lạ {p['roas']!r} — không lên")
+    if not re.fullmatch(r"dan|\d+(\.\d+)?", str(p["roas"])): raise SystemExit(f"camp đang sản xuất #{p['id']}: mức ROAS lạ {p['roas']!r} — không lên")
     lang = "es" if (p.get("lang") or "").startswith("es") else "en"
     a = [os.path.join(SC, "nhan-ban.py"), str(KHUON_CR[lang]), "--roas", "dan" if p["roas"] == "dan" else f"{float(p['roas']):g}", "--ns", str(int(p["ns"])),
          "--tay", "--bo", str(bo), "--creative", str(cr), "--content", str(p["content_id"]), "--ten", ten_camp(p.get("phim"), lang, cr)]
     if p.get("mien"): a += ["--mien", p["mien"]]
     if p.get("gio") and p["gio"] != "lich": a += ["--gio", p["gio"]] + (["--gio-tu-do"] if p.get("tu_do") else [])
     k = "K" if p.get("kieu") == "kien" else "D"
-    chu = f"phiếu #{p['id']}: {k} · {p.get('link')} · {p.get('dang')} · {p.get('mien') or 'domain mặc định'} · ROAS {p['roas']} · ${int(p['ns'])} · giờ {p.get('gio')}"
-    return a + ["--that", "--luat", f"anh duyệt creative #{cr} ở etp2 › Chờ lên ({chu})", "--ai", f"anh (etp2 phiếu lên camp #{p['id']})"]
+    chu = f"camp đang sản xuất #{p['id']}: {k} · {p.get('link')} · {p.get('dang')} · {p.get('mien') or 'domain mặc định'} · ROAS {p['roas']} · ${int(p['ns'])} · giờ {p.get('gio')}"
+    return a + ["--that", "--luat", f"anh duyệt creative #{cr} ở etp2 › Chờ lên ({chu})", "--ai", f"anh (etp2 lên camp #{p['id']})"]
 
 def lenh_bai(p):
     """DÙNG LẠI POST (anh 27/11/2026): ★ ROAS clone bài đăng của camp nhà goc — không --creative / --bo (bộ + Page + bài của camp gốc), chữ / link / nút là của bài"""
-    if not re.fullmatch(r"dan|\d+(\.\d+)?", str(p["roas"])): raise SystemExit(f"phiếu #{p['id']}: mức ROAS lạ {p['roas']!r} — không lên")
-    if not (re.fullmatch(r"\d+_\d+", str(p.get("bai") or "")) and str(p.get("goc") or "").isdigit()): raise SystemExit(f"phiếu #{p['id']}: thẻ dùng lại post thiếu mã bài / camp gốc — không lên")
+    if not re.fullmatch(r"dan|\d+(\.\d+)?", str(p["roas"])): raise SystemExit(f"camp đang sản xuất #{p['id']}: mức ROAS lạ {p['roas']!r} — không lên")
+    if not (re.fullmatch(r"\d+_\d+", str(p.get("bai") or "")) and str(p.get("goc") or "").isdigit()): raise SystemExit(f"camp đang sản xuất #{p['id']}: thẻ dùng lại post thiếu mã bài / camp gốc — không lên")
     a = [os.path.join(SC, "nhan-ban.py"), str(int(p["goc"])), "--roas", "dan" if p["roas"] == "dan" else f"{float(p['roas']):g}", "--ns", str(int(p["ns"])), "--tay"]
     if p.get("mien"): a += ["--mien", p["mien"]]
     if p.get("gio") and p["gio"] != "lich": a += ["--gio", p["gio"]] + (["--gio-tu-do"] if p.get("tu_do") else [])
-    chu = f"phiếu #{p['id']}: dùng lại post {p['bai']} (camp #{p['goc']}) · {p.get('mien') or 'domain mặc định'} · ROAS {p['roas']} · ${int(p['ns'])} · giờ {p.get('gio')}"
-    return a + ["--that", "--luat", f"anh duyệt dùng lại post ở etp2 › Chờ lên ({chu})", "--ai", f"anh (etp2 phiếu lên camp #{p['id']})"]
+    chu = f"camp đang sản xuất #{p['id']}: dùng lại post {p['bai']} (camp #{p['goc']}) · {p.get('mien') or 'domain mặc định'} · ROAS {p['roas']} · ${int(p['ns'])} · giờ {p.get('gio')}"
+    return a + ["--that", "--luat", f"anh duyệt dùng lại post ở etp2 › Chờ lên ({chu})", "--ai", f"anh (etp2 lên camp #{p['id']})"]
 
 def chay_lenh(cl, p, a, cr):
     print("nhan-ban " + " ".join(a[1:]), flush=True)
@@ -79,7 +79,7 @@ def chay(cl):
     r = q(f"""select row_to_json(t) from (select c.id cl, c.trang_thai, c.creative_id, c.camp_id, c.loi, p.id, p.content_id, coalesce(p.lang, c.lang) lang, p.kieu, p.link, p.dang,
             p.mien, coalesce(c.phieu_roas, p.roas_ds[1], p.roas) roas, p.ns, p.gio, p.tu_do, p.chu, p.bo, (c.muc ->> 'cr_cu')::int cr_cu, c.muc ->> 'bai' bai, (c.muc ->> 'goc')::int goc, f.ten phim from etp.cho_len c join etp.phieu_len p on p.id = c.phieu_id left join etp.phim f on f.content_id = p.content_id
           where c.id = {int(cl)}) t""")
-    if not r: raise SystemExit(f"cho_len #{cl} không có phiếu — không lên")
+    if not r: raise SystemExit(f"cho_len #{cl} không gắn camp đang sản xuất nào — không lên")
     p = json.loads(r)
     if p.get("camp_id"): print(f"cho_len #{cl} đã có camp #{p['camp_id']}"); return
     q(f"update etp.phieu_len set trang_thai = 'len', cap_nhat = now() where id = {int(p['id'])} and trang_thai in ('cho_duyet', 'loi')")
@@ -105,21 +105,21 @@ def chay(cl):
         time.sleep(15)
     cr = int(x["creative_id"])
     bo = chon_bo(p)   # anh chọn bộ trên phiếu (0491 phieu_len.bo, anh 27/11/2026) — trống = bộ mặc định phim mới
-    if not bo: ghi_kq(cl, p["id"], None, "thiếu bộ lên camp (phiếu không chọn bộ và etp.cau_hinh bo_phim_moi trống)"); return
+    if not bo: ghi_kq(cl, p["id"], None, "thiếu bộ lên camp (camp đang sản xuất không chọn bộ và etp.cau_hinh bo_phim_moi trống)"); return
     chay_lenh(cl, p, lenh(p, cr, bo), cr)
 
 def chon_bo(p):
     """bộ tk của phiếu: phieu_len.bo (anh chọn) hoặc etp.cau_hinh bo_phim_moi"""
     b = str(p.get("bo") or "").strip()
     if b:
-        if not b.isdigit(): raise SystemExit(f"bộ tk lạ trên phiếu: {b}")
+        if not b.isdigit(): raise SystemExit(f"bộ tk lạ trên camp đang sản xuất: {b}")
         return b
     return q("select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi'")
 
 def body_cu(p):
     """chữ + link của phiếu cho bản mới từ creative cũ (CTA theo form như mọi bản nhà)"""
     c = p.get("chu") or {}
-    if not (c.get("pt") and c.get("hl")): raise SystemExit(f"phiếu #{p['id']}: thiếu chữ — không tạo bản")
+    if not (c.get("pt") and c.get("hl")): raise SystemExit(f"camp đang sản xuất #{p['id']}: thiếu chữ — không tạo bản")
     return {"call_to_action": CG_FORM()["call_to_action"], "link_url": p.get("link") or CG_FORM()["link_url"],
             "asset_spec": {"primaryTexts": list(c["pt"]), "headlines": list(c["hl"]), "descriptions": list(c.get("de") or [])}}
 
@@ -136,10 +136,10 @@ def ban_cu(p):
     try:
         AF, L2 = _nap("ap-form-chu"), _nap("luot2")
         moi = AF.ban_nha(nguon, f" - phieu {pid}", body_cu(p))
-        L2.chep_so(nguon, moi, ghi=f"anh duyệt creative cũ #{nguon} ở etp2 › Chờ lên (phiếu #{pid}, thẻ #{cl})", ai=f"anh (phiếu lên camp #{pid})")
+        L2.chep_so(nguon, moi, ghi=f"anh duyệt creative cũ #{nguon} ở etp2 › Chờ lên (camp đang sản xuất #{pid}, thẻ #{cl})", ai=f"anh (etp2 lên camp #{pid})")
         q(f"""update etp.cho_len set trang_thai = 'da_len', creative_id = {int(moi)}, ket = '{json.dumps({"ok": True, "creative_id": int(moi), "tu": nguon})}'::jsonb, loi = null, cap_nhat = now()
               where id = {cl}""")
-        print(f"creative cũ #{nguon} → bản mới #{moi} (chữ phiếu #{pid})", flush=True)
+        print(f"creative cũ #{nguon} → bản mới #{moi} (chữ camp đang sản xuất #{pid})", flush=True)
         return None
     except BaseException as e:
         ly = str(e)[:300].replace("'", "")

@@ -654,7 +654,7 @@ def main(a):
     m_ = (lay("--mien") or "").strip().lower()
     if m_:
         global MIEN_LEN
-        if not truc: raise SystemExit("--mien chỉ đi cùng vé TRỰC TIẾP (phiếu lên camp etp2)")
+        if not truc: raise SystemExit("--mien chỉ đi cùng vé TRỰC TIẾP (ngăn Lên camp etp2)")
         if not re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", m_) or (m_ != MIEN_LEN and not q(f"select 1 from etp.camp where mien = '{m_}' limit 1")):
             raise SystemExit(f"--mien {m_!r} không phải miền nhà (mien_len / etp.camp.mien)")
         MIEN_LEN = m_

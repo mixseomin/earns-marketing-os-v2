@@ -73,7 +73,7 @@ import importlib.util as _iuk; _sk = _iuk.spec_from_file_location("so_kieu", os.
 def chu_theo_kieu(x):
     p = x.get("chu_phieu")   # PHIẾU LÊN CAMP (etp.phieu_len, anh 27/11/2026): chữ anh đã xem + link anh chọn lúc gửi phiếu — dùng nguyên
     if p:
-        if not (p.get("pt") and p.get("hl")): raise SystemExit(f"phim {x['content_id']}: phiếu thiếu chữ (pt/hl rỗng) — không tạo creative")
+        if not (p.get("pt") and p.get("hl")): raise SystemExit(f"phim {x['content_id']}: camp đang sản xuất thiếu chữ (pt/hl rỗng) — không tạo creative")
         ln = (x.get("link_phieu") or "").strip()
         return {"call_to_action": _F["call_to_action"], "link_url": ln if ln else (SK.link(x.get("kieu") or "kien") or _F["link_url"]),
                 "asset_spec": {"primaryTexts": p["pt"], "headlines": p["hl"], "descriptions": p.get("de") or []}}

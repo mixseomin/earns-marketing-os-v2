@@ -16,11 +16,15 @@ const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 const bao = (o: Record<string, unknown>) => console.log(`VX: ${JSON.stringify(o)}`);
 if (!ra || (!uuid && (!anh || !tepLenh || !existsSync(anh) || !existsSync(tepLenh)))) { bao({ ok: false, loi: 'cần --ra và (--uuid | --anh <tệp> --prompt-tep <tệp>)' }); process.exit(2); }
 
-// phiên tự đóng khi rảnh → mở lại qua videoexpress.mjs (một tệp cho nền tảng)
-if (!trenApp()) {
-  execFileSync('node', [join(import.meta.dirname, 'videoexpress.mjs'), 'mo'], { stdio: ['ignore', 'inherit', 'inherit'], timeout: 300e3 });
-  if (!trenApp()) { bao({ ok: false, loi: 'không mở được phiên VideoExpress (videoexpress.mjs mo)' }); process.exit(3); }
+// phiên tự đóng khi rảnh / tab rơi về about:blank giữa chừng (27/11/2026: 5 phim chạy song song, một việc đang chờ render gặp
+// "Failed to parse URL from /api/library/…" vì trang không còn ở app) → mỗi lần đọc đều kiểm trang, rơi thì mở lại qua videoexpress.mjs.
+const trenAppAnToan = () => { try { return trenApp(); } catch { return false; } };
+function damBaoPhien(): boolean {
+  if (trenAppAnToan()) return true;
+  try { execFileSync('node', [join(import.meta.dirname, 'videoexpress.mjs'), 'mo'], { stdio: ['ignore', 'inherit', 'inherit'], timeout: 300e3 }); } catch {}
+  return trenAppAnToan();
 }
+if (!damBaoPhien()) { bao({ ok: false, loi: 'không mở được phiên VideoExpress (videoexpress.mjs mo)' }); process.exit(3); }
 if (!uuid) {
   const mediaId = await napKhung(anh!, catId('default'));
   if (!mediaId) { bao({ ok: false, loi: 'nạp ảnh khung đầu lên VideoExpress hỏng' }); process.exit(4); }
@@ -30,8 +34,15 @@ if (!uuid) {
   bao({ gui: true, uuid });
 }
 const cat = catId('my_ai_videos'), t0 = Date.now();
+let loiDoc = 0;
 for (;;) {
-  const it = getMedia(cat, 60).results.find((x) => x.uuid === uuid);
+  let ds: ReturnType<typeof getMedia>['results'];
+  try { ds = getMedia(cat, 60).results; loiDoc = 0; }
+  catch (e) {   // trang rơi khỏi app giữa lúc chờ render: việc vẫn chạy bên VideoExpress → mở lại phiên rồi đọc tiếp, không bỏ việc
+    if (++loiDoc > 8) { bao({ ok: false, uuid, loi: `đọc My AI Videos hỏng 8 lần liền: ${String((e as Error).message).slice(0, 200)}` }); process.exit(9); }
+    damBaoPhien(); await ngu(10_000); continue;
+  }
+  const it = ds.find((x) => x.uuid === uuid);
   if (it && !it.isPending && it.mediaPath) {
     execFileSync('curl', ['-sSL', '--fail', '-A', UA, '-o', ra, it.mediaPath], { timeout: 180e3 });
     if (!existsSync(ra) || statSync(ra).size < 20_000) { bao({ ok: false, uuid, loi: `tải clip về hỏng (${it.mediaPath})` }); process.exit(6); }

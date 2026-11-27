@@ -1082,19 +1082,22 @@ SONG_SONG = 10  # số phim dựng cùng lúc trong --hang. Khe VideoExpress (5 
 def hang():
     """mọi phim anh chọn (etp.mau_phim) HỢP mọi việc ghi thẳng vào etp.mau_dung 'cho' (phiếu lên camp etp2 — chỉ ghi mau_dung, không ghi mau_phim;
     27/11/2026 phiếu #1 AD nằm chờ mãi vì hàng chỉ đọc mau_phim) cho mẫu có hàm vẽ ở đây mà chưa dựng xong / chưa đang dựng"""
-    ds = AT.sql(bang_sql() + " select m.mau || ':' || m.content_id from (select mau, content_id, luc from etp.mau_phim union select mau, content_id, cap_nhat from etp.mau_dung where trang_thai = 'cho') m "
+    def doc_hang(): return AT.sql(bang_sql() + " select m.mau || ':' || m.content_id from (select mau, content_id, luc from etp.mau_phim union select mau, content_id, cap_nhat from etp.mau_dung where trang_thai = 'cho') m "
                 "left join etp.mau_dung d using (mau, content_id) "
                 f"where m.mau in ({','.join(s_(x) for x in HAM)}) and (d.mau is null or d.trang_thai = 'cho') group by m.mau, m.content_id order by min(d.cap_nhat) nulls first, min(m.luc)")
     # SONG SONG (anh 27/11/2026 "VE chạy song song được 5 hay 10 video một lần"): mỗi phim một tiến trình con `dung-mau.py <mẫu> <phim>` (= mot(mẫu, phim),
     # tiến trình riêng vì mot() dùng biến chung CANH / _CHI_LOGO / CHI_LAT), tối đa SONG_SONG phim cùng lúc — bước VideoExpress ~4 phút không còn xếp hàng từng phim.
-    viec = [l.split(":") for l in (ds or "").splitlines() if ":" in l]
-    dang = []
-    for ma, cid in viec:
-        while len(dang) >= SONG_SONG:
-            dang = [p for p in dang if p.poll() is None]
-            if len(dang) >= SONG_SONG: time.sleep(5)
-        dang.append(subprocess.Popen([sys.executable, os.path.abspath(__file__), ma, str(int(cid))]))
-    for p in dang: p.wait()
+    # ĐỌC LẠI HÀNG mỗi khi có khe (27/11/2026: 4 phim xếp lại giữa lượt nằm chờ tới khi cả lượt cũ xong — hàng chỉ đọc một lần lúc mở):
+    # chạy tới khi không còn phim đang dựng và hàng hết việc mới. `dang` giữ (mẫu, phim) để không mở trùng trước khi tiến trình con kịp ghi 'dang'.
+    dang, xong = {}, set()
+    while True:
+        dang = {k: p for k, p in dang.items() if p.poll() is None or xong.add(k)}
+        moi = [] if len(dang) >= SONG_SONG else [tuple(l.split(":")) for l in (doc_hang() or "").splitlines() if ":" in l]
+        moi = [k for k in moi if k not in dang and k not in xong]
+        for k in moi[:SONG_SONG - len(dang)]:
+            dang[k] = subprocess.Popen([sys.executable, os.path.abspath(__file__), k[0], str(int(k[1]))])
+        if not dang: break
+        time.sleep(10)
 
 def bang_xem(cid):
     """mọi mẫu trên một phim → ảnh ghép xem trước (không giọng, không nạp)"""

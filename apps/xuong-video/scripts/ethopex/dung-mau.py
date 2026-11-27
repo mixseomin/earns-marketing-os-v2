@@ -790,15 +790,23 @@ def nhip_nut(c, tm, b):
         f.save(os.path.join(d, f"{i:03d}.png"))
     return d, box[0], box[1]
 def dung_dong(clip, chu, mp3, ra, nhip=None):
-    """clip AI + lớp phủ hiện mờ ở giây DONG_HIEN + giọng → mp4 1080×1920; clip ngắn hơn giọng thì giữ khung cuối. Bỏ tiếng của clip AI.
+    """clip AI + lớp phủ hiện mờ ở giây DONG_HIEN + giọng → mp4 1080×1920. Bỏ tiếng của clip AI.
+    CLIP NGẮN HƠN GIỌNG → XUÔI-NGƯỢC LẶP cho phủ hết (anh 27/11/2026 "video ngắn hơn thoại": clip AI 8s, giọng 21,6s → trước đây giữ khung cuối,
+    hình đứng im ~14s chỉ còn nút nảy). Xuôi-ngược dựng ở độ phân giải gốc của clip (720p, reverse giữ cả clip trong RAM), 0₫, không gọi AI thêm.
     nhip = (thư mục khung nhip_nut, x, y, giây bắt đầu) → nút nảy chồng đúng chỗ nút tĩnh lúc giọng đọc câu CTA."""
     L = max(AT.GIAY_MIN + 1, float(AT.sh("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", mp3).stdout) + 1.4)
+    bo = os.path.splitext(clip)[0] + "-xn.mp4"   # xuôi + ngược, nối liền (bỏ khung trùng ở hai đầu mối)
+    if not os.path.exists(bo) or os.path.getmtime(bo) < os.path.getmtime(clip):
+        r = AT.sh("ffmpeg", "-v", "error", "-y", "-i", clip, "-filter_complex", "[0:v]split[a][b];[b]reverse,trim=start_frame=1,setpts=PTS-STARTPTS[r];[a][r]concat=n=2:v=1:a=0[v]",
+                  "-map", "[v]", "-an", "-c:v", "libx264", "-crf", "16", "-preset", "veryfast", bo + ".tmp.mp4")
+        if r.returncode != 0: raise RuntimeError(f"ffmpeg xuôi-ngược: {r.stderr[-300:]}")
+        os.replace(bo + ".tmp.mp4", bo)
     vao, loc = [], "[n][c]overlay=0:0[v]"
     if nhip:
         vao = ["-framerate", "30", "-i", os.path.join(nhip[0], "%03d.png")]
         loc = f"[n][c]overlay=0:0[v0];[3:v]format=rgba,setpts=PTS+{nhip[3]:.2f}/TB[nn];[v0][nn]overlay={nhip[1]}:{nhip[2]}:eof_action=pass[v]"
-    r = AT.sh("ffmpeg", "-v", "error", "-y", "-i", clip, "-loop", "1", "-i", chu, "-i", mp3, *vao, "-filter_complex",
-              f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H},fps=30,setsar=1,tpad=stop_mode=clone:stop_duration={L:.2f}[n];"
+    r = AT.sh("ffmpeg", "-v", "error", "-y", "-stream_loop", "-1", "-i", bo, "-loop", "1", "-i", chu, "-i", mp3, *vao, "-filter_complex",
+              f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H},fps=30,setsar=1[n];"
               f"[1:v]format=rgba,fade=in:st={DONG_HIEN}:d=0.4:alpha=1[c];{loc};[2:a]adelay=400|400,apad[a]",
               "-map", "[v]", "-map", "[a]", "-t", f"{L:.2f}", *AT.MA_HOA, ra)
     if r.returncode != 0: raise RuntimeError(f"ffmpeg: {r.stderr[-300:]}")

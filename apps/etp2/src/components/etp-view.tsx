@@ -416,8 +416,9 @@ function nangTay(ls?: DuLieuEtp['lsBac'][number]) {
 }
 function CoTay({ ls }: { ls?: DuLieuEtp['lsBac'][number] }) {
   const x = nangTay(ls); if (!x) return null;
-  return <span data-o="co-nang-tay" aria-label="đang nâng bậc tay" title={`Đang ở bậc NÂNG TAY: $${x.truoc ?? '?'} → $${x.sau ?? '?'} lúc ${gioVn(x.luc)} (${x.ai}). Máy luật tự tăng / hạ bậc kế tiếp thì cờ tự bỏ.`}
-    style={{ border: '1px solid #f59e0b', color: '#f59e0b', borderRadius: 5, padding: '0 3px', fontSize: 11, lineHeight: '15px', cursor: 'help', flex: 'none' }}>✋</span>;
+  // #1907: chấm cam nhỏ (không còn ô ✋ có viền — anh đọc thành "khoá", và nó chiếm chỗ đẩy mất nút ⚙). Chỉ là dấu nhắc, KHÔNG khoá gì: ⚙ vẫn nâng / hạ tuỳ ý
+  return <span data-o="co-nang-tay" aria-label="đang nâng bậc tay" title={`Đang ở bậc NÂNG TAY: $${x.truoc ?? '?'} → $${x.sau ?? '?'} lúc ${gioVn(x.luc)} (${x.ai}). Không khoá gì — bấm ⚙ để nâng / hạ tiếp. Máy luật tự tăng / hạ bậc kế tiếp thì cờ tự bỏ.`}
+    style={{ width: 6, height: 6, borderRadius: 3, background: '#f59e0b', cursor: 'help', flex: 'none' }} />;
 }
 function DongBac({ ls }: { ls: DuLieuEtp['lsBac'][number] }) {
   return <DongMoc gon rong="Chưa đổi bậc lần nào trong 30 ngày." ds={[...ls].reverse().map((x) => { const [ten, mau] = VIEC_BAC[x.viec] ?? [x.viec, '#94a3b8'];
@@ -1010,7 +1011,7 @@ function DieuKhienCamp({ c, lon, tat, boDs, choDs, lsDk, oDong }: { c: Pick<Camp
       style={lon ? { fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--accent, #60a5fa)', background: 'var(--accent-soft, #60a5fa18)', color: 'inherit', cursor: 'pointer', width: '100%', textAlign: 'left' }
         // #1553 mở lại 19/11/2026: ⚙ xám 12px không viền chìm hẳn cạnh số ngân sách → trông như chưa có điều khiển. Nay là nút có viền, chữ sáng, cỡ như số ngân sách
         // (màu trung tính — YDNI: một hàng một nút, không tô nhấn cả 74 dòng)
-        : { border: '1px solid var(--line)', borderRadius: 5, background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', padding: '0 5px', fontSize: 13, lineHeight: '18px' }}>{lon ? `⚙ Điều khiển camp${dsCho.length ? ` · ⏳ ${dsCho.length} chờ áp` : ''}` : '⚙'}</button>}
+        : { border: '1px solid var(--line)', borderRadius: 5, background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', padding: '0 5px', fontSize: 13, lineHeight: '18px', flex: 'none' }}>{lon ? `⚙ Điều khiển camp${dsCho.length ? ` · ⏳ ${dsCho.length} chờ áp` : ''}` : '⚙'}</button>}
     {mo ? <Drawer onClose={() => setMo(false)} width={520} padding={16}>
       <div onClick={(e) => e.stopPropagation()} style={{ fontSize: 12 }}>
         <DauCamp c={c} />
@@ -1163,10 +1164,12 @@ function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'tran
       <span style={{ fontVariantNumeric: 'tabular-nums', color: `rgba(196,181,253,${(0.55 + 0.45 * (bac / (BAC_NS.length - 1))).toFixed(2)})`, fontWeight: bac >= 4 ? 700 : 500, width: 30, flex: 'none', textAlign: 'right' }}>${c.ngan_sach}</span>{/* bậc càng cao chữ càng sáng (anh 26/10/2026); màu tím nhẹ, bậc thấp không chìm (anh 29/10/2026, #1482) */}
       {/* bỏ thước ROI + dấu luật sau số $ (anh 29/10/2026 "ẩn cái này đi. Vướng + khó nhìn", rồi "bỏ cái này đi cơ mà?" — là cả cái thước): ROI hôm nay đã có cột 'nay', luật có cột Luật */}
     </span>
-    <CoTay ls={ls} />{/* #1711: cờ "đang nâng bậc tay" — máy tự tăng / hạ bậc kế thì tự bỏ */}
+    {/* #1907 anh 27/11/2026 "Tao vẫn cần tự bấm vào nâng hạ tuỳ ý… Ai cho mày khoá lại": nút ⚙ (nâng / hạ bậc) LUÔN đứng ngay sau số $ — trước đây cờ ✋ chen trước,
+        ô cột ngân sách hẹp (overflow hidden) cắt mất ⚙ → trông như camp bị khoá. Cờ nâng tay chỉ là chấm nhỏ đứng SAU cùng, không bao giờ đẩy nút đi */}
     {sua ? <SuaCamp c={c} /> : null}
-    {dk ? <DauCho ds={dkCtx!.cho.get(c.camp_id)} gui={dkCtx!.gui?.get(c.camp_id)} /> : null}
     {dk && c.camp_id > 0 ? <DieuKhienCamp c={c} /> : null}
+    {dk ? <DauCho ds={dkCtx!.cho.get(c.camp_id)} gui={dkCtx!.gui?.get(c.camp_id)} /> : null}
+    <CoTay ls={ls} />{/* #1711: cờ "đang nâng bậc tay" — máy tự tăng / hạ bậc kế thì tự bỏ */}
   </span>);
 }
 // kỳ (hôm nay / hôm qua / khoảng chọn) nằm ở nhãn NHÓM phía trên — tiêu đề cột chỉ ghi ROI · Lãi · Chi · Thu (anh 25/10/2026: lặp "ROI h.nay … ROI hôm nay" khó đọc)

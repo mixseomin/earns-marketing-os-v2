@@ -148,7 +148,7 @@ def sh(*a, han=900): return subprocess.run(list(a), capture_output=True, text=Tr
 # → nối SAU các mẫu của sổ etp-mau-cr.json, giữ thứ tự (id 'es:1' = mẫu thứ hai của danh sách nối — etp2 dựng id cùng cách)
 try: _CAU_THEM = json.loads(sql("select gia_tri::text from etp.cau_hinh where khoa = 'cau_doc_them'") or "{}")
 except Exception as e: print(f"⚠ không đọc được câu đọc sinh thêm (etp.cau_hinh cau_doc_them): {str(e)[:120]} — chỉ dùng mẫu của sổ", file=sys.stderr); _CAU_THEM = {}
-for _k, _v in _CAU_THEM.items(): CAU.setdefault(_k, []).extend(tuple(m) for m in _v if isinstance(m, list) and len(m) == 3 and all(isinstance(x, str) and x for x in m) and not re.match(r"\W*(for\s+free|gratis)\b", m[0], re.I))   # câu mở bằng Free/gratis không nạp (etp2 sinhCauDoc cũng chặn)
+for _k, _v in _CAU_THEM.items(): CAU.setdefault(_k, []).extend(tuple(m) for m in _v if isinstance(m, list) and len(m) == 3 and all(isinstance(x, str) and x for x in m) and not re.match(r"\W*(for\s+free|free|gratis)\b", m[0], re.I))   # câu mở bằng Free/gratis không nạp (etp2 sinhCauDoc cũng chặn)
 def ten_sach(t): return re.sub(r"\s*[（(](?:DUBBED|Doblado)[)）]\s*", " ", t or "").strip()
 
 def chon(so):

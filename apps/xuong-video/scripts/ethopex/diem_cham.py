@@ -41,7 +41,8 @@ def ban(x, dang, chu_qc, CQ):
     return {
         "hook": {"dang": dang, "giay_vao_phim": round(tu), "cat_tai": "dau_canh", "chu_hook": None},
         "noi_dung": {"content_id": x.get("content_id"), "giay": x.get("giay") or round(den - tu, 1), "lang": lang},
-        "voice": {"thoai": "goc", "giong_cta": GIONG.get(lang), "cau_cta": c.get("loi_giong")},
+        "voice": {"thoai": "goc", "giong_cta": GIONG.get(lang), "cau_cta": c.get("loi_giong"),
+                  **({"giong": x["vo"].get("giong"), "mau": x["vo"].get("mau"), "cau": x["vo"].get("cau"), "hook": "dau_video"} if isinstance(x.get("vo"), dict) else {})},   # giọng đọc hook CC2 (ghep-lai-cc2 --giong, 27/11/2026)
         "chu_video": {"bo_cuc": BO_CUC, "phu_de": "goc"},
         "cta": {"mau": MAU_CTA, "nut_chu": c.get("nut"), "hoi": c.get("hoi"), **NUT, **THE_CUOI,
                 **({"nut_mau": (x.get("bien") or {}).get("nut_mau")} if (x.get("bien") or {}).get("nut_mau") else {}),

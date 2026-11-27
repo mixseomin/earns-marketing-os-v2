@@ -5,7 +5,10 @@ Không cắt lại từ tập nguồn: lấy chính tệp thành phẩm, dò ch�
 (logo gốc + nút nảy form AD, giữ khung cuối, tiếng mờ dần). Tệp cũ giữ cạnh: <tệp>.truoc-cc2.mp4 (không xoá).
 Chạy (iMac, ~/.venvs/poster-mau/bin/python vì cần numpy + lop-logo-cc2):
   ghep-lai-cc2.py <tệp thành phẩm.mp4> <content_id> <locale> <tên phim> <link phim> [--xem]
-In JSON {file, sach, giay, lop}. --xem: chỉ dò + in, không ghi đè.
+In JSON {file, sach, giay, lop[, vo]}. --xem: chỉ dò + in, không ghi đè.
+  --giong=<kiểu>[:<mẫu>]: thêm GIỌNG ĐỌC HOOK đầu video (anh 27/11/2026 "Sửa lại toàn bộ câu đọc các camp đang chờ giờ lên") — câu khuôn đội trong sổ mẫu
+  (etp-mau-cr.json thu_vien.giong.cau, mẫu thứ <mẫu>, mặc định 0) đọc bằng kiểu giọng anh-tinh.KIEU_GIONG qua cổng giọng chung (anh-tinh.giong, ~156₫ / câu);
+  kiểu 'phim' = anh-tinh.giong_phim theo thể loại (--the-loai=<x>). Ngôn ngữ giọng = locale.
 tra-repo-ok: mã dán keo nội bộ."""
 import json, os, shutil, subprocess, sys
 import numpy as np
@@ -20,16 +23,15 @@ def khung(f, tu, n_giay, w=108, h=192, fps=10):
     a = np.frombuffer(r.stdout, np.uint8); return a[: a.size // (w * h) * w * h].reshape(-1, h, w).astype(np.int16)
 
 def do_sach(f):
-    """→ giây đoạn sạch (trước khi lớp phủ cũ hiện). Lớp phủ = vùng ảnh ĐỨNG YÊN giống khung cuối trong khi nền chạy; lùi từ cuối tới khi vùng đó khác."""
-    d = DC.dur(f); tu = max(0.0, d - 8.0); a = khung(f, tu, d - tu)
+    """→ giây đoạn sạch (trước khi lớp phủ cũ hiện). Thành phẩm CC2 chỉ có hai khuôn đuôi cố định — dò vùng tĩnh hỏng khi nền cũng đứng yên
+    (27/11/2026: phim 69809 dò ra 81,5 / 83,4 trong khi logo cũ đã mờ vào từ ~79,4 → logo cũ nằm dưới logo mới).
+    - đuôi MỚI (duoi_cc2): khung cuối giữ nguyên DUNG giây, logo hiện HIEN_TRUOC giây trước đó → sạch = d − DUNG − HIEN_TRUOC − 0,2
+    - đuôi CŨ: logo mờ vào ~5,6 giây trước hết → sạch = d − 6,0"""
+    d = DC.dur(f); tu = max(0.0, d - 3.0); a = khung(f, tu, d - tu)
     if len(a) < 20: raise SystemExit(f"{f}: không đọc được khung đuôi")
-    cuoi = a[-1]; tinh = np.all(np.abs(a[-5:] - cuoi) < 6, axis=0)
-    if tinh.mean() > 0.6 or tinh.sum() < 200:   # cả khung đứng yên / vùng tĩnh quá nhỏ → không dò được, lấy mốc cũ 5 giây
-        return max(0.0, d - 5.4), "mac-dinh"
-    lech = np.array([np.abs(x - cuoi)[tinh].mean() for x in a])
-    i = len(a) - 1
-    while i > 0 and lech[i - 1] < 10: i -= 1
-    return max(0.0, tu + i / 10 - 0.4), f"do:{tinh.mean():.2f}"
+    n = int((DC.DUNG - 0.5) * 10); dung = len(a) >= n and all((np.abs(x - a[-1]) < 6).mean() > 0.92 for x in a[-n:])   # nút vẫn nảy trên khung giữ → so phần lớn khung, không so trọn
+    if dung: return max(0.0, d - DC.DUNG - DC.HIEN_TRUOC - 0.2), "duoi-moi"
+    return max(0.0, d - 6.0), "duoi-cu"
 
 import re
 LOGO_BAN = int(re.search(r"^LOGO_BAN\s*=\s*(\d+)", open(os.path.join(D, "dung-mau.py")).read(), re.M).group(1))   # một nguồn: dung-mau.py
@@ -61,7 +63,9 @@ def lop_cua(cid, loc, ten, url):
     return lop
 
 if __name__ == "__main__":
-    a = [x for x in sys.argv[1:] if x != "--xem"]; xem = "--xem" in sys.argv
+    a = [x for x in sys.argv[1:] if not x.startswith("--")]; xem = "--xem" in sys.argv
+    gy = next((x.split("=", 1)[1] for x in sys.argv if x.startswith("--giong=")), None)
+    tl = next((x.split("=", 1)[1] for x in sys.argv if x.startswith("--the-loai=")), None)
     if len(a) != 5: raise SystemExit(__doc__)
     f, cid, loc, ten, url = a
     truoc = f[:-4] + ".truoc-cc2.mp4"
@@ -70,5 +74,17 @@ if __name__ == "__main__":
     ls, cach = do_sach(vao)
     lop = lop_cua(cid, loc, ten, url)
     if xem: print(json.dumps({"file": f, "sach": round(ls, 2), "cach": cach, "dai_cu": round(DC.dur(vao), 2), "lop": lop}, ensure_ascii=False)); sys.exit(0)
-    tam = f[:-4] + ".cc2-tam.mp4"; g = DC.ghep(vao, ls, lop, tam); os.replace(tam, f)
-    print(json.dumps({"file": f, "sach": round(ls, 2), "cach": cach, "giay": g, "lop": lop}, ensure_ascii=False))
+    vo = None
+    if gy:
+        import importlib.util
+        s_ = importlib.util.spec_from_file_location("anh_tinh", os.path.join(D, "anh-tinh.py")); AT = importlib.util.module_from_spec(s_); s_.loader.exec_module(AT)
+        kieu, _, mau = gy.partition(":"); lg = loc[:2].lower(); mau = int(mau or 0) % len(AT.CAU[lg]); ten_ = AT.ten_sach(ten)
+        if kieu == "phim": kieu = AT.giong_phim({"the_loai": tl})[0]
+        if kieu not in AT.KIEU_GIONG: raise SystemExit(f"kiểu giọng '{kieu}' không có trong anh-tinh.KIEU_GIONG ({', '.join(AT.KIEU_GIONG)})")
+        mp3, vnd, _ = AT.giong(cid, lg, ten_, kieu, os.path.dirname(lop), mau)
+        if not (mp3 and os.path.exists(mp3) and os.path.getsize(mp3) > 2000):   # cổng giọng trả tệp rỗng không kêu (27/11/2026 lần ghép song song) → dừng to, không ghép video câm hook
+            if mp3 and os.path.exists(mp3): os.replace(mp3, mp3 + ".hong")
+            raise SystemExit(f"giọng đọc hook {cid}: cổng giọng trả tệp rỗng ({mp3}) — chạy lại")
+        vo = {"giong": kieu, "mau": mau, "cau": AT.cau_doc(lg, mau, kieu, ten_), "vnd": vnd, "mp3": mp3}
+    tam = f[:-4] + ".cc2-tam.mp4"; g = DC.ghep(vao, ls, lop, tam, vo=vo and vo["mp3"]); os.replace(tam, f)
+    print(json.dumps({"file": f, "sach": round(ls, 2), "cach": cach, "giay": g, "lop": lop, **({"vo": vo} if vo else {})}, ensure_ascii=False))

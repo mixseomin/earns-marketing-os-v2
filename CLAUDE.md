@@ -237,29 +237,6 @@ KHÔNG rsync/scp mã lên máy chủ (deploy.sh `git reset --hard` xoá ở lư�
 
 ---
 
-## Current implementation state (2026-05-04)
-
-### Done
-- Auth: email+password, session cookie, bootstrap flow
-- Roles: admin / operator / viewer with data scoping
-- Impersonate: admin "view-as" cookie + ImpersonatePanel with live config
-- Visibility config: per-user + per-role, real-time via config_version polling (5s)
-- Inbox: project-scoped + tenant-wide, assignment filter, 5s live refresh
-- Resources: 6 vaults (accounts/media/contacts/infra/budget/knowledge), operator-scoped
-- Team page: member modal with "Giao Tài Nguyên" assign section
-- TopBar: operator sees Board+Inbox+Resources only, no search/live-pill
-- Sidebar: operator sees no SystemNav (Monitor/Library/Agents/Setup groups)
-
-### Active / in-progress
-- SquadFormModal 2-column wide layout
-- Command Board + RightBar operator gating
-
-### Pending backlog
-- Demo squads: Planner / Writer / Designer / Publisher
-- Worker workflow chain: card complete → auto-spawn next step
-- Inbox feedback type: success / revise / error → trigger downstream
-- Anchor card 'Reddit Launch Orit' full flow test
-
 ## Phiên đo màn
 
 **Chụp / nhìn app nhà *.on.tc = `~/bin/br goto <link>` rồi `~/bin/br look` — HẾT.** br tự gắn hồ sơ riêng của dự án `/Users/htuan/br-du-an/<app>/br-profile` (iMac) và tự nạp phiên mos2 (`~/bin/phien-on-tc`, 12 giờ, nạp lại sau 50 phút) — không /login, không SSO Google, không đường hầm, không INSERT `auth_sessions` bằng tay (anh 25/11/2026). Đo màn bằng `do-man`: `--phien ~/bin/phien-on-tc`. Chụp xong `~/bin/br close /Users/htuan/br-du-an/<app>/br-profile`. Trang studio mở thẳng tab bằng `?m=phim&mId=<id>&tab=storyboard`.

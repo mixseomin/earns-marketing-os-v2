@@ -36,7 +36,7 @@ import { moTabNeuModifier } from '@/lib/url-mo-tab';
 import { quetPhimEtp } from '@/lib/actions/etp-phim';
 import { docGioNgay, type SoGio } from '@/lib/actions/etp-gio';
 import { NutLichPhim, PHA_HT } from '@/components/etp-lich-phim';
-import { DongHoSx, FormChayDong, MAU as MAU_DONG, NUT_SX, TabDong, xuLy } from '@/components/etp-dong';
+import { DongHoSx, MAU as MAU_DONG, NUT_SX, TabDong, xuLy } from '@/components/etp-dong';
 import { chiRe, DongMoc, HoverChu, KhungNoi, laCham, ReThe, useNoi, type Moc, type Noi, type TheNoi } from '@/components/etp-noi';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
@@ -1283,13 +1283,12 @@ function MenuPhim({ p }: { p: PhimEtpKho }) {
   const router = useRouter();
   const lam = async (f: () => Promise<{ ok: true } | { loi: string }>) => { const r = await f(); if ('loi' in r) window.alert(r.loi); router.refresh(); };
   const giu = p.nhan?.trang_thai === 'giu';
-  const [chay, setChay] = useState(false);   // form Chạy tự động (dòng phim, anh 03/11/2026)
-  return <>{chay ? <FormChayDong contentId={p.content_id} onClose={() => setChay(false)} /> : null}<MenuBaCham tieuDe="Phim" phu={p.ten ?? `#${p.content_id}`} title={`Thao tác phim #${p.content_id}`} groups={[
+  // form Chạy tự động (Loại nội dung QC) bỏ 27/11/2026 — lên camp chỉ qua Phiếu lên camp
+  return <><MenuBaCham tieuDe="Phim" phu={p.ten ?? `#${p.content_id}`} title={`Thao tác phim #${p.content_id}`} groups={[
     { label: 'Xem', items: [{ label: 'Nội dung, điểm, tiến độ', emoji: '▸', onClick: () => openEntityDrawer('etp-phim', p.content_id) }] },
     { label: 'Lên camp', items: [{ label: 'Phiếu lên camp (K/D · AD/CC2 · bid · giờ)…', emoji: '🚀', onClick: () => openEntityDrawer('etp-phieu-len', p.content_id) }] },
     // phim cấm (etp:phim-cam-quet-2011): không có Chạy tự động — mục chỉ ghi CẤM + lý do sổ
-    { label: 'Tự động', items: [p.cam ? { label: `CẤM — ${p.cam.ly_do ?? 'phim trong sổ cấm'}`.slice(0, 90), emoji: '🚫', onClick: () => setChay(false) }
-      : { label: 'Chạy tự động tới khi lên camp…', emoji: '▶', onClick: () => setChay(true) }] },
+    ...(p.cam ? [{ label: 'Tự động', items: [{ label: `CẤM — ${p.cam.ly_do ?? 'phim trong sổ cấm'}`.slice(0, 90), emoji: '🚫', onClick: () => undefined }] }] : []),
   ]} /></>;
 }
 
@@ -2462,11 +2461,11 @@ function DongHoHapThu({ m, ten, boc }: { m?: MoRong; ten?: string | null; boc?: 
 }
 /** NÚT ＋ Ở DÒNG PHIM (anh 04/11/2026 "thêm 1 nút ở dòng film … mở ra form để chọn: số camp mới, thể loại film → submit là xong. Còn lại cho tab SX xử lý") */
 function NutMoRong({ cid, k, cam }: { cid: number; k?: number; /** phim cấm (etp:phim-cam-quet-2011): khoá nút, hiện CẤM + lý do */ cam?: PhimEtpKho['cam'] }) {
-  const [mo, setMo] = useState(false);
   if (cam) return <NhanCam cam={cam} />;
-  return <>{mo ? <FormChayDong contentId={cid} moRong onClose={() => setMo(false)} /> : null}
-    <ReThe the={() => ({ tieu: 'Mở rộng phim', mau: '#4ade80', moc: [{ ten: 'Bấm', mau: '#4ade80', chu: 'mở form: số camp mới (điền sẵn số máy tính) · loại nội dung · thể loại' }, { ten: 'Sau đó', mau: '#60a5fa', chu: 'tab Sản xuất làm hết: cắt phần thiếu → soát + chấm → lên đủ số camp → chờ camp chạy' }] })}><button className="btn"
-      onClick={(e) => { e.stopPropagation(); setMo(true); }} onMouseDown={(e) => e.stopPropagation()}
+  // ＋ mở PHIẾU LÊN CAMP (anh 27/11/2026 "Bỏ cái lên camp … kia đi" — form Loại nội dung QC cũ bỏ)
+  return <>
+    <ReThe the={() => ({ tieu: 'Mở rộng phim', mau: '#4ade80', moc: [{ ten: 'Bấm', mau: '#4ade80', chu: 'mở Phiếu lên camp: K/D · AD/CC2/creative cũ · ROAS · ngân sách · giờ' }, { ten: 'Sau đó', mau: '#60a5fa', chu: 'tab Sản xuất làm hết: cắt phần thiếu → soát + chấm → lên đủ số camp → chờ camp chạy' }] })}><button className="btn"
+      onClick={(e) => { e.stopPropagation(); openEntityDrawer('etp-phieu-len', cid); }} onMouseDown={(e) => e.stopPropagation()}
       style={{ padding: '0 6px', fontSize: 11, lineHeight: '16px', fontWeight: 400, color: '#4ade80', borderColor: '#14532d' }}>＋</button></ReThe></>;   // chỉ dấu ＋ — số máy tính điền sẵn trong form (anh 04/11/2026)
 }
 // #1781 chế độ TÔ SÁNG: ô lọc không giấu camp nào, camp khớp lựa chọn được tô nền vàng nhạt + vạch vàng mép trái (vạch đỏ / cam cảnh báo vẫn giữ)

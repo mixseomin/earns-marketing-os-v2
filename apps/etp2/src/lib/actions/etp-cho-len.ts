@@ -41,8 +41,9 @@ export async function dsChoLen(): Promise<{ ds: ChoLen[] } | { loi: string }> {
         c.creative_id, c.loi, c.ghi, c.duyet_ai, c.tao::text tao, c.cap_nhat::text cap_nhat, c.kieu, c.camp_id, c.camp_loi,
         p.id p_id, p.kieu p_kieu, p.chu p_chu, p.link p_link, p.dang p_dang, p.mien p_mien, coalesce(c.phieu_roas, p.roas_ds[1], p.roas) p_roas, p.ns p_ns, p.gio p_gio, p.tu_do p_tu_do, p.trang_thai p_tt
       from etp.cho_len c left join etp.phim f on f.content_id = c.content_id left join etp.phieu_len p on p.id = c.phieu_id
-      where c.trang_thai in ('cho', 'duyet', 'dang_len') or (c.trang_thai = 'da_len' and c.cap_nhat > now() - interval '6 hours')
-        or (c.phieu_id is not null and c.trang_thai = 'da_len' and c.camp_id is null and c.cap_nhat > now() - interval '3 days')
+      where c.phieu_id is not null   -- chỉ bản dựng theo PHIẾU; thẻ form cũ (không phiếu) bỏ (anh 27/11/2026 "Bỏ form cũ này đi")
+        and (c.trang_thai in ('cho', 'duyet', 'dang_len') or (c.trang_thai = 'da_len' and c.cap_nhat > now() - interval '6 hours')
+        or (c.trang_thai = 'da_len' and c.camp_id is null and c.cap_nhat > now() - interval '3 days'))
       order by (c.trang_thai = 'cho') desc, c.tao desc limit 200`);
     const so = await soChu(ds.map((x) => x.content_id));
     return { ds: ds.map(({ p_id, p_kieu, p_chu, p_link, p_dang, p_mien, p_roas, p_ns, p_gio, p_tu_do, p_tt, ...x }) => ({ ...x, chu: { kien: so.kien(x.content_id), dol: so.dol },

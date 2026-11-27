@@ -966,6 +966,9 @@ const LUAT = [
   { card: 'cu-2711', tep: 'apps/etp/len-phieu.py', co: 'AF.ban_nha(nguon', vi: 'creative cũ → bản mới cùng video (không gắn creative_id cũ vào camp mới)' },
   { card: 'cu-2711', tep: 'apps/xuong-video/scripts/ethopex/cho_len.py', co: "? 'cr_cu')", vi: 'máy tải Chờ lên bỏ qua thẻ creative cũ' },
   { card: 'cu-2711', tep: 'apps/etp/ethopex_api.py', co: 'def chu_phieu(', vi: 'cửa form chữ nhận chữ + link của phiếu cùng phim' },
+  { card: 'bo-form-cu-2711', tep: 'apps/etp2/src/components/etp-view.tsx', cam: '<FormChayDong', vi: 'anh 27/11/2026: form Loại nội dung QC cũ bỏ — mọi lối lên camp mở Phiếu lên camp' },
+  { card: 'bo-form-cu-2711', tep: 'apps/etp2/src/components/etp-view.tsx', co: "openEntityDrawer('etp-phieu-len', cid)", vi: 'nút ＋ dòng phim mở Phiếu lên camp' },
+  { card: 'bo-form-cu-2711', tep: 'apps/etp2/src/lib/actions/etp-cho-len.ts', co: 'where c.phieu_id is not null', vi: 'ô Chờ lên chỉ hiện bản dựng theo phiếu, thẻ form cũ không hiện' },
 ];
 
 const loi = [];

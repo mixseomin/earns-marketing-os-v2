@@ -303,15 +303,24 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     if (khoaTruoc && hookCu && loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l))) { boHook.add(hookCu.id); hookCu = null; loiCu = loiCu.filter((l) => !/sửa quá xa|chưa chọn hook/.test(l)); }
     // trượt "sửa quá xa": mô hình rẻ cầm cả kho thì không bám (esimfares 10/11/2026: hook kênh "Landing in Italy? Do this before your plane touches down"
     // → viết "Set this up before takeoff", giữ 17%, 2/3 bài kẹt cả 2 lượt) → lượt sau khoá vào ĐÚNG hook đã chọn + đưa nguyên câu làm khuôn, thêm một lượt.
-    const xa = !!hookCu && (epNguyen || loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l))), khoConLai = (o.hooks ?? []).filter((h) => !tuMayDe(h.chu).length && !boHook.has(h.id)),
+    // TIÊU ĐỀ TRÙNG với chính câu hook (hook "kenh:" = tiêu đề video thắng của kênh, LUÔN trùng) cũng phải KHOÁ vào hook đó như "sửa quá xa":
+    // trước đây trượt trùng chỉ dặn lại câu cũ 4 lượt, mô hình chép y nguyên câu hook → lấp kho 0/2 (astrolas 27/11/2026). Khoá rồi thì lượt sau
+    // vào nhánh "hook ĐÃ là tiêu đề" bên dưới: giữ khung + nhịp, ĐỔI chủ thể, không được chép.
+    const xa: boolean = !!hookCu && (epNguyen || loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l))
+      || (loiCu.some((l) => /tiêu đề trùng/.test(l)) && daCo.has(tdChuan(hookCu.chu)))), khoConLai = (o.hooks ?? []).filter((h) => !tuMayDe(h.chu).length && !boHook.has(h.id)),
       // Khi mọi hook còn lại đã từng là tiêu đề, không được bỏ kho rồi kết luận 0 đề: dùng lại một hook đó làm khuôn đổi vài từ.
       // Lượt khóa + ghepHook ở dưới sẽ giữ đủ chữ hook và tạo tiêu đề mới, thay vì để mô hình sửa xa rồi bị mắc lại.
-      hooksLuot = xa ? [hookCu as HookQc] : (khoConLai.length ? khoConLai : hookTrung.filter((h) => !tuMayDe(h.chu).length));
+      hooksLuot: HookQc[] = xa ? [hookCu as HookQc] : (khoConLai.length ? khoConLai : hookTrung.filter((h) => !tuMayDe(h.chu).length));
     khoaTruoc = xa; epNguyen = false;
     // kho lọc hết trong lượt (hook trùng tiêu đề / mang từ máy / đã bị chặn) → kiemDe bỏ qua luật hook, rapDe không gắn hook, bài ra "thiếu dang.hook"
     // (sidecue 12/11/2026: spot-the-fake-40162-…-emails làm lại vẫn SỬA LẠI) → dừng, không dựng bài chắc chắn bị chặn
     if (!hooksLuot.length) return { ok: false, loi: `hết hook QC dùng được cho đề này${loiCu.length ? ` (lần trước: ${loiCu.join('; ')})` : ''}`, vnd };
-    const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? [], o.sp.ngon_ngu ?? 'en', hooksLuot) + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.${xa ? ` The title AND any on-screen hook line must be this exact sentence: "${(hookCu as HookQc).chu}". Copy it, swapping at most 2-3 words (the country, item or number) to fit the angle; keep every other word and the punctuation. hook_qc must be "${(hookCu as HookQc).id}".` : ''}` : '')
+    const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? [], o.sp.ngon_ngu ?? 'en', hooksLuot) + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.${xa ? (daCo.has(tdChuan((hookCu as HookQc).chu))
+        // LƯỢT KHOÁ vào hook mà NGUYÊN CÂU hook đã là tiêu đề một bài có sẵn (hook "kenh:" = video thắng của chính kênh, bao giờ cũng là tiêu đề bài cũ) → KHÔNG
+        // được dặn "chép nguyên câu": mô hình chép y nguyên, Phòng Nội dung chặn "tiêu đề trùng" cả 3 lượt, lấp kho 0/2 (astrolas 27/11/2026,
+        // "This powerful blueprint holds the hidden secrets…"). Dặn giữ khung + nhịp nhưng ĐỔI chủ thể để ra tiêu đề mới — đúng luật trùng tiêu đề bên dưới.
+        ? ` The hook "${(hookCu as HookQc).chu}" is ALREADY the published title of one of this machine's posts, so the title must NOT be that sentence. Keep the hook's frame, rhythm and promise, but swap the specific subject (the person, the object of the promise, the number or the time window) so the new title reads as a different post. hook_qc must be "${(hookCu as HookQc).id}".`
+        : ` The title AND any on-screen hook line must be this exact sentence: "${(hookCu as HookQc).chu}". Copy it, swapping at most 2-3 words (the country, item or number) to fit the angle; keep every other word and the punctuation. hook_qc must be "${(hookCu as HookQc).id}".`) : ''}` : '')
       // kho chỉ còn hook mà NGUYÊN CÂU đã là tiêu đề một bài có sẵn (militarycalc 17/11/2026: Ngọc giữ 1/87, "Your orders came through. Now the clock starts." đã dùng
       // → mọi đề chép nguyên câu, lấp kho 0/6) → nói thẳng câu đó đã dùng, bắt đổi 2-3 từ; dặn "copy it" mà không nói điều này thì mô hình chép y nguyên.
       + (hooksLuot.some((h) => daCo.has(tdChuan(h.chu))) ? `\nThese hook sentences are ALREADY the exact title of an earlier post, so the title must NOT equal them: ${hooksLuot.filter((h) => daCo.has(tdChuan(h.chu))).map((h) => `"${h.chu}"`).join(', ')}. Keep the hook's structure but swap 2-3 words (the role, the number, the moment, the place) so the title is new.` : ''), ten: 'de_bai' });
@@ -343,7 +352,9 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
       // trùng tiêu đề mà còn hook khác trong kho → bỏ hook vừa dùng, mở kho phần còn lại (militarycalc 17/11/2026 dung-sai-42960: mô hình bám một hook đã từng thành
       // tiêu đề "Your orders came through. Now the clock st…", 4 lượt đều viết lại đúng câu cũ → lượt lấp kho 0/6). Hết hook khác thì giữ, chỉ dặn đổi câu.
       const hd = timHook(hooksLuot, maHook) ?? hookCu;
-      if (hd && (o.hooks ?? []).some((h) => h.id !== hd.id && !boHook.has(h.id) && !tuMayDe(h.chu).length)) { boHook.add(hd.id); hookCu = null; khoaTruoc = false; }
+      // hook kế cũng NGUYÊN CÂU là tiêu đề cũ thì đổi sang nó cũng chỉ trùng lại (astrolas 27/11/2026: 0/2 đề) → giữ hook hiện tại để lượt sau KHOÁ + dặn đổi chủ thể,
+      // thay vì xả hết 4 lượt đi thử lần lượt các câu đã dùng. Chỉ bỏ hook hiện tại khi còn hook KHÁC chưa từng là tiêu đề.
+      if (hd && (o.hooks ?? []).some((h) => h.id !== hd.id && !boHook.has(h.id) && !tuMayDe(h.chu).length && !daCo.has(tdChuan(h.chu)))) { boHook.add(hd.id); hookCu = null; khoaTruoc = false; }
     }
     // HOOK XÉT NHƯ LÚC CHẤM (12/11/2026, ratesbyroom "Booking a hotel in Osaka? Check prices first." lọc kho qua, bài sửa thành "…for two? Check prices first." bị chặn
     // "khác ngách + hứa sai" — lỗi đã báo sửa 2 lần vẫn quay lại): lọc kho xét CÂU GỐC, phòng chấm xét TIÊU ĐỀ ĐÃ SỬA → hai khoá sổ, Ngọc xét lại từ đầu, kết luận lật.

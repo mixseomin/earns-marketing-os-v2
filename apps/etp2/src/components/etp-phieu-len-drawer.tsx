@@ -14,7 +14,7 @@
 import { useEffect, useState } from 'react';
 import { Drawer, GuardedButton, InfoHint } from '@/components/ui';
 import { MO_SO } from '@/components/etp-so';
-import { docPhieu, sinhChuK, guiPhieu, type PhieuMo, type DangPhieu, type CrCu, type BaiCu, type DangMo, type MauDoi } from '@/lib/actions/etp-phieu-len';
+import { docPhieu, sinhChuK, sinhCauDoc, guiPhieu, type PhieuMo, type DangPhieu, type CrCu, type BaiCu, type DangMo, type MauDoi } from '@/lib/actions/etp-phieu-len';
 import { TEN_GIONG, MO_TA_GIONG, tenGiong } from '@/lib/etp-dang';
 import type { ChuQc } from '@/lib/etp-chu-so';
 import BL from '@/lib/etp-bang-luat.json';
@@ -198,6 +198,15 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
     const r = await sinhChuK(cid, l);
     if ('loi' in r) setSinh({ dang: false, loi: r.loi }); else { setChuK(r.chu); setSinh({ dang: false }); setTien((t) => t + (r.vnd || 0)); }
   };
+  const [sinhCau, setSinhCau] = useState<{ dang: boolean; loi?: string; ghi?: string }>({ dang: false });
+  const sinhThemCau = async () => {   // ✨ câu đọc kiểu khác (anh 27/11/2026 "phải cho tao sinh thêm kiểu khác nữa")
+    setSinhCau({ dang: true });
+    const r = await sinhCauDoc(cid);
+    if ('loi' in r) { setSinhCau({ dang: false, loi: r.loi }); return; }
+    const vnd = Math.round((r.chi_usd || 0) * 26000);
+    setP((x) => (x ? { ...x, cau: r.cau } : x)); setTien((t) => t + vnd);
+    setSinhCau({ dang: false, ghi: `+${r.moi.length} câu mới · ${r.model} · ${vnd.toLocaleString('vi-VN')}₫` });
+  };
   const sinhDong = async (m: Muc, i: number) => {
     setDongSinh(`${m}${i}`);
     const r = await sinhChuK(cid, nn);
@@ -317,6 +326,10 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       <Hang ten="Câu đọc">
         <button style={chip(!cau)} onClick={() => setCau('')} title="mỗi bản một câu, xoay vòng theo sổ">máy xoay</button>
         {p.cau.map((c, i) => <button key={c.id} style={{ ...chip(cau === c.id), textAlign: 'left', borderRadius: 8, width: '100%' }} onClick={() => setCau(c.id)} data-cau={c.id}>{i + 1}. <ChuVi goc={c.chu} b={bv} /></button>)}
+        <button style={chip(false)} disabled={sinhCau.dang} onClick={() => void sinhThemCau()} data-sinh-cau
+          title="máy AI (cổng chung, model rẻ) viết thêm 4 câu đọc kiểu khác cho ngôn ngữ phim — lưu vào sổ, máy xoay và mọi phim cùng ngôn ngữ dùng được">{sinhCau.dang ? 'đang sinh…' : '✨ Sinh thêm câu kiểu khác'}</button>
+        {sinhCau.loi ? <div style={{ width: '100%', fontSize: 12, color: DO, border: `1px solid ${DO}`, borderRadius: 6, padding: '4px 8px' }} data-sinh-cau-loi>{sinhCau.loi}</div> : null}
+        {sinhCau.ghi ? <div style={{ width: '100%', fontSize: 11.5, color: XANH }}>{sinhCau.ghi}</div> : null}
       </Hang>
     </Khoi> : NOI_DUNG_VIDEO[dang] ? <Khoi icon="🎞" ten={`Nội dung trong video · ${dang}`} phu="máy dựng theo khuôn cố định — chưa có tuỳ chọn">
       <Hang ten="Máy dựng"><ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5 }} data-noi-dung-video>{NOI_DUNG_VIDEO[dang].map((x) => <li key={x}>{x}</li>)}</ul></Hang>

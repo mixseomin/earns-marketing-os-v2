@@ -144,6 +144,12 @@ MA_HOA = ["-c:v", "h264_videotoolbox", "-b:v", "8M" if MOI else "3M", "-maxrate"
 def sql(q):
     return subprocess.run(["ssh", B, f"{ENV}; psql \"$DATABASE_URL\" -tAq"], input=q, capture_output=True, text=True, check=True).stdout.strip()
 def sh(*a, han=900): return subprocess.run(list(a), capture_output=True, text=True, timeout=han)
+# CÂU ĐỌC SINH THÊM (anh 27/11/2026 "phải cho tao sinh thêm kiểu khác"): nút ✨ ở phiếu lên camp (etp2 sinhCauDoc) ghi etp.cau_hinh 'cau_doc_them' {lc: [[a, b, c]…]}
+# → nối SAU các mẫu của sổ etp-mau-cr.json, giữ thứ tự (id 'es:1' = mẫu thứ hai của danh sách nối — etp2 dựng id cùng cách)
+try: _CAU_THEM = json.loads(sql("select gia_tri::text from etp.cau_hinh where khoa = 'cau_doc_them'") or "{}")
+except Exception as e: print(f"⚠ không đọc được câu đọc sinh thêm (etp.cau_hinh cau_doc_them): {str(e)[:120]} — chỉ dùng mẫu của sổ", file=sys.stderr); _CAU_THEM = {}
+for _k, _v in _CAU_THEM.items(): CAU.setdefault(_k, []).extend(tuple(m) for m in _v if isinstance(m, list) and len(m) == 3 and all(isinstance(x, str) and x for x in m))
+assert not [m for l in CAU.values() for m in l if re.match(r"\W*(for\s+free|free|gratis)\b", m[0], re.I)], "câu đọc sinh thêm mở bằng Free/gratis"
 def ten_sach(t): return re.sub(r"\s*[（(](?:DUBBED|Doblado)[)）]\s*", " ", t or "").strip()
 
 def chon(so):

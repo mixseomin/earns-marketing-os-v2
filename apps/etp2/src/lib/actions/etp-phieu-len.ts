@@ -88,7 +88,7 @@ export async function docPhieu(cid: number): Promise<{ ok: true; p: PhieuMo } | 
     where content_id = ${id} and trang_thai in ('dung', 'cho_duyet', 'len', 'loi') and tao > now() - interval '3 days' order by tao desc`);
   const [lg] = await run<{ url: string; kieu: string | null }>(sql`select url, kieu from etp.logo_goc where content_id = ${id}`);
   const lc = (f.lang ?? '').startsWith('es') ? 'es' : 'en', ten = f.ten;
-  const cau = (CAU[lc] ?? []).map((m, i) => ({ id: `${lc}:${i}`, chu: m.map((v) => v.replace('{t}', ten)).join(' ') }));
+  const cau = dsCau(lc, await docCauThem(), ten);
   const [crNha, crDoi] = await Promise.all([docCrCu(id), docCrDoi(id)]);
   // đang lãi 7 ngày lên đầu (thu7 > chi7), rồi theo chi 7 ngày — creative nhà và creative đội xếp chung
   const cu = [...crNha, ...crDoi].sort((a, b) => Number(b.thu7 > b.chi7) - Number(a.thu7 > a.chi7) || b.chi7 - a.chi7 || b.chi - a.chi).map((x) => ({ ...x, anh: anhUrl(x.anh) }));
@@ -182,6 +182,57 @@ async function docBai(cid: number): Promise<BaiCu[]> {
       -- chỉ bài ĐANG CÓ LÃI (anh 27/11/2026): có tiêu 7 ngày thì xét lãi 7 ngày, không thì xét lãi tổng
       and (case when coalesce(b.chi7, 0) > 0 then coalesce(b.thu7, 0) > b.chi7 else coalesce(b.thu, 0) > coalesce(b.chi, 0) end)
     order by coalesce(b.chi7, 0) desc, coalesce(b.chi, 0) desc limit 40`);
+}
+
+/** CÂU ĐỌC SINH THÊM (anh 27/11/2026 "phải cho tao sinh thêm kiểu khác nữa"): sổ etp.cau_hinh 'cau_doc_them' {lc: [[a, b, c]…]} nối SAU mẫu của etp-mau-cr.json —
+ *  anh-tinh.py nối cùng cách, nên id 'lc:i' (dung-mau.py g_ghim) trỏ đúng một câu ở cả hai phía. Chỉ nối thêm, không xoá / đổi thứ tự. */
+type Mau3 = [string, string, string];
+async function docCauThem(): Promise<Record<string, Mau3[]>> {
+  const [r] = await run<{ g: Record<string, Mau3[]> | null }>(sql`select gia_tri g from etp.cau_hinh where khoa = 'cau_doc_them'`);
+  return r?.g ?? {};
+}
+function dsCau(lc: string, them: Record<string, Mau3[]>, ten: string) {
+  const ds = [...(CAU[lc] ?? []), ...(them[lc] ?? []).filter((m) => Array.isArray(m) && m.length === 3)];
+  return ds.map((m, i) => ({ id: `${lc}:${i}`, chu: m.map((v) => v.replace('{t}', ten)).join(' ') }));
+}
+const MO_FREE = /^\W*(for\s+free|free|gratis)\b/i;   // cổng chấm loại câu đọc mở bằng Free / gratis (anh 21/11/2026) — câu đầu phải là tên phim
+
+/** ✨ sinh thêm câu đọc kiểu khác cho ngôn ngữ của phim → ghi sổ cau_doc_them, trả danh sách câu mới (máy xoay dùng luôn các câu này) */
+export async function sinhCauDoc(cid: number): Promise<{ ok: true; cau: { id: string; chu: string }[]; moi: string[]; chi_usd: number; model: string } | { loi: string }> {
+  if (!(await laAdmin())) return { loi: 'chỉ admin' };
+  const id = Math.trunc(Number(cid)); if (!(id > 0)) return { loi: 'mã phim không hợp lệ' };
+  const [f] = await run<{ ten: string | null; lang: string | null }>(sql`select coalesce(p.ten, v.ten) ten, coalesce(p.locale, v.locale) lang
+    from (select ${id}::int content_id) k left join etp.phim p using (content_id) left join etp.thu_vien_phim v using (content_id)`);
+  if (!f?.ten) return { loi: `phim #${id} không có trong etp.phim / thư viện phim` };
+  const ten = f.ten, lc = (f.lang ?? '').startsWith('es') ? 'es' : 'en';
+  const them = await docCauThem();
+  const co: string[][] = [...(CAU[lc] ?? []), ...(them[lc] ?? [])];
+  const khoa = (m: string[]) => m.join(' ').toLowerCase().replace(/[^\p{L}\p{N}{} ]/gu, '').replace(/\s+/g, ' ').trim();
+  const daCo = new Set(co.map(khoa));
+  try {
+    const { goiAi, MO_HINH } = await import('@mos2/cong-ai');
+    const r = await goiAi<{ cau: { a: string; b: string; c: string }[] }>({ viec: 'etp2-cau-doc', model: MO_HINH.haiku, chi_re: true, max_tokens: 700,
+      system: 'You write voice-over hooks for short-drama video ads (Facebook). Each hook has 3 parts read in order: a = opens with the drama title placeholder {t} '
+        + '(a must contain {t} exactly once, and must NOT start with the word Free / For free / Gratis), b = short continuation (the "for free" promise goes here), '
+        + 'c = call to action telling the viewer to tap the button (Watch More / Learn More / See more). Spoken, punchy, under 9 words per part, no emojis, no hashtags. '
+        + 'Write in the requested language only. Each new hook must use a DIFFERENT style from the existing ones and from each other (e.g. question, urgency, curiosity, emotional, cliffhanger).',
+      noi_dung: `Language: ${lc === 'es' ? 'Spanish (Latin America)' : 'English'}\nExisting hooks (do not repeat these styles or wordings):\n${co.map((m) => `- ${m.join(' | ')}`).join('\n')}\nWrite 4 new hooks. Return {"cau":[{"a","b","c"}]}.`,
+      schema: { type: 'object', properties: { cau: { type: 'array', items: { type: 'object', properties: { a: { type: 'string' }, b: { type: 'string' }, c: { type: 'string' } }, required: ['a', 'b', 'c'] } } }, required: ['cau'] } },
+    { kiem: (k) => {
+      const ds = Array.isArray(k?.cau) ? k.cau : [];
+      if (!ds.length) return 'thiếu danh sách cau';
+      const hong = ds.find((m) => ![m?.a, m?.b, m?.c].every((x) => typeof x === 'string' && x.trim() && x.length <= 80) || (m.a.match(/\{t\}/g) ?? []).length !== 1 || /\{t\}/.test(m.b + m.c) || MO_FREE.test(m.a));
+      return hong ? `câu sai khuôn (a phải có {t} đúng một lần, không mở bằng Free/gratis, mỗi vế ≤ 80 ký tự): ${JSON.stringify(hong).slice(0, 160)}` : null;
+    } });
+    const moi: Mau3[] = [];
+    for (const m of r.kq.cau) { const x: Mau3 = [m.a.trim(), m.b.trim(), m.c.trim()]; const k = khoa(x); if (daCo.has(k)) continue; daCo.add(k); moi.push(x); }
+    if (!moi.length) return { loi: 'máy sinh ra toàn câu trùng câu đã có — bấm lại' };
+    const j = JSON.stringify(moi);
+    await run(sql`insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('cau_doc_them', jsonb_build_object(${lc}::text, ${j}::jsonb), 'câu đọc sinh thêm — nút ✨ phiếu lên camp etp2 (sinhCauDoc), nối sau mẫu etp-mau-cr.json', ${r.model})
+      on conflict (khoa) do update set gia_tri = etp.cau_hinh.gia_tri || jsonb_build_object(${lc}::text, coalesce(etp.cau_hinh.gia_tri -> ${lc}::text, '[]'::jsonb) || ${j}::jsonb), ai = excluded.ai, luc = now()`);
+    console.log(`[etp2-cau-doc] phim ${id} ${lc}: +${moi.length} câu · ${r.model} · $${r.chi_usd}`);
+    return { ok: true, cau: dsCau(lc, await docCauThem(), ten), moi: moi.map((m) => m.map((v) => v.replace('{t}', ten)).join(' ')), chi_usd: r.chi_usd, model: r.model };
+  } catch (e) { return { loi: `sinh câu đọc lỗi: ${(e as Error).message.slice(0, 300)}` }; }
 }
 
 /** chọn K (hoặc bấm K lần nữa) → máy sinh bộ chữ K mới cho phim (apps/etp/sinh-chu-kien.py --lai --xem --json: không ghi sổ, chữ chỉ đi theo phiếu khi gửi) */

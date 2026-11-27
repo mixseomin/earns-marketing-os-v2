@@ -1,5 +1,5 @@
 'use client';
-// CỜ 🇻🇳 CUỐI CÂU NGOẠI NGỮ (anh 27/11/2026, phiếu lên camp: "Các nội dung thêm icon cờ VN ở cuối. Hover vào thì sẽ hiện câu dịch").
+// CỜ 🇻🇳 ĐẦU CÂU NGOẠI NGỮ (anh 27/11/2026, phiếu lên camp: "Các nội dung thêm icon cờ VN ở cuối. Hover vào thì sẽ hiện câu dịch").
 // MỘT nguồn dịch cho cả etp2: dichChu (actions/etp-bai) → etp.dich (nhớ theo nguyên văn) → thiếu thì một lượt AI cổng chung (dòng Haiku).
 // layDich gộp + nhớ lời hứa trong trang (thẻ creative etp-bai-qc.tsx dùng chung); CoVi = cờ + bong bóng InfoHint (rê là hiện, không native title).
 import { useEffect, useState } from 'react';
@@ -32,13 +32,15 @@ export function useDichDs(ds: string[]): BanVi {
   return { vi, loi, cho };
 }
 
-/** cờ cuối câu: rê → câu dịch; đang dịch → cờ mờ; lỗi → cờ + ⚠ đỏ (lỗi kêu to); dịch trùng gốc / câu tiếng Việt → không hiện */
+/** cờ ĐẦU câu (anh 27/11/2026 "Cho cờ ở phía trước để ko ảnh hưởng đến bố cục"): ô cờ luôn giữ đúng một bề rộng cố định —
+ *  đang dịch (cờ mờ) → dịch xong (cờ rê = câu dịch) → lỗi (⚠ đỏ) → không cần dịch (ô trống) đều không xô chữ; chữ các dòng thẳng một mép.
+ *  Bong bóng mở sang PHẢI vì cờ đứng mép trái. */
+const O: React.CSSProperties = { display: 'inline-flex', justifyContent: 'center', alignItems: 'center', width: 18, flex: 'none', marginRight: 6, verticalAlign: 'middle', fontSize: 13, lineHeight: 1 };
 export function CoVi({ goc, b }: { goc: string | null | undefined; b: BanVi }) {
-  if (!goc || !goc.trim()) return null;
-  const v = b.vi[goc];
-  if (v) return trungGoc(goc, v) ? null : <span data-co-vi="co" onClick={(e) => e.stopPropagation()} style={{ marginLeft: 6, display: 'inline-flex', verticalAlign: 'middle' }}>
-    <InfoHint align="right" label="bản dịch tiếng Việt" icon={<span style={{ fontSize: 13, lineHeight: 1, cursor: 'help' }}>🇻🇳</span>}><span style={{ whiteSpace: 'normal', fontWeight: 400 }}>{v}</span></InfoHint></span>;
-  if (b.loi) return <span data-co-vi="loi" title={b.loi} style={{ marginLeft: 6, fontSize: 12, color: '#dc2626' }}>🇻🇳⚠</span>;
-  if (b.cho) return <span data-co-vi="cho" title="đang dịch…" style={{ marginLeft: 6, fontSize: 13, opacity: 0.35 }}>🇻🇳</span>;
-  return null;
+  const v = goc && goc.trim() ? b.vi[goc] : undefined;
+  if (goc && v && !trungGoc(goc, v)) return <span data-co-vi="co" onClick={(e) => e.stopPropagation()} style={O}>
+    <InfoHint label="bản dịch tiếng Việt" icon={<span style={{ fontSize: 13, lineHeight: 1, cursor: 'help' }}>🇻🇳</span>}><span style={{ whiteSpace: 'normal', fontWeight: 400 }}>{v}</span></InfoHint></span>;
+  if (goc && !v && b.loi) return <span data-co-vi="loi" title={b.loi} style={{ ...O, color: '#dc2626', fontSize: 11 }}>⚠</span>;
+  if (goc && !v && b.cho) return <span data-co-vi="cho" title="đang dịch…" style={{ ...O, opacity: 0.35 }}>🇻🇳</span>;
+  return <span data-co-vi="trong" aria-hidden style={O} />;
 }

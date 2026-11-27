@@ -77,7 +77,7 @@ type Muc = 'pt' | 'hl' | 'de';
 function KhoiChu({ c, sua, dongSinh, sinhDong, bv }: { c: ChuQc; sua: boolean; dongSinh: string | null; sinhDong: (m: Muc, i: number) => void; bv: BanVi }) {
   const ds = (m: Muc, t: string, xs: string[]) => xs.length ? <div style={{ marginBottom: 6 }}><div style={{ fontSize: 11, color: MO_SO }}>{t} · {xs.length}</div>
     {xs.map((x, i) => <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', fontSize: 12.5, padding: '3px 0', borderBottom: `1px dashed ${VIEN}` }}>
-      <span style={{ flex: 1, opacity: dongSinh === `${m}${i}` ? 0.4 : 1 }}>{x}<CoVi goc={x} b={bv} /></span>
+      <CoVi goc={x} b={bv} /><span style={{ flex: 1, opacity: dongSinh === `${m}${i}` ? 0.4 : 1 }}>{x}</span>
       {sua ? <button data-sinh-dong={`${m}${i}`} disabled={!!dongSinh} onClick={() => sinhDong(m, i)} title="máy AI sinh lại riêng dòng này (~100–300₫)"
         style={{ ...chip(false, !!dongSinh), padding: '0 7px', fontSize: 12 }}>{dongSinh === `${m}${i}` ? '…' : '↻'}</button> : null}
     </div>)}</div> : null;
@@ -170,7 +170,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
 
   const lc = (p?.lang ?? 'en').toLowerCase();
   const chu = kieu === 'kien' ? chuK : p?.chu.D ?? null;
-  // cờ 🇻🇳 cuối mỗi câu ngoại ngữ, rê = câu dịch (anh 27/11/2026) — câu đọc · nút CTA · chữ form; một nguồn dịch etp-co-vi
+  // cờ 🇻🇳 ĐẦU mỗi câu ngoại ngữ (ô cố định, không xô bố cục), rê = câu dịch (anh 27/11/2026) — câu đọc · nút CTA · chữ form; một nguồn dịch etp-co-vi
   const bv = useDichDs(p ? [...p.cau.map((c) => c.chu), ...p.cta, ...(chu ? [...chu.pt, ...chu.hl, ...chu.de] : [])] : []);
   const gioChon = gio === 'tay' ? gioTay.replace('T', ' ') : gio;
   const gioKhung = new Set(p?.khung.map((k) => k.gio.slice(11, 16)) ?? []);
@@ -239,7 +239,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       </Hang>
       <Hang ten="Câu đọc">
         <button style={chip(!cau)} onClick={() => setCau('')} title="mỗi bản một câu, xoay vòng theo sổ">máy xoay</button>
-        {p.cau.map((c, i) => <button key={c.id} style={{ ...chip(cau === c.id), textAlign: 'left', borderRadius: 8, width: '100%' }} onClick={() => setCau(c.id)} data-cau={c.id}>{i + 1}. {c.chu}<CoVi goc={c.chu} b={bv} /></button>)}
+        {p.cau.map((c, i) => <button key={c.id} style={{ ...chip(cau === c.id), textAlign: 'left', borderRadius: 8, width: '100%' }} onClick={() => setCau(c.id)} data-cau={c.id}><CoVi goc={c.chu} b={bv} />{i + 1}. {c.chu}</button>)}
       </Hang>
     </Khoi> : NOI_DUNG_VIDEO[dang] ? <Khoi icon="🎞" ten={`Nội dung trong video · ${dang}`} phu="máy dựng theo khuôn cố định — chưa có tuỳ chọn">
       <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5 }} data-noi-dung-video>{NOI_DUNG_VIDEO[dang].map((x) => <li key={x}>{x}</li>)}</ul>
@@ -250,7 +250,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       <Hang ten="Trong video">
         {dang === 'AD' ? <>
           <button style={chip(!cta)} onClick={() => setCta('')} data-cta="">mặc định mẫu (WATCH MORE)</button>
-          {p.cta.map((c) => <button key={c} style={chip(cta === c)} onClick={() => setCta(c)} data-cta={c}>{c}<CoVi goc={c} b={bv} /></button>)}
+          {p.cta.map((c) => <button key={c} style={chip(cta === c)} onClick={() => setCta(c)} data-cta={c}><CoVi goc={c} b={bv} />{c}</button>)}
         </> : <><span style={{ ...chip(true), cursor: 'default' }}>{nut}</span>{dang === 'CC2' ? <span style={{ fontSize: 11.5, color: MO_SO }}>CC2 cố định nút này</span> : null}</>}
       </Hang>
     </Khoi>

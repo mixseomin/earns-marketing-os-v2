@@ -317,7 +317,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
     <Khoi icon="🎯" ten="Bid ROAS" phu="chọn nhiều mức — mỗi mức một creative + một camp; bấm lại để bỏ">
       <Hang ten="Mức ROAS">
         {ROAS.map((r) => <button key={r.v} style={chip(roas.includes(r.v))} onClick={() => batRoas(r.v)} data-roas={r.v} title={r.v === 'dan' ? GOI_Y_DAN : `bid ROAS cố định ${r.t}`}>{r.t}</button>)}
-        <InfoHint>{GOI_Y_DAN}</InfoHint>
+        <InfoHint align="right">{GOI_Y_DAN}</InfoHint>
       {soCamp > 1 ? <div style={{ fontSize: 12, color: VANG, fontWeight: 600, width: '100%' }} data-canh-roas>⚠ sẽ lên {soCamp} camp — {laCu ? `${cu.length} creative × ${roas.length} mức ROAS, không dựng mới` : `máy dựng ${soCamp} creative mới, mỗi mức một bản`}{dang === 'CC2' ? ' (dòng CC2 ra 1–3 bản mỗi lượt; thiếu mức nào phiếu báo đỏ)' : ''}</div> : null}
       </Hang>
     </Khoi>

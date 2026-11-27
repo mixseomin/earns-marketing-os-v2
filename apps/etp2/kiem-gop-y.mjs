@@ -971,6 +971,8 @@ const LUAT = [
   { card: 'cau-doc-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-sinh-cau', vi: 'khối Câu đọc có nút sinh thêm câu kiểu khác (anh 27/11/2026)' },
   { card: 'cau-doc-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: "const cau = dsCau(lc, await docCauThem(), ten);", vi: 'câu đọc = mẫu sổ + câu sinh thêm (etp.cau_hinh cau_doc_them)' },
   { card: 'cau-doc-2711', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: "khoa = 'cau_doc_them'", vi: 'máy dựng đọc cùng sổ câu sinh thêm, id lc:i khớp etp2' },
+  { card: 'dau-3s-cho-len-2711', tep: 'apps/etp2/src/components/etp-cho-len.tsx', co: '<Dau3s video={x.video} anh={x.anh} />', vi: 'thẻ Chờ lên chạy lặp 3s đầu video thay ảnh tĩnh (anh 27/11/2026)' },
+  { card: 'dau-3s-cho-duyet-2711', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: '<Dau3s video={x.video} anh={x.anh} />', vi: 'thẻ Chờ anh duyệt chạy lặp 3s đầu video thay ảnh tĩnh (anh 27/11/2026)' },
   { card: 'cau-doc-cho-2711', tep: 'apps/etp2/src/components/etp-cho-len.tsx', co: '<CauDocCho x={x} />', vi: 'thẻ Chờ lên hiện Câu đọc hook ngay ngoài (anh 27/11/2026)' },
   { card: 'cho-len-vo-2711', tep: 'apps/etp2/src/lib/actions/etp-cho-len.ts', co: "c.muc ? 'vo'", vi: 'bản dựng lại có câu đọc (không phiếu) vẫn hiện ở Chờ lên để anh duyệt (anh 27/11/2026)' },
   { card: 'cau-doc-the-2711', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: '<CauDocThe x={x} />', vi: 'thẻ Chờ anh duyệt hiện Câu đọc trong video ngay ngoài (anh 27/11/2026)' },

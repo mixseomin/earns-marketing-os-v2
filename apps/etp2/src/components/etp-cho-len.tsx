@@ -3,7 +3,7 @@
 // Bản dựng mới máy giữ ở etp.cho_len (0485) — CHƯA có trên Ethopex. ✓ Duyệt = máy iMac tải lên (~1–2 phút) → thành creative, rồi đi tiếp đường thường.
 // ✕ Bỏ = không bao giờ lên. Lỗi hiện thành ô đỏ ngay dưới nút. Không có gì chờ → không vẽ gì. Cùng khuôn thẻ với ô Chờ anh duyệt (etp-cho-duyet.tsx).
 import { useCallback, useEffect, useState } from 'react';
-import { VideoXem } from '@/components/ui/video-xem';
+import { Dau3s } from '@/components/ui/dau-3s';
 import { BadgeDangNgan } from '@/components/etp-so';
 import { boChoLen, doiKieuChoLen, dsChoLen, duyetChoLen, lenCampLaiChoLen, sinhChuKien, type ChoLen, type ChuQc } from '@/lib/actions/etp-cho-len';
 
@@ -32,7 +32,6 @@ export function ChoLenEtho() {
   const [loiDs, setLoiDs] = useState<string | null>(null);
   const [bao, setBao] = useState<Record<number, { loi?: string; chu?: string }>>({});
   const [dang, setDang] = useState<ReadonlySet<number>>(() => new Set());
-  const [xem, setXem] = useState<number | null>(null);
   const tai = useCallback(async () => { const r = await dsChoLen(); if ('loi' in r) setLoiDs(r.loi); else { setLoiDs(null); setDs(r.ds); } }, []);
   useEffect(() => { void tai(); const t = setInterval(() => { void tai(); }, 15_000); return () => clearInterval(t); }, [tai]);
   if (loiDs === 'chỉ admin') return null;
@@ -58,16 +57,12 @@ export function ChoLenEtho() {
           return (
             <div key={x.id} data-cho-len-id={x.id} style={{ display: 'flex', gap: 8, width: 'min(460px, 100%)', boxSizing: 'border-box', minWidth: 0, border: '1px solid var(--line)', borderRadius: 6, padding: 6 }}>
               <div style={{ flex: 'none', width: ANH_W }}>
-                {xem === x.id && x.video ? <VideoXem src={x.video} controls style={{ width: '100%', aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 4, display: 'block' }} onEnded={() => setXem(null)} />
-                  : <button type="button" title={x.video ? 'bấm để xem video' : 'chưa có video'} onClick={() => x.video && setXem(x.id)} style={{ padding: 0, border: 'none', background: 'none', cursor: x.video ? 'pointer' : 'default', position: 'relative', width: '100%', display: 'block' }}>
-                      {x.anh ? <img src={x.anh} alt="" style={{ width: '100%', aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 4, display: 'block' }} /> : <span style={{ display: 'block', width: '100%', aspectRatio: '9 / 16', background: 'var(--line)', borderRadius: 4 }} />}
-                      {x.video ? <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34, color: '#fff', textShadow: '0 0 6px #000' }}>▶</span> : null}
-                    </button>}
+                <Dau3s video={x.video} anh={x.anh} />
               </div>
               <div style={{ flex: 1, minWidth: 0, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.phim ?? ''}>{x.phim ?? `phim #${x.content_id}`}</div>
-                <div style={{ color: 'var(--fg-2)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>{(x.lang ?? '?').toUpperCase()} · #{x.id} <BadgeDangNgan d={x.dang} />{x.giay ? ` · ${Math.round(x.giay)}s` : ''}</div>
                 <CauDocCho x={x} />
+                <div style={{ color: 'var(--fg-2)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>{(x.lang ?? '?').toUpperCase()} · #{x.id} <BadgeDangNgan d={x.dang} />{x.giay ? ` · ${Math.round(x.giay)}s` : ''}</div>
                 {x.mau || x.ma ? <div style={{ color: 'var(--fg-3, #888)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={[x.ma, x.mau].filter(Boolean).join(' · ')}>{[x.ma, x.mau].filter(Boolean).join(' · ')}</div> : null}
                 {x.ghi ? <div style={{ color: 'var(--fg-3, #888)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.ghi}>{x.ghi}</div> : null}
                 <div style={{ color: 'var(--fg-3, #888)' }}>dựng {gioVn(x.tao)}</div>
@@ -118,8 +113,8 @@ export function ChoLenEtho() {
 function CauDocCho({ x }: { x: ChoLen }) {
   const sach = x.vo ? x.vo.cau.replace(/\[[^\]]*\]\s*/g, '').trim() : '';
   return <div data-o="cau-doc-cho" title={x.vo ? `Câu máy đọc (nguyên văn, kèm thẻ cảm xúc): ${x.vo.cau}${x.vo.giong ? `\nGiọng: ${x.vo.giong}` : ''}` : undefined}
-    style={{ padding: '3px 6px', borderLeft: `3px solid ${x.vo ? '#a78bfa' : 'var(--line)'}`, background: x.vo ? 'rgba(167,139,250,.1)' : 'transparent', cursor: x.vo ? 'help' : 'default' }}>
-    <span style={{ color: 'var(--fg-3, #888)' }}>Câu đọc: </span>
-    {x.vo ? <b style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>“{sach}”</b> : <span style={{ color: 'var(--fg-3, #888)' }}>không có giọng đọc hook</span>}
+    style={{ padding: '5px 7px', borderLeft: `4px solid ${x.vo ? '#f59e0b' : 'var(--line)'}`, borderRadius: 4, background: x.vo ? 'rgba(245,158,11,.12)' : 'transparent', cursor: x.vo ? 'help' : 'default' }}>
+    <div style={{ fontSize: 10.5, fontWeight: 700, color: '#f59e0b', letterSpacing: '.02em' }}>CÂU ĐỌC · 3S ĐẦU</div>
+    {x.vo ? <b style={{ fontSize: 14, lineHeight: 1.35, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>“{sach}”</b> : <span style={{ color: 'var(--fg-3, #888)' }}>không có giọng đọc hook</span>}
   </div>;
 }

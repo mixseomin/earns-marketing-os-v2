@@ -3,7 +3,7 @@
 // ✓ Duyệt = lên ★ ROAS mặc định hoi_cho (giờ theo lịch lên) · ✕ Loại. Lỗi hiện thành ô đỏ ngay dưới nút. Không có gì chờ → không vẽ gì.
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { VideoXem } from '@/components/ui/video-xem';
+import { Dau3s } from '@/components/ui/dau-3s';
 import { Drawer } from '@/components/ui';
 import { CamCauHinh } from './etp-camp-cau-hinh';
 import { KhungBaiQc } from './etp-bai-qc';
@@ -36,7 +36,6 @@ function TomTl({ x }: { x: ChoDuyet }) {
     {/* #1844 "show thêm kiểu giọng áp dụng với loại creative này": giọng đọc lúc dựng (giongCr — ghi thư viện, lùi về sổ điểm chạm); người đọc + cách đọc ở rê chuột */}
     {dong('Giọng', x.giong ? `${tenGiong(x.giong)} (${maGiong(x.giong)})` : null,
       x.giong ? (MO_TA_GIONG[x.giong] ?? tenGiong(x.giong) ?? '') : 'bản dựng trước 25/11 không lưu lại giọng đã dùng — từ 25/11 mỗi lượt dựng ra 2 bản: giọng mặc định (kỳ dị) + giọng hợp chủ đề phim')}
-    <CauDocThe x={x} />
     {dong('Ngôn ngữ', t.g_ngon_ngu || 'All languages', 'nhan-ban bỏ targeting.locales của mọi camp — không nhắm ngôn ngữ (luật cố định 24/11/2026)', t.g_ngon_ngu ? '#f87171' : '#4ade80')}
     {dong('Nước', nuoc, [t.g_nuoc, t.g_loai_nuoc ? `loại: ${t.g_loai_nuoc}` : ''].filter(Boolean).join('\n'))}
     {dong('Tuổi · GT', [t.g_tuoi, t.g_gioi ? t.g_gioi.split(', ').map((g) => (g === '1' ? 'Male' : g === '2' ? 'Female' : g)).join(', ') : 'All genders'].filter(Boolean).join(' · ') || null,
@@ -58,12 +57,12 @@ function TomTl({ x }: { x: ChoDuyet }) {
 function CauDocThe({ x }: { x: ChoDuyet }) {
   const cc = /cảnh cuối|canh cuoi/i.test(x.dang ?? '');
   const lech = !!(x.cau_nn && x.lang && x.cau_nn.slice(0, 2).toLowerCase() !== x.lang.slice(0, 2).toLowerCase());
-  return <div data-o="cau-doc-the" style={{ display: 'flex', gap: 6, minWidth: 0 }}>
-    <span style={{ flex: 'none', width: 62, color: 'var(--fg-3, #888)' }}>Câu đọc</span>
+  return <div data-o="cau-doc-the" style={{ padding: '5px 7px', borderLeft: `4px solid ${x.cau_doc ? '#f59e0b' : 'var(--line)'}`, borderRadius: 4, background: x.cau_doc ? 'rgba(245,158,11,.12)' : 'transparent', minWidth: 0 }}>
+    <div style={{ fontSize: 10.5, fontWeight: 700, color: '#f59e0b', letterSpacing: '.02em' }}>CÂU ĐỌC · 3S ĐẦU</div>
     <span style={{ minWidth: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', display: 'flex', flexDirection: 'column', gap: 2 }}>
       {cc ? <b style={{ color: '#f59e0b' }}>không có giọng đọc hook — video chỉ có thoại gốc phim:</b> : null}
       {lech ? <b style={{ color: '#f87171' }}>⚠ tiếng nghe được {x.cau_nn!.toUpperCase()} ≠ tiếng camp {x.lang!.toUpperCase()}</b> : null}
-      {x.cau_doc ? <span style={cc ? { color: 'var(--fg-2)', fontStyle: 'italic' } : undefined}>“{x.cau_doc.length > 240 ? `${x.cau_doc.slice(0, 240)}…` : x.cau_doc}”</span>
+      {x.cau_doc ? <span style={cc ? { color: 'var(--fg-2)', fontStyle: 'italic' } : { fontSize: 14, fontWeight: 700, lineHeight: 1.35 }}>“{x.cau_doc.length > 240 ? `${x.cau_doc.slice(0, 240)}…` : x.cau_doc}”</span>
         : <span style={{ color: 'var(--fg-3, #888)' }}>chưa nghe được lời đọc (máy chấm chưa chấm creative này)</span>}
     </span></div>;
 }
@@ -159,7 +158,6 @@ export function ChoDuyetCr() {
   // KHOÁ RIÊNG TỪNG THẺ (anh 25/11/2026 "Bấm xong là đéo duyệt cái khác đc nữa"): trước một biến chung → bấm một thẻ khoá nút mọi thẻ tới khi lệnh lên camp trả về
   const [dang, setDang] = useState<ReadonlySet<number>>(() => new Set());
   const router = useRouter();
-  const [xem, setXem] = useState<number | null>(null);
   const [ngan, setNgan] = useState<number | null>(null);   // ngăn camp dự kiến của creative (bấm thẻ)
   const tai = useCallback(async () => { const r = await dsChoDuyet(); if ('loi' in r) setLoiDs(r.loi); else { setLoiDs(null); setDu(r); } }, []);
   useEffect(() => { void tai(); const t = setInterval(() => { void tai(); }, 20_000); return () => clearInterval(t); }, [tai]);
@@ -204,17 +202,14 @@ export function ChoDuyetCr() {
             // #1861 điện thoại 393px: thẻ co theo khung (không cứng 460 → tràn ngang), ảnh 9:16 co theo bề ngang màn
             <div key={x.creative_id} style={{ display: 'flex', gap: 8, width: 'min(460px, 100%)', boxSizing: 'border-box', minWidth: 0, border: '1px solid var(--line)', borderRadius: 6, padding: 6 }}>
               <div style={{ flex: 'none', width: ANH_W }}>
-                {xem === x.creative_id && x.video ? <VideoXem src={x.video} controls style={{ width: '100%', aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 4, display: 'block' }} onEnded={() => setXem(null)} />
-                  : <button type="button" title={x.video ? 'bấm để xem video' : 'chưa có video'} onClick={() => x.video && setXem(x.creative_id)} style={{ padding: 0, border: 'none', background: 'none', cursor: x.video ? 'pointer' : 'default', position: 'relative', width: '100%', display: 'block' }}>
-                      {x.anh ? <img src={x.anh} alt="" style={{ width: '100%', aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 4, display: 'block' }} /> : <span style={{ display: 'block', width: '100%', aspectRatio: '9 / 16', background: 'var(--line)', borderRadius: 4 }} />}
-                      {x.video ? <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34, color: '#fff', textShadow: '0 0 6px #000' }}>▶</span> : null}
-                    </button>}
+                <Dau3s video={x.video} anh={x.anh} />
               </div>
               <div style={{ flex: 1, minWidth: 0, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <div role="button" tabIndex={0} title="bấm để mở ngăn camp dự kiến (đủ Campaign / Ad set / Ad như trang Ethopex)" onClick={() => setNgan(x.creative_id)} onKeyDown={(e) => { if (e.key === 'Enter') setNgan(x.creative_id); }}
                   style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.phim ?? ''}>{x.phim ?? `phim #${x.content_id}`} <span style={{ color: '#60a5fa', fontWeight: 400 }}>↗ chi tiết</span></div>
                 {/* #1895 anh 26/11/2026 "Hiện Badge thể loại ở đây cho gọn. Và badge loại camp K/D": dạng = badge ngắn (sổ dạng), K/D = kiểu link camp dự kiến */}
+                <CauDocThe x={x} />
                 <div style={{ color: 'var(--fg-2)', display: 'flex', alignItems: 'center', gap: 5 }}>{(x.lang ?? '?').toUpperCase()} · cr #{x.creative_id} <BadgeDangNgan d={x.dang} /> <BadgeKieu k={x.kieu} /></div>
                 <div style={{ color: 'var(--fg-3, #888)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.ghi}>{x.ghi}</div>
                 {x.diem_thap ? <div style={{ color: '#fbbf24' }} title={`tiêu chí chấm ≤ 4: ${x.diem_thap} — duyệt thì người duyệt thắng điểm (0443)`}>⚠ điểm thấp: {x.diem_thap.slice(0, 40)}</div> : null}

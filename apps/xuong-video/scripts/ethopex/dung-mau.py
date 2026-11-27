@@ -249,7 +249,7 @@ def logo_khoa_ai(c):
         ra, v = _nap("logo_goc", "logo-goc.py").anh_khoa(link, os.path.join(c["tm"], "logo-khoa.png"), c.get("cid") or ""); _CHI_LOGO[0] += v; return ra
     return lam
 SQL_GAN_PHIEU = _nap("cho_len", "cho_len.py").SQL_GAN_PHIEU   # gắn thẻ Chờ lên vào phiếu + mức ROAS của thẻ — một câu cho AD (đây) và CC2 (cho_len.ghi_cho)
-LOGO_BAN = 6   # đổi cách tách thì tăng số này → logo đã nhớ của mọi phim tách lại (6: vùng cắt nới theo nét + cổng "logo bị cụt", 26/11/2026 #116378 mất chữ KING)
+LOGO_BAN = 7   # 7: mác nền tảng (DramaBox Exclusive/Exclusivo) thắng hộp tên + từ dính phải ghép đủ từ của tên (27/11/2026 Deny Me, ¡Atrás!) · đổi cách tách thì tăng số này → logo đã nhớ của mọi phim tách lại (6: vùng cắt nới theo nét + cổng "logo bị cụt", 26/11/2026 #116378 mất chữ KING)
 def day_logo(cid, tep, kieu, ep=False):
     """logo gốc của phim → kho R2 (box3 kho phat ethopex logo-goc) + etp.logo_goc (migration 0489) → etp2 phiếu lên camp hiện logo.
     Đã có đúng LOGO_BAN thì thôi (một câu SQL); đẩy lỗi KHÔNG chặn bản dựng — kêu to ra stderr."""

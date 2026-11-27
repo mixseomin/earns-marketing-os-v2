@@ -321,7 +321,13 @@ def giong_tu(a, b):
 def khop_tu(doc, can, ten=None):
     """các từ của tên phim (can) có trong tập từ máy đọc (doc), cho phép lệch một ký tự"""
     # máy đọc chữ hay DÍNH từ (25/11/2026 Deny Me, Dragon King: đọc "DenyMe," "Dragonkus") → từ đọc được chứa trọn từ của tên (≥ 2 ký tự) cũng tính là khớp
-    co = {c for c in can if any(giong_tu(d, c) or (len(d) > len(c) >= 2 and c in d) for d in doc)}
+    # nhưng PHẦN CÒN LẠI của từ dính cũng phải là từ của tên (27/11/2026 92980: "te" nằm trong "GENERATE" của dấu Ai trên poster → hộp tên kéo cả dấu Ai, logo co bé xíu)
+    def dinh(d, c):
+        if not len(d) > len(c) >= 2: return False
+        r = d[len(c):] if d.startswith(c) else d[:-len(c)] if d.endswith(c) else None
+        r = re.sub(r"[^a-z0-9áéíóúñü]", "", r or "")
+        return bool(r) and any(giong_tu(r, c2) or (len(r) >= 2 and (c2.startswith(r) or c2.endswith(r))) for c2 in can if c2 != c)
+    co = {c for c in can if any(giong_tu(d, c) or dinh(d, c) for d in doc)}
     if ten:   # cụm 2–3 từ liền nhau của tên bị đọc dính + lệch đuôi ("Dragonkus" ≈ "dragonking") → cả cụm tính là khớp
         tt = [w for w in re.findall(r"[a-z0-9áéíóúñü]+", re.sub(r"['’`]", "", ten.lower()))]
         for n in (2, 3):

@@ -20,7 +20,7 @@ from scipy import ndimage as nd
 
 D = os.path.dirname(os.path.abspath(__file__))
 NOI_LAN = 3   # số lần nới vùng cắt khi nét logo chạm mép (mỗi lần một cao dòng, chỉ cạnh bị chạm) — 26/11/2026 #116378 mất chữ KING
-NHAN = {"reelshort", "dramabox", "shortmax", "goodshort", "flextv", "exclusive", "original", "originals"}   # nhãn nền tảng trên poster — không thuộc logo phim, không mang vào creative
+NHAN = {"reelshort", "dramabox", "shortmax", "goodshort", "flextv", "exclusive", "exclusivo", "exclusiva", "original", "originals", "originales"}   # nhãn nền tảng trên poster — không thuộc logo phim, không mang vào creative
 _at = None
 def AT():
     global _at
@@ -118,7 +118,15 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
             a, b_, e, f = px((bx - bw * k - trai, by - bh * (k + (0.5 if trai else 0)), bw * (1 + 2 * k) + trai, bh * (1 + 2 * k + (1.0 if trai else 0))))
             cam[int(max(0, b_ - Y0)):int(max(0, f - Y0)), int(max(0, a - X0)):int(max(0, e - X0))] = True
             if trai: cam_nhan[int(max(0, b_)):int(max(0, f)), int(max(0, a)):int(max(0, e))] = True
-        cam &= ~chu
+        # NHÃN NỀN TẢNG THẮNG HỘP TÊN (anh 27/11/2026 "Deny Me logo bóc xấu quá": máy đọc chữ trả hộp "Dragon King" cao tới 0,91 poster, đè dòng "DramaBox Exclusive"
+        # ở 0,875 → `cam &= ~chu` xoá vùng cấm đúng chỗ chồng, mác nền tảng lọt nguyên vào logo). Hộp nhãn sát (lề 10%, kèm biểu tượng bên trái) cấm tuyệt đối,
+        # và hộp tên bị cắt tại mép nhãn để cổng chất lượng không tính phần nhãn là nét tên.
+        nhan_sat = np.zeros((h, w), bool)
+        for t_, bx, by, bw, bh in j.get("khung") or []:
+            if [bx, by, bw, bh] in hop or not tu(t_) & NHAN: continue
+            a, b_, e, f = px((bx - 2.4 * bh * Y / X, by - 0.1 * bh, bw + 2.4 * bh * Y / X + 0.1 * bw, bh * 1.2))
+            nhan_sat[int(max(0, b_ - Y0)):int(max(0, f - Y0)), int(max(0, a - X0)):int(max(0, e - X0))] = True
+        cam &= ~chu; cam |= nhan_sat; chu &= ~nhan_sat
     def mep(dac):
         """cạnh vùng cắt mà nét logo chạm (trừ cạnh trùng mép poster — đó là mép ảnh gốc, không phải mình cắt) → {'trai','phai','tren','duoi'}"""
         x0, x1, y0, y1 = vung; a, b, e, f = y0 - Y0, y1 - Y0, x0 - X0, x1 - X0; n = max(3, int(0.15 * lh)); dd = max(2, int(0.04 * lh)); ra_ = set()

@@ -44,7 +44,9 @@ def mau_js():
 
 # LỚP FREE CỦA NHÀ (anh 09/11/2026 "Dựng free", theo Dol / Ethopex: chữ "Free" trên creative cho CPC rẻ hơn): nhãn + nút anh-tinh.py tự vẽ (anh-tinh.FREE) —
 # gỡ ĐÚNG các câu này khỏi chữ đọc được trước khi soát; chữ "FREE" / "Watch for free" khác (lớp phủ in sẵn của QC app gốc) vẫn chặn như luật 22/10/2026.
-CHO_FREE = ["All Episodes Released", "Watch For Free", "Todos los episodios ya disponibles", "Míralo gratis"]
+# + nút "WATCH FREE" / "VER GRATIS" của mẫu ảnh động logo + CC2 (dung-mau.py, lop-logo-cc2.py — anh 27/11/2026 "phải có phần chữ Free trong video"): 27/11/2026 thiếu ở đây
+#   nên cổng chặn chính nút nhà vẽ (cho_len #34 "Ungrateful Daughter" 18 khung), creative anh đã duyệt không lên được
+CHO_FREE = ["All Episodes Released", "Watch For Free", "Watch Free", "Todos los episodios ya disponibles", "Míralo gratis", "Ver gratis"]
 _MAU_CHO = re.compile(r"\s*\|?\s*(" + "|".join(re.escape(x) for x in CHO_FREE) + r")\s*\|?", re.I)
 def soat(cau, cho_free=False):
     """→ từ khớp đầu tiên hoặc None (thoại cấm · CTA dụ nhấp · lớp phủ CTA kích thích của QC app gốc — cta_qc.phu_kich_thich).
@@ -128,6 +130,9 @@ def tu_kiem():
     for c in ("All Episodes Released | VENGEANCE | OF THE | DRAGON PRINCESS | Watch For Free", "Todos los episodios ya disponibles | LA HEREDERA | Míralo gratis"):
         assert not soat(c, True), "lớp Free nhà phải qua: %s (khớp %s)" % (c, soat(c, True))
     for c in ("FREE", "11:30 Watch for free for a limited time", "All Episodes Released | WATCH FREE · TAP LEARN MORE"): assert soat(c, True), "Free ngoài lớp nhà vẫn chặn: " + c
+    for c in ("ALL EPISODES RELEASED | Shattering the Scheme of | Ungrateful Daughter | WATCH FREE", "Todos los episodios ya disponibles | LA HEREDERA | VER GRATIS"):   # nút mẫu ảnh động logo / CC2
+        assert not soat(c, True), "nút Free nhà phải qua: %s (khớp %s)" % (c, soat(c, True))
+    assert soat("ALL EPISODES RELEASED | Ungrateful Daughter | WATCH FREE"), "không cờ --free thì WATCH FREE trần vẫn chặn"
     print("tự kiểm: %d/%d đạt" % (len(chan) + len(qua), len(chan) + len(qua)))
 
 if __name__ == "__main__":
@@ -135,5 +140,6 @@ if __name__ == "__main__":
     video, tu, den = sys.argv[1], float(sys.argv[2]), float(sys.argv[3]); cf = "--free" in sys.argv
     loi = [(g, c, soat(c, cf)) for g, c in doc(video, tu, den) if soat(c, cf)]
     for g, c, k in loi: print("THOAI CHAN: %ds «%s» (từ: %s)" % (g, c[:120], k))
-    print("THOAI OK" if not loi else "THOAI CHAN: %d khung — đoạn %s–%ss không cắt (Meta: Adult Sexual Exploitation)" % (len(loi), tu, den))
+    # nhãn nói đúng thứ chặn: đây là CỔNG CHỮ CỦA NHÀ (danh sách CAM + CTA), không phải Meta từ chối (27/11/2026 anh đọc "(Meta: …)" tưởng Meta chặn)
+    print("THOAI OK" if not loi else "THOAI CHAN: %d khung — đoạn %s–%ss không cắt (cổng chữ nhà chặn từ: %s)" % (len(loi), tu, den, ", ".join(dict.fromkeys(k for _, _, k in loi))[:80]))
     sys.exit(2 if loi else 0)

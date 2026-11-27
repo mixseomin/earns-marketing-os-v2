@@ -121,6 +121,24 @@ async function docBo(): Promise<{ ds: BoTk[]; mac: string | null }> {
  *  chữ đọc từ Ethopex (etp.chu_doi ← dong-bo.py), cùng ngôn ngữ phim, Kiên xếp trước rồi theo lãi. Chỉ để XEM — chữ phiếu vẫn là K (máy sinh) / D (form-chu). */
 /** CÂU ĐỌC CỦA ĐỘI: creative đội (tk không phải nhà) của phim này — có lời đọc hay chưa (chưa thì trạng thái hàng chấm; máy chấm đội nap-creative-ngoai --tu-dong tự xếp),
  *  rồi creative đội ĐANG LÃI 7 ngày (chi ≥ $5) cùng ngôn ngữ phim đã có lời đọc. Lời đọc = etp.cham.lop.giong.noi_dung (Worker etp-cham nghe video ghi ra). */
+/** CÂU ĐỌC ĐỘI ĐANG LÃI (anh 27/11/2026 "khi gửi có gửi câu winning đi ko?"): creative đội (tk không phải nhà) MỌI PHIM cùng ngôn ngữ, lãi 7 ngày (chi ≥ $5),
+ *  có lời đọc đã chấm, câu trùng chỉ một lần, lãi nhiều xếp trước. Truy vấn RIÊNG — không đi chung giới hạn với creative của phim đang mở (bản trước lấy chung
+ *  limit 24 / 16, phim có nhiều creative đội thì câu win bị đẩy rớt). Dùng cho ✨ sinh câu đọc (gửi máy) và khối Câu đọc của đội. */
+async function docCauWin(lc: string, n = 12): Promise<CauDoi[]> {
+  const da = new Set<string>();
+  return (await run<CauDoi>(sql`with d as (select n.creative_id, max(n.content_id) content_id, string_agg(distinct t.nguoi, ', ') nguoi from etp.camp_ngoai n left join etp.tai_khoan t using (ad_account_id)
+      where n.creative_id > 0 and not coalesce(t.nha, false) group by 1),
+    so as (select c.creative_id, coalesce(sum(s.chi), 0) chi7, coalesce(sum(s.thu), 0) thu7 from etp.camp_ngoai c join etp.so_ngay_ngoai s using (camp_id)
+      where s.ngay > current_date - 7 group by 1)
+    select d.creative_id cr, d.nguoi, coalesce(p.ten, v.ten) phim, ch.lop -> 'giong' ->> 'noi_dung' chu,
+      round(so.chi7::numeric, 2)::float chi7, round(so.thu7::numeric, 2)::float thu7, null::text hang
+    from d join so using (creative_id) join etp.cham ch using (creative_id) left join etp.phim p on p.content_id = d.content_id left join etp.thu_vien_phim v on v.content_id = d.content_id
+    where nullif(trim(ch.lop -> 'giong' ->> 'noi_dung'), '') is not null and so.thu7 > so.chi7 and so.chi7 >= 5
+      and (case when coalesce(p.locale, v.locale, 'en') like 'es%' then 'es' else 'en' end) = ${lc}
+    order by so.thu7 - so.chi7 desc limit 80`))
+    .filter((c) => { const k = (c.chu ?? '').toLowerCase().replace(/\W+/g, ' ').trim(); if (!k || da.has(k)) return false; da.add(k); return true; }).slice(0, n);
+}
+
 async function docCauDoi(cid: number, lc: string): Promise<CauDoi[]> {
   const da = new Set<string>();   // câu y hệt nhau (cùng một video nhiều creative) chỉ hiện một lần
   return (await run<CauDoi>(sql`with d as (select n.creative_id, n.content_id, string_agg(distinct t.nguoi, ', ') nguoi from etp.camp_ngoai n left join etp.tai_khoan t using (ad_account_id)
@@ -131,10 +149,10 @@ async function docCauDoi(cid: number, lc: string): Promise<CauDoi[]> {
       round(coalesce(so.chi7, 0)::numeric, 2)::float chi7, round(coalesce(so.thu7, 0)::numeric, 2)::float thu7,
       (select h.trang_thai from etp.cham_hang h where h.creative_id = d.creative_id order by h.luc desc nulls last limit 1) hang
     from d left join so using (creative_id) left join etp.cham ch using (creative_id) left join etp.phim p on p.content_id = d.content_id left join etp.thu_vien_phim v on v.content_id = d.content_id
-    where d.content_id = ${cid} or (nullif(ch.lop -> 'giong' ->> 'noi_dung', '') is not null and so.thu7 > so.chi7 and so.chi7 >= 5
-      and (case when coalesce(p.locale, v.locale, 'en') like 'es%' then 'es' else 'en' end) = ${lc})
-    order by (d.content_id = ${cid}) desc, (coalesce(so.thu7, 0) > coalesce(so.chi7, 0)) desc, coalesce(so.thu7, 0) - coalesce(so.chi7, 0) desc limit 24`))
-    .filter((c) => { if (!c.chu) return true; const k = c.chu.toLowerCase().replace(/\W+/g, ' ').trim(); if (da.has(k)) return false; da.add(k); return true; }).slice(0, 16);
+    where d.content_id = ${cid}
+    order by (coalesce(so.thu7, 0) > coalesce(so.chi7, 0)) desc, coalesce(so.thu7, 0) - coalesce(so.chi7, 0) desc limit 40`))
+    .concat(await docCauWin(lc))
+    .filter((c) => { if (!c.chu) return true; const k = c.chu.toLowerCase().replace(/\W+/g, ' ').trim(); if (da.has(k)) return false; da.add(k); return true; });
 }
 
 async function docMauDoi(lc: string): Promise<MauDoi[]> {
@@ -241,7 +259,7 @@ export async function sinhCauDoc(cid: number, huong?: string): Promise<{ ok: tru
   const daCo = new Set(co.map(khoa));
   const yc = (typeof huong === 'string' ? huong : '').trim().slice(0, 2000) || CAU_HUONG;
   // câu đọc ĐỘI đang lãi cùng ngôn ngữ làm mẫu (anh 27/11/2026 "câu đọc đang chưa khớp với đội nên đây là 1 lý do hiệu suất thấp")
-  const doi = (await docCauDoi(id, lc)).filter((c) => c.chu && c.thu7 > c.chi7).slice(0, 8);   // ô prompt của anh; trống = mặc định
+  const doi = await docCauWin(lc, 10);   // câu đọc đội đang lãi, truy vấn riêng (không phụ thuộc số creative đội của phim đang mở)
   // mẫu win là ĐẦU VÀO BẮT BUỘC (anh 27/11/2026 "tham khảo các mẫu win trước khi dùng mấy cái e.g ngu kia") — không có thì kêu, không sinh mò
   if (!doi.length) return { loi: `chưa có câu đọc đội nào đang lãi 7 ngày (chi ≥ $5, ${lc.toUpperCase()}) có lời đọc đã chấm — không sinh mò theo ví dụ bịa; chờ máy chấm đội nghe xong creative đội lãi` };
   try {
@@ -271,12 +289,12 @@ export async function sinhCauDoc(cid: number, huong?: string): Promise<{ ok: tru
 }
 
 /** chọn K (hoặc bấm K lần nữa) → máy sinh bộ chữ K mới cho phim (apps/etp/sinh-chu-kien.py --lai --xem --json: không ghi sổ, chữ chỉ đi theo phiếu khi gửi) */
-export async function sinhChuK(cid: number, lang?: 'en' | 'es'): Promise<{ ok: true; chu: ChuQc; vnd: number; lang: string } | { loi: string }> {
+export async function sinhChuK(cid: number, lang?: 'en' | 'es', khac?: string): Promise<{ ok: true; chu: ChuQc; vnd: number; lang: string } | { loi: string }> {
   if (!(await laAdmin())) return { loi: 'chỉ admin' };
   const id = Math.trunc(Number(cid)); if (!(id > 0)) return { loi: 'mã phim không hợp lệ' };
   const tep = path.join(process.cwd(), '..', 'etp', 'sinh-chu-kien.py');
   const link = (await soChu([])).kien(0)?.link ?? 'search.com';
-  return await new Promise((ok) => execFile('python3', [tep, String(id), '--lai', '--xem', '--json', ...(lang === 'en' || lang === 'es' ? ['--lang', lang] : [])], { timeout: 240_000, maxBuffer: 1 << 20, cwd: path.join(process.cwd(), '..', '..') }, (e, out, err) => {
+  return await new Promise((ok) => execFile('python3', [tep, String(id), '--lai', '--xem', '--json', ...(lang === 'en' || lang === 'es' ? ['--lang', lang] : []), ...(typeof khac === 'string' && khac.trim() ? ['--khac', khac.trim().slice(0, 600)] : [])], { timeout: 240_000, maxBuffer: 1 << 20, cwd: path.join(process.cwd(), '..', '..') }, (e, out, err) => {
     const ra = `${out ?? ''}`, dong = ra.split('\n').find((l) => l.startsWith('JSON:'));
     if (!dong) return ok({ loi: `sinh chữ K lỗi: ${(ra.split('\n').find((l) => l.startsWith('✗'))?.slice(2) ?? `${err ?? ''}`.trim().split('\n').slice(-2).join(' ') ?? e?.message ?? '?').slice(0, 400)}` });
     try {

@@ -26,12 +26,14 @@ def main():
         # SẢN XUẤT THEO CHỢ (anh 18/11/2026, sổ luật san_xuat_theo_cho): phanh chợ bật → không nạp / chấm creative đội (cửa máy chấm cũng giữ hàng); đọc khoá cong.KHOA_SX
         import cong as CG
         sx = json.loads(EA._q(CG.SQL_SX) or "{}")
-        if sx.get("phanh") and "--kho" not in sys.argv: print(json.dumps({"tat": True, "ghi": sx["phanh"]}, ensure_ascii=False)); return
+        # CHỈ phanh chợ giữ chấm đội; chi_lenh ("chỉ lên camp mới theo lệnh anh") gác việc LÊN CAMP, chấm creative đội không lên camp nào → không bị chặn
+        # (27/11/2026: chi_lenh bật làm 48 creative đội đang lãi không được nghe lời đọc → khối Câu đọc của đội etp2 toàn "chưa có lời đọc")
+        if CG.phanh_giu_cham_doi(sx) and "--kho" not in sys.argv: print(json.dumps({"tat": True, "ghi": sx["phanh"]}, ensure_ascii=False)); return
         ids = [int(x) for x in EA._q(f"""select c.creative_id from etp.camp_ngoai c join etp.tai_khoan t using (ad_account_id) left join etp.so_ngay_ngoai n using (camp_id)
                 where not t.nha and c.trang_thai = 'ACTIVE' and c.creative_id > 0
                   and not exists (select 1 from etp.cham h where h.creative_id = c.creative_id) and not exists (select 1 from etp.cham_hang q where q.creative_id = c.creative_id
                                   and not (q.trang_thai = 'loi' and q.loi like 'creative không có trong kho%' and q.luc < now() - interval '1 hour'))
-                group by 1 having coalesce(sum(n.chi), 0) >= {float(ch['chi'])} order by sum(n.thu) - sum(n.chi) desc limit {int(ch['moi_luot'])}""").split()]
+                group by 1 having coalesce(sum(n.chi), 0) >= {float(ch['chi'])} order by coalesce(sum(n.thu), 0) - coalesce(sum(n.chi), 0) desc limit {int(ch['moi_luot'])}""").split()]
         if "--kho" in sys.argv: print(json.dumps({"se_nap": ids, "cau_hinh": ch})); return
         if not ids: print(json.dumps({"nap": [], "xep_cham": True})); return
         cham = True

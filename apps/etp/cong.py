@@ -541,6 +541,12 @@ KHOA_SX = SXC["khoa"]
 SQL_KHONG_TRUNG = "not exists (select 1 from etp.dong_phim y where y.content_id = d.content_id and y.loai is not distinct from d.loai and y.trang_thai = 'chay' and y.id <> d.id)"
 SX_PHUT = int(SXC["het_phut"])   # khoá san_xuat_cho quá hạn (dong-bo chết) → coi như không phanh (máy chạy như cũ, cổng lên camp vẫn chặn)
 SQL_SX = (f"select coalesce((select gia_tri::text from etp.cau_hinh where khoa = '{KHOA_SX}' and (gia_tri->>'het')::timestamptz > now()), '{{}}')")
+def phanh_giu_cham_doi(sx):
+    """hàm thuần: khoá KHOA_SX → có giữ chấm creative ĐỘI (nguồn 'ngoai') không. Chỉ phanh CHỢ giữ; phanh "chỉ lên camp mới theo lệnh anh" (chi_len_theo_lenh)
+    gác việc LÊN CAMP, chấm creative đội không lên camp nào (anh 27/11/2026: 48 creative đội đang lãi kẹt chưa nghe lời đọc vì phanh này)"""
+    ph = (sx or {}).get("phanh") or ""
+    return bool(ph) and not ((sx or {}).get("chi_lenh") and KHOA_CHI_LENH in ph)
+
 def phanh_sx(ch, bay_gio=None):
     """hàm thuần: etp.cau_hinh {khoá: giá trị} → câu 'chờ phanh nhả: …' | None"""
     bay = bay_gio or dt.datetime.now(dt.timezone.utc)   # bay_gio chỉ cho nấc rút (bài tự kiểm); cổng chan_cua xét giờ hiện tại như lúc lên camp
@@ -712,6 +718,9 @@ def ns_tao(body):
     return None, tran
 
 def _tu_kiem():
+    assert phanh_giu_cham_doi({"phanh": "chờ phanh nhả: CHỈ LÊN CAMP MỚI THEO LỆNH ANH (etp.cau_hinh.chi_len_theo_lenh, …)", "chi_lenh": True}) is False, "phanh chỉ-lên-theo-lệnh không giữ chấm đội"
+    assert phanh_giu_cham_doi({"phanh": "chờ phanh nhả: phanh chợ ROAS thấp", "chi_lenh": True}) is True, "phanh chợ vẫn giữ chấm đội"
+    assert phanh_giu_cham_doi({"phanh": "chờ phanh nhả: phanh chợ"}) is True and phanh_giu_cham_doi({}) is False
     assert all(la_k(i, n) for n in (1, 2, 4, 8) for i in range(n)), "mặc định mọi creative kiểu Kiên — D chỉ khi anh chọn ở Chờ lên"
     global PC_CHAN
     assert len(set(MUC_ROAS)) >= 3 and all(0.9 <= m <= 1.4 for m in MUC_ROAS) and "roas" not in _BL["hoi_cho"], "dàn mức ★ ROAS: ≥ 3 mức trong 0.9–1.4, không còn mức cứng hoi_cho.roas (anh 26/11/2026)"

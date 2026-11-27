@@ -1515,7 +1515,7 @@ export const LUAT = [
   { card: 'san-xuat-theo-cho-1811', tep: 'apps/etp/manh.py', co: "d.trang_thai = 'loi' and b.trang_thai = 'loi' and not b.fix and {CG.SQL_KHONG_TRUNG}", vi: 'Mạnh thử lại dòng lỗi không trùng dòng đang chạy' },
   { card: 'san-xuat-theo-cho-1811', tep: 'apps/etp/soat_18_ai.py', co: 'if da_soat(v, anh): return v["ok"], 0,', vi: 'poster soát 18+ một lần theo poster, không soát lại mỗi dòng' },
   { card: 'san-xuat-theo-cho-1811', tep: 'apps/etp/hoi_cho.py', co: 'DU_TRU = int(HC["tran_ngay"]) * int(HC["so_ngay"])', vi: 'kho dự trữ hồi chợ ~15 phim có creative Sạch, đủ thì thôi chấm' },
-  { card: 'san-xuat-theo-cho-1811', tep: 'apps/etp/nap-creative-ngoai.py', co: 'if sx.get("phanh") and "--kho" not in sys.argv:', vi: 'phanh: không nạp chấm creative đội' },
+  { card: 'san-xuat-theo-cho-1811', tep: 'apps/etp/nap-creative-ngoai.py', co: 'if CG.phanh_giu_cham_doi(sx) and "--kho" not in sys.argv:', vi: 'phanh CHỢ: không nạp chấm creative đội (phanh chỉ-lên-theo-lệnh không giữ — anh 27/11/2026)' },
   { card: 'at-chi-dang-free-1911', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: 'CO_FREE = True', vi: 'AT luôn vẽ lớp Free (All Episodes Released + tên phim + Watch For Free), không tắt được (anh 19/11/2026)' },
   { card: 'at-chi-dang-free-1911', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', cam: 'CO_FREE = "--khong-free" not in sys.argv', vi: 'cờ --khong-free đã bỏ' },
   { card: 'at-chi-dang-free-1911', tep: 'apps/xuong-video/scripts/ethopex/diem_cham.py', co: '"cta": cta_at(x),', vi: 'sổ điểm chạm AT ghi CTA theo lớp Free thật, không khuôn mẫu Kiên của cảnh cắt (gốc 187 AT nhãn kien 15–18/11)' },

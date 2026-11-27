@@ -122,17 +122,21 @@ function DsBai({ ds, chon, bat, mien }: { ds: BaiCu[]; chon: string[]; bat: (b: 
 const TT_HANG: Record<string, string> = { moi: 'đang xếp chấm', dang: 'đang chấm', xong: 'chấm xong — video không có lời đọc', loi: 'chấm lỗi', giu_phanh: 'giữ (phanh chợ)' };
 /** CÂU ĐỌC CỦA ĐỘI để so với câu nhà (anh 27/11/2026 "câu đọc này cũng phải show của đội để so sánh"): lời đọc creative đội phim này + đội đang lãi cùng ngôn ngữ — chỉ xem, không chọn */
 function CauDoi({ ds, b }: { ds: CauDoi[]; b: BanVi }) {
-  if (!ds.length) return <div style={{ width: '100%', fontSize: 11.5, color: MO_SO }} data-cau-doi-trong>Đội: phim này chưa có creative đội, cũng chưa có creative đội đang lãi cùng ngôn ngữ có lời đọc.</div>;
-  return <div style={{ width: '100%', borderLeft: `3px solid ${VANG}`, paddingLeft: 8, display: 'grid', gap: 4 }} data-cau-doi>
-    <div style={{ fontSize: 11.5, color: MO_SO }}>Câu đọc của đội (để so — lời đọc máy chấm nghe từ video đội):</div>
-    {ds.map((c) => {
+  // GẬP SẴN, chỉ dòng CÓ lời đọc (anh 27/11/2026 "Collapsed lại. Mà không có nội dung thì có tác dụng gì") — creative đội chưa có lời đọc chỉ đếm ở tiêu đề
+  const co = ds.filter((c) => c.chu?.trim()), chua = ds.length - co.length, lai = co.filter((c) => c.thu7 > c.chi7).length;
+  if (!co.length) return <div style={{ width: '100%', fontSize: 11.5, color: MO_SO }} data-cau-doi-trong>Đội: chưa có câu đọc nào nghe được{chua ? ` (${chua} creative đội phim này đang chờ máy chấm nghe)` : ''}.</div>;
+  return <details style={{ width: '100%', borderLeft: `3px solid ${VANG}`, paddingLeft: 8 }} data-cau-doi>
+    <summary style={{ fontSize: 11.5, color: MO_SO, cursor: 'pointer' }}>Câu đọc của đội — {co.length} câu ({lai} đang lãi 7 ngày){chua ? ` · ${chua} creative đội phim này chưa nghe được lời` : ''}</summary>
+    <div style={{ display: 'grid', gap: 4, marginTop: 4 }}>
+    {co.map((c) => {
       const lai = c.thu7 > c.chi7, r = roi(c.chi7, c.thu7);
       return <div key={c.cr} style={{ fontSize: 12.5, lineHeight: 1.4 }} data-cau-doi-cr={c.cr}>
         <span style={{ fontSize: 11, color: MO_SO }}>#{c.cr} · đội · {c.nguoi ?? '?'}{c.phim ? ` · ${c.phim}` : ''} · 7 ngày {usd(c.chi7)} → <b style={{ color: lai ? XANH : c.chi7 > 0 ? DO : MO_SO }}>{usd(c.thu7)}</b>{r !== null ? ` (${r > 0 ? '+' : ''}${r}%)` : ''}: </span>
-        {c.chu ? <ChuVi goc={c.chu} b={b} /> : <i style={{ color: MO_SO }}>chưa có lời đọc — {c.hang ? TT_HANG[c.hang] ?? c.hang : 'chưa chấm, máy chấm đội tự xếp'}</i>}
+        <ChuVi goc={c.chu!} b={b} />
       </div>;
     })}
-  </div>;
+    </div>
+  </details>;
 }
 function Khoi({ icon, ten, phu, children }: { icon: string; ten: string; phu?: React.ReactNode; children: React.ReactNode }) {
   return <section style={{ border: `1px solid ${VIEN}`, borderRadius: 10, padding: '10px 12px', marginBottom: 10 }}>
@@ -258,7 +262,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   };
   const sinhDong = async (m: Muc, i: number) => {
     setDongSinh(`${m}${i}`);
-    const r = await sinhChuK(cid, nn);
+    const r = await sinhChuK(cid, nn, chuK?.[m]?.[i]);   // gửi chữ đang có → máy viết KHÁC hẳn (anh 27/11/2026 "bấm vào thì giống hệt lúc trước")
     setDongSinh(null);
     if ('loi' in r) return setSinh({ dang: false, loi: r.loi });
     setTien((t) => t + (r.vnd || 0));
@@ -381,6 +385,9 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
           : <div style={{ width: '100%', border: `1px solid ${VIEN}`, borderRadius: 8, padding: 8, display: 'grid', gap: 6 }} data-prompt-cau>
             <div style={{ fontSize: 11.5, color: MO_SO }}>Yêu cầu cho máy (sửa nếu cần — khuôn 3 vế, có tên phim, không mở bằng Free máy vẫn giữ):</div>
             <textarea value={promptCau} onChange={(e) => setPromptCau(e.target.value)} rows={4} style={{ width: '100%', fontSize: 12.5, padding: 6, borderRadius: 6, border: `1px solid ${VIEN}`, background: 'transparent', color: 'inherit', resize: 'vertical' }} data-prompt-cau-o />
+            <div style={{ fontSize: 11.5, color: MO_SO }} data-prompt-cau-win>{p.cau_doi.some((c) => c.chu && c.thu7 > c.chi7)
+              ? <>Gửi kèm máy (đứng đầu, làm mẫu): {p.cau_doi.filter((c) => c.chu && c.thu7 > c.chi7).slice(0, 10).length} câu đọc đội đang lãi 7 ngày — xem trong khối “Câu đọc của đội” ở trên.</>
+              : <b style={{ color: DO }}>Chưa có câu đọc đội đang lãi nào nghe được — máy sẽ từ chối sinh (không sinh mò).</b>}</div>
             <div style={{ display: 'flex', gap: 6 }}>
               <button style={chip(true)} disabled={sinhCau.dang} onClick={() => void sinhThemCau()} data-prompt-cau-sinh>{sinhCau.dang ? 'đang sinh…' : '✨ Sinh'}</button>
               <button style={chip(false)} disabled={sinhCau.dang} onClick={() => setPromptCau(p.cau_huong)}>mặc định</button>

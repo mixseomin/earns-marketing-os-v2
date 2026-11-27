@@ -66,7 +66,13 @@ def mau(lang, n=3):
     ds = [v for k, v in (SK.so_tay().get("kien") or {}).items() if k.isdigit() and es(v["primaryTexts"][0].rsplit(DUOI, 1)[0]) == (lang == "es")]
     return ds[:n]
 
-def kiem(a, lang, soat=True):
+def _tu(t): return set(re.findall(r"[^\W_]+", t.lower().replace(DUOI.lower(), "")))
+def trung(a, b):
+    """tỉ lệ từ của b nằm trong a (0–1) — đo chữ sinh lại có khác chữ cũ không"""
+    x, y = _tu(a), _tu(b)
+    return len(x & y) / max(1, min(len(x), len(y)))
+
+def kiem(a, lang, soat=True, khac=None):
     """bộ chữ máy trả → lỗi đầu tiên hoặc None (khuôn Kiên + thoại cấm; soat=False chỉ soát khuôn — bộ tay anh đã duyệt có thể mang chữ như 'killer')"""
     if not isinstance(a, dict): return "không phải đối tượng"
     pt, hl, de = (str(a.get(k) or "").strip() for k in ("hook", "headline", "description"))
@@ -80,6 +86,9 @@ def kiem(a, lang, soat=True):
     for t in ((pt, hl, de) if soat else ()):
         m = KT.soat(t)
         if m: return f"chữ cấm {m!r}"
+    if khac:   # nút ↻ sinh lại: chữ mới phải KHÁC chữ đang có (anh 27/11/2026 "bấm vào thì giống hệt lúc trước")
+        for t in (pt, hl, de):
+            if trung(t, khac) >= 0.6: return f"chữ mới trùng {round(trung(t, khac) * 100)}% chữ đang có ({t[:60]!r}) — phải viết khác hẳn"
     return None
 
 LUAT = """You write Facebook ad copy for the short drama "{ten}" in {nn}, in the exact house style shown in the examples.
@@ -95,16 +104,18 @@ Write ONE new set for "{ten}":
 - description: one plain line in {nn}, max 55 characters, no ending question.
 Facebook-safe: no sexual words or innuendo (no breast, naked, bed, seduce, sleep with, wet nurse, milk), no violence words (kill, dead, blood, murder), no slurs, no emojis, no hashtags, no click/tap words."""
 
-def sinh(cid, nn=None):
+def sinh(cid, nn=None, khac=None):
     ten, lang, mo = phim(cid)
     if nn in ("en", "es"): lang = nn   # phiếu lên camp etp2: anh chọn ngôn ngữ chữ (--lang)
     if not ten: return None, 0, f"phim {cid}: không có trong etp.phim / Ethopex"
     if len(mo) < 80: return None, 0, f"phim {cid}: không đọc được cốt truyện (Ethopex + trang nguồn) — không sinh để khỏi bịa"
     vd = "\n".join(f"- hook: {v['primaryTexts'][0].rsplit(DUOI, 1)[0].strip()}\n  headline: {v['headlines'][0]}\n  description: {v['descriptions'][0]}" for v in mau(lang))
-    a, vnd, mh, loi = AI.goi(LUAT.format(ten=ten, nn=TEN_NN[lang], mo=mo[:2500], vd=vd), max_tokens=500, timeout=120, viec="sinh-chu-kien",
+    de_bai = LUAT.format(ten=ten, nn=TEN_NN[lang], mo=mo[:2500], vd=vd)
+    if khac: de_bai += f"\n\nThe current version is below. Write a CLEARLY DIFFERENT one: a different angle of the story, different wording, no sentence reused:\n{khac}"
+    a, vnd, mh, loi = AI.goi(de_bai, max_tokens=500, timeout=120, viec="sinh-chu-kien",
                              cong_cu=("ghi", {"type": "object", "required": ["hook", "headline", "description"],
                                               "properties": {"hook": {"type": "string"}, "headline": {"type": "string"}, "description": {"type": "string"}}}),
-                             kiem=lambda a: kiem(a, lang))
+                             kiem=lambda a: kiem(a, lang, khac=khac))
     if not a: return None, vnd, f"phim {cid}: máy không ra bộ chữ đạt khuôn ({loi})"
     return {"content_id": int(cid), "lang": lang, "ten": ten, "mo_hinh": mh, "primaryTexts": [a["hook"].strip() + " " + DUOI],
             "headlines": [a["headline"].strip()], "descriptions": [a["description"].strip()]}, vnd, None
@@ -115,11 +126,11 @@ def ghi(b, vnd):
           {s(b['lang'])}, {s(b['mo_hinh'])}, {round(vnd)}) on conflict (content_id, kieu) do update set pt = excluded.pt, hl = excluded.hl, de = excluded.de,
           lang = excluded.lang, mo_hinh = excluded.mo_hinh, vnd = excluded.vnd, tao = now()""")
 
-def chay(ids, lai=False, xem=False, js=False, nn=None):
+def chay(ids, lai=False, xem=False, js=False, nn=None, khac=None):
     tong, loi = 0.0, 0
     for c in dict.fromkeys(int(x) for x in ids):
         if not lai and SK.bo("kien", c): print(f"phim {c}: đã có chữ Kiên — bỏ qua"); continue
-        b, vnd, l = sinh(c, nn); tong += vnd
+        b, vnd, l = sinh(c, nn, khac); tong += vnd
         if l: print(f"✗ {l}", flush=True); loi += 1; continue
         if not xem: ghi(b, vnd)
         if js: print("JSON:" + json.dumps({**b, "vnd": round(vnd)}, ensure_ascii=False), flush=True)   # phiếu lên camp etp2 (sinh lại chữ K, --xem: không ghi sổ) đọc dòng này
@@ -141,6 +152,8 @@ if __name__ == "__main__":
         assert "tiêu đề" in kiem({**ok, "headline": "She mocked the real boss of the whole company today"}, "en")
         assert "chữ cấm" in kiem({**ok, "hook": "He was drugged at the party by his own wife. What will she do when he finds out the truth?"}, "en")
         assert "thiếu" in kiem({}, "en")
+        assert "trùng" in kiem(ok, "en", khac=ok["hook"] + " " + DUOI), "sinh lại ra y chữ cũ phải bị trả về"
+        assert kiem(ok, "en", khac="A billionaire heiress hides her name to test her fiance. Will he pass?") is None, "chữ khác hẳn phải qua"
         for c, v in (SK.so_tay().get("kien") or {}).items():   # mọi bộ chữ tay phải qua chính cổng khuôn này (cổng không chặn oan khuôn anh đã duyệt)
             if not c.isdigit(): continue
             l = "es" if re.search(r"[¿¡]", v["primaryTexts"][0].rsplit(DUOI, 1)[0]) else "en"
@@ -159,4 +172,5 @@ if __name__ == "__main__":
     if not ids: raise SystemExit(__doc__)
     _nn = sys.argv[sys.argv.index("--lang") + 1] if "--lang" in sys.argv[:-1] else None
     if _nn not in (None, "en", "es"): raise SystemExit(f"--lang phải là en hoặc es (nhận {_nn})")
-    sys.exit(1 if chay(ids, "--lai" in sys.argv, "--xem" in sys.argv, "--json" in sys.argv, _nn) else 0)
+    _kh = sys.argv[sys.argv.index("--khac") + 1] if "--khac" in sys.argv[:-1] else None   # nút ↻ phiếu etp2: chữ đang có, máy phải viết khác
+    sys.exit(1 if chay(ids, "--lai" in sys.argv, "--xem" in sys.argv, "--json" in sys.argv, _nn, _kh) else 0)

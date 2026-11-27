@@ -958,6 +958,8 @@ const LUAT = [
   { card: 'gac-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: "chayDong(cid, g.dang, '', undefined, null, p.id)", cam: 'đang gác — ${ld.gac}', vi: 'gửi phiếu không từ chối dạng gác, dòng mang phieu_id' },
   { card: 'gac-2711', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: 'if (!ph_id && (await dangGac()).includes(loai))', vi: 'chayDong từ phiếu bỏ qua gác' },
   { card: 'gac-2711', tep: 'apps/etp/dong_phim.py', co: 'in gac and not d.get("phieu_id")', vi: 'máy dòng phim không dừng dòng tạo từ phiếu' },
+  { card: 'phieu-nhap-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'ghiNhap(cid, { kieu, chuK, nn, dang, link, mien, roas, ns, nsTxt, gio, gioTay, cu, giong, cau, cta, tien })', vi: 'phiếu lên camp lưu nháp theo phim — F5 không mất lựa chọn + chữ đã sinh (anh 27/11/2026)' },
+  { card: 'phieu-nhap-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'if (n?.chuK?.pt?.length) setChuK(n.chuK);', vi: 'F5 không sinh lại chữ K (tốn tiền AI) khi nháp đã có' },
   { card: 'co-vi-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: '<CoVi goc={c.chu} b={bv} /><button', cam: '<CoVi goc={c.chu} b={bv} />{i + 1}', vi: 'cờ 🇻🇳 NGOÀI khung câu đọc, bên trái (anh 27/11: cờ ở ngoài ô, không nằm trong nút), rê = câu dịch' },
   { card: 'co-vi-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: '<CoVi goc={c} b={bv} /><button', cam: 'data-cta={c}><CoVi', vi: 'cờ 🇻🇳 ngoài chip CTA, bên trái' },
   { card: 'co-vi-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: '<CoVi goc={x} b={bv} /><span', vi: 'cờ 🇻🇳 đầu mỗi dòng chữ form' },

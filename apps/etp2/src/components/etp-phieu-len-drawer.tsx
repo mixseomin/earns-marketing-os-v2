@@ -121,6 +121,16 @@ function Preview({ p, chu, xem, setXem, media, mien, nut, tom }: { p: PhieuMo; c
   </div>;
 }
 
+// NHÁP PHIẾU theo phim (localStorage, khoá etp-phieu-nhap-<cid>): F5 / đóng mở lại không mất lựa chọn + chữ đã sinh; hết hạn 3 ngày; Gửi xong xoá
+type Nhap = { kieu?: 'kien' | 'dol'; chuK?: ChuQc | null; nn?: 'en' | 'es'; dang?: DangPhieu; link?: string; mien?: string; roas?: string[]; ns?: number | null; nsTxt?: string;
+  gio?: string; gioTay?: string; cu?: number[]; giong?: string; cau?: string; cta?: string; tien?: number; luc?: number };
+const khoaNhap = (cid: number) => `etp-phieu-nhap-${cid}`;
+function docNhap(cid: number): Nhap | null {
+  try { const n = JSON.parse(localStorage.getItem(khoaNhap(cid)) ?? 'null') as Nhap | null; return n && Date.now() - (n.luc ?? 0) < 3 * 864e5 ? n : null; } catch { return null; }
+}
+function ghiNhap(cid: number, n: Nhap) { try { localStorage.setItem(khoaNhap(cid), JSON.stringify({ ...n, luc: Date.now() })); } catch { /* kho bị chặn: chỉ mất nháp */ } }
+function xoaNhap(cid: number) { try { localStorage.removeItem(khoaNhap(cid)); } catch { /* như trên */ } }
+
 export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () => void }) {
   const [p, setP] = useState<PhieuMo | null>(null);
   const [loiMo, setLoiMo] = useState<string | null>(null);
@@ -146,6 +156,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   const [cau, setCau] = useState('');                                   // AD: '' = máy xoay câu
   const [cta, setCta] = useState('');                                   // AD: '' = mặc định mẫu
   const [xem, setXem] = useState(0);
+  const [napXong, setNapXong] = useState(false);                        // đã đọc phiếu + nháp → từ đây mới ghi nháp (không đè nháp bằng mặc định)
 
   const sinhK = async (l: 'en' | 'es') => {
     setKieu('kien'); setSinh({ dang: true });
@@ -165,8 +176,25 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
     if ('loi' in r) return setLoiMo(r.loi);
     const l = (r.p.lang ?? 'en').toLowerCase() === 'es' ? 'es' : 'en';
     setP(r.p); setMien(r.p.mien_mac ?? r.p.mien[0] ?? ''); setNn(l);
-    if (r.p.chu.K) setChuK(r.p.chu.K); else void sinhK(l);   // phim chưa có chữ K trong sổ → máy sinh ngay (K là mặc định)
+    const n = docNhap(cid), p0 = r.p;
+    if (n) {   // phiếu đang dở của phim này (F5 / đóng mở lại): trả đúng lựa chọn + chữ đã sinh, thứ không còn hợp lệ thì bỏ
+      if (n.kieu) setKieu(n.kieu); if (n.nn) setNn(n.nn); if (n.link) setLink(n.link);
+      if (n.mien && p0.mien.includes(n.mien)) setMien(n.mien);
+      if (n.dang && (n.dang === 'AD' || n.dang === 'CU' || p0.dang.some((d) => d.ma === n.dang))) setDang(n.dang);
+      if (n.roas) setRoas(n.roas.filter((x) => ROAS.some((r) => r.v === x)));
+      if (n.nsTxt != null) { setNsTxt(n.nsTxt); setNs(n.ns ?? null); }
+      if (n.gio) setGio(n.gio); if (n.gioTay) setGioTay(n.gioTay);
+      if (n.cu) setCu(n.cu.filter((x) => p0.cu.some((c) => c.nguon === x)));
+      if (n.giong) setGiong(n.giong); if (n.cau && p0.cau.some((c) => c.id === n.cau)) setCau(n.cau); if (n.cta && p0.cta.includes(n.cta)) setCta(n.cta);
+      if (n.tien) setTien(n.tien);
+    }
+    if (n?.chuK?.pt?.length) setChuK(n.chuK);   // chữ K đã sinh (tốn tiền AI) không sinh lại khi F5
+    else if (r.p.chu.K) setChuK(r.p.chu.K); else void sinhK(n?.nn ?? l);   // phim chưa có chữ K trong sổ → máy sinh ngay (K là mặc định)
+    setNapXong(true);
   }); }, [cid]);   // eslint-disable-line react-hooks/exhaustive-deps
+  // lưu phiếu đang dở theo phim mỗi lần đổi (anh 27/11/2026 "đang lên camp, các option, text đã chọn thì F5 không bị mất"); Gửi xong thì xoá
+  useEffect(() => { if (napXong && !gui.ok) ghiNhap(cid, { kieu, chuK, nn, dang, link, mien, roas, ns, nsTxt, gio, gioTay, cu, giong, cau, cta, tien }); },
+    [napXong, cid, kieu, chuK, nn, dang, link, mien, roas, ns, nsTxt, gio, gioTay, cu, giong, cau, cta, tien, gui.ok]);
 
   const lc = (p?.lang ?? 'en').toLowerCase();
   const chu = kieu === 'kien' ? chuK : p?.chu.D ?? null;
@@ -197,6 +225,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       ...(laCu ? { cr_cu: cu } : {}), ...(dang === 'AD' && (giong || cau) ? { giong: { ...(cau ? { id: cau } : {}), ...(giong ? { kieu: giong } : {}) } } : {}),
       ...(dang === 'AD' && cta ? { cta: `${lc}:${cta}` } : {}) });
     setGui('loi' in r ? { loi: r.loi } : { ok: r.chu });
+    if (!('loi' in r)) xoaNhap(cid);
   };
   const ketNs = () => { const n = Number(nsTxt.trim().replace('$', '')); if (Number.isInteger(n) && n >= 1 && n <= 50) { setNs(n); setNsTxt(String(n)); } else setNs(null); };
   const media = laCu ? (p?.cu.find((c) => c.nguon === cu[0])?.anh ?? p?.poster ?? null) : p?.poster ?? null;

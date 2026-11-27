@@ -74,9 +74,9 @@ def the(cid):
     f = lambda s: float(s) if s not in ("", None) else None
     return {"tt": tt, "ns": f(ns), "r3": f(r3), "r7": f(r7)}
 
-def chay_script(args):
+def chay_script(args, ve=None):
     try:
-        r = subprocess.run(["python3", *args], capture_output=True, text=True, timeout=1500, cwd=SC, env={**os.environ, "ETP_NGUON": "lenh_cho"})   # lệnh anh từ 20/11 — qua cổng luật cũ (cong.luat_cu_chan)
+        r = subprocess.run(["python3", *args], capture_output=True, text=True, timeout=1500, cwd=SC, env={**os.environ, "ETP_NGUON": "lenh_cho", **({"ETP_VE": ve} if ve else {})})   # lệnh anh từ 20/11 — qua cổng luật cũ (cong.luat_cu_chan)
         return json.loads(next((x for x in reversed(r.stdout.strip().splitlines()) if x.startswith("{")), "{}") or "{}")
     except Exception as e: return {"ok": False, "loi": str(e)[:200]}
 
@@ -148,12 +148,21 @@ def len_cr(st, chan, luc, xem, bao):
         if (ro_.get(cr) or {}).get("nguon") == "sổ len_cr_roas":   # CHỈ lệnh tay 22/11 (len_cr_roas không "tu") CHỜ ANH ▶ Lên ở etp2 (anh 22/11/2026) · khối + "tu" (anh sửa mức, #1857) → tự lên khi anh duyệt (anh 25/11/2026 "duyệt xong thì sẽ mặc định lên theo plan")
             if h.get("ly") != TAY_LY: h.update(tt="cho", ly=TAY_LY); doi = True
             continue
-        if chan or xem or not bo:
+        # NÚT ANH DUYỆT = LỆNH (anh 27/11/2026 "Nếu đã duyệt sao ko lên camp luôn và chỉ còn đợi giờ chạy ?"): creative có bản ghi nút anh bấm (khối 'duyet' / ✓ Duyệt bằng tài khoản
+        # người — cong.lenh_ghi) không chờ phanh nhả: lên ngay bằng vé trực tiếp, giờ chạy vẫn do khung gio_len của nhan-ban (22h VN). Duyệt máy ('máy · kiểu …') vẫn chờ phanh.
+        nguon = CG.lenh_ghi(cr) if chan and bo and not xem else ""
+        if (chan and not nguon) or xem or not bo:
             if chan and h.get("ly") != chan: h["ly"] = chan; doi = True
             continue
         lang = "es" if lang == "es" else "en"
+        ro = ro_.get(cr); ve = None
+        if nguon:
+            ve, ly_ve = CG.ve_lenh_ghi(cr, ct, int((ro or {}).get("ns") or HOI_CHO["ns"]))
+            if not ve:
+                if h.get("ly") != ly_ve: h["ly"] = str(ly_ve)[:200]; doi = True; bao.append(f"⚠ creative anh duyệt #{cr} chưa cấp được vé: {str(ly_ve)[:160]}")
+                continue
         h.update(tt="dang", xet=luc); ghi(st)   # GHI TRƯỚC khi gọi — mỗi lần nhả một lần gọi
-        ro = ro_.get(cr); r = chay_script(lenh_cr(cr, ct, lang, ten, bo, ro))
+        r = chay_script(lenh_cr(cr, ct, lang, ten, bo, ro), ve)
         try:
             with open(f"/tmp/etp-len-cr-{cr}.log", "a") as f: f.write(f"{luc} lên camp sau khi phanh nhả: {json.dumps(r, ensure_ascii=False, default=str)[:600]}\n")
         except OSError: pass

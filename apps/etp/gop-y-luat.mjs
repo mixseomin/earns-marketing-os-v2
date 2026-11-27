@@ -1458,7 +1458,12 @@ export const LUAT = [
   // LỆNH TRỰC TIẾP CỦA ANH (anh 20/11/2026 09:35 "Không PHANH nào được hạn chế quyền trực tiếp từ tao cả … PHANH chỉ được cảnh báo thêm 1 lần")
   { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: 'if not ngoai and truc_tiep(viec, [x for x in (camp_id, goc) if x], ct): return None', vi: 'kiem(): vé trực tiếp miễn mọi phanh sau phim cấm, trừ camp đội' },
   { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: 'if phanh and _q(f"select 1 from etp.ve_canh_bao where', vi: 'cảnh báo một lần: lần đầu có phanh không cấp vé, gọi lại trong 30 phút mới cấp' },
-  { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: 'VE_TRUC_TIEP_XIN = ("apps/etp/cong.py", "etp2/src/lib/etp-ve.ts")', vi: 'nơi được cấp vé trực tiếp: CLI cong.py --ve-truc-tiep + nút anh bấm etp2 (máy luật / worker / dòng phim / kỹ sư máy không gọi)' },
+  { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: 'VE_TRUC_TIEP_XIN = ("apps/etp/cong.py", "etp2/src/lib/etp-ve.ts")', vi: 'nơi được cấp vé trực tiếp: CLI cong.py --ve-truc-tiep + nút anh bấm etp2 (máy luật / worker / dòng phim / kỹ sư máy không gọi; riêng lenh_cho chỉ qua cong.ve_lenh_ghi từ bản ghi nút anh bấm)' },
+  // NÚT ANH DUYỆT = LỆNH (anh 27/11/2026 "Nếu đã duyệt sao ko lên camp luôn và chỉ còn đợi giờ chạy ?")
+  { card: 'nut-duyet-la-lenh-2711', tep: 'apps/etp/cong.py', co: "u.ai like '%@%' and u.ai not like 'máy%'", vi: 'lenh_ghi: chỉ ✓ Duyệt bằng tài khoản người (email) hoặc khối anh duyệt mới là lệnh; duyệt máy không tính' },
+  { card: 'nut-duyet-la-lenh-2711', tep: 'apps/etp/cong.py', co: 'join etp.khoi k on k.id = e.khoi_id and k.trang_thai = \'duyet\'', vi: 'lenh_ghi: khối anh duyệt (etp.khoi duyet) qua kế ke_cr' },
+  { card: 'nut-duyet-la-lenh-2711', tep: 'apps/etp/lenh_cho.py', co: 'nguon = CG.lenh_ghi(cr) if chan and bo and not xem else ""', vi: 'len_cr: creative anh duyệt bằng nút không chờ phanh nhả' },
+  { card: 'nut-duyet-la-lenh-2711', tep: 'apps/etp/lenh_cho.py', co: 'r = chay_script(lenh_cr(cr, ct, lang, ten, bo, ro), ve)', vi: 'len_cr: nhân bản mang vé trực tiếp, giờ chạy vẫn theo khung gio_len' },
   { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: "_bao_tg(f\"⚡ lệnh trực tiếp của anh:", vi: 'mỗi vé trực tiếp một dòng Telegram 📂 Ethopex' },
   { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: "'truc_tiep', $L${lenh[:1000]}$L$, $S${ph}$S$)", vi: 'vé ghi nguyên văn câu lệnh + phiên gọi' },
   { card: 'lenh-truc-tiep-2011', tep: 'apps/etp/cong.py', co: 'raise ValueError(f"phim cấm — lệnh trực tiếp cũng không miễn: {ly_cam}")', vi: 'phim cấm vẫn chặn lệnh trực tiếp' },
@@ -1628,7 +1633,7 @@ export const LUAT = [
   { card: 'cho-anh-duyet-2211', tep: 'packages/db/migrations/0460_etp_cho_anh_duyet.sql', co: "AND NOT (giu IS NOT NULL AND duyet IS NULL)) AS duoc_len", vi: 'creative máy giữ chưa duyệt thì cham_cong chặn mọi đường lên camp' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/components/etp-view.tsx', co: "<ChoDuyetCr />", vi: 'ô Chờ anh duyệt nằm ở tab Camp etp2' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: 'lenCampCr(-1, id)', vi: 'Duyệt = lên camp $1 bằng đúng đường nút Lên camp (lich_len)' },
-  { card: 'roas-cr-duyet-2211', tep: 'apps/etp/lenh_cho.py', co: 'ro = ro_.get(cr); r = chay_script(lenh_cr(cr, ct, lang, ten, bo, ro))', vi: 'creative duyệt có trong sổ len_cr_roas lên ★ ROAS (kiểu Sơn) thay camp $1 khi phanh nhả' },
+  { card: 'roas-cr-duyet-2211', tep: 'apps/etp/lenh_cho.py', co: 'r = chay_script(lenh_cr(cr, ct, lang, ten, bo, ro), ve)', vi: 'creative duyệt có trong sổ len_cr_roas lên ★ ROAS (kiểu Sơn) thay camp $1 khi phanh nhả' },
   { card: 'roas-cr-duyet-2211', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: "khoa = 'len_cr_roas' and gia_tri ?", vi: 'nút Lên lại không đẩy creative ★ ROAS sang đường $1' },
   { card: 'roas-cr-duyet-2211', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: '{kieu(x.roas)}', vi: 'thẻ chờ duyệt ghi rõ kiểu camp sẽ lên (★ ROAS / $1)' },
   { card: 'cr-duyet-vao-bang-2211', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: '    where u.ok is null', vi: 'ô vàng chỉ giữ creative CHƯA duyệt (anh 22/11 "duyệt rồi thì phải cho vào table bên dưới")' },

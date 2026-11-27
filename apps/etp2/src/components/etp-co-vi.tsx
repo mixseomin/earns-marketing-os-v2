@@ -1,7 +1,7 @@
 'use client';
-// CỜ 🇻🇳 ĐẦU CÂU NGOẠI NGỮ (anh 27/11/2026, phiếu lên camp: "Các nội dung thêm icon cờ VN ở cuối. Hover vào thì sẽ hiện câu dịch").
+// RÊ CHỮ NGOẠI NGỮ = CÂU DỊCH (anh 27/11/2026, phiếu lên camp: "Các nội dung thêm icon cờ VN ở cuối. Hover vào thì sẽ hiện câu dịch").
 // MỘT nguồn dịch cho cả etp2: dichChu (actions/etp-bai) → etp.dich (nhớ theo nguyên văn) → thiếu thì một lượt AI cổng chung (dòng Haiku).
-// layDich gộp + nhớ lời hứa trong trang (thẻ creative etp-bai-qc.tsx dùng chung); CoVi = cờ + bong bóng InfoHint (rê là hiện, không native title).
+// layDich gộp + nhớ lời hứa trong trang (thẻ creative etp-bai-qc.tsx dùng chung); ChuVi = rê vào chữ hiện bong bóng câu dịch (không cờ, không native title).
 import { useEffect, useState } from 'react';
 import { dichChu } from '@/lib/actions/etp-bai';
 import { InfoHint } from '@/components/ui';
@@ -32,16 +32,12 @@ export function useDichDs(ds: string[]): BanVi {
   return { vi, loi, cho };
 }
 
-/** cờ TREO lề trái (anh 27/11/2026 "chữ ở bên phải đường đỏ, cờ bên trái"): marginLeft -24 + 18 + 6 = chiếm 0 chỗ → chữ thẳng mép cột lựa chọn, cờ nằm trong lề;
- *  chỗ đặt cờ phải chừa ≥ 24px bên trái (cột nhãn Hang, columnGap chip). Gốc: cờ ĐẦU câu (anh 27/11/2026 "Cho cờ ở phía trước để ko ảnh hưởng đến bố cục"): ô cờ luôn giữ đúng một bề rộng cố định —
- *  đang dịch (cờ mờ) → dịch xong (cờ rê = câu dịch) → lỗi (⚠ đỏ) → không cần dịch (ô trống) đều không xô chữ; chữ các dòng thẳng một mép.
- *  Bong bóng mở sang PHẢI vì cờ đứng mép trái. */
-const O: React.CSSProperties = { display: 'inline-flex', justifyContent: 'center', alignItems: 'center', width: 18, flex: 'none', marginLeft: -24, marginRight: 6, verticalAlign: 'middle', fontSize: 13, lineHeight: 1 };
-export function CoVi({ goc, b }: { goc: string | null | undefined; b: BanVi }) {
-  const v = goc && goc.trim() ? b.vi[goc] : undefined;
-  if (goc && v && !trungGoc(goc, v)) return <span data-co-vi="co" onClick={(e) => e.stopPropagation()} style={O}>
-    <InfoHint label="bản dịch tiếng Việt" icon={<span style={{ fontSize: 13, lineHeight: 1, cursor: 'help' }}>🇻🇳</span>}><span style={{ whiteSpace: 'normal', fontWeight: 400 }}>{v}</span></InfoHint></span>;
-  if (goc && !v && b.loi) return <span data-co-vi="loi" title={b.loi} style={{ ...O, color: '#dc2626', fontSize: 11 }}>⚠</span>;
-  if (goc && !v && b.cho) return <span data-co-vi="cho" title="đang dịch…" style={{ ...O, opacity: 0.35 }}>🇻🇳</span>;
-  return <span data-co-vi="trong" aria-hidden style={O} />;
+/** RÊ VÀO CHỮ = HIỆN CÂU DỊCH (anh 27/11/2026 "bỏ cờ đi, hover vào chữ thì hiện phần dịch tiếng Việt là xong"): không thêm ký hiệu nào cạnh chữ →
+ *  chữ giữ nguyên chỗ, các lựa chọn thẳng cột. Bong bóng dùng chung lớp .info-hint / .info-hint__pop (CSS thuần, không native title).
+ *  Đang dịch / câu không cần dịch → chữ trần; lỗi dịch → title nói lỗi. */
+export function ChuVi({ goc, b }: { goc: string; b: BanVi }) {
+  const v = goc.trim() ? b.vi[goc] : undefined;
+  if (v && !trungGoc(goc, v)) return <span data-chu-vi="co" className="info-hint" tabIndex={0} role="note" aria-label={`tiếng Việt: ${v}`}
+    style={{ display: 'inline', color: 'inherit', cursor: 'help', verticalAlign: 'baseline' }}>{goc}<span className="info-hint__pop" style={{ fontWeight: 400 }}>🇻🇳 {v}</span></span>;
+  return <span data-chu-vi={b.loi && !v ? 'loi' : b.cho && !v ? 'cho' : 'tran'} title={b.loi && !v ? `không dịch được: ${b.loi}` : undefined}>{goc}</span>;
 }

@@ -991,6 +991,8 @@ const LUAT = [
   { card: 'sinh-lai-khac-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'await sinhChuK(cid, chuK?.[m]?.[i])', vi: 'nút ↻ gửi chữ đang có để máy viết khác (anh 27/11/2026)' },
   { card: 'sinh-lai-khac-2711b', tep: 'apps/etp/sinh-chu-kien.py', co: 'kiem(a, lang, khac=khac)', vi: 'sinh-chu-kien chặn chữ mới trùng ≥ 60% chữ cũ (anh 27/11/2026)' },
   { card: 'cham-doi-chi-lenh-2711', tep: 'apps/etp/nap-creative-ngoai.py', co: 'CG.phanh_giu_cham_doi(sx)', vi: 'phanh chỉ-lên-theo-lệnh không chặn chấm creative đội (anh 27/11/2026)' },
+  { card: 'cau-khong-gan-trung-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: 'for (const m of locKhac(r.kq.cau))', vi: '✨ câu đọc mới gần trùng câu cũ / câu mới khác bị loại (anh 27/11/2026)' },
+  { card: 'cau-khong-chep-sat-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', cam: 'as closely as you can', vi: 'yêu cầu ✨ không bảo chép sát câu đội (đẻ câu y hệt nhau, anh 27/11/2026)' },
   { card: 'phieu-tt-chu-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', cam: '(${x.trang_thai})`', vi: 'phiếu đang dở hiện trạng thái bằng chữ, không mã thô dung (anh 27/11/2026)' },
   { card: 'hang-mau-phieu-2711', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: "union select mau, content_id, cap_nhat from etp.mau_dung where trang_thai = 'cho'", vi: 'hàng máy dựng nhận cả việc phiếu lên camp ghi thẳng mau_dung (anh 27/11/2026)' },
   { card: 'hang-mau-phieu-2711b', tep: 'apps/etp/dong_phim.py', co: "union select mau, content_id from etp.mau_dung where trang_thai = 'cho'", vi: 'máy dòng phim đếm cả việc phiếu ghi thẳng mau_dung (anh 27/11/2026)' },

@@ -22,8 +22,10 @@ async function laAdmin() { const me = await getCurrentUser(); return me?.role ==
 export type DangPhieu = 'AD' | 'CC2';
 const MAU_AD = 'dt_anh_dong_logo';
 const ROAS_MUC = ['dan', '0.9', '1', '1.1', '1.2'] as const;
+// NHIỀU MỨC ROAS (0489, anh 27/11/2026): N mức = N creative MỚI (AD: dung-mau tuy_chon.ban = N, mỗi bản một khung) + N camp, thẻ thứ i lên mức roas_ds[i]
 export type PhieuMo = {
   cid: number; ten: string | null; lang: string | null; poster: string | null;
+  logo: { url: string; kieu: string | null } | null;   // logo gốc đã tách của phim (etp.logo_goc, dung-mau.py đẩy kho) — chưa tách thì null
   chu: { K: ChuQc | null; D: ChuQc };
   mien: string[]; mien_mac: string | null; khung: { gio: string; chu: string }[];
   dang_cho: { id: number; dang: string; trang_thai: string; tao: string }[];   // phiếu đang dở của phim (để anh không gửi trùng)
@@ -42,7 +44,8 @@ export async function docPhieu(cid: number): Promise<{ ok: true; p: PhieuMo } | 
   const mien = [...new Set([m?.mac, ...(m?.ds ?? [])].filter((x): x is string => !!x))];
   const dang = await run<{ id: number; dang: string; trang_thai: string; tao: string }>(sql`select id, dang, trang_thai, tao::text tao from etp.phieu_len
     where content_id = ${id} and trang_thai in ('dung', 'cho_duyet', 'len', 'loi') and tao > now() - interval '3 days' order by tao desc`);
-  return { ok: true, p: { cid: id, ten: f.ten, lang: f.lang, poster: anhUrl(f.poster), chu: { K: so.kien(id), D: so.dol }, mien, mien_mac: m?.mac ?? null, khung: haiKhung(), dang_cho: dang } };
+  const [lg] = await run<{ url: string; kieu: string | null }>(sql`select url, kieu from etp.logo_goc where content_id = ${id}`);
+  return { ok: true, p: { cid: id, ten: f.ten, lang: f.lang, poster: anhUrl(f.poster), logo: lg ? { url: lg.url, kieu: lg.kieu } : null, chu: { K: so.kien(id), D: so.dol }, mien, mien_mac: m?.mac ?? null, khung: haiKhung(), dang_cho: dang } };
 }
 
 /** chọn K (hoặc bấm K lần nữa) → máy sinh bộ chữ K mới cho phim (apps/etp/sinh-chu-kien.py --lai --xem --json: không ghi sổ, chữ chỉ đi theo phiếu khi gửi) */
@@ -62,7 +65,7 @@ export async function sinhChuK(cid: number): Promise<{ ok: true; chu: ChuQc; vnd
 }
 
 export type PhieuGui = { cid: number; kieu: Kieu; chu: { pt: string[]; hl: string[]; de: string[] }; link: string; dang: DangPhieu; mien: string | null;
-  roas: string; ns: number; gio: string };   // gio: 'lich' (khung gần nhất) | 'YYYY-MM-DD HH:MM' giờ VN
+  roas: string[]; ns: number; gio: string };   // roas: 1–5 mức khác nhau, mỗi mức một creative + một camp   // gio: 'lich' (khung gần nhất) | 'YYYY-MM-DD HH:MM' giờ VN
 
 /** ✓ Gửi phiếu → ghi etp.phieu_len rồi giao máy dựng đúng dạng. Creative dựng xong vào Chờ lên; anh duyệt creative = lên camp với đúng phiếu này. */
 export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu: string } | { loi: string }> {
@@ -74,7 +77,10 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
   if (!pt.length || !hl.length) return { loi: 'chữ QC trống — chọn K (máy sinh) hoặc D trước khi gửi' };
   const link = String(g.link ?? '').trim(); if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(link)) return { loi: `link không hợp lệ: ${link}` };
   const mien = g.mien ? String(g.mien).trim() : null; if (mien && !/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(mien)) return { loi: `domain không hợp lệ: ${mien}` };
-  const roas = String(g.roas); if (!(ROAS_MUC as readonly string[]).includes(roas)) return { loi: `bid ROAS phải là dàn hoặc 0.9–1.2 (nhận ${roas})` };
+  const roasDs = [...new Set((Array.isArray(g.roas) ? g.roas : [g.roas]).map(String))];
+  if (!roasDs.length) return { loi: 'chọn ít nhất một mức bid ROAS' };
+  const la = roasDs.find((x) => !(ROAS_MUC as readonly string[]).includes(x)); if (la) return { loi: `bid ROAS phải là dàn hoặc 0.9–1.2 (nhận ${la})` };
+  roasDs.sort((a, b) => ROAS_MUC.indexOf(a as never) - ROAS_MUC.indexOf(b as never)); const roas = roasDs.join(',');
   const ns = Math.trunc(Number(g.ns)); if (!(ns >= 1 && ns <= 50)) return { loi: 'ngân sách phải từ $1 tới $50' };
   const gio = String(g.gio ?? 'lich').trim().replace('T', ' ').slice(0, 16);
   if (gio !== 'lich' && !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(gio)) return { loi: `giờ chạy không hợp lệ: ${g.gio}` };
@@ -86,8 +92,8 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
   const [trung] = await run<{ id: number }>(sql`select id from etp.phieu_len where content_id = ${cid} and dang = ${g.dang} and trang_thai = 'dung' and tao > now() - interval '2 days'`);
   if (trung) return { loi: `phim này đang có phiếu #${trung.id} dạng ${g.dang} chờ máy dựng — chờ bản dựng vào Chờ lên rồi gửi phiếu mới` };
   const chu = JSON.stringify({ pt, hl, de });
-  const [p] = await run<{ id: number }>(sql`insert into etp.phieu_len (content_id, lang, kieu, chu, link, dang, mien, roas, ns, gio, tu_do, ai)
-    values (${cid}, ${f?.lang ?? null}, ${g.kieu}, ${chu}::jsonb, ${link}, ${g.dang}, ${mien}, ${roas}, ${ns}, ${gio}, ${tuDo}, ${me.email}) returning id`);
+  const [p] = await run<{ id: number }>(sql`insert into etp.phieu_len (content_id, lang, kieu, chu, link, dang, mien, roas, roas_ds, ns, gio, tu_do, ai)
+    values (${cid}, ${f?.lang ?? null}, ${g.kieu}, ${chu}::jsonb, ${link}, ${g.dang}, ${mien}, ${roas}, ${`{${roas}}`}::text[], ${ns}, ${gio}, ${tuDo}, ${me.email}) returning id`);
   if (!p) return { loi: 'không ghi được phiếu' };
   const k = g.kieu === 'kien' ? 'K' : 'D';
   const loiPhieu = async (l: string) => { await run(sql`update etp.phieu_len set trang_thai = 'loi', loi = ${l.slice(0, 400)}, cap_nhat = now() where id = ${p.id}`); return { loi: l }; };
@@ -95,7 +101,7 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
     const [dang] = await run<{ tt: string }>(sql`select trang_thai tt from etp.mau_dung where mau = ${MAU_AD} and content_id = ${cid} and trang_thai in ('dang', 'cho', 'cho_nang_cap') and (tuy_chon is not null or trang_thai = 'dang')`);
     if (dang) return await loiPhieu(`AD đang dựng cho phim này (${dang.tt === 'dang' ? 'đang làm' : 'đang chờ máy'}) — chờ xong rồi gửi phiếu mới`);
     const r = await run<{ mau: string }>(sql`insert into etp.mau_dung (mau, content_id, buoc, trang_thai, ghi, ten_mau, tuy_chon)
-      values (${MAU_AD}, ${cid}, 'cho', 'cho', ${`phiếu lên camp #${p.id} — chờ máy dựng AD (iMac) nhận`}, 'Ảnh động logo gốc + CTA', ${JSON.stringify({ phieu: p.id })}::jsonb)
+      values (${MAU_AD}, ${cid}, 'cho', 'cho', ${`phiếu lên camp #${p.id} — chờ máy dựng ${roasDs.length} bản AD (iMac) nhận`}, 'Ảnh động logo gốc + CTA', ${JSON.stringify({ phieu: p.id, ban: roasDs.length })}::jsonb)
       on conflict (mau, content_id) do update set buoc = 'cho', trang_thai = 'cho', tuy_chon = excluded.tuy_chon, cap_nhat = now(), ghi = excluded.ghi
       where etp.mau_dung.trang_thai in ('loi', 'cho', 'xong', 'dung') returning mau`);
     if (!r[0]) return await loiPhieu('việc dựng AD của phim đang ở trạng thái không nhận bản mới');
@@ -104,5 +110,5 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
     if ('loi' in r) return await loiPhieu(`dòng CC2: ${r.loi}`);
   }
   const chuGio = gio === 'lich' ? `khung gần nhất (${haiKhung()[0]?.chu ?? ''})` : `${gio}${tuDo ? ' ⚠ ngoài khung' : ''}`;
-  return { ok: true, id: p.id, chu: `đã gửi phiếu #${p.id}: ${k} · ${g.dang} · ${link} · ${mien ?? 'domain mặc định'} · ROAS ${roas === 'dan' ? 'dàn' : roas} · $${ns} · ${chuGio} — máy dựng xong creative hiện ở Chờ lên, anh duyệt là lên camp` };
+  return { ok: true, id: p.id, chu: `đã gửi phiếu #${p.id}: ${k} · ${g.dang} · ${link} · ${mien ?? 'domain mặc định'} · ROAS ${roasDs.map((x) => x === 'dan' ? 'dàn' : x).join(' / ')} · $${ns} · ${chuGio} — máy dựng ${roasDs.length} creative mới (mỗi mức ROAS một bản), xong hiện ở Chờ lên, anh duyệt bản nào là lên camp mức của bản đó` };
 }

@@ -247,7 +247,32 @@ def logo_khoa_ai(c):
         TT = _nap("tai_tap", "tai-tap.py"); link = TT.og_anh(TT.mo_rong(c["p"]["url"])) if c.get("p", {}).get("url") else None
         ra, v = _nap("logo_goc", "logo-goc.py").anh_khoa(link, os.path.join(c["tm"], "logo-khoa.png"), c.get("cid") or ""); _CHI_LOGO[0] += v; return ra
     return lam
+SQL_GAN_PHIEU = _nap("cho_len", "cho_len.py").SQL_GAN_PHIEU   # gắn thẻ Chờ lên vào phiếu + mức ROAS của thẻ — một câu cho AD (đây) và CC2 (cho_len.ghi_cho)
 LOGO_BAN = 6   # đổi cách tách thì tăng số này → logo đã nhớ của mọi phim tách lại (6: vùng cắt nới theo nét + cổng "logo bị cụt", 26/11/2026 #116378 mất chữ KING)
+def day_logo(cid, tep, kieu, ep=False):
+    """logo gốc của phim → kho R2 (box3 kho phat ethopex logo-goc) + etp.logo_goc (migration 0489) → etp2 phiếu lên camp hiện logo.
+    Đã có đúng LOGO_BAN thì thôi (một câu SQL); đẩy lỗi KHÔNG chặn bản dựng — kêu to ra stderr."""
+    try:
+        if not ep and AT.sql(f"select 1 from etp.logo_goc where content_id = {int(cid)} and ban = {LOGO_BAN}"): return None
+        B = "root@167.233.241.16"; xa = f"/tmp/logo-goc-{int(cid)}.png"
+        subprocess.run(["rsync", "-a", tep, f"{B}:{xa}"], check=True, capture_output=True, timeout=120)
+        r = subprocess.run(["ssh", B, f"kho phat {xa} ethopex logo-goc {int(cid)}-v{LOGO_BAN}.png | tail -1; rm -f {xa}"], capture_output=True, text=True, timeout=120)
+        url = (r.stdout.strip().splitlines() or [""])[-1]
+        if not url.startswith("http"): raise RuntimeError(f"kho phat không trả link: {r.stderr.strip()[-200:]}")
+        AT.sql(f"insert into etp.logo_goc (content_id, url, kieu, ban) values ({int(cid)}, {s_(url)}, {s_(kieu)}, {LOGO_BAN}) "
+               f"on conflict (content_id) do update set url = excluded.url, kieu = excluded.kieu, ban = excluded.ban, cap_nhat = now()")
+        print(f"logo gốc #{cid} → {url}", flush=True); return url
+    except Exception as e: print(f"⚠ đẩy logo gốc #{cid} lỗi (bản dựng vẫn tiếp): {e}", file=sys.stderr); return None
+def day_logo_cu():
+    """đẩy MỘT LẦN mọi logo gốc đã tách sẵn trong ~/.cache/ethopex/anh-tinh/<cid>/ (đúng LOGO_BAN) lên kho — dung-mau.py --day-logo"""
+    g = os.path.expanduser("~/.cache/ethopex/anh-tinh"); n = 0
+    for cid in sorted(os.listdir(g)):
+        tep = os.path.join(g, cid, "logo-goc.png")
+        if not cid.isdigit() or not os.path.exists(tep): continue
+        try: j = json.load(open(tep[:-4] + ".json"))
+        except Exception: continue
+        if j.get("ban") == LOGO_BAN and day_logo(int(cid), tep, j.get("kieu")): n += 1
+    print(f"đã đẩy {n} logo gốc")
 def logo_goc(c, cao=None):
     """cao = trần chiều cao riêng của mẫu (phần khung) — mặc định LOGO_CAO · logo gốc đã tách của phim (MỘT lần / phim, nhớ logo-goc.png + .json) → (ảnh RGBA đã đưa về cỡ chuẩn, 'cat' | 'ai' | 'dai'); không tách được → dừng kêu to"""
     ra = os.path.join(c["tm"], "logo-goc.png"); so = ra[:-4] + ".json"; ly = []; kieu = None
@@ -260,6 +285,7 @@ def logo_goc(c, cao=None):
         if not tp: raise RuntimeError(f"không lấy được logo gốc từ poster phim ({'; '.join(ly) or 'không rõ'}) — mẫu Logo gốc không dựng bằng chữ vẽ thay")
         json.dump({"ban": LOGO_BAN, "kieu": kieu, "ghi": ly}, open(so, "w"), ensure_ascii=False)
         print(f"logo gốc: kiểu {kieu}" + (f" · {'; '.join(ly)}" if ly else ""), flush=True)
+    if c.get("cid"): day_logo(int(c["cid"]), ra, kieu)
     lg = Image.open(ra).convert("RGBA"); tl = W / lg.width if kieu == "dai" else min(W * LOGO_RONG / lg.width, H * (cao or LOGO_CAO) / lg.height)
     return lg.resize((max(1, round(lg.width * tl)), max(1, round(lg.height * tl))), Image.LANCZOS), kieu
 # CỔNG CHUNG "CHỮ KHÔNG CHE MẶT" cho MỌI mẫu (anh 20/11/2026 "các mẫu mới tìm thấy hnay từ spy và chưa có quy trình chuẩn thế này thì chuẩn bị luôn"): trước đây mỗi hàm vẽ tự
@@ -866,6 +892,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
         soan = int(tc.get("soan") or 0)
         # PHIẾU LÊN CAMP (etp2, migration 0488, anh 27/11/2026): tuy_chon.phieu = id phiếu → bản dựng vào Chờ lên mang phieu_id; anh duyệt là lên camp đúng phiếu
         phieu = int(tc.get("phieu") or 0)
+        if phieu and not xem: ban = max(ban, min(5, int(tc.get("ban") or 1)))   # phiếu nhiều mức ROAS: mỗi mức một creative MỚI (khung khác) — anh 27/11/2026
         def phieu_tt(t, g=None):
             if phieu: AT.sql(f"update etp.phieu_len set trang_thai = {s_(t)}, loi = {s_(g[:400]) if g else 'null'}, cap_nhat = now() where id = {phieu} and trang_thai in ('dung', 'cho_duyet')")
         # Ô ANH GHIM (bước Thành phần): khung = đúng khung đó (không tự đổi khung, kể cả khung bản trước đã dùng) · khung_phu = nhân vật thứ hai · giong = đúng câu đọc
@@ -978,7 +1005,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
                 AT.sql(f"update etp.mau_dung set tv_ids = array_append(tv_ids, {int(tv)}) where mau = {s_(ma)} and content_id = {int(cid)}")
                 tt("creative", g=f"tải lên Ethopex qua cổng mẫu (tv{tv})")
                 subprocess.run(["python3", os.path.join(D, "thu-vien-len.py"), str(tv)], check=False)
-                if phieu: AT.sql(f"update etp.cho_len set phieu_id = {phieu} where khoa = 'tv{int(tv)}'"); phieu_tt("cho_duyet")
+                if phieu: AT.sql(SQL_GAN_PHIEU.format(p=phieu, dk=f"c.khoa = 'tv{int(tv)}'")); phieu_tt("cho_duyet")
                 c_id = AT.sql(f"select coalesce(creative_id::text, '') from etp.thu_vien where id = {int(tv)}")
                 if c_id: cr.append(int(c_id)); AT.sql(f"update etp.mau_dung set creative_ids = array_append(creative_ids, {int(c_id)}) where mau = {s_(ma)} and content_id = {int(cid)}")
             if thu: continue
@@ -1087,6 +1114,7 @@ if __name__ == "__main__":
             where mau = {s_(ma_)} and content_id = {cid_} and trang_thai = 'cho_nang_cap' returning mau || ' · ' || content_id || ' → hàng chờ'""") or "không có việc nào đang chờ nâng cấp cho mẫu + phim này"); sys.exit(0)
     if a[0] == "--hang": hang()
     elif a[0] == "--xem-soan": xem_soan()
+    elif a[0] == "--day-logo": day_logo_cu()
     elif a[0] == "--bang": bang_xem(int(a[1]))
     elif a[0] == "--poster": print(ghi_poster(int(a[1]), ngu_canh(int(a[1]))[0].get("url")))   # ghi bù poster gốc cho phim đã dựng trước 19/11/2026
     else: CHI_LAT[0] = "--lat" in a; print(json.dumps(mot(a[0], int(a[1]), "--xem" in a, int(a[a.index("--ban") + 1]) if "--ban" in a else 1, thu="--thu" in a, lat="--lat" in a)))

@@ -38,7 +38,8 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   const [dang, setDang] = useState<DangPhieu>('AD');
   const [link, setLink] = useState('search.com');
   const [mien, setMien] = useState('');
-  const [roas, setRoas] = useState('dan');
+  const [roas, setRoas] = useState<string[]>(['dan']);   // nhiều mức: mỗi mức một creative MỚI + một camp
+  const batRoas = (v: string) => setRoas((xs) => xs.includes(v) ? (xs.length > 1 ? xs.filter((x) => x !== v) : xs) : ROAS.map((r) => r.v).filter((x) => x === v || xs.includes(x)));
   const [ns, setNs] = useState(5);
   const [gio, setGio] = useState('lich');
   const [gioTay, setGioTay] = useState('');
@@ -59,6 +60,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   const gioChon = gio === 'tay' ? gioTay.replace('T', ' ') : gio;
   const gioKhung = new Set(p?.khung.map((k) => k.gio.slice(11, 16)) ?? []);
   const ngoaiKhung = gio === 'tay' && !!gioTay && !gioKhung.has(gioTay.slice(11, 16));
+  const soCamp = roas.length;
   const coThe = !!p && !!chu?.pt.length && !sinh.dang && !gui.dang && !gui.ok && !(gio === 'tay' && !gioTay);
   const guiDi = async () => {
     if (!chu) return; setGui({ dang: true });
@@ -68,6 +70,8 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
 
   const dau = <div className="modal-head"><div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
     {p?.poster ? <img src={p.poster} alt="" style={{ width: 64, height: 90, objectFit: 'cover', borderRadius: 6, flex: 'none' }} /> : null}
+    {p?.logo ? <img src={p.logo.url} alt="logo gốc" title={`logo gốc đã tách (${p.logo.kieu ?? '?'})`} data-logo-goc style={{ height: 90, maxWidth: 200, objectFit: 'contain', borderRadius: 6, flex: 'none', padding: 6,
+      background: 'repeating-conic-gradient(#3f3f46 0% 25%, #27272a 0% 50%) 50% / 16px 16px' }} /> : p ? <div style={{ fontSize: 11, color: MO_SO, width: 90, flex: 'none' }} data-logo-goc>chưa có logo gốc (máy tách lúc dựng AD)</div> : null}
     <div><div className="id-line">phiếu lên camp · phim #{cid}</div><h2 style={{ margin: 0 }}>{p?.ten ?? '…'}</h2>
       <div style={{ fontSize: 12, color: MO_SO, marginTop: 2 }}>ngôn ngữ: <b>{(p?.lang ?? '?').toUpperCase()}</b></div></div></div>
     <button className="modal-close" onClick={onClose}>✕</button></div>;
@@ -86,7 +90,8 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
         <Hang ten="Creative">{(['AD', 'CC2'] as const).map((d) => <button key={d} style={chip(dang === d)} onClick={() => setDang(d)}>{d}</button>)}</Hang>
         <Hang ten="Link">{[...new Set(['search.com', 'info.com', link])].map((l) => <button key={l} style={chip(link === l)} onClick={() => setLink(l)}>{l}</button>)}</Hang>
         <Hang ten="Domain">{p.mien.map((m) => <button key={m} style={chip(mien === m)} onClick={() => setMien(m)} title={m === p.mien_mac ? 'domain mặc định' : undefined}>{m}{m === p.mien_mac ? ' ★' : ''}</button>)}</Hang>
-        <Hang ten="Bid ROAS">{ROAS.map((r) => <button key={r.v} style={chip(roas === r.v)} onClick={() => setRoas(r.v)}>{r.t}</button>)}</Hang>
+        <Hang ten="Bid ROAS">{ROAS.map((r) => <button key={r.v} style={chip(roas.includes(r.v))} onClick={() => batRoas(r.v)} title="chọn được nhiều mức — mỗi mức một creative mới + một camp">{r.t}</button>)}
+          {soCamp > 1 ? <span style={{ fontSize: 12, color: VANG, fontWeight: 600 }} data-canh-roas>⚠ sẽ lên {soCamp} camp — máy dựng {soCamp} creative mới, mỗi mức ROAS một creative{dang === 'CC2' ? ' (dòng CC2 ra 1–3 bản mỗi lượt; thiếu mức nào phiếu báo đỏ)' : ''}</span> : null}</Hang>
         <Hang ten="Ngân sách">{NS.map((n) => <button key={n} style={chip(ns === n)} onClick={() => setNs(n)}>${n}</button>)}
           <input type="number" min={1} max={50} value={ns} onChange={(e) => setNs(Math.max(1, Math.min(50, Number(e.target.value) || 1)))} style={{ width: 64, fontSize: 12.5 }} /></Hang>
         <Hang ten="Giờ chạy">
@@ -97,7 +102,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
           {ngoaiKhung ? <span style={{ fontSize: 12, color: VANG, fontWeight: 600 }} title={GOI_Y_GIO} data-canh-gio>⚠ ngoài khung cố định</span> : null}
         </Hang>
         <div style={{ borderTop: '1px solid var(--border, #e4e4e7)', paddingTop: 10, display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button className="btn btn-primary" disabled={!coThe} onClick={() => void guiDi()} title={GOI_Y_GUI} data-gui-phieu>{gui.dang ? 'đang gửi…' : 'Gửi phiếu · máy dựng creative'}</button>
+          <button className="btn btn-primary" disabled={!coThe} onClick={() => void guiDi()} title={GOI_Y_GUI} data-gui-phieu>{gui.dang ? 'đang gửi…' : soCamp > 1 ? `Gửi phiếu · máy dựng ${soCamp} creative → ${soCamp} camp` : 'Gửi phiếu · máy dựng creative'}</button>
         </div>
         {gui.loi ? <div style={{ marginTop: 8, padding: '8px 10px', border: `1px solid ${DO}`, borderRadius: 6, color: DO, fontSize: 12.5 }}>✗ {gui.loi}</div> : null}
         {gui.ok ? <div style={{ marginTop: 8, padding: '8px 10px', border: `1px solid ${XANH}`, borderRadius: 6, color: XANH, fontSize: 12.5 }}>✓ {gui.ok}</div> : null}

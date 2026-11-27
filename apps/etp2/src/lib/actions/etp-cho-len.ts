@@ -39,7 +39,7 @@ export async function dsChoLen(): Promise<{ ds: ChoLen[] } | { loi: string }> {
   try {
     const ds = await run<DongCho>(sql`select c.id, c.khoa, c.content_id, f.ten phim, c.lang, c.dang, c.ma, c.mau, c.video, c.anh, c.giay::float giay, c.trang_thai,
         c.creative_id, c.loi, c.ghi, c.duyet_ai, c.tao::text tao, c.cap_nhat::text cap_nhat, c.kieu, c.camp_id, c.camp_loi,
-        p.id p_id, p.kieu p_kieu, p.chu p_chu, p.link p_link, p.dang p_dang, p.mien p_mien, p.roas p_roas, p.ns p_ns, p.gio p_gio, p.tu_do p_tu_do, p.trang_thai p_tt
+        p.id p_id, p.kieu p_kieu, p.chu p_chu, p.link p_link, p.dang p_dang, p.mien p_mien, coalesce(c.phieu_roas, p.roas_ds[1], p.roas) p_roas, p.ns p_ns, p.gio p_gio, p.tu_do p_tu_do, p.trang_thai p_tt
       from etp.cho_len c left join etp.phim f on f.content_id = c.content_id left join etp.phieu_len p on p.id = c.phieu_id
       where c.trang_thai in ('cho', 'duyet', 'dang_len') or (c.trang_thai = 'da_len' and c.cap_nhat > now() - interval '6 hours')
         or (c.phieu_id is not null and c.trang_thai = 'da_len' and c.camp_id is null and c.cap_nhat > now() - interval '3 days')
@@ -54,7 +54,7 @@ export async function dsChoLen(): Promise<{ ds: ChoLen[] } | { loi: string }> {
 /** thẻ có phiếu: ✓ Duyệt = duyệt creative + LỆNH lên camp (vé trực tiếp 'tao_camp') → apps/etp/len-phieu.py chạy tách: chờ máy iMac tải creative rồi tạo camp đúng phiếu */
 async function lenTheoPhieu(n: number, me: { email: string }, duyet: boolean): Promise<{ ok: true; chu: string } | { loi: string } | { canh: string }> {
   const [c] = await run<{ content_id: number; phieu_id: number; ns: number; dang: string; kieu: Kieu; roas: string; gio: string; camp_id: number | null; trang_thai: string }>(sql`select c.content_id,
-      c.phieu_id, p.ns, p.dang, p.kieu, p.roas, p.gio, c.camp_id, c.trang_thai from etp.cho_len c join etp.phieu_len p on p.id = c.phieu_id where c.id = ${n}`);
+      c.phieu_id, p.ns, p.dang, p.kieu, coalesce(c.phieu_roas, p.roas_ds[1], p.roas) roas, p.gio, c.camp_id, c.trang_thai from etp.cho_len c join etp.phieu_len p on p.id = c.phieu_id where c.id = ${n}`);
   if (!c) return { loi: `#${n} không có phiếu` };
   if (c.camp_id) return { loi: `#${n} đã có camp #${c.camp_id}` };
   if (duyet ? !['cho', 'duyet'].includes(c.trang_thai) : !['duyet', 'dang_len', 'da_len'].includes(c.trang_thai)) return { loi: `#${n} đang ở trạng thái ${c.trang_thai} — tải lại trang` };

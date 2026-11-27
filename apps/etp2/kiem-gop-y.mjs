@@ -951,6 +951,13 @@ const LUAT = [
   { card: 'phieu-2711', tep: 'apps/etp2/src/lib/actions/etp-cho-len.ts', co: 'if (ph?.phieu_id) return lenTheoPhieu(n, me, true);', cam: 'Kiên (K', vi: 'duyệt thẻ có phiếu = lên camp luôn (vé trực tiếp + len-phieu.py), nhãn chỉ K/D' },
   { card: 'phieu-2711', tep: 'apps/etp2/src/components/etp-cho-len.tsx', co: '↻ Lên camp lại', cam: 'K · Kiên', vi: 'thẻ phiếu hiện thiết lập + camp / lỗi, nút Lên camp lại; nhãn chỉ K/D' },
   { card: 'phieu-2711', tep: 'apps/xuong-video/scripts/ethopex/lop-logo-cc2.py', co: 'GRATIS', vi: 'creative có chữ Free / gratis' },
+  { card: 'roas-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-canh-roas', cam: "useState('dan')", vi: 'chọn nhiều mức ROAS + cảnh báo sẽ lên N camp' },
+  { card: 'roas-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: 'ban: roasDs.length', vi: 'N mức ROAS = máy dựng N creative AD mới' },
+  { card: 'roas-2711', tep: 'apps/xuong-video/scripts/ethopex/cho_len.py', co: 'phieu_roas = coalesce(p.roas_ds, array[p.roas])', vi: 'thẻ thứ i của phiếu nhận mức ROAS thứ i (một câu cho AD + CC2)' },
+  { card: 'roas-2711', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', mot: '_nap("cho_len", "cho_len.py").SQL_GAN_PHIEU', vi: 'dung-mau gắn phiếu bằng câu chung của cho_len' },
+  { card: 'roas-2711', tep: 'apps/etp/len-phieu.py', co: 'coalesce(c.phieu_roas, p.roas_ds[1], p.roas)', vi: 'lên camp theo mức ROAS của đúng thẻ' },
+  { card: 'roas-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-logo-goc', vi: 'phiếu hiện logo gốc đã tách của phim' },
+  { card: 'roas-2711', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'if c.get("cid"): day_logo(', vi: 'logo gốc tách xong đẩy kho + etp.logo_goc' },
 ];
 
 const loi = [];

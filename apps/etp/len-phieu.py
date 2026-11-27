@@ -25,7 +25,8 @@ def ten_camp(phim, lang, cr):   # cùng etp2 lib/etp-ke-cr.ts tenCampCr
     return f"duyet {re.sub(r'[^A-Za-z0-9 .,:!?#-]', '', phim or '')} {lang.upper()} - cr moi #{cr}"
 
 def lenh(p, cr, bo):
-    """dòng lệnh nhan-ban cho phiếu p (dict hàng etp.phieu_len + content_id/lang/phim) và creative cr"""
+    """dòng lệnh nhan-ban cho phiếu p (dict hàng etp.phieu_len + content_id/lang/phim; roas = mức của ĐÚNG thẻ — cho_len.phieu_roas, 0489) và creative cr"""
+    if not re.fullmatch(r"dan|\d+(\.\d+)?", str(p["roas"])): raise SystemExit(f"phiếu #{p['id']}: mức ROAS lạ {p['roas']!r} — không lên")
     lang = "es" if (p.get("lang") or "").startswith("es") else "en"
     a = [os.path.join(SC, "nhan-ban.py"), str(KHUON_CR[lang]), "--roas", "dan" if p["roas"] == "dan" else f"{float(p['roas']):g}", "--ns", str(int(p["ns"])),
          "--tay", "--bo", str(bo), "--creative", str(cr), "--content", str(p["content_id"]), "--ten", ten_camp(p.get("phim"), lang, cr)]
@@ -47,7 +48,7 @@ def ghi_kq(cl, pid, camp, loi):
 
 def chay(cl):
     r = q(f"""select row_to_json(t) from (select c.id cl, c.trang_thai, c.creative_id, c.camp_id, c.loi, p.id, p.content_id, coalesce(p.lang, c.lang) lang, p.kieu, p.link, p.dang,
-            p.mien, p.roas, p.ns, p.gio, p.tu_do, f.ten phim from etp.cho_len c join etp.phieu_len p on p.id = c.phieu_id left join etp.phim f on f.content_id = p.content_id
+            p.mien, coalesce(c.phieu_roas, p.roas_ds[1], p.roas) roas, p.ns, p.gio, p.tu_do, f.ten phim from etp.cho_len c join etp.phieu_len p on p.id = c.phieu_id left join etp.phim f on f.content_id = p.content_id
           where c.id = {int(cl)}) t""")
     if not r: raise SystemExit(f"cho_len #{cl} không có phiếu — không lên")
     p = json.loads(r)
@@ -81,6 +82,8 @@ def tu_kiem():
     assert b[1] == "65110" and b[b.index("--roas") + 1] == "1.1" and b[b.index("--ns") + 1] == "8" and "--mien" not in b and b[b.index("--gio") + 1] == "2026-11-28 03:30" and "--gio-tu-do" in b
     assert "--gio-tu-do" not in lenh({**p, "gio": "2026-11-28 22:00", "tu_do": False}, 5, "42") and "--that" in a and "Kiên" not in " ".join(a) and "Dol" not in " ".join(a)
     assert CHO_GIAY > 60
+    try: lenh({**p, "roas": "dan,1.1"}, 5, "42"); raise AssertionError("danh sách mức phải bị từ chối — mỗi thẻ một mức")
+    except SystemExit: pass
     print("len-phieu tự kiểm: ok")
 
 if __name__ == "__main__":

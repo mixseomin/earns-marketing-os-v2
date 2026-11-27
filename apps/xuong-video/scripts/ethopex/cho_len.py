@@ -71,6 +71,10 @@ def loc(lo, ma):
     if ra: print(f"{DAU}: {sum(1 for o in ra if o.get('cho_anh'))} bản chờ anh duyệt ở etp2 › Camp › Chờ lên", flush=True)
     return di, moi, ra
 
+# GẮN THẺ VÀO PHIẾU (0489): thẻ thứ i của phiếu nhận mức roas_ds[i]; phiếu đủ thẻ (= số mức) thì thẻ dư không gắn. Dùng ở ghi_cho (CC2) và dung-mau.py (AD).
+SQL_GAN_PHIEU = ("update etp.cho_len c set phieu_id = p.id, phieu_roas = coalesce(p.roas_ds, array[p.roas])[1 + (select count(*) from etp.cho_len x where x.phieu_id = p.id and x.trang_thai <> 'bo')] "
+                 "from etp.phieu_len p where p.id = {p} and {dk} and c.phieu_id is null "
+                 "and (select count(*) from etp.cho_len x where x.phieu_id = p.id and x.trang_thai <> 'bo') < coalesce(array_length(p.roas_ds, 1), 1)")
 PHIEU_DANG = {"canh cuoi logo": "CC2", "cảnh cuối logo": "CC2", "ảnh động": "AD"}   # dạng ghi ở etp.cho_len → mã dạng của phiếu (etp.phieu_len.dang)
 
 def ghi_cho(moi, anh, ma, dang):
@@ -91,9 +95,14 @@ def ghi_cho(moi, anh, ma, dang):
                     {s(a[2])}, {s(a[3])}, {float(a[1] or 0)}, {j(_muc(x))}, {s(os.environ.get('ETP_GHI_DUYET') or x.get('goi_y') or x.get('ghi') or '')})
             on conflict (khoa) do update set cap_nhat = now() returning id""").strip()
         pid = phieu.get((int(x["content_id"]), x.get("dang") or dang))
-        if pid and id_.isdigit(): _sql(f"update etp.cho_len set phieu_id = {pid} where id = {int(id_)} and phieu_id is null")
+        if pid and id_.isdigit(): _sql(SQL_GAN_PHIEU.format(p=pid, dk=f"c.id = {int(id_)}"))
         ra.append(dong_cho(x, ma, f"{LY} #{id_}"))
-    for pid in set(phieu.values()): _sql(f"update etp.phieu_len set trang_thai = 'cho_duyet', cap_nhat = now() where id = {pid} and trang_thai = 'dung' and exists (select 1 from etp.cho_len where phieu_id = {pid})")
+    for pid in set(phieu.values()):
+        _sql(f"update etp.phieu_len set trang_thai = 'cho_duyet', cap_nhat = now() where id = {pid} and trang_thai = 'dung' and exists (select 1 from etp.cho_len where phieu_id = {pid})")
+        # phiếu nhiều mức ROAS mà lô ra ít bản hơn số mức → kêu to trên phiếu (mức nào chưa có creative), không lặng lẽ lên thiếu camp
+        thieu = (_sql(f"""select array_to_string(p.roas_ds[(select count(*) from etp.cho_len x where x.phieu_id = p.id and x.trang_thai <> 'bo') + 1 :], ', ') from etp.phieu_len p
+                          where p.id = {pid} and array_length(p.roas_ds, 1) > (select count(*) from etp.cho_len x where x.phieu_id = p.id and x.trang_thai <> 'bo')""") or "").strip()
+        if thieu: _sql(f"update etp.phieu_len set loi = {s('lô dựng ra ít bản hơn số mức ROAS — chưa có creative cho mức: ' + thieu)}, cap_nhat = now() where id = {pid}"); print(f"⚠ phiếu #{pid} thiếu creative cho mức ROAS {thieu}", file=sys.stderr)
     if ra: print(f"{DAU}: {len(ra)} bản mới vào hàng chờ — chưa gửi Ethopex", flush=True)
     sinh_kien({int(x["content_id"]) for x in moi})
     return ra

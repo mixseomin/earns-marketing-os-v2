@@ -39,7 +39,8 @@ const chuDau = gia('chu-dau-tep') ? readFileSync(gia('chu-dau-tep')!, 'utf8').tr
 const chuQc = { headline: ten, mo_ta: lang === 'es' ? 'Episodios completos gratis' : 'Watch Full Episodes!', link: p.kinh_thanh.qc?.link ?? null, ...(chuDau ? { chu_dau: chuDau } : {}),
   // LỚP FREE CỦA NHÀ (anh 15/11/2026 "fix triệt để"): bản vẽ nhãn All Episodes Released + nút Watch For Free → dấu đi cùng bản, hai cổng chữ sau
   // (len-creative + dung-camp → kiem-thoai-creative.sh) đọc dấu này chạy kiem-thoai --free; thiếu dấu = cổng chặn oan mọi khung (532 lượt dòng PO 09–15/11)
-  ...(process.argv.includes('--lop-free') ? { lop_free: true } : {}) };
+  // KT từ tập VideoExpress luôn qua vx-ke-chuyen --cta → cta-logo.py (nút WATCH FREE của nhà) → dấu lop_free tự gắn, không trông người gọi nhớ cờ (#94 28/11/2026)
+  ...(process.argv.includes('--lop-free') || tapId ? { lop_free: true } : {}) };
 const tt = gia('trang-thai') ?? 'san_sang';
 // --them: luôn dòng MỚI — một lượt dựng nhiều bản cùng (phim, dạng, nguồn) (ảnh tĩnh 3 bản, 08/11/2026: bản 2 đè bản 1, bản 3 đè bản 2 → dòng AT chỉ còn 1 creative)
 const co = process.argv.includes('--them') ? [] : (await db.execute(tapId ? sql`SELECT id FROM etp.thu_vien WHERE tap_id = ${tapId} LIMIT 1`

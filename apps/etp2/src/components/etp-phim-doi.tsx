@@ -1,11 +1,11 @@
 'use client';
 // KHỐI "PHIM ĐỘI CÓ CAMP, NHÀ CHƯA CÓ" trên đầu tab Camp › Theo phim (anh 27/11/2026: "thêm vào …v=cay… cả danh sách các phim chưa có camp của Nhà nhưng đội đang có camp để lên camp").
 // Gập / mở (nhớ theo máy), mặc định mở; bảng DataTable chung: phim · người đội · số camp đội · chi / thu / lãi / ROI 7 ngày; nút 🚀 mở Phiếu lên camp (ngăn etp-phieu-len) — camp chỉ tạo khi anh ✓ Duyệt.
-// Dữ liệu: @/lib/actions/etp-phim-doi (đọc lúc mở tab, không nằm trong gói dữ liệu chính của trang).
+// Dữ liệu: GET /etp/phim-doi (lib/etp-phim-doi) — đọc lúc mở tab, không nằm trong gói dữ liệu chính, không xếp hàng sau server action.
 import { useEffect, useState } from 'react';
 import { DataTable, type DataColumn } from '@/components/ui';
 import { openEntityDrawer } from '@/lib/entity-drawer';
-import { dsPhimDoi, type PhimDoi } from '@/lib/actions/etp-phim-doi';
+import type { PhimDoi } from '@/lib/etp-phim-doi';
 import { KeToan, MO_SO, mauLai, Dem } from '@/components/etp-so';
 
 const KHOA = 'etp-phim-doi.mo';
@@ -35,7 +35,7 @@ export function PhimDoiChuaCo() {
   const [loi, setLoi] = useState<string | null>(null);
   const [mo, setMo] = useState(true);
   useEffect(() => { try { if (localStorage.getItem(KHOA) === '0') setMo(false); } catch { /* kho bị chặn: giữ mặc định mở */ } }, []);
-  useEffect(() => { let huy = false; dsPhimDoi().then((r) => { if (huy) return; if ('loi' in r) setLoi(r.loi); else setDs(r.ds); }).catch((e) => !huy && setLoi(String(e?.message ?? e))); return () => { huy = true; }; }, []);
+  useEffect(() => { let huy = false; fetch('/etp/phim-doi', { cache: 'no-store' }).then(async (x) => { const r = await x.json().catch(() => ({ loi: `máy chủ trả ${x.status}` })) as { ds?: PhimDoi[]; loi?: string }; if (huy) return; if (r.ds) setDs(r.ds); else setLoi(r.loi ?? `máy chủ trả ${x.status}`); }).catch((e) => !huy && setLoi(String(e?.message ?? e))); return () => { huy = true; }; }, []);
   const doi = () => setMo((v) => { try { localStorage.setItem(KHOA, v ? '0' : '1'); } catch { /* bỏ qua */ } return !v; });
   const lai = ds?.filter((r) => r.thu7 > r.chi7).length ?? 0;
   return <section data-phim-doi style={{ border: '1px solid var(--line-2)', borderRadius: 8, marginBottom: 10, background: 'var(--bg-1)' }}>

@@ -1,10 +1,9 @@
-'use server';
 // PHIM ĐỘI CÓ CAMP, NHÀ CHƯA CÓ (anh 27/11/2026: "thêm vào …v=cay… cả danh sách các phim chưa có camp của Nhà nhưng đội đang có camp để lên camp").
 // Nguồn: etp.camp_ngoai + etp.so_ngay_ngoai (camp của đội, dong-bo.py đọc) — phim có chi 7 ngày > 0 mà etp.camp (camp nhà) không có camp nào.
+// Đọc qua GET /etp/phim-doi (không qua server action: Next xếp action của một trang thành hàng, khối phải chờ các action nặng ~30s; câu SQL chỉ ~20ms).
 // Chỉ đọc; lên camp vẫn qua Phiếu lên camp (ngăn etp-phieu-len, anh bấm ✓ Duyệt mới tạo camp).
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { getCurrentUser } from '@/lib/auth';
 import { anhUrl } from '@/lib/etp-anh-url';
 
 export type PhimDoi = {
@@ -14,8 +13,7 @@ export type PhimDoi = {
 
 const run = async <T,>(s: ReturnType<typeof sql>) => (await getDb()!.execute(s)) as unknown as T[];
 
-export async function dsPhimDoi(): Promise<{ ok: true; ds: PhimDoi[] } | { loi: string }> {
-  const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin' };
+export async function dsPhimDoi(): Promise<PhimDoi[]> {
   const ds = await run<PhimDoi>(sql`
     with d as (
       select c.content_id cid, count(distinct c.camp_id)::int so_camp,
@@ -29,5 +27,5 @@ export async function dsPhimDoi(): Promise<{ ok: true; ds: PhimDoi[] } | { loi: 
     from d left join etp.phim p on p.content_id = d.cid left join etp.thu_vien_phim v on v.content_id = d.cid
     where not exists (select 1 from etp.camp k where k.content_id = d.cid)
     order by d.thu7 - d.chi7 desc`);
-  return { ok: true, ds: ds.map((r) => ({ ...r, anh: anhUrl(r.anh) })) };
+  return ds.map((r) => ({ ...r, anh: anhUrl(r.anh) }));
 }

@@ -1,7 +1,7 @@
 'use client';
 // 3 GIÂY ĐẦU CỦA VIDEO — thứ người xem thấy trước khi quyết định lướt qua (anh 27/11/2026 "Câu đọc và nội dung trong 3s đầu của video là tối quan trọng nên phải show rõ ràng ra").
 // Thẻ duyệt (Chờ lên, Chờ anh duyệt): khung đầu video + nhãn "3s đầu"; RÊ CHUỘT vào thẻ mới chạy lặp 0–3s (tắt tiếng), rời chuột dừng.
-// KHÔNG tự chạy khi thẻ vào màn (anh 27/11/2026 "SAO LẠI BẬT PLAY HẾT VIDEO CÙNG 1 LÚC" — bản trước IntersectionObserver phát mọi thẻ đang hiện).
+// KHÔNG tự chạy khi thẻ vào màn (anh 27/11/2026 "SAO LẠI BẬT PLAY HẾT VIDEO CÙNG 1 LÚC" — bản trước tự phát mọi thẻ đang hiện trong màn).
 // Bấm = mở cả video có tiếng qua VideoXem (khung chung, nhớ lựa chọn tiếng).
 import { useState } from 'react';
 import { VideoXem } from './video-xem';

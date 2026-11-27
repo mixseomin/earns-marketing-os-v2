@@ -1,9 +1,14 @@
 #!/usr/bin/env node
-// tra-repo-ok: luật "trận đấu" cho máy mô phỏng vật lý (cùng matter-js với mo-phong.mjs) — anh 28/11/2026 "Thử trận đấu xem".
-// TRẬN ĐẤU HAI ĐỘI trong sân tròn: mỗi đội 11 cầu thủ THẬT (doi[].cauthu từ doi-hinh.mjs, 4-3-3) — 2 người gần bóng nhất mỗi đội lao vào bóng, còn lại giữ vị trí dạt theo bóng (bóng tròn tốc độ cố định, tự lái về phía bóng / giữ khung),
-// MỘT quả bóng đá nhẹ hơn, hai khung thành ở trái (đội 0 giữ) và phải (đội 1 giữ). Cầu thủ không vào được lưới (vạch cầu môn chỉ chặn cầu thủ),
-// bóng vào lưới = bàn thắng cho đội kia; người chạm bóng cuối = người ghi bàn (cùng đội bên thủng lưới = phản lưới).
-// 1 giây phim = 1 phút trận; hai hiệp 45', nghỉ giữa hiệp 2,5 s. Cùng hạt giống = cùng trận.
+// tra-repo-ok: luật "trận đấu" cho máy mô phỏng vật lý (cùng matter-js với mo-phong.mjs) — anh 28/11/2026 "Thử trận đấu xem",
+// rồi "sau mỗi bàn thắng chậm lại vài giây, tuýt còi giao bóng; có đá phạt, phạt đền… càng chi tiết càng giống ngoài đời".
+// TRẬN ĐẤU HAI ĐỘI trong sân tròn: mỗi đội 11 cầu thủ THẬT (doi[].cauthu từ doi-hinh.mjs, 4-3-3).
+//   Chơi: 2 người gần bóng nhất mỗi đội lao vào bóng, còn lại giữ vị trí dạt theo bóng; thủ môn bám khung.
+//   Bàn thắng: người ghi bàn chạy ra góc ăn mừng, đồng đội ùa theo → phát lại chậm (replay) → hai đội về vị trí → còi → giao bóng.
+//   Phạm lỗi (va mạnh vào người đang giữ bóng): còi, trọng tài rút thẻ (vàng / đỏ / vàng thứ hai), xếp đá phạt:
+//     trong vòng cấm = phạt đền (thủ môn đổ người), gần khung = đá phạt trực tiếp (hàng rào 3 người, bóng bổng qua rào + xoáy), xa = đá nhanh.
+//   Thẻ đỏ: cầu thủ đi vào đường hầm, đội chơi thiếu người. Trọng tài chạy theo bóng. Bù giờ theo số lần dừng trận.
+//   Thống kê: kiểm soát bóng, sút, trúng đích, phạm lỗi, thẻ, cứu thua, trúng cột → bảng giữa hiệp / hết trận + cầu thủ xuất sắc nhất.
+// 1 giây phim = 1 phút trận khi bóng lăn; đồng hồ dừng khi bóng chết. Cùng hạt giống = cùng trận.
 //   node tran.mjs --doi tran-doi.json --seed 7 --ra ghi.json
 //   node tran.mjs --doi tran-doi.json --do 1-200 [--top 10]     → chấm độ kịch tính, in bảng
 import Matter from 'matter-js';
@@ -12,6 +17,8 @@ import { chonXi } from './doi-hinh.mjs';
 
 const { Engine, Bodies, Body, Composite, Events } = Matter;
 const rng = (s) => () => { s |= 0; s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+const muot = (x) => { x = Math.min(1, Math.max(0, x)); return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; };
+const r1 = (x) => Math.round(x * 10) / 10;
 
 export const LUAT_TRAN = {
   kieu: 'tran',
@@ -23,14 +30,21 @@ export const LUAT_TRAN = {
   toc: 6.2, tocTM: 5.2, bongMax: 17,
   lai: [0.04, 0.09], // độ "bám bóng" của cầu thủ (ngẫu nhiên theo hạt giống) — 0 = nảy như khí, cao = lao vào bóng
   fps: 30, buoc: 4,
-  dauGiay: 3, hiep: 45, nghi: 2.5, sauBan: 1.6, cuoiGiay: 6,
+  dauGiay: 3, hiep: 45, nghi: 5, cuoiGiay: 8,
   tranh: 2,          // số cầu thủ mỗi đội lao vào bóng cùng lúc (người gần bóng nhất)
   // vị trí 4-3-3 theo khung đội 0 (giữ khung trái, x âm = sân nhà): GK, 4 DF, 3 MF, 3 FW — cùng thứ tự với chonXi
   soDo: [[-385, 0], [-265, -200], [-300, -70], [-300, 70], [-265, 200], [-160, -140], [-185, 0], [-160, 140], [-55, -210], [-40, 0], [-55, 210]],
   dat: [0.45, 0.35], // vị trí giữ dạt theo bóng (x, y)
+  // sau bàn thắng: ăn mừng (giây) → phát lại (nguồn = số giây trước bàn, toc = tốc độ phát, sau = số giây sau bàn) → về vị trí → chờ còi
+  mung: 2.4, replay: { nguon: 1.8, toc: 0.45, sau: 0.4 }, veVi: 1.3, choGiao: 0.6,
+  // phạm lỗi: va = tốc độ tương đối tối thiểu, p = xác suất thành lỗi, cam = số giây sau giao bóng / đá phạt không thổi lỗi, gan = cự ly đá phạt trực tiếp
+  loi: { va: 4, p: 0.2, cam: 2.5, vang: 0.3, do: 0.03, gan: 340 },
+  choFK: 1.1, choPen: 1.8, trongTai: 9,
+  pen: { toc: 12, lan: 8, lanDai: 0.4 },
+  fk: { toc: 15, bay: 150, cao: 26 },
 };
 
-const CAT_VACH = 0x0002;
+const CAT_VACH = 0x0002, CAT_CT = 0x0004, MASK_BONG = 0x0001 | CAT_CT;
 
 export function tran(seed, DOI, L = LUAT_TRAN) {
   const ng = rng(seed * 7919 + 3);
@@ -56,123 +70,408 @@ export function tran(seed, DOI, L = LUAT_TRAN) {
   }
   Composite.add(eng.world, tuong);
 
+  const huong = (d) => (d === 0 ? 1 : -1);                          // đội 0 tấn công sang phải
+  const khungNha = (d) => ({ x: C.x - huong(d) * xMieng, y: C.y }); // khung đội d giữ
+  const trongCam = (d, x, y) => huong(d) * (x - C.x) < -(L.R - 150) && Math.abs(y - C.y) < 165;
+  const kep = (p, le = L.r + 10) => { const dx = p.x - C.x, dy = p.y - C.y, d = Math.hypot(dx, dy), m = L.R - le; return d > m ? { x: C.x + (dx / d) * m, y: C.y + (dy / d) * m } : p; };
+  const kc = (a, b) => Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y);
+
   // cầu thủ: đội 0 giữ khung trái (tấn công sang phải), đội 1 ngược lại. j = 0 là thủ môn.
   const ct = [];
   for (let d = 0; d < 2; d++) {
     const xi = DOI.doi[d].cauthu ? chonXi(DOI.doi[d].cauthu, DOI.doi[d].xi) : L.soDo.map((_, j) => ({ so: j + 1, ngan: `#${j + 1}`, vt: j ? 'MF' : 'GK' }));
     xi.forEach((c, j) => {
-      const b = Bodies.circle(0, 0, L.r, { restitution: 1, friction: 0, frictionAir: 0, density: 0.003, label: 'ct', collisionFilter: { category: 0x0001, mask: 0x0001 | CAT_VACH } });
-      b.doi = d; b.so = c.so; b.ten = c.ngan; b.vt = c.vt; b.nha = L.soDo[j]; b.tm = j === 0; b.k = b.tm ? 0 : L.lai[0] + ng() * (L.lai[1] - L.lai[0]);
+      const b = Bodies.circle(0, 0, L.r, { restitution: 1, friction: 0, frictionAir: 0, density: 0.003, label: 'ct', collisionFilter: { category: CAT_CT, mask: 0x0001 | CAT_CT | CAT_VACH } });
+      Object.assign(b, { doi: d, j, so: c.so, ten: c.ngan, vt: c.vt, nha: L.soDo[j], tm: j === 0, bt: 0, st: 0, cu: 0, vang: 0, doThe: 0, ra: false, lan: null });
+      b.k = b.tm ? 0 : L.lai[0] + ng() * (L.lai[1] - L.lai[0]);
       ct.push(b);
     });
   }
-  const BI = ct.length;   // chỉ số của bóng trong mỗi khung (sau toàn bộ cầu thủ)
-  const bong = Bodies.circle(C.x, C.y, L.rBong, { restitution: 0.92, friction: 0, frictionAir: 0.006, density: 0.0007, label: 'bong', collisionFilter: { category: 0x0001, mask: 0x0001 } });
+  const BI = ct.length;   // chỉ số của bóng trong mỗi khung (sau toàn bộ cầu thủ); BI + 1 = trọng tài
+  const bong = Bodies.circle(C.x, C.y, L.rBong, { restitution: 0.92, friction: 0, frictionAir: 0.006, density: 0.0007, label: 'bong', collisionFilter: { category: 0x0001, mask: MASK_BONG } });
   Composite.add(eng.world, [...ct, bong]);
   const tatCa = [...ct, bong];
-
-  const giaoBong = (doiGiao) => {
-    for (const b of ct) {
-      const s = b.doi === 0 ? 1 : -1, [x, y] = b.nha;
-      Body.setPosition(b, { x: C.x + s * Math.min(x, -30) + (ng() - 0.5) * 16, y: C.y + y * s + (ng() - 0.5) * 16 });
-      const a = ng() * Math.PI * 2; Body.setVelocity(b, { x: Math.cos(a) * L.toc, y: Math.sin(a) * L.toc });
-    }
-    Body.setPosition(bong, { x: C.x, y: C.y + (ng() - 0.5) * 30 }); Body.setVelocity(bong, { x: (doiGiao === 0 ? 1 : -1) * 2, y: (ng() - 0.5) * 2 });
-  };
-  giaoBong(0);
+  const idx = (b) => ct.indexOf(b);
+  const tren = () => ct.filter((b) => !b.ra);
+  const tt = { x: C.x, y: C.y - 140 };   // trọng tài (điểm, không va chạm)
+  const TUNNEL = { x: C.x, y: C.y + L.R + 80 };
 
   const dt = 1000 / (L.fps * L.buoc);
   const khung = [], suKien = [], ban = [];
-  let chamCuoi = null, vaCham = [], xuyen = 0, lichCham = [];
+  const now = () => khung.length / L.fps;
+  const tk = { kiem: [0, 0], sut: [0, 0], trung: [0, 0], loi: [0, 0], vang: [0, 0], do: [0, 0], cuu: [0, 0], cot: [0, 0] };
+  const anhTk = () => JSON.parse(JSON.stringify(tk));
+  let chamCuoi = null, vaCham = [], xuyen = 0, lichCham = [], loiCho = null, camLoi = 0, moc = 0;
+  let trangThai = 'dau', hiep = 1, phut = 0, tiSo = [0, 0], ketThuc = null, soDung = 0;
+  const them = [0, 0];
+  let viec = [], sutDang = null, daDang = null, ttDen = null, sutTouch = null, sauCot = -9, z = 0, bay = null, cong = null;
+
   Events.on(eng, 'collisionStart', (e) => {
+    const t = now(), dangChoi = trangThai === 'choi' && !viec.length;
     for (const p of e.pairs) {
       const A = p.bodyA, B = p.bodyB, va = Math.hypot(A.velocity.x - B.velocity.x, A.velocity.y - B.velocity.y);
       const coBong = A === bong || B === bong, khac = A === bong ? B : A;
-      if (coBong && khac.label === 'ct') { chamCuoi = khac; lichCham.push({ b: khac, t: f / L.fps }); if (va > 1) vaCham.push({ k: 'q', i: ct.indexOf(khac), l: +va.toFixed(1) }); continue; }
+      if (coBong && khac.label === 'ct') {
+        chamCuoi = khac; lichCham.push({ b: khac, t }); cong = null;
+        if (va > 1) vaCham.push({ k: 'q', i: idx(khac), l: +va.toFixed(1) });
+        // thủ môn chạm cú sút trúng đích của đối phương = cứu thua
+        if (sutDang && khac.tm && khac.doi !== sutDang.doi && t - sutDang.t < 1.2) {
+          if (sutDang.trung) { tk.cuu[khac.doi]++; khac.cu++; vaCham.push({ k: 'cuu', i: idx(khac), doi: khac.doi, loai: sutDang.loai ?? null }); if (daDang) daDang.xong = 'cuu'; }
+          sutDang = null;
+        }
+        continue;
+      }
+      if (coBong && khac.label === 'vong') {
+        cong = null;
+        const a = Math.atan2(bong.position.y - C.y, bong.position.x - C.x), gan = Math.min(Math.abs(a), Math.PI - Math.abs(a));
+        if (dangChoi && gan < nua + 0.05 && gan > nua - 0.06 && va > 6 && t - sauCot > 2) {
+          sauCot = t; const doiTC = Math.abs(a) < Math.PI / 2 ? 0 : 1;   // cột bên phải = đội 0 đang tấn công
+          tk.cot[doiTC]++; vaCham.push({ k: 'cot', i: BI, doi: doiTC }); if (daDang) daDang.xong = 'cot';
+        }
+      }
       if (va < 1.5) continue;
       if (coBong && (khac.label === 'vong' || khac.label === 'luoi')) vaCham.push({ k: khac.label === 'luoi' ? 'l' : 'v', i: BI, l: +va.toFixed(1) });
-      else if (A.label === 'ct' && B.label === 'ct') vaCham.push({ k: 'b', i: ct.indexOf(A), l: +va.toFixed(1) });
+      else if (A.label === 'ct' && B.label === 'ct') {
+        vaCham.push({ k: 'b', i: idx(A), l: +va.toFixed(1) });
+        // phạm lỗi: va mạnh vào người đang giữ bóng (vừa chạm bóng, bóng còn sát chân)
+        if (A.doi !== B.doi && dangChoi && !loiCho && t >= camLoi && va > L.loi.va) {
+          const nan = chamCuoi === A ? A : chamCuoi === B ? B : null;
+          if (nan) {
+            const lc = [...lichCham].reverse().find((x) => x.b === nan), pham = nan === A ? B : A;
+            if (lc && t - lc.t < 0.6 && kc(nan, bong) < 90 && !pham.ra && !nan.ra && ng() < L.loi.p) loiCho = { nan, pham, x: nan.position.x, y: nan.position.y };
+          }
+        }
+      }
     }
   });
 
-  // máy trạng thái: dau (giới thiệu) → choi → (sau bàn: choi tiếp ít giây rồi giao bóng) → nghi (giữa hiệp) → choi → het
-  let t = 0, phut = 0, f = 0, trangThai = 'dau', hen = L.dauGiay, hiep = 1, tiSo = [0, 0], ketThuc = null, dongBang = false;
-  const ghi = () => khung.push({ m: +phut.toFixed(2), s: [...tiSo], c: chamCuoi ? ct.indexOf(chamCuoi) : -1, p: tatCa.map((b) => [Math.round(b.position.x * 10) / 10, Math.round(b.position.y * 10) / 10, +b.angle.toFixed(3)]) });
-  while (f < 400 * L.fps) {
-    t = f / L.fps;
-    if (trangThai === 'dau' && t >= hen) { trangThai = 'choi'; suKien.push({ t: +t.toFixed(3), k: 'coi', loai: 'bd' }); }
-    if (trangThai === 'nghi' && t >= hen) { trangThai = 'choi'; hiep = 2; giaoBong(1); suKien.push({ t: +t.toFixed(3), k: 'coi', loai: 'bd' }); }
-    if (trangThai === 'banVao' && t >= hen) { trangThai = 'choi'; giaoBong(ban[ban.length - 1].doi === 0 ? 1 : 0); }
-    dongBang = trangThai === 'dau' || trangThai === 'nghi' || trangThai === 'het';
-    if (!dongBang) {
-      for (let s = 0; s < L.buoc; s++) Engine.update(eng, dt);
-      // lái: cầu thủ nhắm điểm sau lưng bóng (đẩy bóng về khung đối phương); thủ môn bám vạch khung theo trục y của bóng
-      const kc = (b) => Math.hypot(b.position.x - bong.position.x, b.position.y - bong.position.y);
-      const tranh = new Set([0, 1].flatMap((d) => ct.filter((b) => b.doi === d && !b.tm).sort((a, c) => kc(a) - kc(c)).slice(0, L.tranh)));
-      for (const b of ct) {
-        const s = b.doi === 0 ? 1 : -1;
-        let tx, ty, tocB = L.toc;
-        if (!b.tm && !tranh.has(b)) {
-          // giữ vị trí: điểm nhà dạt theo bóng, tốc độ giảm khi gần tới (đứng chờ, không lao)
-          const bx = (bong.position.x - C.x) * s, by = (bong.position.y - C.y) * s;
-          let hx = b.nha[0] + bx * L.dat[0], hy = b.nha[1] + by * L.dat[1]; const hr = Math.hypot(hx, hy), gioi = L.R - L.r - 14;
-          if (hr > gioi) { hx *= gioi / hr; hy *= gioi / hr; }
-          tx = C.x + s * hx; ty = C.y + s * hy;
-          const ux = tx - b.position.x, uy = ty - b.position.y, ud = Math.hypot(ux, uy) || 1, tv = Math.min(L.toc, 0.6 + ud * 0.06);
-          let vx = b.velocity.x, vy = b.velocity.y; const v = Math.hypot(vx, vy) || 1;
-          vx = vx / v + (ux / ud) * 0.5; vy = vy / v + (uy / ud) * 0.5; const n = Math.hypot(vx, vy) || 1;
-          Body.setVelocity(b, { x: (vx / n) * tv, y: (vy / n) * tv });
-          continue;
-        }
-        if (b.tm) { tx = C.x - s * (xMieng - 55); ty = C.y + Math.max(-L.mieng / 2 - 10, Math.min(L.mieng / 2 + 10, (bong.position.y - C.y) * 0.6)); tocB = L.tocTM; }
-        else {
-          const gx = C.x + s * L.R, gy = C.y, dx = gx - bong.position.x, dy = gy - bong.position.y, dd = Math.hypot(dx, dy) || 1;
-          tx = bong.position.x - (dx / dd) * (L.r + L.rBong); ty = bong.position.y - (dy / dd) * (L.r + L.rBong);
-        }
-        const ux = tx - b.position.x, uy = ty - b.position.y, ud = Math.hypot(ux, uy) || 1;
-        let vx = b.velocity.x, vy = b.velocity.y; const v = Math.hypot(vx, vy) || 1;
-        const k = b.tm ? (ud < 12 ? 0 : 0.35) : b.k;
-        vx = vx / v + (ux / ud) * k; vy = vy / v + (uy / ud) * k;
-        const n = Math.hypot(vx, vy) || 1, tocThuc = b.tm && ud < 12 ? 0.4 : tocB;
-        Body.setVelocity(b, { x: (vx / n) * tocThuc, y: (vy / n) * tocThuc });
-      }
-      const vb = Math.hypot(bong.velocity.x, bong.velocity.y);
-      if (vb > L.bongMax) Body.setVelocity(bong, { x: bong.velocity.x / vb * L.bongMax, y: bong.velocity.y / vb * L.bongMax });
-      if (trangThai === 'choi') phut += 1 / L.fps;
+  // một bước vật lý (4 bước con) + lái + bóng bổng / xoáy + chống xuyên tường
+  const vatLy = (lai) => {
+    for (let s = 0; s < L.buoc; s++) Engine.update(eng, dt);
+    lai?.();
+    const vb = Math.hypot(bong.velocity.x, bong.velocity.y);
+    if (vb > L.bongMax) Body.setVelocity(bong, { x: (bong.velocity.x / vb) * L.bongMax, y: (bong.velocity.y / vb) * L.bongMax });
+    if (bay) {
+      const q = Math.hypot(bong.position.x - bay.x, bong.position.y - bay.y) / L.fk.bay;
+      if (q >= 1) { bong.collisionFilter.mask = MASK_BONG; bay = null; z = 0; } else z = L.fk.cao * 4 * q * (1 - q);
     }
-    // bóng thoát khỏi sân không qua miệng khung = xuyên tường (lỗi vật lý) → kéo về giữa, ghi lại để máy chấm loại hạt giống
+    if (cong) {
+      if (cong.n-- > 0) { const c = Math.cos(cong.a), s = Math.sin(cong.a), v = bong.velocity; Body.setVelocity(bong, { x: v.x * c - v.y * s, y: v.x * s + v.y * c }); } else cong = null;
+    }
     const db = Math.hypot(bong.position.x - C.x, bong.position.y - C.y);
-    if (trangThai === 'choi') {
-      const vaoTrai = bong.position.x < C.x - xMieng - L.rBong - 2 && Math.abs(bong.position.y - C.y) < L.mieng / 2;
-      const vaoPhai = bong.position.x > C.x + xMieng + L.rBong + 2 && Math.abs(bong.position.y - C.y) < L.mieng / 2;
-      if (vaoTrai || vaoPhai) {
-        const doi = vaoTrai ? 1 : 0; tiSo[doi]++;
-        // người ghi bàn = cầu thủ đội ghi bàn chạm bóng gần nhất trong 4 s (thủ môn đối phương đẩy chạm rồi bóng vẫn vào = vẫn tính cho người sút);
-        // không có ai = phản lưới của người chạm cuối
-        const sut = [...lichCham].reverse().find((x) => x.b.doi === doi && t - x.t < 4)?.b;
-        const nguoiB = sut ?? chamCuoi, nguoi = nguoiB ? ct.indexOf(nguoiB) : -1, phanLuoi = !sut && !!chamCuoi;
-        const bn = { t: +t.toFixed(3), k: 'ban', doi, i: nguoi, pl: phanLuoi, m: Math.min(90, Math.ceil(phut + (hiep === 2 ? 0 : 0))), s: [...tiSo] };
-        ban.push(bn); suKien.push(bn); trangThai = 'banVao'; hen = t + L.sauBan; chamCuoi = null; lichCham = [];
-      } else if (db > L.R + L.day + L.rBong + 6 && Math.abs(bong.position.y - C.y) > L.mieng / 2 + 8) { xuyen++; Body.setPosition(bong, { x: C.x, y: C.y }); Body.setVelocity(bong, { x: 0, y: 0 }); }
+    if (db > L.R + L.day + L.rBong + 6 && Math.abs(bong.position.y - C.y) > L.mieng / 2 + 8) { xuyen++; Body.setPosition(bong, { x: C.x, y: C.y }); Body.setVelocity(bong, { x: 0, y: 0 }); }
+    for (const b of tren()) if (Math.hypot(b.position.x - C.x, b.position.y - C.y) > L.R + L.r + 30) { xuyen++; Body.setPosition(b, { x: C.x + (b.doi ? 200 : -200), y: C.y }); }
+    const t = now(); for (const v of vaCham) suKien.push({ t: +t.toFixed(3), ...v }); vaCham = [];
+  };
+
+  const lai = (b, tx, ty, k, toc) => {
+    const ux = tx - b.position.x, uy = ty - b.position.y, ud = Math.hypot(ux, uy) || 1;
+    let vx = b.velocity.x, vy = b.velocity.y; const v = Math.hypot(vx, vy) || 1;
+    vx = vx / v + (ux / ud) * k; vy = vy / v + (uy / ud) * k; const n = Math.hypot(vx, vy) || 1;
+    Body.setVelocity(b, { x: (vx / n) * toc, y: (vy / n) * toc });
+    return ud;
+  };
+  // lái lúc bóng lăn: cầu thủ nhắm điểm sau lưng bóng (đẩy bóng về khung đối phương); thủ môn bám vạch khung theo trục y của bóng
+  const laiChoi = (t) => {
+    const on = tren(), kb = (b) => kc(b, bong);
+    const tranh = new Set([0, 1].flatMap((d) => on.filter((b) => b.doi === d && !b.tm).sort((a, c) => kb(a) - kb(c)).slice(0, L.tranh)));
+    for (const b of on) {
+      if (b.lan) { if (t < b.lan.het) { Body.setVelocity(b, { x: b.lan.vx, y: b.lan.vy }); continue; } b.lan = null; }
+      const s = huong(b.doi);
+      if (!b.tm && !tranh.has(b)) {
+        // giữ vị trí: điểm nhà dạt theo bóng, tốc độ giảm khi gần tới (đứng chờ, không lao)
+        const bx = (bong.position.x - C.x) * s, by = (bong.position.y - C.y) * s;
+        let hx = b.nha[0] + bx * L.dat[0], hy = b.nha[1] + by * L.dat[1]; const hr = Math.hypot(hx, hy), gioi = L.R - L.r - 14;
+        if (hr > gioi) { hx *= gioi / hr; hy *= gioi / hr; }
+        const tx = C.x + s * hx, ty = C.y + s * hy, ud = Math.hypot(tx - b.position.x, ty - b.position.y);
+        lai(b, tx, ty, 0.5, Math.min(L.toc, 0.6 + ud * 0.06));
+        continue;
+      }
+      if (b.tm) {
+        const tx = C.x - s * (xMieng - 55), ty = C.y + Math.max(-L.mieng / 2 - 10, Math.min(L.mieng / 2 + 10, (bong.position.y - C.y) * 0.6));
+        const ud = Math.hypot(tx - b.position.x, ty - b.position.y);
+        lai(b, tx, ty, ud < 12 ? 0 : 0.35, ud < 12 ? 0.4 : L.tocTM);
+        continue;
+      }
+      const gx = C.x + s * L.R, gy = C.y, dx = gx - bong.position.x, dy = gy - bong.position.y, dd = Math.hypot(dx, dy) || 1;
+      lai(b, bong.position.x - (dx / dd) * (L.r + L.rBong), bong.position.y - (dy / dd) * (L.r + L.rBong), b.k, L.toc);
     }
-    for (const b of ct) if (Math.hypot(b.position.x - C.x, b.position.y - C.y) > L.R + L.r + 30) { xuyen++; Body.setPosition(b, { x: C.x + (b.doi ? 200 : -200), y: C.y }); }
-    for (const v of vaCham) suKien.push({ t: +t.toFixed(3), ...v });
-    vaCham = [];
-    if (trangThai === 'choi' && hiep === 1 && phut >= L.hiep) { phut = L.hiep; trangThai = 'nghi'; hen = t + L.nghi; suKien.push({ t: +t.toFixed(3), k: 'coi', loai: 'hiep', s: [...tiSo] }); giaoBong(1); }
-    if ((trangThai === 'choi' || trangThai === 'banVao') && hiep === 2 && phut >= 2 * L.hiep && !ketThuc) {
-      phut = 2 * L.hiep; trangThai = 'het'; ketThuc = { t, s: [...tiSo], thang: tiSo[0] === tiSo[1] ? -1 : tiSo[0] > tiSo[1] ? 0 : 1 };
+  };
+  // ăn mừng: người ghi bàn chạy ra góc, đồng đội ùa theo, đối phương lững thững về sân nhà
+  const laiMung = (v) => {
+    for (const b of tren()) {
+      let tx, ty, k, toc;
+      if (b === v.nguoi) { tx = v.goc.x; ty = v.goc.y; k = 0.5; toc = L.toc; }
+      else if (b.tm) { Body.setVelocity(b, { x: b.velocity.x * 0.8, y: b.velocity.y * 0.8 }); continue; }
+      else if (b.doi === v.doi) { tx = v.nguoi.position.x; ty = v.nguoi.position.y; k = 0.35; toc = L.toc * 0.85; }
+      else { const s = huong(b.doi); tx = C.x + s * Math.min(b.nha[0], -30); ty = C.y + s * b.nha[1]; k = 0.5; toc = 2; }
+      if (Math.hypot(tx - b.position.x, ty - b.position.y) < (b === v.nguoi ? 12 : 34)) { Body.setVelocity(b, { x: b.velocity.x * 0.7, y: b.velocity.y * 0.7 }); continue; }
+      lai(b, tx, ty, k, toc);
+    }
+  };
+  const thaCham = () => { for (const b of [...tren(), bong]) Body.setVelocity(b, { x: b.velocity.x * 0.82, y: b.velocity.y * 0.82 }); };
+
+  // vị trí giao bóng: hai đội về sân nhà, đội kia đứng ngoài vòng tròn giữa sân, hai tiền đạo đội giao đứng ở chấm giữa
+  const uuTien = [9, 10, 8, 7, 6, 5, 4, 3, 2, 1];
+  const nguoiGiao = (d) => tren().filter((b) => b.doi === d && !b.tm).sort((a, b) => uuTien.indexOf(a.j) - uuTien.indexOf(b.j));
+  const viTriGiao = (dg) => {
+    const m = new Map();
+    for (const b of tren()) {
+      const s = huong(b.doi); let [x, y] = b.nha; x = Math.min(x, -30);
+      const r = Math.hypot(x, y); if (b.doi !== dg && r < 115) { x *= 115 / r; y *= 115 / r; }
+      m.set(b, { x: C.x + s * x, y: C.y + s * y });
+    }
+    const s = huong(dg), [f0, f1] = nguoiGiao(dg);
+    if (f0) m.set(f0, { x: C.x - s * (L.r + L.rBong + 2), y: C.y });
+    if (f1) m.set(f1, { x: C.x - s * 14, y: C.y + 58 });
+    m.set(bong, { x: C.x, y: C.y });
+    return m;
+  };
+  const datViTri = (m) => { for (const [b, p] of m) { Body.setPosition(b, p); Body.setVelocity(b, { x: 0, y: 0 }); } };
+  const giao = (dg, loai) => {
+    const t = now();
+    suKien.push({ t: +t.toFixed(3), k: 'coi', loai });
+    for (const b of tren()) Body.setVelocity(b, { x: 0, y: 0 });
+    Body.setPosition(bong, { x: C.x, y: C.y });
+    Body.setVelocity(bong, { x: -huong(dg) * 4.5, y: (ng() - 0.5) * 4 });   // chuyền về sau
+    const f0 = nguoiGiao(dg)[0];
+    if (f0) { chamCuoi = f0; lichCham = [{ b: f0, t }]; suKien.push({ t: +t.toFixed(3), k: 'q', i: idx(f0), l: 4 }); }
+    moc = khung.length; camLoi = t + L.loi.cam; sutDang = null; daDang = null; trangThai = 'choi';
+  };
+
+  // phát lại chậm: chép khung từ max(moc, bàn - nguồn) tới bàn + sau, nội suy theo tốc độ phát
+  const chenReplay = (fG, bn) => {
+    const R = L.replay, a = Math.max(moc, fG - Math.round(R.nguon * L.fps)), b = Math.min(khung.length - 1, fG + Math.round(R.sau * L.fps));
+    const t0 = now(), n = Math.floor((b - a) / R.toc);
+    for (let q = 0; q <= n; q++) {
+      const src = a + q * R.toc, i0 = Math.floor(src), i1 = Math.min(b, i0 + 1), w = src - i0, A = khung[i0], B = khung[i1];
+      const k = { m: +phut.toFixed(2), h: hiep, s: [...tiSo], c: A.c, r: 1, p: A.p.map((p, j) => [r1(p[0] + (B.p[j][0] - p[0]) * w), r1(p[1] + (B.p[j][1] - p[1]) * w), p[2]]) };
+      const zz = (A.z ?? 0) + ((B.z ?? 0) - (A.z ?? 0)) * w; if (zz > 0.5) k.z = +zz.toFixed(1);
+      khung.push(k);
+    }
+    suKien.push({ t: +t0.toFixed(3), k: 'replay', dai: +((n + 1) / L.fps).toFixed(3), tBan: bn.t, i: bn.i, doi: bn.doi });
+  };
+
+  // hàng việc: xep (dời người theo đường cong mượt, không vật lý), cho (đứng yên), mung / tha (vật lý chạy), fn (một lần)
+  const chayViec = (t) => {
+    const v = viec[0];
+    if (v.bd == null) {
+      v.bd = t; v.vao?.();
+      if (typeof v.den === 'function') v.den = v.den();
+      if (v.den) { v.tu = new Map(); for (const b of v.den.keys()) v.tu.set(b, { x: b.position.x, y: b.position.y }); }
+    }
+    const u = v.dai ? Math.min(1, (t - v.bd + 1 / L.fps) / v.dai) : 1;
+    if (v.loai === 'xep') { const e = muot(u); for (const [b, d] of v.den) { const a = v.tu.get(b); Body.setPosition(b, { x: a.x + (d.x - a.x) * e, y: a.y + (d.y - a.y) * e }); Body.setVelocity(b, { x: 0, y: 0 }); } }
+    else if (v.loai === 'mung') vatLy(() => laiMung(v));
+    else if (v.loai === 'tha') vatLy(thaCham);
+    ttDen = v.tt ? (v.tt.position ?? v.tt) : null;
+    if (u >= 1) { viec.shift(); v.xong?.(); v.fn?.(); ttDen = null; }
+  };
+
+  const duoi = (b) => { Composite.remove(eng.world, b); b.ra = true; Body.setPosition(b, { x: -999, y: -999 }); if (chamCuoi === b) chamCuoi = null; };
+  const nguoiDa = (d, tru) => tren().filter((b) => b.doi === d && !b.tm && b !== tru).sort((a, b) => b.bt - a.bt || uuTien.indexOf(a.j) - uuTien.indexOf(b.j))[0];
+
+  // xếp phạt đền: bóng lên chấm, thủ môn trên vạch, người sút lùi lấy đà, mọi người khác đứng hai hàng ngoài vòng cấm
+  const xepPen = (off, da) => {
+    const s = huong(off), G = khungNha(off), cham = { x: C.x - s * (L.R - 110), y: C.y }, m = new Map();
+    const nguoi = nguoiDa(da), gk = tren().find((b) => b.tm && b.doi === off), gkDa = tren().find((b) => b.tm && b.doi === da);
+    m.set(bong, cham); m.set(nguoi, { x: cham.x + s * 64, y: cham.y + 22 });
+    if (gk) m.set(gk, { x: G.x + s * 24, y: C.y });
+    if (gkDa) m.set(gkDa, { x: C.x - huong(da) * (xMieng - 55), y: C.y });
+    // như ngoài đời: ba hàng so le ngoài mép vòng cấm (cách mép 30–150 px), lệch nhẹ từng người, ai ở trên đứng trên — không xếp cột
+    const xBox = C.x - s * (L.R - 150), con = tren().filter((b) => !m.has(b)).sort((a, b) => a.position.y - b.position.y);
+    const nh = Math.ceil(con.length / 3), cho = con.map((_, k) => { const h = k % 3, j = Math.floor(k / 3), lech = ((k * 37) % 11) / 11 - 0.5;
+      return { x: xBox + s * (32 + h * 58 + lech * 26), y: C.y + (j - (nh - 1) / 2) * 62 + (h - 1) * 20 + lech * 14 }; }).sort((a, b) => a.y - b.y);
+    con.forEach((b, k) => m.set(b, kep(cho[k])));
+    return { m, nguoi, B: cham, chamDa: { x: cham.x + s * (L.r + L.rBong + 1), y: cham.y + 6 } };
+  };
+  // xếp đá phạt trực tiếp: hàng rào 3 người cách bóng 78 px chắn hướng khung, thủ môn trong khung, người khác lùi ≥ 95 px
+  const xepFK = (off, da, B0) => {
+    const s = huong(off), G = khungNha(off), B = kep(B0, 60), ud = Math.hypot(G.x - B.x, G.y - B.y);
+    const u = { x: (G.x - B.x) / ud, y: (G.y - B.y) / ud }, n = { x: -u.y, y: u.x }, m = new Map();
+    const nguoi = nguoiDa(da); m.set(bong, B); m.set(nguoi, kep({ x: B.x - u.x * 42, y: B.y - u.y * 42 }));
+    const gk = tren().find((b) => b.tm && b.doi === off); if (gk) m.set(gk, { x: G.x + s * 24, y: C.y + Math.max(-30, Math.min(30, (B.y - C.y) * 0.25)) });
+    tren().filter((b) => b.doi === off && !b.tm && !b.doThe).sort((a, b) => kc(a, { position: B }) - kc(b, { position: B })).slice(0, 3)
+      .forEach((b, k) => m.set(b, kep({ x: B.x + u.x * 78 + n.x * (k - 1) * 44, y: B.y + u.y * 78 + n.y * (k - 1) * 44 })));
+    for (const b of tren()) if (!m.has(b)) {
+      let p = { x: b.position.x, y: b.position.y }; const dx = p.x - B.x, dy = p.y - B.y, d = Math.hypot(dx, dy) || 1;
+      if (d < 95) p = { x: B.x + (dx / d) * 95, y: B.y + (dy / d) * 95 };
+      m.set(b, kep(p));
+    }
+    return { m, nguoi, B };
+  };
+  // đá phạt nhanh (xa khung): người bị phạm lỗi đặt bóng, đối phương lùi ≥ 80 px
+  const xepNhanh = (off, da, B0, nan) => {
+    const B = kep(B0, 40), m = new Map(); m.set(bong, B);
+    const nguoi = nan.ra ? nguoiDa(da) : nan; m.set(nguoi, kep({ x: B.x - huong(da) * 40, y: B.y }));
+    for (const b of tren()) if (!m.has(b)) {
+      let p = { x: b.position.x, y: b.position.y }; const dx = p.x - B.x, dy = p.y - B.y, d = Math.hypot(dx, dy) || 1;
+      if (d < 80) p = { x: B.x + (dx / d) * 80, y: B.y + (dy / d) * 80 };
+      m.set(b, kep(p));
+    }
+    return { m, nguoi, B };
+  };
+
+  const da = (kieu, off, x) => {
+    const t = now(), nguoi = x.nguoi, s = huong(off), G = khungNha(off), B = { x: bong.position.x, y: bong.position.y };
+    trangThai = 'choi'; camLoi = t + L.loi.cam; moc = Math.max(0, khung.length - Math.round(0.6 * L.fps));
+    chamCuoi = nguoi; lichCham.push({ b: nguoi, t }); suKien.push({ t: +t.toFixed(3), k: 'q', i: idx(nguoi), l: 9 });
+    for (const b of tren()) Body.setVelocity(b, { x: 0, y: 0 });
+    const huongToi = (p, toc) => { const dx = p.x - B.x, dy = p.y - B.y, d = Math.hypot(dx, dy) || 1; return { x: (dx / d) * toc, y: (dy / d) * toc, d }; };
+    if (kieu === 'pen') {
+      const r = ng(); let ay = (r < 0.42 ? -1 : r < 0.84 ? 1 : 0) * L.mieng * 0.36;
+      if (ng() < 0.08) ay = (ng() < 0.5 ? -1 : 1) * (L.mieng / 2 + 25);
+      const v = huongToi({ x: G.x - s * 30, y: C.y + ay }, L.pen.toc); Body.setVelocity(bong, v);
+      const gk = tren().find((b) => b.tm && b.doi === off), q = ng(), lan = q < 0.45 ? -1 : q < 0.9 ? 1 : 0;
+      if (gk) gk.lan = { vx: 0, vy: lan * L.pen.lan, het: t + L.pen.lanDai };
+      daDang = { t, doi: 1 - off, loai: 'pen', i: idx(nguoi), lan, ay: Math.sign(ay) };
+    } else if (kieu === 'fk') {
+      const ay = ng() < 0.75 ? (ng() < 0.5 ? -1 : 1) * (L.mieng / 2 - 16) : (ng() < 0.5 ? -1 : 1) * (L.mieng / 2 + 22);
+      const v = huongToi({ x: G.x - s * 20, y: C.y + ay }, L.fk.toc), Nf = v.d / (2 * L.fk.toc), a = (ng() < 0.5 ? -1 : 1) * (0.012 + ng() * 0.01), q = -a * Nf / 2;
+      Body.setVelocity(bong, { x: v.x * Math.cos(q) - v.y * Math.sin(q), y: v.x * Math.sin(q) + v.y * Math.cos(q) });
+      bong.collisionFilter.mask = 0x0001; bay = { ...B }; cong = { a, n: Math.round(Nf * 1.3) };
+      daDang = { t, doi: 1 - off, loai: 'fk', i: idx(nguoi) };
+    } else {
+      const ban_ = tren().filter((b) => b.doi === nguoi.doi && b !== nguoi && !b.tm).sort((a, b) => kc(a, nguoi) - kc(b, nguoi))[0];
+      Body.setVelocity(bong, ban_ ? huongToi(ban_.position, 9) : { x: huong(nguoi.doi) * 9, y: 0 });
+      daDang = { t, doi: 1 - off, loai: 'nhanh', i: idx(nguoi) };
+    }
+  };
+
+  const xuLoi = (o, t) => {
+    const { nan, pham, x, y } = o, off = pham.doi, doiDa = nan.doi;
+    const kieu = trongCam(off, x, y) ? 'pen' : Math.hypot(x - khungNha(off).x, y - C.y) < L.loi.gan ? 'fk' : 'nhanh';
+    let the = null; const r = ng();
+    if (!pham.tm && r < L.loi.do) the = 'do';
+    else if (r < L.loi.do + L.loi.vang * (kieu === 'pen' ? 1.6 : 1)) the = pham.vang ? 'vang2' : 'vang';
+    if (the === 'vang') pham.vang = 1;
+    if (the === 'do' || the === 'vang2') pham.doThe = 1;
+    tk.loi[off]++; if (the) tk[the === 'vang' ? 'vang' : 'do'][off]++;
+    soDung += 0.25 + (the ? 0.4 : 0) + (kieu === 'pen' ? 0.5 : 0);
+    suKien.push({ t: +t.toFixed(3), k: 'loi', i: idx(pham), nan: idx(nan), x: r1(x), y: r1(y), kieu, the, doi: off });
+    suKien.push({ t: +t.toFixed(3), k: 'coi', loai: 'loi' });
+    sutDang = null; daDang = null; cong = null; if (bay) { bay = null; z = 0; bong.collisionFilter.mask = MASK_BONG; }
+    viec.push({ loai: 'tha', dai: 0.5, tt: { x, y } });
+    if (the) viec.push({ loai: 'cho', dai: 1.4, tt: pham, vao: () => suKien.push({ t: +now().toFixed(3), k: 'the', i: idx(pham), mau: the, doi: off }) });
+    let xp = null;
+    viec.push({
+      loai: 'xep', dai: kieu === 'pen' ? L.choPen : L.choFK,
+      den: () => { xp = kieu === 'pen' ? xepPen(off, doiDa) : kieu === 'fk' ? xepFK(off, doiDa, { x, y }) : xepNhanh(off, doiDa, { x, y }, nan); if (pham.doThe) xp.m.set(pham, TUNNEL); return xp.m; },
+      get tt() { return xp?.B ?? { x, y }; },
+      xong: () => { if (pham.doThe) duoi(pham); },
+    });
+    viec.push({ loai: 'cho', dai: kieu === 'pen' ? 1.1 : kieu === 'fk' ? 0.6 : 0.2, get tt() { return xp?.B; }, vao: () => { suKien.push({ t: +now().toFixed(3), k: 'coi', loai: 'da' }); if (kieu === 'pen') suKien.push({ t: +now().toFixed(3), k: 'tim', dai: 1.4 }); } });
+    if (kieu === 'pen') viec.push({ loai: 'xep', dai: 0.35, den: () => new Map([[xp.nguoi, xp.chamDa]]), get tt() { return xp?.B; } });
+    viec.push({ fn: () => da(kieu, off, xp) });
+  };
+
+  const ketHiep = (t) => {
+    sutDang = null; daDang = null; cong = null; if (bay) { bay = null; z = 0; bong.collisionFilter.mask = MASK_BONG; }
+    for (const b of ct) b.lan = null;
+    if (hiep === 1) {
+      suKien.push({ t: +t.toFixed(3), k: 'coi', loai: 'hiep', s: [...tiSo], tk: anhTk() });
+      trangThai = 'nghi';
+      viec.push({ loai: 'tha', dai: 0.6 }, { loai: 'xep', dai: L.nghi - 1.3, den: () => viTriGiao(1) }, { loai: 'cho', dai: 0.6 }, { fn: () => { hiep = 2; phut = L.hiep; soDung = 0; giao(1, 'bd'); } });
+    } else {
+      // cầu thủ xuất sắc nhất: bàn ×3, sút trúng ×0,7, cứu thua ×1,2, đội thắng +1, thẻ đỏ −3
+      const thang = tiSo[0] === tiSo[1] ? -1 : tiSo[0] > tiSo[1] ? 0 : 1;
+      const diemCT = (b) => b.bt * 3 + b.st * 0.7 + b.cu * 1.2 + (b.doi === thang ? 1 : 0) - b.doThe * 3;
+      const motm = idx([...ct].sort((a, b) => diemCT(b) - diemCT(a))[0]);
+      ketThuc = { t: +t.toFixed(3), s: [...tiSo], thang, tk: anhTk(), motm };
       suKien.push({ t: +t.toFixed(3), k: 'coi', loai: 'kt', s: [...tiSo] });
+      trangThai = 'het'; viec.push({ loai: 'tha', dai: 1.2 });
     }
-    ghi(); f++;
+  };
+
+  const phatHienSut = (t) => {
+    const last = lichCham[lichCham.length - 1];
+    if (!last || last === sutTouch || t - last.t > 0.2) return;
+    const v = bong.velocity; if (Math.hypot(v.x, v.y) < 7.5) return;
+    const d = last.b.doi, gx = C.x + huong(d) * xMieng, dx = gx - bong.position.x;
+    if (v.x * huong(d) <= 0 || Math.abs(dx) > 400) return;
+    const yp = bong.position.y + v.y * (dx / v.x) - C.y;
+    if (Math.abs(yp) > L.mieng / 2 + 45) return;
+    sutTouch = last; const trung = Math.abs(yp) < L.mieng / 2;
+    tk.sut[d]++; if (trung) { tk.trung[d]++; last.b.st++; }
+    sutDang = { t, doi: d, i: idx(last.b), trung, loai: daDang && daDang.doi === d ? daDang.loai : null };
+    suKien.push({ t: +t.toFixed(3), k: 'sut', doi: d, i: idx(last.b), trung });
+  };
+
+  const buocChoi = (t) => {
+    const goc = hiep === 1 ? L.hiep : 2 * L.hiep;
+    if (phut >= goc - 1 && !them[hiep - 1]) { them[hiep - 1] = Math.max(1, Math.min(5, Math.round(1 + soDung))); suKien.push({ t: +t.toFixed(3), k: 'them', hiep, n: them[hiep - 1] }); }
+    if (them[hiep - 1] && phut >= goc + them[hiep - 1]) { ketHiep(t); return; }
+    vatLy(() => laiChoi(t));
+    phut += 1 / L.fps;
+    if (chamCuoi) tk.kiem[chamCuoi.doi]++;
+    phatHienSut(t);
+    const vaoTrai = bong.position.x < C.x - xMieng - L.rBong - 2 && Math.abs(bong.position.y - C.y) < L.mieng / 2;
+    const vaoPhai = bong.position.x > C.x + xMieng + L.rBong + 2 && Math.abs(bong.position.y - C.y) < L.mieng / 2;
+    if (vaoTrai || vaoPhai) {
+      const doi = vaoTrai ? 1 : 0; tiSo[doi]++;
+      // người ghi bàn = cầu thủ đội ghi bàn chạm bóng gần nhất trong 4 s; không có ai = phản lưới của người chạm cuối
+      const sut = [...lichCham].reverse().find((x) => x.b.doi === doi && t - x.t < 4)?.b;
+      const nguoiB = sut ?? chamCuoi, phanLuoi = !sut && !!chamCuoi;
+      const loai = daDang && !daDang.xong && daDang.doi === doi && t - daDang.t < 2 && daDang.loai !== 'nhanh' ? daDang.loai : null;
+      const mt = phut > goc ? Math.ceil(phut - goc) : 0;
+      const bn = { t: +t.toFixed(3), k: 'ban', doi, i: nguoiB ? idx(nguoiB) : -1, pl: phanLuoi, m: Math.max(1, Math.min(goc, Math.ceil(phut))), mt, loai, s: [...tiSo] };
+      if (sut) sut.bt++;
+      ban.push(bn); suKien.push(bn); soDung += 0.6;
+      sutDang = null; daDang = null; cong = null; loiCho = null;
+      const fG = khung.length;
+      const nguoiMung = sut ?? tren().filter((b) => b.doi === doi && !b.tm).sort((a, b) => kc(a, bong) - kc(b, bong))[0];
+      const y0 = Math.sign(nguoiMung.position.y - C.y) || 1;
+      const gocMung = { x: C.x + huong(doi) * Math.cos(0.8) * (L.R - 50), y: C.y + y0 * Math.sin(0.8) * (L.R - 50) };
+      viec.push({ loai: 'mung', dai: L.mung, nguoi: nguoiMung, doi, goc: gocMung });
+      viec.push({ fn: () => chenReplay(fG, bn) });
+      viec.push({ loai: 'xep', dai: L.veVi, den: () => viTriGiao(1 - doi) });
+      viec.push({ loai: 'cho', dai: L.choGiao });
+      viec.push({ fn: () => giao(1 - doi, 'giao') });
+      chamCuoi = null; lichCham = [];
+      return;
+    }
+    if (loiCho) { xuLoi(loiCho, t); loiCho = null; return; }
+    if (daDang && t - daDang.t > 1.2) {
+      if (daDang.loai === 'pen' && !daDang.xong) suKien.push({ t: +t.toFixed(3), k: 'truot', doi: daDang.doi, i: daDang.i, loai: 'pen' });
+      daDang = null;
+    }
+  };
+
+  // trọng tài: chạy theo bóng lệch 130 px về phía trống; lúc dừng trận chạy tới chỗ phạm lỗi / người bị thẻ / vòng giữa sân
+  const capTT = () => {
+    let d;
+    if (ttDen) d = { x: ttDen.x - 60, y: ttDen.y - 70 };
+    else if (trangThai === 'choi' && !viec.length) d = { x: bong.position.x - 40, y: bong.position.y + (bong.position.y > C.y ? -130 : 130) };
+    else d = { x: C.x, y: C.y - 140 };
+    d = kep(d, 30);
+    const dx = d.x - tt.x, dy = d.y - tt.y, dd = Math.hypot(dx, dy), m = Math.min(dd, L.trongTai);
+    if (dd > 1) { tt.x += (dx / dd) * m; tt.y += (dy / dd) * m; }
+  };
+  const ghi = () => {
+    const k = { m: +phut.toFixed(2), h: hiep, s: [...tiSo], c: chamCuoi ? idx(chamCuoi) : -1, p: [...tatCa.map((b) => (b.ra ? [-999, -999, 0] : [r1(b.position.x), r1(b.position.y), +b.angle.toFixed(3)])), [r1(tt.x), r1(tt.y), 0]] };
+    if (z > 0.5) k.z = +z.toFixed(1);
+    khung.push(k);
+  };
+
+  datViTri(viTriGiao(0));
+  while (khung.length < 420 * L.fps) {
+    const t = now();
+    if (trangThai === 'dau' && t >= L.dauGiay) giao(0, 'bd');
+    if (viec.length) chayViec(t);
+    else if (trangThai === 'choi') buocChoi(t);
+    capTT(); ghi();
     if (ketThuc && t >= ketThuc.t + L.cuoiGiay) break;
   }
-  return { seed, kieu: 'tran', luat: L, doi: DOI, bi: BI, ct: ct.map((b) => ({ doi: b.doi, so: b.so, ten: b.ten, vt: b.vt, tm: b.tm })), khung, suKien, ban, ketThuc, xuyen, DAI: khung.length / L.fps, dauGiay: L.dauGiay };
+  return {
+    seed, kieu: 'tran', luat: L, doi: DOI, bi: BI, ct: ct.map((b) => ({ doi: b.doi, so: b.so, ten: b.ten, vt: b.vt, tm: b.tm })),
+    khung, suKien, ban, ketThuc, them, xuyen, DAI: khung.length / L.fps, dauGiay: L.dauGiay,
+  };
 }
 
-// chấm kịch tính: 3–7 bàn, cả hai đội cùng ghi, có lật / gỡ hoà, có bàn cuối trận (>75'), không hoà, không xuyên tường
+// chấm kịch tính: 3–7 bàn, cả hai đội cùng ghi, có lật / gỡ hoà, bàn cuối trận, phạt đền, đá phạt thành bàn, thẻ đỏ, trúng cột, bàn phút bù giờ
 export function chamTran(g) {
   if (!g.ketThuc) return { diem: -1 };
-  const b = g.ban, n = b.length, [a, c] = g.ketThuc.s;
+  const b = g.ban, n = b.length, [a, c] = g.ketThuc.s, ev = (k) => g.suKien.filter((e) => e.k === k);
   let doiDan = 0, lat = 0, prev = 0;
   for (const x of b) { const d = Math.sign(x.s[0] - x.s[1]); if (d !== 0 && prev !== 0 && d !== prev) lat++; if (d === 0) doiDan++; if (d !== 0) prev = d; }
   let diem = 100 - g.xuyen * 40;
@@ -183,7 +482,14 @@ export function chamTran(g) {
   const cuoi = b.filter((x) => x.m >= 75).length; diem += Math.min(cuoi, 2) * 9;
   if (Math.abs(a - c) === 1) diem += 10;
   const quyetDinh = b.length && Math.abs(a - c) === 1 ? b[b.length - 1].m : 0; if (quyetDinh >= 80) diem += 10;
-  return { diem: +diem.toFixed(1), tiSo: `${a}-${c}`, ban: n, goHoa: doiDan, lat, cuoi, xuyen: g.xuyen };
+  const loi = ev('loi'), pen = loi.filter((e) => e.kieu === 'pen').length, fk = loi.filter((e) => e.kieu === 'fk').length;
+  const penBan = b.filter((x) => x.loai === 'pen').length, fkBan = b.filter((x) => x.loai === 'fk').length;
+  const doThe = ev('the').filter((e) => e.mau !== 'vang').length, cot = ev('cot').length, cuuPen = ev('cuu').filter((e) => e.loai === 'pen').length;
+  const bu = b.filter((x) => x.mt > 0 && x.m === 90).length;
+  diem += Math.min(pen, 2) * 8 + Math.min(fk, 2) * 3 + fkBan * 12 + Math.min(doThe, 1) * 8 + Math.min(cot, 2) * 4 + bu * 10 + cuuPen * 6;
+  if (loi.length < 2) diem -= 6; if (loi.length > 8) diem -= (loi.length - 8) * 4;
+  if (g.DAI > 200) diem -= (g.DAI - 200) * 0.5;
+  return { diem: +diem.toFixed(1), tiSo: `${a}-${c}`, ban: n, goHoa: doiDan, lat, cuoi, loi: loi.length, pen, penBan, fk, fkBan, doThe, cot, bu, dai: Math.round(g.DAI), xuyen: g.xuyen };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -194,9 +500,14 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     for (let s = a; s <= b; s++) kq.push({ seed: s, ...chamTran(tran(s, DOI)) });
     kq.sort((x, y) => y.diem - x.diem);
     console.table(kq.slice(0, Number(arg('top', 10))));
+    const tb = (k) => (kq.reduce((s, x) => s + (x[k] ?? 0), 0) / kq.length).toFixed(2);
+    console.log(`trung bình ${kq.length} trận: bàn ${tb('ban')} · lỗi ${tb('loi')} · phạt đền ${tb('pen')} (vào ${tb('penBan')}) · đá phạt ${tb('fk')} (vào ${tb('fkBan')}) · thẻ đỏ ${tb('doThe')} · cột ${tb('cot')} · dài ${tb('dai')} s`);
   } else {
     const g = tran(Number(arg('seed', 1)), DOI);
-    console.log(JSON.stringify(chamTran(g)), g.ban.map((x) => `${x.m}' ${DOI.doi[x.doi].ngan} ${g.ct[x.i]?.ten ?? '?'}${x.pl ? ' (OG)' : ''}`).join(' · '));
+    const ph = (x) => `${x.m}${x.mt ? '+' + x.mt : ''}'`;
+    console.log(JSON.stringify(chamTran(g)));
+    console.log(g.ban.map((x) => `${ph(x)} ${DOI.doi[x.doi].ngan} ${g.ct[x.i]?.ten ?? '?'}${x.pl ? ' (OG)' : ''}${x.loai ? ` (${x.loai})` : ''}`).join(' · '));
+    console.log(g.suKien.filter((e) => ['loi', 'the', 'cot', 'cuu', 'truot', 'them'].includes(e.k)).map((e) => `${e.t.toFixed(1)}s ${e.k}${e.kieu ? ':' + e.kieu : ''}${e.mau ? ':' + e.mau : ''}${e.n ? '+' + e.n : ''} ${g.ct[e.i]?.ten ?? ''}`).join(' | '));
     writeFileSync(arg('ra', 'ghi.json'), JSON.stringify(g));
   }
 }

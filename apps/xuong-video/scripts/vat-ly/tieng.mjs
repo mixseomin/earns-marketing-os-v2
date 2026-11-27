@@ -128,6 +128,9 @@ function tiengTran(g, { N, cong, ngau, kick, kenNot, ghi }) {
   const nhieu = (dai, loc, env) => { const n = Math.floor(dai * SR), b = new Float32Array(n); let lp = 0; for (let k = 0; k < n; k++) { lp += (ngau() - lp) * loc; b[k] = lp * env(k / SR); } return b; };
   const sut = (vol) => { const n = Math.floor(0.12 * SR), b = new Float32Array(n); let ph = 0, lp = 0; for (let k = 0; k < n; k++) { const t = k / SR; ph += 2 * Math.PI * (70 + 160 * Math.exp(-t * 60)) / SR; lp += (ngau() - lp) * 0.5; b[k] = vol * (0.8 * Math.sin(ph) * Math.exp(-t * 35) + 0.5 * lp * Math.exp(-t * 90)); } return b; };
   const coi = (dai, vol) => { const n = Math.floor(dai * SR), b = new Float32Array(n); for (let k = 0; k < n; k++) { const t = k / SR, f = 2900 + 180 * Math.sin(2 * Math.PI * 28 * t); b[k] = vol * Math.sin(2 * Math.PI * f * t) * (0.6 + 0.4 * Math.sign(Math.sin(2 * Math.PI * 28 * t))) * Math.min(1, t * 80) * Math.min(1, (dai - t) * 30); } return b; };
+  // cột kim loại: vài hoạ âm không điều hoà tắt dần; vút: nhiễu lọc quét lên xuống (chuyển cảnh phát lại)
+  const coiTo = (dai) => { const n = Math.floor(dai * SR), b = new Float32Array(n); for (let k = 0; k < n; k++) { const t = k / SR; b[k] = 0.22 * Math.exp(-t * 6) * (Math.sin(2 * Math.PI * 1180 * t) + 0.6 * Math.sin(2 * Math.PI * 2950 * t) + 0.4 * Math.sin(2 * Math.PI * 4410 * t)); } return b; };
+  const vut = (dai) => { const n = Math.floor(dai * SR), b = new Float32Array(n); let lp = 0; for (let k = 0; k < n; k++) { const t = k / SR, u = t / dai; lp += (ngau() - lp) * (0.05 + 0.5 * Math.sin(Math.PI * u)); b[k] = 0.3 * lp * Math.sin(Math.PI * u); } return b; };
   let sauQ = -1, sauV = -1, sauB = -1;
   for (const e of g.suKien) {
     if (e.t >= DAI) continue;
@@ -137,7 +140,19 @@ function tiengTran(g, { N, cong, ngau, kick, kenNot, ghi }) {
     else if (e.k === 'v') { if (e.t - sauV < 0.06) continue; sauV = e.t; cong(e.t, nhieu(0.18, 0.15, (t) => Math.min(1, (e.l ?? 4) / 9) * 0.35 * Math.exp(-t * 25)), pan); }
     else if (e.k === 'l') cong(e.t, nhieu(0.5, 0.6, (t) => 0.25 * Math.exp(-t * 7)), pan);
     else if (e.k === 'b') { if (e.t - sauB < 0.08) continue; sauB = e.t; cong(e.t, nhieu(0.05, 0.3, (t) => 0.12 * Math.exp(-t * 120)), pan); }
-    else if (e.k === 'coi') { if (e.loai === 'kt') { cong(e.t, coi(0.35, 0.12)); cong(e.t + 0.45, coi(0.35, 0.12)); cong(e.t + 0.9, coi(1.1, 0.12)); } else if (e.loai === 'hiep') { cong(e.t, coi(0.35, 0.12)); cong(e.t + 0.45, coi(0.9, 0.12)); } else cong(e.t, coi(0.7, 0.12)); }
+    else if (e.k === 'coi') {
+      if (e.loai === 'kt') { cong(e.t, coi(0.35, 0.12)); cong(e.t + 0.45, coi(0.35, 0.12)); cong(e.t + 0.9, coi(1.1, 0.12)); }
+      else if (e.loai === 'hiep') { cong(e.t, coi(0.35, 0.12)); cong(e.t + 0.45, coi(0.9, 0.12)); }
+      else if (e.loai === 'loi') { cong(e.t, coi(0.22, 0.14)); cong(e.t + 0.28, coi(0.5, 0.13)); }   // thổi phạt: hai tiếng gắt
+      else cong(e.t, coi(0.75, 0.11));   // giao bóng / cho đá: một tiếng dài
+    }
+    else if (e.k === 'the') cong(e.t + 0.2, nhieu(1.8, 0.05, (t) => 0.32 * Math.min(1, t / 0.25) * Math.exp(-t * 1.6)));   // khán đài la ó (dải trầm)
+    else if (e.k === 'tim') { for (let k = 0; k * 0.45 < e.dai + 1.1; k++) { const t0 = e.t - 1.1 + k * 0.45; cong(t0, kick(0.32)); cong(t0 + 0.13, kick(0.2)); } }   // nhịp tim trước quả phạt đền
+    else if (e.k === 'cot') { cong(e.t, coiTo(0.9)); cong(e.t + 0.12, nhieu(1.6, 0.18, (t) => 0.4 * Math.min(1, t / 0.2) * Math.exp(-t * 1.8)), pan * 0.4); }   // cột kêu keng + "ồ"
+    else if (e.k === 'cuu') cong(e.t + 0.05, nhieu(1.4, 0.2, (t) => (e.loai === 'pen' ? 0.5 : 0.3) * Math.min(1, t / 0.15) * Math.exp(-t * 2)), pan * 0.4);
+    else if (e.k === 'truot') cong(e.t + 0.05, nhieu(1.6, 0.06, (t) => 0.38 * Math.min(1, t / 0.2) * Math.exp(-t * 1.5)));
+    else if (e.k === 'sut') cong(e.t, nhieu(0.9, 0.12, (t) => 0.14 * Math.min(1, t / 0.3) * Math.exp(-t * 2.5)), pan * 0.4);   // khán đài nín thở / ồ lên theo cú sút
+    else if (e.k === 'replay') { cong(e.t, vut(0.5)); cong(e.t + e.dai - 0.35, vut(0.5)); }
     else if (e.k === 'ban') {
       // khán đài gầm: tiếng ồn dải giữa phồng lên 0,3 s rồi tắt dần trong 3 s, kèm hai nốt kèn
       cong(e.t, nhieu(3.4, 0.25, (t) => 0.55 * Math.min(1, t / 0.3) * Math.exp(-Math.max(0, t - 0.4) * 0.9)), pan * 0.4);

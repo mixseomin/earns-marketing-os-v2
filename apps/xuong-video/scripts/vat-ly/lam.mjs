@@ -38,7 +38,10 @@ for (const s of seeds) {
   execFileSync('node', [join(DIR, '../shot-code/dung.mjs'), '--trang', TRANG, '--cau', ghi, '--ra', hinh, '--rong', '1920', '--cao', '1080', '--song', song], { cwd: DIR, stdio: 'inherit' });
   writeFileSync(tieng, tongHop(g));
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', hinh, '-i', tieng, '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p', '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-shortest', mp4]);
-  const moc = [1.5, 4, 0.15, 0.35, 0.55, 0.7, 0.85, 0.95].map((x) => (x < 1 ? +(g.ketThuc.t * x).toFixed(1) : x)).concat([+(g.ketThuc.t - 1).toFixed(1), +(g.DAI - 2).toFixed(1)]);
+  // trận bóng: chụp đúng các khoảnh khắc đáng soát (đá phạt, thẻ, phạt đền, phát lại, GOAL, bù giờ, nghỉ giữa hiệp, hết trận)
+  const ev = (k, f = () => true) => g.suKien.find((e) => e.k === k && f(e));
+  const mocTran = TRAN && [1.5, ev('loi', (e) => e.kieu === 'fk')?.t + 1.3, ev('the')?.t + 0.6, ev('tim')?.t, ev('ban')?.t + 0.7, (ev('replay')?.t ?? 0) + (ev('replay')?.dai ?? 0) / 2, ev('them')?.t + 1, ev('coi', (e) => e.loai === 'hiep')?.t + 2, g.ketThuc.t + 1.2, g.ketThuc.t + 4.5].filter((x) => Number.isFinite(x)).map((x) => +x.toFixed(2));
+  const moc = mocTran || [1.5, 4, 0.15, 0.35, 0.55, 0.7, 0.85, 0.95].map((x) => (x < 1 ? +(g.ketThuc.t * x).toFixed(1) : x)).concat([+(g.ketThuc.t - 1).toFixed(1), +(g.DAI - 2).toFixed(1)]);
   execFileSync('node', [join(DIR, '../shot-code/dung.mjs'), '--trang', TRANG, '--cau', ghi, '--rong', '1920', '--cao', '1080', '--khung', moc.join(','), '--khung-ra', join(ra, `to-${s}.jpg`)], { cwd: DIR, stdio: 'ignore' });
   rmSync(hinh); rmSync(tieng); rmSync(ghi);
   const c = diem(g);

@@ -7,7 +7,7 @@
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 const W = 1920, H = 1080;
 const FONT = '"Helvetica Neue", Helvetica, Arial, sans-serif';
-let G, L, BI = 10, FPS = 30, BAN = [], COI = [], EVF = [], NEN = null;
+let G, L, BI = 10, FPS = 30, BAN = [], COI = [], EVF = [], NEN = null, THE = [], LOI = [], TIM = [], THEM = [], BAO = [], REP = [];
 
 const ease = (x) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
 function hash(n) { n = (n ^ 61) ^ (n >>> 16); n = n + (n << 3); n = n ^ (n >>> 4); n = Math.imul(n, 0x27d4eb2d); n = n ^ (n >>> 15); return (n >>> 0) / 4294967296; }
@@ -15,6 +15,9 @@ function hash(n) { n = (n ^ 61) ^ (n >>> 16); n = n + (n << 3); n = n ^ (n >>> 4
 window.__dung = async () => {
   G = window.CAU; L = G.luat; FPS = L.fps; BI = G.bi ?? G.ct.length;
   BAN = G.suKien.filter((e) => e.k === 'ban'); COI = G.suKien.filter((e) => e.k === 'coi');
+  const loc = (k) => G.suKien.filter((e) => e.k === k);
+  THE = loc('the'); LOI = loc('loi'); TIM = loc('tim'); THEM = loc('them'); REP = loc('replay');
+  BAO = G.suKien.filter((e) => ['loi', 'the', 'cot', 'cuu', 'truot'].includes(e.k));
   EVF = []; for (const e of G.suKien) { const f = Math.round(e.t * FPS); (EVF[f] ||= []).push(e); }
   // nền tĩnh (khán đài + sân + vạch) vẽ một lần ra canvas đệm
   NEN = document.createElement('canvas'); NEN.width = W; NEN.height = H; veNen(NEN.getContext('2d'));
@@ -81,8 +84,10 @@ function ao(x, y, r, d, tm, so, a) {   // một cầu thủ: áo theo kiểu đ�
   g.fillStyle = tm ? '#fff' : D.chu; g.font = `900 ${r * 0.95}px ${FONT}`; g.textAlign = 'center'; g.fillText(so, x, y + 2); g.textAlign = 'left';
 }
 
-function bongDa(x, y, r, a) {
-  g.fillStyle = 'rgba(0,0,0,0.4)'; g.beginPath(); g.ellipse(x + 3, y + 5, r, r * 0.85, 0, 0, 7); g.fill();
+function bongDa(x, y, r, a, z = 0) {   // z = độ cao bóng: bóng to ra, bóng đổ tách xa và mờ đi
+  const R2 = r * (1 + z / 45), dx = 3 + z * 0.55, dy = 5 + z * 0.85;
+  g.fillStyle = `rgba(0,0,0,${0.4 - Math.min(0.25, z / 120)})`; g.beginPath(); g.ellipse(x + dx, y + dy, r * (1 - z / 120), r * 0.85 * (1 - z / 120), 0, 0, 7); g.fill();
+  r = R2;
   g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.arc(0, 0, r, 0, 7); g.clip();
   g.fillStyle = '#fafafa'; g.fillRect(-r, -r, 2 * r, 2 * r);
   const ngu = (cx, cy, s) => { g.beginPath(); for (let k = 0; k < 5; k++) { const q = -Math.PI / 2 + k * 2 * Math.PI / 5; g[k ? 'lineTo' : 'moveTo'](cx + Math.cos(q) * s, cy + Math.sin(q) * s); } g.closePath(); g.fill(); };
@@ -92,14 +97,49 @@ function bongDa(x, y, r, a) {
   g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, r, 0, 7); g.stroke();
 }
 
-function sanVat(f, k) {
+const ra = (p) => !p || p[0] < -900;   // cầu thủ đã rời sân (thẻ đỏ)
+const khungTa = (d) => (d === 0 ? L.cx + L.R : L.cx - L.R);   // khung thành đội d tấn công
+const veThe = (x, y, mau, s = 1) => { g.save(); g.translate(x, y); g.rotate(-0.12); g.fillStyle = 'rgba(0,0,0,0.4)'; g.fillRect(-9 * s + 3, -13 * s + 3, 18 * s, 26 * s); g.fillStyle = mau === 'vang' ? '#ffd400' : '#e0161b'; g.fillRect(-9 * s, -13 * s, 18 * s, 26 * s); g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 1.5; g.strokeRect(-9 * s, -13 * s, 18 * s, 26 * s); g.restore(); };
+const songCoi = (t) => COI.find((e) => t >= e.t && t - e.t < 0.6);
+const dangReplay = (t) => REP.find((e) => t >= e.t && t < e.t + e.dai);
+
+function trongTai(k, t) {
+  const p = k.p[BI + 1]; if (!p) return;
+  const e = songCoi(t);
+  if (e) for (const q of [0, 0.2]) { const u = (t - e.t - q) / 0.4; if (u < 0 || u > 1) continue; g.strokeStyle = `rgba(255,255,255,${0.8 * (1 - u)})`; g.lineWidth = 3; g.beginPath(); g.arc(p[0], p[1], 18 + u * 50, 0, 7); g.stroke(); }
+  g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(p[0] + 3, p[1] + 6, 16, 14, 0, 0, 7); g.fill();
+  g.fillStyle = '#121212'; g.beginPath(); g.arc(p[0], p[1], 16, 0, 7); g.fill();
+  g.strokeStyle = '#d7ff1f'; g.lineWidth = 4; g.beginPath(); g.arc(p[0], p[1], 14, 0, 7); g.stroke();
+  g.fillStyle = '#d7ff1f'; g.font = `900 12px ${FONT}`; g.textAlign = 'center'; g.fillText('REF', p[0], p[1] + 1); g.textAlign = 'left';
+}
+
+function sanVat(f, k, t) {
+  const rep = k.r ? dangReplay(t) : null;
+  // vạch xịt sơn (vanishing spray) trước quả đá phạt: cung 9,15 m chắn tường người
+  for (const e of LOI) {
+    if (e.kieu !== 'fk' || t < e.t + 0.6) continue;
+    const da = COI.find((c) => c.loai === 'da' && c.t > e.t), het = (da?.t ?? e.t + 3) + 2.5; if (t > het || k.r) continue;
+    const a0 = Math.atan2(L.cy - e.y, khungTa(1 - e.doi) - e.x), mo = Math.min(1, (t - e.t - 0.6) * 3) * Math.min(1, (het - t) / 1.2);
+    g.fillStyle = `rgba(255,255,255,${0.75 * mo})`;
+    for (let q = -9; q <= 9; q++) { const a = a0 + q * 0.06; g.beginPath(); g.arc(e.x + Math.cos(a) * 88, e.y + Math.sin(a) * 88, 3.2, 0, 7); g.fill(); }
+    g.beginPath(); g.arc(e.x, e.y, 5, 0, 7); g.fill();
+  }
   // vệt bóng
   for (let d = 10; d >= 1; d--) { const q = G.khung[f - d]; if (!q) continue; const p = q.p[BI]; g.globalAlpha = 0.04 * (11 - d); g.fillStyle = '#fff'; g.beginPath(); g.arc(p[0], p[1], L.rBong * (1 - d / 14), 0, 7); g.fill(); }
   g.globalAlpha = 1;
-  G.ct.forEach((c, i) => { const p = k.p[i]; ao(p[0], p[1], L.r, c.doi, c.tm, c.so, p[2]); });
-  const b = k.p[BI]; bongDa(b[0], b[1], L.rBong, b[2]);
+  // phát lại: vòng sáng dưới chân người ghi bàn
+  if (rep && rep.i >= 0 && !ra(k.p[rep.i])) { const p = k.p[rep.i], u = (t * 2) % 1; g.strokeStyle = '#ffd84a'; g.lineWidth = 5; g.beginPath(); g.arc(p[0], p[1], L.r + 8, 0, 7); g.stroke(); g.strokeStyle = `rgba(255,216,74,${1 - u})`; g.lineWidth = 3; g.beginPath(); g.arc(p[0], p[1], L.r + 8 + u * 26, 0, 7); g.stroke(); }
+  trongTai(k, t);
+  G.ct.forEach((c, i) => { const p = k.p[i]; if (!ra(p)) ao(p[0], p[1], L.r, c.doi, c.tm, c.so, p[2]); });
+  const b = k.p[BI]; bongDa(b[0], b[1], L.rBong, b[2], k.z ?? 0);
+  // thẻ giơ lên trên đầu người bị phạt
+  for (const e of THE) {
+    const u = t - e.t; if (u < 0 || u > 1.8) continue;
+    const p = ra(k.p[e.i]) ? k.p[BI + 1] : k.p[e.i], y = p[1] - L.r - 34 - ease(u * 3) * 10;
+    if (e.mau === 'vang2') { veThe(p[0] - 8, y, 'vang', 1.3); veThe(p[0] + 8, y + 4, 'do', 1.3); } else veThe(p[0], y, e.mau, 1.4);
+  }
   // nhãn tên người đang giữ bóng (người chạm bóng cuối)
-  const c = G.ct[k.c]; if (c && k.c >= 0) {
+  const c = G.ct[k.c]; if (c && k.c >= 0 && !ra(k.p[k.c])) {
     const p = k.p[k.c], D = G.doi.doi[c.doi], w = Math.max(70, c.ten.length * 13 + 26), y = p[1] - L.r - 24;
     g.fillStyle = 'rgba(8,12,18,0.82)'; g.beginPath(); g.roundRect(p[0] - w / 2, y - 15, w, 30, 8); g.fill();
     g.fillStyle = D.mau[c.doi ? 0 : 1]; g.fillRect(p[0] - w / 2, y + 12, w, 3);
@@ -107,7 +147,26 @@ function sanVat(f, k) {
   }
 }
 
-const nhom = (s) => s;
+// máy quay: phát lại thì bám bóng và phóng 1,4×; phạt đền thì phóng 1,3× vào vùng cấm
+function mayQuay(f, k, t) {
+  const rep = k.r ? dangReplay(t) : null;
+  if (rep) {
+    const u = t - rep.t, z = 0.4 * ease(u / 0.35) * ease((rep.dai - u) / 0.35);
+    let x = 0, y = 0, n = 0; for (let d = -6; d <= 6; d++) { const q = G.khung[f + d]; if (!q || !q.r) continue; x += q.p[BI][0]; y += q.p[BI][1]; n++; }
+    return { z: 1 + z, x: L.cx + (x / n - L.cx) * z / 0.4, y: L.cy + (y / n - L.cy) * z / 0.4 };
+  }
+  for (const e of LOI) {
+    if (e.kieu !== 'pen') continue;
+    const tim = TIM.find((x) => x.t > e.t); if (!tim) continue;
+    const a = tim.t - 1.4, ket = G.suKien.find((x) => x.t > tim.t && ['ban', 'cuu', 'truot', 'cot'].includes(x.k)), b = (ket?.t ?? tim.t + 3) + 1.4;
+    if (t < a || t > b) continue;
+    const z = 0.3 * ease((t - a) / 0.6) * ease((b - t) / 0.6), gx = khungTa(1 - e.doi);
+    return { z: 1 + z, x: L.cx + ((e.x * 0.45 + gx * 0.55) - L.cx) * z / 0.3, y: L.cy + (e.y * 0.5 + L.cy * 0.5 - L.cy) * z / 0.3 };
+  }
+  return { z: 1, x: L.cx, y: L.cy };
+}
+
+const phutTxt = (m, h) => { const goc = h === 1 ? L.hiep : 2 * L.hiep; return m > goc ? `${goc}+${Math.ceil(m - goc)}'` : `${Math.max(1, Math.ceil(m))}'`; };
 function bangTiSo(t, k) {
   const D = G.doi.doi, cx = W / 2, y = 24, w = 620, h = 74;
   g.fillStyle = 'rgba(8,12,18,0.92)'; g.beginPath(); g.roundRect(cx - w / 2, y, w, h, 14); g.fill();
@@ -115,19 +174,25 @@ function bangTiSo(t, k) {
     const s = d ? 1 : -1, x = cx + s * 175;
     g.fillStyle = D[d].mau[d ? 0 : 1]; g.fillRect(d ? cx + w / 2 - 12 : cx - w / 2, y, 12, h);
     g.fillStyle = '#fff'; g.font = `800 40px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(D[d].ngan, x, y + h / 2 + 2);
+    // thẻ đỏ của đội: vạch đỏ cạnh tên
+    THE.filter((e) => e.doi === d && e.mau !== 'vang' && e.t <= t).forEach((e, n) => { g.fillStyle = '#e0161b'; g.fillRect(d ? cx + w / 2 - 40 - n * 14 : cx - w / 2 + 28 + n * 14, y + 14, 9, 14); });
   }
   const moi = BAN.find((e) => e.t <= t && t - e.t < 1.2);
   g.fillStyle = moi ? '#ffd84a' : '#fff'; g.font = `900 56px ${FONT}`; g.fillText(`${k.s[0]} – ${k.s[1]}`, cx, y + h / 2 + 2);
-  // đồng hồ trận
+  // đồng hồ trận: 45+2' khi vào bù giờ; bảng +n đỏ cạnh đồng hồ từ lúc báo bù giờ
   const het = G.ketThuc && t >= G.ketThuc.t, nghi = COI.find((e) => e.loai === 'hiep' && t >= e.t && t < e.t + L.nghi);
-  const nhan = het ? 'FT' : nghi ? 'HT' : t < L.dauGiay ? "0'" : `${Math.max(1, Math.ceil(k.m))}'`;
-  g.fillStyle = '#ffd84a'; g.beginPath(); g.roundRect(cx - 55, y + h - 4, 110, 40, 8); g.fill();
+  const nhan = het ? 'FT' : nghi ? 'HT' : t < L.dauGiay ? "0'" : phutTxt(k.m, k.h ?? 1);
+  const bu = !het && !nghi && THEM.find((e) => e.hiep === (k.h ?? 1) && e.t <= t);
+  g.fillStyle = '#ffd84a'; g.beginPath(); g.roundRect(cx - 65, y + h - 4, 130, 40, 8); g.fill();
   g.fillStyle = '#111'; g.font = `800 28px ${FONT}`; g.fillText(nhan, cx, y + h + 17);
+  if (bu) { g.fillStyle = '#e0161b'; g.beginPath(); g.roundRect(cx + 70, y + h - 4, 56, 40, 8); g.fill(); g.fillStyle = '#fff'; g.fillText(`+${bu.n}`, cx + 98, y + h + 17); }
+  if (k.r) { g.fillStyle = '#e0161b'; g.beginPath(); g.roundRect(cx - 245, y + h - 4, 150, 40, 8); g.fill(); g.fillStyle = '#fff'; g.font = `900 24px ${FONT}`; g.fillText('● REPLAY', cx - 170, y + h + 17); }
   g.textAlign = 'left';
 }
 
-const tenBan = (e) => { const c = G.ct[e.i]; return e.pl ? `${c?.ten ?? ''} (OG)` : c?.ten ?? ''; };
-function cotDoi(t) {   // hai cột hai bên: tên đội + bàn thắng (phút, người ghi) + đội hình ra sân
+const tenBan = (e) => { const c = G.ct[e.i]; return e.pl ? `${c?.ten ?? ''} (OG)` : `${c?.ten ?? ''}${e.loai === 'pen' ? ' (P)' : e.loai === 'fk' ? ' (FK)' : ''}`; };
+const phutBan = (e) => (e.mt ? `${e.m}+${e.mt}'` : `${e.m}'`);
+function cotDoi(t) {   // hai cột hai bên: tên đội + bàn thắng (phút, người ghi) + đội hình ra sân (thẻ, người bị đuổi mờ đi)
   const D = G.doi.doi;
   for (const d of [0, 1]) {
     const X = d ? W - 330 : 40, Y = 230;
@@ -141,17 +206,24 @@ function cotDoi(t) {   // hai cột hai bên: tên đội + bàn thắng (phút,
       const y = Y + 92 + n * 44, moi = t - e.t < 1.5;
       if (moi) { g.fillStyle = 'rgba(255,216,74,0.25)'; g.beginPath(); g.roundRect(X, y - 20, 270, 40, 10); g.fill(); }
       bongDa(X + 22, y, 13, 0);
-      g.fillStyle = '#fff'; g.font = `800 26px ${FONT}`; g.fillText(`${e.m}'`, X + 46, y + 1);
-      g.fillStyle = 'rgba(255,255,255,0.85)'; g.font = `600 24px ${FONT}`; g.fillText(tenBan(e), X + 104, y + 1);
+      const pt = phutBan(e);
+      g.fillStyle = '#fff'; g.font = `800 ${e.mt ? 22 : 26}px ${FONT}`; g.fillText(pt, X + 42, y + 1);
+      g.fillStyle = 'rgba(255,255,255,0.85)'; g.font = `600 ${tenBan(e).length > 15 ? 20 : 24}px ${FONT}`; g.fillText(tenBan(e), X + (e.mt ? 112 : 100), y + 1);
     });
-    // đội hình ra sân: số áo + tên, người đã ghi bàn có quả bóng nhỏ
     const yL = Y + 322;
     g.fillStyle = 'rgba(255,255,255,0.5)'; g.font = `700 19px ${FONT}`; g.fillText('STARTING XI', X + 10, yL);
     G.ct.map((c, i) => ({ c, i })).filter((x) => x.c.doi === d).forEach(({ c, i }, n) => {
       const y = yL + 32 + n * 28, so = da.filter((e) => e.i === i && !e.pl).length;
+      const the = THE.filter((e) => e.i === i && e.t <= t), doThe = the.some((e) => e.mau !== 'vang');
+      g.globalAlpha = doThe ? 0.38 : 1;
       g.fillStyle = 'rgba(255,255,255,0.45)'; g.font = `700 19px ${FONT}`; g.textAlign = 'right'; g.fillText(c.so, X + 38, y); g.textAlign = 'left';
       g.fillStyle = so ? '#ffd84a' : 'rgba(255,255,255,0.85)'; g.font = `${so ? 800 : 600} 20px ${FONT}`; g.fillText(c.ten, X + 50, y);
-      const w = g.measureText(c.ten).width; for (let q = 0; q < so; q++) bongDa(X + 62 + w + q * 22, y, 8, 0);
+      const w = g.measureText(c.ten).width;
+      if (doThe) { g.strokeStyle = 'rgba(255,255,255,0.8)'; g.lineWidth = 2; g.beginPath(); g.moveTo(X + 48, y); g.lineTo(X + 52 + w, y); g.stroke(); }
+      g.globalAlpha = 1;
+      let xx = X + 62 + w;
+      for (let q = 0; q < so; q++, xx += 22) bongDa(xx, y, 8, 0);
+      for (const e of the) { if (e.mau === 'vang2') { veThe(xx - 2, y, 'vang', 0.55); veThe(xx + 6, y + 1, 'do', 0.55); xx += 22; } else { veThe(xx, y, e.mau, 0.55); xx += 16; } }
     });
   }
 }
@@ -159,7 +231,6 @@ function cotDoi(t) {   // hai cột hai bên: tên đội + bàn thắng (phút,
 function bangGoal(t) {
   const e = [...BAN].reverse().find((x) => x.t <= t && t - x.t < 2.2); if (!e) return;
   const u = t - e.t, a = Math.min(1, u * 5) * Math.min(1, (2.2 - u) * 3), D = G.doi.doi[e.doi], c = G.ct[e.i];
-  // chớp sáng nhẹ + băng chữ chạy ngang sân
   g.fillStyle = `rgba(255,255,255,${0.25 * Math.max(0, 1 - u * 3)})`; g.fillRect(0, 0, W, H);
   const y = 780, x = W / 2 + (1 - ease(u * 2.5)) * -900;
   g.globalAlpha = a;
@@ -168,9 +239,64 @@ function bangGoal(t) {
   g.fillStyle = D.mau[e.doi ? 1 : 0]; g.fillRect(-470, 52, 940, 18);
   g.restore();
   g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `italic 900 96px ${FONT}`; g.fillText('GOAL!', x - 120, y - 4);
-  g.font = `800 34px ${FONT}`; g.textAlign = 'left'; g.fillText(D.ten.toUpperCase(), x + 70, y - 22);
-  g.fillStyle = 'rgba(255,255,255,0.85)'; g.font = `700 30px ${FONT}`; g.fillText(`${e.m}'  ·  ${e.pl ? 'own goal ' + (c?.ten ?? '') : (c?.ten ?? '') + ' #' + (c?.so ?? '')}  ·  ${e.s[0]}–${e.s[1]}`, x + 70, y + 22);
+  g.font = `800 34px ${FONT}`; g.textAlign = 'left'; g.fillText(D.ten.toUpperCase() + (e.loai === 'pen' ? ' · PENALTY' : e.loai === 'fk' ? ' · FREE KICK' : ''), x + 70, y - 22);
+  g.fillStyle = 'rgba(255,255,255,0.85)'; g.font = `700 30px ${FONT}`; g.fillText(`${phutBan(e)}  ·  ${e.pl ? 'own goal ' + (c?.ten ?? '') : (c?.ten ?? '') + ' #' + (c?.so ?? '')}  ·  ${e.s[0]}–${e.s[1]}`, x + 70, y + 22);
   g.globalAlpha = 1;
+}
+
+// băng báo sự cố dưới bảng tỷ số: lỗi / đá phạt / phạt đền / thẻ / trúng cột / cứu thua / sút hỏng phạt đền
+function bangBao(t) {
+  const D = G.doi.doi, ten = (i) => G.ct[i]?.ten ?? '';
+  const ds = BAO.filter((e) => e.t <= t && t - e.t < 2.4); const e = ds[ds.length - 1]; if (!e) return;
+  let tieu, phu, nen = 'rgba(8,12,18,0.92)', vien = '#ffd84a', the = null;
+  if (e.k === 'loi') { tieu = e.kieu === 'pen' ? 'PENALTY!' : e.kieu === 'fk' ? 'FREE KICK' : 'FOUL'; phu = `${ten(e.i)} on ${ten(e.nan)}`; if (e.kieu === 'pen') { nen = '#b3121a'; vien = '#fff'; } }
+  else if (e.k === 'the') { the = e.mau; tieu = e.mau === 'vang' ? 'YELLOW CARD' : e.mau === 'vang2' ? 'SECOND YELLOW · OFF!' : 'RED CARD · OFF!'; phu = `${ten(e.i)} #${G.ct[e.i]?.so ?? ''} · ${D[e.doi].ngan}`; vien = e.mau === 'vang' ? '#ffd400' : '#e0161b'; }
+  else if (e.k === 'cot') { tieu = 'OFF THE POST!'; phu = D[e.doi]?.ten ?? ''; vien = '#ffffff'; }
+  else if (e.k === 'cuu') { tieu = e.loai === 'pen' ? 'PENALTY SAVED!' : 'GREAT SAVE!'; phu = `${ten(e.i)} · ${D[e.doi].ngan}`; vien = '#38d6ff'; }
+  else if (e.k === 'truot') { tieu = 'PENALTY MISSED!'; phu = `${ten(e.i)} · ${D[e.doi].ngan}`; vien = '#ff8a00'; }
+  const u = t - e.t, a = Math.min(1, u * 6) * Math.min(1, (2.4 - u) * 4), y = 175 + (1 - ease(u * 4)) * -30, w = 560;
+  g.globalAlpha = a;
+  g.fillStyle = nen; g.beginPath(); g.roundRect(W / 2 - w / 2, y, w, 86, 14); g.fill();
+  g.fillStyle = vien; g.fillRect(W / 2 - w / 2, y + 80, w, 6);
+  const x0 = the ? W / 2 + 26 : W / 2;
+  if (the === 'vang2') { veThe(W / 2 - w / 2 + 44, y + 43, 'vang', 1.5); veThe(W / 2 - w / 2 + 62, y + 47, 'do', 1.5); } else if (the) veThe(W / 2 - w / 2 + 50, y + 43, the, 1.6);
+  g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = `italic 900 40px ${FONT}`; g.fillText(tieu, x0, y + 30);
+  g.fillStyle = 'rgba(255,255,255,0.8)'; g.font = `700 24px ${FONT}`; g.fillText(phu, x0, y + 64);
+  g.textAlign = 'left'; g.globalAlpha = 1;
+}
+
+// trọng tài bàn giơ bảng bù giờ (LED xanh) ở mép dưới sân
+function bangBuGio(t) {
+  const e = THEM.find((x) => t >= x.t && t - x.t < 3); if (!e) return;
+  const u = t - e.t, a = Math.min(1, u * 5) * Math.min(1, (3 - u) * 4), y = 1000 + (1 - ease(u * 3)) * 80;
+  g.globalAlpha = a;
+  g.fillStyle = '#111'; g.beginPath(); g.roundRect(W / 2 - 150, y - 6, 300, 72, 10); g.fill(); g.strokeStyle = '#444'; g.lineWidth = 3; g.stroke();
+  g.textAlign = 'center'; g.fillStyle = '#3dff6e'; g.shadowColor = '#3dff6e'; g.shadowBlur = 18; g.font = `900 54px "Courier New", monospace`; g.fillText(`+${e.n}`, W / 2 + 50, y + 32);
+  g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,0.75)'; g.font = `800 18px ${FONT}`; g.fillText('ADDED', W / 2 - 75, y + 22); g.fillText('TIME', W / 2 - 75, y + 44);
+  g.textAlign = 'left'; g.globalAlpha = 1;
+}
+
+// phạt đền: viền đỏ đập theo nhịp tim trong lúc chờ sút
+function nhipTim(t) {
+  const e = TIM.find((x) => t >= x.t - 1.1 && t < x.t + x.dai); if (!e) return;
+  const u = t - e.t + 1.1, dap = Math.pow(Math.max(0, Math.sin(u * Math.PI * 2.2)), 6);
+  const v = g.createRadialGradient(W / 2, H / 2, 380, W / 2, H / 2, 1050); v.addColorStop(0, 'rgba(180,0,0,0)'); v.addColorStop(1, `rgba(180,0,0,${0.18 + 0.32 * dap})`);
+  g.fillStyle = v; g.fillRect(0, 0, W, H);
+}
+
+function phatLai(t, k) {
+  if (!k.r) return;
+  const e = dangReplay(t); if (!e) return;
+  const u = t - e.t, a = Math.min(1, u * 5) * Math.min(1, (e.dai - u) * 5), c = G.ct[e.i], b = BAN.find((x) => Math.abs(x.t - e.tBan) < 0.01);
+  g.globalAlpha = a;
+  g.fillStyle = 'rgba(0,0,0,0.85)'; g.fillRect(0, 0, W, 16); g.fillRect(0, H - 16, W, 16);
+  const v = g.createRadialGradient(W / 2, H / 2, 420, W / 2, H / 2, 1100); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.55)'); g.fillStyle = v; g.fillRect(0, 0, W, H);
+  const w = 620, y = 996;
+  g.fillStyle = 'rgba(8,12,18,0.92)'; g.beginPath(); g.roundRect(W / 2 - w / 2, y, w, 60, 12); g.fill();
+  g.fillStyle = '#e0161b'; g.beginPath(); g.roundRect(W / 2 - w / 2, y, 150, 60, [12, 0, 0, 12]); g.fill();
+  g.fillStyle = '#fff'; g.font = `italic 900 26px ${FONT}`; g.textAlign = 'center'; g.fillText('REPLAY', W / 2 - w / 2 + 75, y + 31);
+  g.font = `700 26px ${FONT}`; g.fillText(`${b ? phutBan(b) : ''}  ${c?.ten ?? ''}  ·  ${G.doi.doi[e.doi].ngan}`, W / 2 + 75, y + 31);
+  g.textAlign = 'left'; g.globalAlpha = 1;
 }
 
 function tieuDe(t) {
@@ -184,32 +310,75 @@ function tieuDe(t) {
   g.globalAlpha = 1; g.textAlign = 'left';
 }
 
+// bảng thống kê kiểu truyền hình: hai cột số + thanh tỷ lệ
+function bangTk(tk, y0, a) {
+  const D = G.doi.doi, w = 760, x0 = W / 2 - w / 2, hang = 42;
+  const kiem = tk.kiem[0] + tk.kiem[1] || 1, p0 = Math.round(tk.kiem[0] / kiem * 100);
+  const ds = [['Possession', `${p0}%`, `${100 - p0}%`, p0, 100 - p0], ['Shots', ...[0, 1].map((d) => tk.sut[d])], ['On target', ...[0, 1].map((d) => tk.trung[d])], ['Saves', ...[0, 1].map((d) => tk.cuu[d])], ['Woodwork', ...[0, 1].map((d) => tk.cot[d])], ['Fouls', ...[0, 1].map((d) => tk.loi[d])], ['Yellow cards', ...[0, 1].map((d) => tk.vang[d])], ['Red cards', ...[0, 1].map((d) => tk.do[d])]];
+  g.globalAlpha = a;
+  g.fillStyle = 'rgba(8,12,18,0.9)'; g.beginPath(); g.roundRect(x0 - 20, y0 - 30, w + 40, ds.length * hang + 54, 16); g.fill();
+  g.textAlign = 'center';
+  g.fillStyle = D[0].mau[1]; g.font = `800 24px ${FONT}`; g.fillText(D[0].ngan, x0 + 40, y0 - 6); g.fillStyle = D[1].mau[0]; g.fillText(D[1].ngan, x0 + w - 40, y0 - 6);
+  ds.forEach(([nhan, v0, v1, n0, n1], n) => {
+    const y = y0 + 30 + n * hang, a0 = n0 ?? v0, a1 = n1 ?? v1, tong = a0 + a1 || 1;
+    g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(x0 + 90, y + 13, w - 180, 6);
+    g.fillStyle = D[0].mau[0] === '#ffffff' ? '#e8e8e8' : D[0].mau[0]; g.fillRect(x0 + 90, y + 13, (w - 180) * a0 / tong, 6);
+    g.fillStyle = D[1].mau[0]; g.fillRect(x0 + w - 90 - (w - 180) * a1 / tong, y + 13, (w - 180) * a1 / tong, 6);
+    g.fillStyle = '#fff'; g.font = `900 30px ${FONT}`; g.fillText(v0, x0 + 40, y); g.fillText(v1, x0 + w - 40, y);
+    g.fillStyle = 'rgba(255,255,255,0.75)'; g.font = `700 22px ${FONT}`; g.fillText(nhan, W / 2, y - 2);
+  });
+  g.textAlign = 'left'; g.globalAlpha = 1;
+}
+
 function nghi(t) {
   const e = COI.find((x) => x.loai === 'hiep' && t >= x.t && t < x.t + L.nghi); if (!e) return;
   const a = Math.min(1, (t - e.t) * 4) * Math.min(1, (e.t + L.nghi - t) * 4);
-  g.globalAlpha = a; g.fillStyle = 'rgba(0,0,0,0.5)'; g.fillRect(0, 0, W, H);
-  g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = `900 90px ${FONT}`; g.fillText('HALF TIME', W / 2, 470);
-  g.fillStyle = '#ffd84a'; g.font = `900 120px ${FONT}`; g.fillText(`${e.s[0]} – ${e.s[1]}`, W / 2, 600);
+  g.globalAlpha = a; g.fillStyle = 'rgba(0,0,0,0.62)'; g.fillRect(0, 0, W, H);
+  g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = `900 64px ${FONT}`; g.fillText('HALF TIME', W / 2, 200);
+  g.fillStyle = '#ffd84a'; g.font = `900 100px ${FONT}`; g.fillText(`${e.s[0]} – ${e.s[1]}`, W / 2, 300);
   g.globalAlpha = 1; g.textAlign = 'left';
+  if (e.tk) bangTk(e.tk, 420, a * Math.min(1, Math.max(0, (t - e.t - 0.5) * 3)));
 }
 
 function hetTran(t) {
   const kt = G.ketThuc; if (!kt || t < kt.t) return;
   const u = t - kt.t, a = ease(u / 0.8), D = G.doi.doi;
-  g.fillStyle = `rgba(0,0,0,${0.65 * a})`; g.fillRect(0, 0, W, H);
+  g.fillStyle = `rgba(0,0,0,${0.7 * a})`; g.fillRect(0, 0, W, H);
   if (kt.thang >= 0) for (let i = 0; i < 160; i++) { const x = hash(i * 31 + 7) * W, v = 250 + hash(i * 17) * 300, y = -40 + u * v - 80 * hash(i * 5); if (y > H) continue; g.fillStyle = D[kt.thang].mau[i % 2]; g.save(); g.translate(x + Math.sin(u * 3 + i) * 30, y); g.rotate(u * 4 + i); g.fillRect(-7, -4, 14, 8); g.restore(); }
   g.globalAlpha = a; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillStyle = '#ffd84a'; g.font = `900 64px ${FONT}`; g.fillText('FULL TIME', W / 2, 330);
-  g.fillStyle = '#fff'; g.font = `900 150px ${FONT}`; g.fillText(`${kt.s[0]} – ${kt.s[1]}`, W / 2, 490);
-  g.font = `900 80px ${FONT}`; g.fillText(kt.thang < 0 ? 'DRAW' : `${D[kt.thang].ten.toUpperCase()} WIN`, W / 2, 640);
-  g.fillStyle = 'rgba(255,255,255,0.7)'; g.font = `600 34px ${FONT}`; g.fillText(`Would your team survive? Trial #${G.seed}`, W / 2, 740);
+  g.fillStyle = '#ffd84a'; g.font = `900 50px ${FONT}`; g.fillText('FULL TIME', W / 2, 120);
+  g.fillStyle = '#fff'; g.font = `900 120px ${FONT}`; g.fillText(`${kt.s[0]} – ${kt.s[1]}`, W / 2, 225);
+  g.font = `900 58px ${FONT}`; g.fillText(kt.thang < 0 ? 'DRAW' : `${D[kt.thang].ten.toUpperCase()} WIN`, W / 2, 320);
+  g.globalAlpha = 1; g.textAlign = 'left';
+  if (kt.tk) bangTk(kt.tk, 410, ease((u - 1) / 0.6));
+  // cầu thủ hay nhất trận
+  const m = G.ct[kt.motm], am = ease((u - 2) / 0.6);
+  if (m && am > 0) {
+    const bt = BAN.filter((e) => e.i === kt.motm && !e.pl).length, y = 840;
+    g.globalAlpha = am;
+    g.fillStyle = 'rgba(255,216,74,0.95)'; g.beginPath(); g.roundRect(W / 2 - 380, y, 760, 92, 16); g.fill();
+    ao(W / 2 - 320, y + 46, 30, m.doi, m.tm, m.so, 0);
+    g.textAlign = 'left'; g.fillStyle = '#111'; g.font = `800 22px ${FONT}`; g.fillText('PLAYER OF THE MATCH', W / 2 - 270, y + 28);
+    g.font = `900 38px ${FONT}`; g.fillText(`${m.ten}  ·  ${D[m.doi].ngan}${bt ? `  ·  ${bt} goal${bt > 1 ? 's' : ''}` : ''}`, W / 2 - 270, y + 64);
+    g.globalAlpha = 1;
+  }
+  g.globalAlpha = ease((u - 2.5) / 0.6); g.textAlign = 'center'; g.fillStyle = 'rgba(255,255,255,0.75)'; g.font = `600 30px ${FONT}`; g.fillText(`Would your team survive? Trial #${G.seed}`, W / 2, 1000);
   g.globalAlpha = 1; g.textAlign = 'left';
 }
 
 window.__seek = (t) => {
   const f = Math.min(G.khung.length - 1, Math.max(0, Math.round(t * FPS))), k = G.khung[f];
   g.textBaseline = 'middle';
-  g.drawImage(NEN, 0, 0); sanVat(f, k); bangTiSo(t, k); cotDoi(t); bangGoal(t); nghi(t); tieuDe(t); hetTran(t);
+  g.fillStyle = '#020406'; g.fillRect(0, 0, W, H);
+  const q = mayQuay(f, k, t);
+  g.save(); g.translate(W / 2, H / 2); g.scale(q.z, q.z);
+  const hx = W / (2 * q.z), hy = H / (2 * q.z);
+  g.translate(-Math.min(W - hx, Math.max(hx, q.x)), -Math.min(H - hy, Math.max(hy, q.y)));
+  if (k.r) g.filter = 'saturate(0.55) contrast(1.08)';
+  g.drawImage(NEN, 0, 0); sanVat(f, k, t);
+  g.filter = 'none'; g.restore();
+  nhipTim(t); phatLai(t, k);
+  bangTiSo(t, k); if (q.z < 1.05) cotDoi(t); bangGoal(t); bangBao(t); bangBuGio(t); nghi(t); tieuDe(t); hetTran(t);
 };
 window.__khung = () => cv.toDataURL('image/jpeg', 0.92).split(',')[1];
 </script></body></html>

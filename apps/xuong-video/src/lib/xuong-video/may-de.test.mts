@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-de.test.mts — phần thuần của máy sinh đề (không gọi mô hình)
 import assert from 'node:assert';
-import { kiemDe, kiemBaiViet, rapDe, slugDe, MAU_CUA_DANG, vanHeThong, vanNguoiDung, giuHook, GIU_HOOK_TOI_THIEU, timHook, maHookKhop, ghepHook } from './may-de';
+import { kiemDe, kiemBaiViet, rapDe, slugDe, MAU_CUA_DANG, vanHeThong, vanNguoiDung, giuHook, GIU_HOOK_TOI_THIEU, timHook, maHookKhop, ghepHook, ghepTieuDe } from './may-de';
 
 assert.ok(kiemBaiViet('A practical English answer with the correct link https://example.com/pay and enough text to pass review. '.repeat(15), 'https://example.com/pay').some((l) => /chữ tiếng Việt/.test(l)) === false, 'bài tiếng Anh không bị chặn oan');
 assert.ok(kiemBaiViet('A practical English answer. Lương quân nhân varies by rule. https://example.com/pay ' + 'plain '.repeat(220), 'https://example.com/pay').some((l) => /chữ tiếng Việt/.test(l)), 'bài Quora có chữ Việt bị chặn trước khi nạp');
@@ -92,4 +92,12 @@ assert.ok(vanNguoiDung(goc, 'top-n', [], 'en', hk).includes('3496181930676276') 
   assert.equal((l.de as { loai?: string }).loai, 'bai-link'); assert.equal((l.de as { truy?: string }).truy, 'phone message hotel');
   assert.equal(l.dang.loai, 'link'); assert.ok(l.dang.description?.trim().endsWith(sp.link), 'link ở cuối chữ'); assert.ok(l.slug.startsWith('link-'));
   assert.equal((l.dang as { hook?: { qc?: string } }).hook?.qc, '77'); }
+// HOOK MỘT CÂU đã là tiêu đề bài cũ: ghepHook trả [] nên phải có đường ghép khác (astrolas 27/11/2026, hook "This powerful blueprint…" là tiêu đề bài 967)
+{ const hook = 'This powerful blueprint holds the hidden secrets to your Divine Destiny.', cu = [hook];
+  const g = ghepTieuDe(hook, ['This quiet blueprint holds the reading astrologers actually miss', 'The same chart, read with the time you were born.'], cu);
+  assert.ok(g, 'hook một câu + mô hình viết lệch quá xa: vẫn ghép ra tiêu đề mới');
+  assert.ok(giuHook(g!, hook) >= GIU_HOOK_TOI_THIEU, 'bản ghép giữ đủ chữ hook (≥35%)');
+  assert.ok(g!.length >= 25 && g!.length <= 110 && !cu.includes(g!), 'đúng trần ký tự, không trùng tiêu đề cũ');
+  assert.equal(ghepTieuDe(hook, [], cu), null, 'không có chữ mô hình thì không bịa tiêu đề');
+  assert.equal(ghepTieuDe(hook, [hook], cu), null, 'chỉ có nguyên câu cũ thì không trả lại chính nó'); }
 console.log('may-de: phần thuần đạt');

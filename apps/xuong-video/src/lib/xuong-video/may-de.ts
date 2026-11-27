@@ -145,6 +145,24 @@ export const ghepHook = (title: string, hook: string): string[] => {
   const tach = (v: string) => /^(.+?[?!.])\s+(\S.*)$/u.exec(v.trim()); const t = tach(title), h = tach(hook);
   return t && h ? [`${h[1]} ${t[2]}`, `${t[1]} ${h[2]}`] : [];
 };
+/** Ghép tiêu đề MỚI từ hook đã là tiêu đề bài cũ + chữ mô hình vừa viết, giữ đủ ≥35% chữ hook (Phòng Nội dung chấm).
+ *  Hook MỘT câu thì ghepHook trả [] — lấy đoạn đầu hook dài dần + vế đầu câu mô hình. Trả null khi không có bản hợp lệ (thuần, không gọi mô hình). */
+export function ghepTieuDe(hook: string, chuMoHinh: string[], daDung: string[]): string | null {
+  const chuan = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim(), co = new Set(daDung.map(chuan));
+  const dat = (t: string) => t.length >= 25 && t.length <= 110 && !co.has(chuan(t)) && !loiHook([t], hook).length && !CHU_VIET.test(t) && !/[—–]/.test(t);
+  const ve = chuMoHinh.map((v) => String(v ?? '').replace(/\s+/g, ' ').trim()).filter((v) => v.length >= 12);
+  const tu = hook.split(/\s+/).filter(Boolean), ung: string[] = [];
+  // 1. hai vế: vế đầu hook + vế sau mô hình (và ngược lại) — đường đã chạy được cho hook nhiều vế (esimfares 19/11/2026)
+  for (const v of ve) ung.push(...ghepHook(v, hook), ...ghepHook(hook, v));
+  // 2. tiêu đề mô hình viết GẦN GIỐNG hook (chỉ đổi vài chữ) → giữ nguyên đoạn đầu hook, lấy phần đuôi tiêu đề mô hình.
+  //    astrolas 27/11/2026: hook "This powerful blueprint holds the hidden secrets to your Divine Destiny." → mô hình viết "This quiet blueprint holds the reading
+  //    astrologers actually miss" (giữ 29%); thay 4 chữ đầu bằng chữ hook → "This powerful blueprint holds the reading astrologers actually miss" (giữ 43%).
+  for (const v of ve) { const t = v.split(/\s+/).filter(Boolean);
+    for (let k = 2; k <= Math.min(6, tu.length - 1, t.length - 2); k++) ung.push(`${tu.slice(0, k).join(' ')} ${t.slice(k).join(' ')}`); }
+  // 3. cuối: nguyên câu hook + vế mô hình thành câu thứ hai (giữ 100% chữ hook), chỉ dùng khi còn chỗ dưới 110 ký tự
+  for (const v of ve) { const m = (/^(.+?[.?!])(?:\s|$)/u.exec(v)?.[1] ?? v).replace(/[.?!]+$/, '').trim(); if (m) ung.push(`${hook} ${m[0]!.toUpperCase()}${m.slice(1)}`); }
+  return ung.find(dat) ?? null;
+}
 /** Mã hook THẬT của tiêu đề: mô hình hay viết tiêu đề bám hook này mà khai mã hook khác (esimfares 10/11/2026: 4/4 đề làm lại trượt "sửa quá xa"
  *  so với cùng một hook "Landing in Italy…" dù chữ là hook khác). Hook đã khai mà tiêu đề trượt → lấy hook trong kho tiêu đề bám đạt (giữ nhiều chữ nhất). Thuần. */
 export const maHookKhop = (ds: HookQc[] | undefined, ma: string | undefined, title: string): string | undefined => {
@@ -336,23 +354,18 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     // lượt KHOÁ = kho chỉ còn đúng một hook: mô hình rẻ vẫn khai trống / sai mã, hoặc tự viết tiêu đề (militarycalc 12/11/2026 top-n-42942: kho 3 hook,
     // cả 4 lượt "chưa chọn hook QC gốc") → máy tự gắn mã hook đã khoá; tiêu đề lệch hook thì dùng NGUYÊN VĂN câu hook (trừ khi trùng tiêu đề đã có).
     if (xa && hookCu) {
-      if (!timHook(hooksLuot, r.data.hook_qc)) r.data.hook_qc = hookCu.id;
-      if (loiHook([r.data.chu.title], hookCu.chu).length && !daCo.has(tdChuan(hookCu.chu))) r.data.chu.title = hookCu.chu;
-      // nguyên câu hook ĐÃ là tiêu đề bài cũ mà mô hình viết lại lệch quá xa (esimfares 19/11/2026: kho 6 hook "Landing in X? Do this before your plane touches down"
-      // đều đã dùng, lượt khoá viết "Landing abroad? Check passport rules before checkout" giữ 33% → --sinh-kho 0/5) → máy GHÉP: vế đầu hook + vế sau mô hình, hoặc ngược lại.
-      else if (loiHook([r.data.chu.title], hookCu.chu).length) { const g = ghepHook(r.data.chu.title, hookCu.chu).find((t) => !daCo.has(tdChuan(t)) && !loiHook([t], hookCu!.chu).length); if (g) r.data.chu.title = g; }
-      // Title chép đúng câu hook mà câu đó ĐÃ là tiêu đề bài cũ → mô hình nghe lời "copy it" dù prompt đã cấm (astrolas 27/11/2026, 4 lượt cùng câu).
-      // Máy tự đổi chủ thể: giữ vế đầu của hook, thay vế sau bằng câu đầu MÔ TẢ vừa viết cho đúng góc này (chữ mới, khác hẳn bài cũ) — ghép cả hai chiều,
-      // chọn bản giữ hook ≥35% chữ, ≤110 ký tự, chưa từng dùng. Ghép không ra thì KHÔNG nạp bài trùng: lượt sau thử lại.
+      const hc = hookCu;
+      if (!timHook(hooksLuot, r.data.hook_qc)) r.data.hook_qc = hc.id;
+      if (loiHook([r.data.chu.title], hc.chu).length && !daCo.has(tdChuan(hc.chu))) r.data.chu.title = hc.chu;
+      // MÁY GHÉP TIÊU ĐỀ khi hook (đã là tiêu đề một bài cũ nên không chép được) bị mô hình viết lệch — chạy cho CẢ hai lỗi: "sửa quá xa" (giữ <35% chữ hook)
+      // và "tiêu đề trùng" (chép đúng câu cũ). Câu hook nhiều vế → ghép vế (ghepHook, esimfares 19/11/2026); hook MỘT câu (không có vế sau) → ghepHook trả rỗng,
+      // nên lấy đoạn đầu hook dài DẦN + vế đầu câu MÔ TẢ (hoặc tiêu đề) mô hình vừa viết, dừng ở bản ĐẦU TIÊN giữ ≥35% chữ hook, 25–110 ký tự, chưa từng dùng.
+      // astrolas 27/11/2026: hook "This powerful blueprint holds the hidden secrets to your Divine Destiny." là tiêu đề bài 967, mô hình viết lại giữ 29% → 0/2 đề.
+      const ghepMoi = (): string | null => ghepTieuDe(hc.chu, [r.data.chu.title, String(r.data.chu.description ?? '')], o.daDung ?? []);
       if (daCo.has(tdChuan(r.data.chu.title))) {
-        const hc = hookCu, t0 = r.data.chu.title;
-        const mo = (/^(.+?[.?!])(?:\s|$)/u.exec(String(r.data.chu.description ?? '').trim())?.[1] ?? '').trim();
-        // hook MỘT câu (không có vế sau để ghép) thì lấy câu đầu MÔ TẢ mô hình vừa viết cho đúng góc này: ghép sau nguyên câu hook, hoặc dùng riêng nếu hợp trần.
-        const g = [...ghepHook(hc.chu, t0), ...ghepHook(t0, hc.chu), ...(mo ? [...ghepHook(hc.chu, mo), ...ghepHook(mo, hc.chu), `${hc.chu} ${mo}`, mo] : [])]
-          .find((t) => t.length >= 25 && t.length <= 110 && !daCo.has(tdChuan(t)) && !loiHook([t], hc.chu).length);
-        if (g) r.data.chu.title = g;
-        else { loiCu.push(`tiêu đề trùng một bài có sẵn của máy và ghép hook không ra bản mới: "${t0}"`); continue; }
-      }
+        const g = ghepMoi(); if (g) r.data.chu.title = g;
+        else { loiCu.push(`tiêu đề trùng một bài có sẵn của máy và ghép hook không ra bản mới: "${r.data.chu.title}"`); continue; }
+      } else if (loiHook([r.data.chu.title], hc.chu).length) { const g = ghepMoi(); if (g) r.data.chu.title = g; }
     }
     const maHook = maHookKhop(hooksLuot, r.data.hook_qc, r.data.chu.title); hookCu = timHook(hooksLuot, maHook) ?? hookCu;
     // mô hình không khai mã hook nào trong kho (bỏ trống / tự viết hook) → lượt sau KHOÁ vào hook gần tiêu đề nhất, đưa nguyên câu làm khuôn

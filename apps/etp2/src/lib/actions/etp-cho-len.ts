@@ -22,8 +22,10 @@ export type ChoLen = {
   // PHIẾU LÊN CAMP (0488, anh 27/11/2026): bản dựng theo phiếu mang sẵn chữ + thiết lập camp; duyệt creative = lên camp, không duyệt camp lần hai
   phieu: { id: number; kieu: Kieu; chu: ChuQc; dang: string; mien: string | null; roas: string; ns: number; gio: string; tu_do: boolean; trang_thai: string } | null;
   camp_id: number | null; camp_loi: string | null;
+  /** CÂU ĐỌC HOOK trong video (anh 27/11/2026 "Show chi tiết rõ ràng Câu đọc trong video ra ngay ngoài"): muc.vo do ghep-lai-cc2 --giong / duoi_cc2 ghi — null = bản không có giọng đọc hook */
+  vo: { cau: string; giong: string | null } | null;
 };
-type DongCho = Omit<ChoLen, 'chu' | 'phieu'> & { p_id: number | null; p_kieu: Kieu | null; p_chu: { pt: string[]; hl: string[]; de: string[] } | null; p_link: string | null;
+type DongCho = Omit<ChoLen, 'chu' | 'phieu' | 'vo'> & { vo: { cau?: string; giong?: string } | null; p_id: number | null; p_kieu: Kieu | null; p_chu: { pt: string[]; hl: string[]; de: string[] } | null; p_link: string | null;
   p_dang: string | null; p_mien: string | null; p_roas: string | null; p_ns: number | null; p_gio: string | null; p_tu_do: boolean | null; p_tt: string | null };
 // KIỂU CHỮ QC (anh 27/11/2026 "Khi duyệt creative thì cũng duyệt cả nội dung text luôn. Sinh kiểu Kiên là default và có option chọn sang Dol"):
 // chữ đọc ĐÚNG sổ máy tạo creative dùng (chu-qc.py chu_theo_kieu → apps/etp/so_kieu.py) — kien = apps/etp/chu-kieu.json kien[content_id] (tay, ưu tiên) ∪ etp.chu_kieu
@@ -38,15 +40,15 @@ export async function dsChoLen(): Promise<{ ds: ChoLen[] } | { loi: string }> {
   if (!(await laAdmin())) return { loi: 'chỉ admin' };
   try {
     const ds = await run<DongCho>(sql`select c.id, c.khoa, c.content_id, f.ten phim, c.lang, c.dang, c.ma, c.mau, c.video, c.anh, c.giay::float giay, c.trang_thai,
-        c.creative_id, c.loi, c.ghi, c.duyet_ai, c.tao::text tao, c.cap_nhat::text cap_nhat, c.kieu, c.camp_id, c.camp_loi,
+        c.creative_id, c.loi, c.ghi, c.duyet_ai, c.tao::text tao, c.cap_nhat::text cap_nhat, c.kieu, c.camp_id, c.camp_loi, c.muc -> 'vo' vo,
         p.id p_id, p.kieu p_kieu, p.chu p_chu, p.link p_link, p.dang p_dang, p.mien p_mien, coalesce(c.phieu_roas, p.roas_ds[1], p.roas) p_roas, p.ns p_ns, p.gio p_gio, p.tu_do p_tu_do, p.trang_thai p_tt
       from etp.cho_len c left join etp.phim f on f.content_id = c.content_id left join etp.phieu_len p on p.id = c.phieu_id
-      where c.phieu_id is not null   -- chỉ bản dựng theo PHIẾU; thẻ form cũ (không phiếu) bỏ (anh 27/11/2026 "Bỏ form cũ này đi")
+      where (c.phieu_id is not null or c.muc ? 'vo')   -- bản dựng theo PHIẾU + bản dựng lại có câu đọc hook (camp chờ giờ lên, anh 27/11/2026 "phải sửa và review lại"); thẻ form cũ (không phiếu, không câu đọc) bỏ ("Bỏ form cũ này đi")
         and (c.trang_thai in ('cho', 'duyet', 'dang_len') or (c.trang_thai = 'da_len' and c.cap_nhat > now() - interval '6 hours')
         or (c.trang_thai = 'da_len' and c.camp_id is null and c.cap_nhat > now() - interval '3 days'))
       order by (c.trang_thai = 'cho') desc, c.tao desc limit 200`);
     const so = await soChu(ds.map((x) => x.content_id));
-    return { ds: ds.map(({ p_id, p_kieu, p_chu, p_link, p_dang, p_mien, p_roas, p_ns, p_gio, p_tu_do, p_tt, ...x }) => ({ ...x, chu: { kien: so.kien(x.content_id), dol: so.dol },
+    return { ds: ds.map(({ p_id, p_kieu, p_chu, p_link, p_dang, p_mien, p_roas, p_ns, p_gio, p_tu_do, p_tt, vo, ...x }) => ({ ...x, vo: vo?.cau ? { cau: vo.cau, giong: vo.giong ?? null } : null, chu: { kien: so.kien(x.content_id), dol: so.dol },
       phieu: p_id ? { id: p_id, kieu: p_kieu ?? 'kien', chu: { pt: p_chu?.pt ?? [], hl: p_chu?.hl ?? [], de: p_chu?.de ?? [], link: p_link ?? '' }, dang: p_dang ?? '', mien: p_mien,
         roas: p_roas ?? 'dan', ns: p_ns ?? 0, gio: p_gio ?? 'lich', tu_do: !!p_tu_do, trang_thai: p_tt ?? '' } : null })) };
   } catch (e) { return { loi: `đọc etp.cho_len lỗi: ${(e as Error).message}` }; }

@@ -67,6 +67,7 @@ export function ChoLenEtho() {
               <div style={{ flex: 1, minWidth: 0, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.phim ?? ''}>{x.phim ?? `phim #${x.content_id}`}</div>
                 <div style={{ color: 'var(--fg-2)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>{(x.lang ?? '?').toUpperCase()} · #{x.id} <BadgeDangNgan d={x.dang} />{x.giay ? ` · ${Math.round(x.giay)}s` : ''}</div>
+                <CauDocCho x={x} />
                 {x.mau || x.ma ? <div style={{ color: 'var(--fg-3, #888)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={[x.ma, x.mau].filter(Boolean).join(' · ')}>{[x.ma, x.mau].filter(Boolean).join(' · ')}</div> : null}
                 {x.ghi ? <div style={{ color: 'var(--fg-3, #888)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.ghi}>{x.ghi}</div> : null}
                 <div style={{ color: 'var(--fg-3, #888)' }}>dựng {gioVn(x.tao)}</div>
@@ -110,4 +111,15 @@ export function ChoLenEtho() {
       </div>
     </div>
   );
+}
+
+/** CÂU ĐỌC HOOK ra ngay trên thẻ Chờ lên (anh 27/11/2026 "Câu đọc chính là điểm chạm đầu tiên của Hook" · "Show chi tiết rõ ràng Câu đọc trong video ra ngay ngoài"):
+ *  đúng câu máy đọc ở đầu video (muc.vo.cau); giọng + thẻ cảm xúc ở hover. Không có = ghi rõ bản này không có giọng đọc hook. */
+function CauDocCho({ x }: { x: ChoLen }) {
+  const sach = x.vo ? x.vo.cau.replace(/\[[^\]]*\]\s*/g, '').trim() : '';
+  return <div data-o="cau-doc-cho" title={x.vo ? `Câu máy đọc (nguyên văn, kèm thẻ cảm xúc): ${x.vo.cau}${x.vo.giong ? `\nGiọng: ${x.vo.giong}` : ''}` : undefined}
+    style={{ padding: '3px 6px', borderLeft: `3px solid ${x.vo ? '#a78bfa' : 'var(--line)'}`, background: x.vo ? 'rgba(167,139,250,.1)' : 'transparent', cursor: x.vo ? 'help' : 'default' }}>
+    <span style={{ color: 'var(--fg-3, #888)' }}>Câu đọc: </span>
+    {x.vo ? <b style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>“{sach}”</b> : <span style={{ color: 'var(--fg-3, #888)' }}>không có giọng đọc hook</span>}
+  </div>;
 }

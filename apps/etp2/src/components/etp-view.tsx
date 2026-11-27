@@ -2763,7 +2763,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
   // sd7 / tongNgay / idPhim / demCamp (dòng camp, dòng phim cả phim, dòng tổng cả tài khoản) nằm ở useCotNgay — một nguồn cho Cây + Thiết lập (#1819)
   // DÒNG CHỜ ANH DUYỆT (anh 22/11/2026 "Chờ duyệt thì tao phải xem được mày đang làm gì mới duyệt được"): ▶ Lên sẽ tạo đúng camp nào + cổng nào sẽ bỏ qua — máy KHÔNG tự lên dòng ★ ROAS
   const chuDangSx = (c: CampEtpKho) => { const vn = c.lich ? new Date(new Date(c.lich).getTime() + 7 * 3600_000) : null, p = (k: number) => String(k).padStart(2, '0');   // #1832
-    return [c.sx?.phieu ? `🏭 ĐANG SẢN XUẤT — camp #${c.sx.phieu} đang dựng creative, bước: ${c.sx.buoc}` : `🏭 ĐANG SẢN XUẤT — dòng phim #${c.sx?.dong ?? '?'} đang làm creative, bước: ${c.sx?.buoc ?? '?'}`,
+    return [c.sx?.phieu ? (c.loi ? `🏭 SẢN XUẤT LỖI — camp #${c.sx.phieu} dựng hỏng, chưa thành creative: ${c.loi}` : `🏭 ĐANG SẢN XUẤT — camp #${c.sx.phieu} đang dựng creative, bước: ${c.sx.buoc}`) : `🏭 ĐANG SẢN XUẤT — dòng phim #${c.sx?.dong ?? '?'} đang làm creative, bước: ${c.sx?.buoc ?? '?'}`,
       `· phim: ${c.phim ?? `#${c.content_id ?? '?'}`} · dạng creative: ${c.dang ?? '?'}`,
       `· sẽ lên ${c.sx?.so_camp ?? 1} camp ★ ROAS ${c.roas} (Lowest cost + min ROAS) · $${c.ngan_sach}/ngày · bộ ${c.bo ?? '?'}`,
       `· giờ chạy: ${vn ? `${p(vn.getUTCHours())}:${p(vn.getUTCMinutes())} ${p(vn.getUTCDate())}/${p(vn.getUTCMonth() + 1)} giờ VN` : 'chưa hẹn'}${c.sx?.ai ? ` · lệnh của ${c.sx.ai}` : ''}`,

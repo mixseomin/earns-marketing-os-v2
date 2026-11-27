@@ -556,24 +556,25 @@ async function docEtpDu(ng?: string, nhe = false): Promise<DuLieuEtp> {
   const SX_TRONG = { loi: null, dong_bo: 'dang_sx', ban: null, giong: null, doan: null, cung_doan: 0, thang: st(0, 0), qua: st(0, 0), nay: st(0, 0), lich_tat: false, nuoc: [], ab: null, dong: null, chien_luoc: 'LOWEST_COST_WITH_MIN_ROAS' } satisfies Partial<CampEtpKho>;
   // PHIẾU LÊN CAMP ĐANG DỰNG (anh 27/11/2026 "Phim tạo phiếu thì phải tạo camp dạng Đang sản xuất luôn"): gửi phiếu xong là có ngay một dòng 🏭 trong nhóm phim, mang đúng
   // tham số phiếu (dạng, ★ ROAS từng mức, $, giờ, bộ, miền) — trước chỉ hiện một dòng chữ trong ngăn phiếu. Bước = mau_dung (AD) / dong_buoc của dòng phiếu (CC2).
-  const phieuRs = await runNha<Record<string, unknown>>(sql`select p.id, p.content_id, p.dang, p.roas, p.roas_ds, p.ns, p.gio, p.bo, p.mien, p.ai, p.tao::text tao, f.ten phim, f.the_loai,
+  const phieuRs = await runNha<Record<string, unknown>>(sql`select p.id, p.content_id, p.dang, p.roas, p.roas_ds, p.ns, p.gio, p.bo, p.mien, p.ai, p.trang_thai, p.loi, p.tao::text tao, f.ten phim, f.the_loai,
       (select m.buoc from etp.mau_dung m where p.dang = 'AD' and m.content_id = p.content_id and m.tuy_chon ->> 'phieu' = p.id::text order by m.cap_nhat desc limit 1) buoc_ad,
       (select d.id from etp.dong_phim d where d.phieu_id = p.id order by d.id desc limit 1) dong,
       (select b.buoc from etp.dong_phim d join etp.dong_buoc b on b.dong_id = d.id where d.phieu_id = p.id and b.trang_thai not in ('xong', 'bo_qua') order by d.id desc, b.thu_tu limit 1) buoc_dong,
       (select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo_moi
     from etp.phieu_len p left join etp.phim f on f.content_id = p.content_id
-    where p.trang_thai = 'dung' and p.tao > now() - interval '3 days' order by p.content_id, p.id`).catch((e) => { console.error('etp phieuSx', e); return []; });
+    where p.trang_thai in ('dung', 'loi') and p.tao > now() - interval '3 days' order by p.content_id, p.id`)   -- 'loi' vẫn giữ dòng 🏭 (báo đỏ), không biến mất im lặng.catch((e) => { console.error('etp phieuSx', e); return []; });
   for (const r of phieuRs) {
     const ds = (Array.isArray(r.roas_ds) && r.roas_ds.length ? (r.roas_ds as unknown[]) : [r.roas]).map(String), so = Math.max(1, ds.length), ns = n(r.ns ?? BANG_LUAT.hoi_cho.ns);
     const ro = ds.map(Number).find((x) => Number.isFinite(x)) ?? null, g = String(r.gio ?? 'lich');
     const lich = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(g) ? new Date(`${g.replace(' ', 'T')}:00+07:00`).toISOString() : gioKhung;
     const bAd = r.buoc_ad as string | null, bD = r.buoc_dong as string | null;
-    const b = bAd ? (bAd === 'cho' ? 'chờ máy dựng (iMac)' : `máy dựng: ${tenBuocDung(bAd)}`) : bD ? TEN_BUOC_SX[bD] ?? bD : 'chờ máy nhận';
+    const loiP = r.trang_thai === 'loi' ? String(r.loi ?? 'máy dựng báo lỗi') : null;
+    const b = loiP ? `LỖI: ${loiP}` : bAd ? (bAd === 'cho' ? 'chờ máy dựng (iMac)' : `máy dựng: ${tenBuocDung(bAd)}`) : bD ? TEN_BUOC_SX[bD] ?? bD : 'chờ máy nhận';
     hangCr.push({ camp_id: -(30_000_000 + n(r.id)),
-      ten: `🏭 đang sản xuất #${n(r.id)} · ${(r.dang as string) ?? '?'} · ${b} · ★ ROAS ${ds.join(' / ')} · $${ns}${so > 1 ? ` · ${so} camp` : ''}`,
+      ten: `🏭 ${loiP ? 'sản xuất lỗi' : 'đang sản xuất'} #${n(r.id)} · ${(r.dang as string) ?? '?'} · ${b} · ★ ROAS ${ds.join(' / ')} · $${ns}${so > 1 ? ` · ${so} camp` : ''}`,
       sx: { dong: r.dong == null ? 0 : n(r.dong), phieu: n(r.id), buoc: b, so_camp: so, ai: (r.ai as string) ?? null }, mien: (r.mien as string) ?? null,
       bo: (r.bo as string) || (r.bo_moi as string) || null, trang_thai: 'ACTIVE', giao: null, ngan_sach: ns * so, creative_id: null, content_id: r.content_id == null ? null : n(r.content_id), goc: null,
-      lich, tao: (r.tao as string) ?? null, phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, roas: ro, ...SX_TRONG }); }
+      lich, tao: (r.tao as string) ?? null, phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, roas: ro, ...SX_TRONG, loi: loiP }); }
   const docKhoi = (v: unknown): KhoiEtp | null => { if (!v || typeof v !== 'object') return null; const k = v as Record<string, unknown>;
     const mau = (MAU_CR.mau as { ma: string; ten?: string; o?: { ten: string; luat: string }[] }[]).find((m) => m.ma === k.mau);
     return { id: n(k.id), ten: String(k.ten ?? ''), roas: Number(k.roas), ns: Number(k.ns), gio: String(k.gio ?? '22:00'), mien: (k.mien as string) ?? null, nuoc: k.nuoc == null ? null : n(k.nuoc),

@@ -996,6 +996,7 @@ const LUAT = [
   { card: 'phieu-tt-chu-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', cam: '(${x.trang_thai})`', vi: 'phiếu đang dở hiện trạng thái bằng chữ, không mã thô dung (anh 27/11/2026)' },
   { card: 'hang-mau-phieu-2711', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: "union select mau, content_id, cap_nhat from etp.mau_dung where trang_thai = 'cho'", vi: 'hàng máy dựng nhận cả việc phiếu lên camp ghi thẳng mau_dung (anh 27/11/2026)' },
   { card: 'hang-mau-phieu-2711b', tep: 'apps/etp/dong_phim.py', co: "union select mau, content_id from etp.mau_dung where trang_thai = 'cho'", vi: 'máy dòng phim đếm cả việc phiếu ghi thẳng mau_dung (anh 27/11/2026)' },
+  { card: 'phieu-loi-sx-2711', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "p.trang_thai in ('dung', 'loi')", vi: 'camp 🏭 dựng hỏng vẫn giữ dòng, báo đỏ lỗi — không biến mất im lặng (anh 27/11/2026)' },
   { card: 'phieu-dang-sx-2711', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "camp_id: -(30_000_000 + n(r.id))", vi: 'gửi phiếu lên camp là có ngay dòng 🏭 Đang sản xuất trong nhóm phim (anh 27/11/2026)' },
   { card: 'mot-video-2711', tep: 'apps/etp2/src/components/ui/video-xem.tsx', co: "document.addEventListener('play'", vi: 'cả trang chỉ một video chạy một lúc (anh 27/11/2026)' },
   { card: 'dau3s-khong-tu-chay-2711', tep: 'apps/etp2/src/components/ui/dau-3s.tsx', cam: 'IntersectionObserver', vi: 'thẻ 3s đầu không tự chạy khi vào màn, chỉ rê chuột (anh 27/11/2026)' },

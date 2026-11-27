@@ -161,7 +161,7 @@ def co_free(t, lang):
     """MỌI CREATIVE PHẢI CÓ CHỮ FREE TRONG VIDEO (anh 27/11/2026 "Khi sinh creative phải có phần chữ Free trong video"): chữ nút chưa có free / gratis →
     đổi sang bản Free cùng cỡ chữ (WATCH FREE / VER GRATIS — hoa thì hoa, thường thì thường). Mọi mẫu vẽ nút đều qua cta() → cả lớp, không vá từng mẫu."""
     if re.search(r"\bfree\b|\bgratis\b", t, re.I): return t
-    f = "VER GRATIS" if lang == "es" else "WATCH FREE"
+    f = CQ.NUT_FREE["es" if lang == "es" else "en"]
     return f if t.upper() == t else f.title() if lang != "es" else "Ver gratis"
 
 def nut(lop, chu, y, f, nen, chu_mau=(255, 255, 255), vien_mau=None, dem=(56, 26), bo_tron=None, rong_min=0, x_tam=None):

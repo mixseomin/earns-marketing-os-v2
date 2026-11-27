@@ -13,6 +13,10 @@ CTA = {
 }
 # chữ dụ nhấp + ký tự mũi tên/chỉ trỏ (dùng chung cho chữ trên video, chữ QC, chữ nút)
 # chỉ bắt khi đi cùng ngữ cảnh CTA hoặc viết HOA như chữ nút — thoại phim có "te toca" (tới lượt), OCR nhiễu ra "taP" (22/10/2026 chặn oan Number One 1760s)
+# CHỮ FREE CỦA NHÀ — một nguồn (audit 28/11/2026: trước khai tay ở dung-mau.co_free · lop-logo-cc2.NUT_CC2 · anh-tinh.FREE · kiem-thoai.CHO_FREE;
+# 27/11/2026 kiem-thoai thiếu "Watch Free" nên chặn chính nút nhà vẽ, cho_len #34). Thêm chữ Free mới = sửa ở đây, cổng kiem-thoai tự nhận.
+NUT_FREE = {"en": "WATCH FREE", "es": "VER GRATIS"}   # nút Free của AD / CC2 (dung-mau, lop-logo-cc2)
+LOP_FREE = {"en": ("All Episodes Released", "Watch For Free"), "es": ("Todos los episodios ya disponibles", "Míralo gratis")}   # nhãn + nút lớp Free ảnh tĩnh (anh-tinh)
 MAU_CTA = re.compile(r"\btap (?:to|here|now|below|learn|the (?:link|button)|for more|on (?:the|learn))\b|(?-i:\bTAP\b)|\bclick (?:here|now|below|the|to|on|learn)\b|(?-i:\bCLICK\b)|"
                      r"\btoca (?:m[aá]s|aqu[ií]|el bot[oó]n|para ver)|(?-i:\bTOCA\b)|\bhaz clic|\bpulsa (?:aqu[ií]|el|m[aá]s)|\bpresiona (?:aqu[ií]|el bot)|"
                      r"[▼▲►◄▶◀↓↑→←⬇⬆➡⬅👇👆👉👈⏬🔽]", re.I)

@@ -68,7 +68,7 @@ FONT = "/System/Library/Fonts/Supplemental/Georgia Bold Italic.ttf"
 # nhãn tím trên cùng "All Episodes Released" + nút xanh "Watch For Free" ngay dưới tên phim. LUÔN BẬT (anh chốt 19/11/2026 theo mẫu team Dol: "Phải luôn có text ở trên,
 # FREE + mô tả tên phim!") — cờ --khong-free đã bỏ; bản không Free mang nhãn cta khong_nut và cổng apps/etp/cong.at_sai_dang chặn lên camp.
 # Tên phim đẩy lên (đáy ≤ TEN_DAY_FREE) để nút xanh vẫn nằm trên vùng khung ứng dụng (~15% đáy: tên trang, nút của Meta).
-FREE = {"en": ("All Episodes Released", "Watch For Free"), "es": ("Todos los episodios ya disponibles", "Míralo gratis")}
+import cta_qc as _CQ; FREE = _CQ.LOP_FREE   # nguồn chung: cta_qc.LOP_FREE (cổng kiem-thoai đọc cùng chỗ)
 FONT_FREE, TIM, XANH, TEN_DAY_FREE = "/System/Library/Fonts/Supplemental/Arial Bold.ttf", (124, 58, 237, 255), (34, 197, 94, 255), 0.72
 if "--khong-free" in sys.argv: sys.exit("--khong-free đã bỏ: AT chỉ còn MỘT dạng có Free (anh chốt 19/11/2026, sổ luật at_chi_dang_free)")
 CO_FREE = True

@@ -9,7 +9,7 @@ D = os.path.dirname(os.path.abspath(__file__))
 def _nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(D, tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
 DM = _nap("dung_mau", "dung-mau.py")
-NUT_CC2 = {"en": "WATCH FREE", "es": "VER GRATIS"}   # nút CC2 luôn mang chữ Free (anh 27/11/2026 "Khi sinh creative phải có phần chữ Free trong video")
+NUT_CC2 = DM.CQ.NUT_FREE   # nút CC2 luôn mang chữ Free (anh 27/11/2026 "Khi sinh creative phải có phần chữ Free trong video")
 
 def lam(tm, cid, ten, lang, url, ra):
     lang = "es" if lang == "es" else "en"; chu = NUT_CC2[lang]

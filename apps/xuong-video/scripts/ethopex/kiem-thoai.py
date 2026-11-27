@@ -46,7 +46,7 @@ def mau_js():
 # gỡ ĐÚNG các câu này khỏi chữ đọc được trước khi soát; chữ "FREE" / "Watch for free" khác (lớp phủ in sẵn của QC app gốc) vẫn chặn như luật 22/10/2026.
 # + nút "WATCH FREE" / "VER GRATIS" của mẫu ảnh động logo + CC2 (dung-mau.py, lop-logo-cc2.py — anh 27/11/2026 "phải có phần chữ Free trong video"): 27/11/2026 thiếu ở đây
 #   nên cổng chặn chính nút nhà vẽ (cho_len #34 "Ungrateful Daughter" 18 khung), creative anh đã duyệt không lên được
-CHO_FREE = ["All Episodes Released", "Watch For Free", "Watch Free", "Todos los episodios ya disponibles", "Míralo gratis", "Ver gratis"]
+CHO_FREE = sorted({x for v in CQ.LOP_FREE.values() for x in v} | set(CQ.NUT_FREE.values()), key=len, reverse=True)   # nguồn chung cta_qc (không chép tay)
 _MAU_CHO = re.compile(r"\s*\|?\s*(" + "|".join(re.escape(x) for x in CHO_FREE) + r")\s*\|?", re.I)
 def soat(cau, cho_free=False):
     """→ từ khớp đầu tiên hoặc None (thoại cấm · CTA dụ nhấp · lớp phủ CTA kích thích của QC app gốc — cta_qc.phu_kich_thich).
@@ -133,6 +133,10 @@ def tu_kiem():
     for c in ("ALL EPISODES RELEASED | Shattering the Scheme of | Ungrateful Daughter | WATCH FREE", "Todos los episodios ya disponibles | LA HEREDERA | VER GRATIS"):   # nút mẫu ảnh động logo / CC2
         assert not soat(c, True), "nút Free nhà phải qua: %s (khớp %s)" % (c, soat(c, True))
     assert soat("ALL EPISODES RELEASED | Ungrateful Daughter | WATCH FREE"), "không cờ --free thì WATCH FREE trần vẫn chặn"
+    # mọi chữ nút Free trong thư viện mẫu (etp2 etp-mau-cr.json thu_vien.nut.chu — dung-mau.cta chọn từ đây) phải qua cổng khi có cờ --free
+    sys.path.insert(0, os.path.join(D, "..", "..", "..", "etp")); from goc_etp2 import tep as _t
+    nut = [y.strip() for v in json.load(open(_t("src", "lib", "etp-mau-cr.json"), encoding="utf-8"))["thu_vien"]["nut"]["chu"].values() for y in v]   # nguyên chữ nút (nút đôi "· LEARN MORE" gỡ bằng NUT_CHUAN)
+    for c in [y for y in nut if re.search(r"\bfree\b|\bgratis\b", y, re.I)]: assert not soat("Ungrateful Daughter | " + c, True), "nút sổ mẫu bị cổng chặn: %s (khớp %s)" % (c, soat("x | " + c, True))
     print("tự kiểm: %d/%d đạt" % (len(chan) + len(qua), len(chan) + len(qua)))
 
 if __name__ == "__main__":

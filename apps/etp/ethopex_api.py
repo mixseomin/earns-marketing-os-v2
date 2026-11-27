@@ -49,8 +49,16 @@ def dung_form(c):
     lk = c.get("link_url") or ""
     bo = (ds_l(a.get("primaryTexts")), ds_l(a.get("headlines")), ds_l(a.get("descriptions")))
     if bo == (FORM["primaryTexts"], FORM["headlines"], FORM["descriptions"]): return lk == FORM["link_url"]
-    try: return bool(c.get("content_id")) and any(bo == x and lk == link_kieu(kieu) for kieu in KIEU_DOI for x in chu_doi(kieu, c["content_id"]))
+    try:
+        if bool(c.get("content_id")) and any(bo == x and lk == link_kieu(kieu) for kieu in KIEU_DOI for x in chu_doi(kieu, c["content_id"])): return True
+        return bool(c.get("content_id")) and (tuple(tuple(x) for x in bo), lk) in chu_phieu(c["content_id"])
     except Exception: return False   # content_id hỏng → coi như lệch (cửa chặn, không lọt)
+def chu_phieu(content_id, q=None):
+    """PHIẾU LÊN CAMP (etp2, anh 27/11/2026): bộ chữ + link anh đã xem lúc gửi phiếu (etp.phieu_len.chu — K máy sinh sinh-chu-kien.py --xem / D form-chu.json,
+    không ai gõ tay) cũng là chữ đúng của phim đó. → {((pt, hl, de), link)}; đọc lỗi → set() (cửa chặn, không lọt)"""
+    try: r = (q or _q)(f"select coalesce(json_agg(json_build_object('c', chu, 'l', link)), '[]') from etp.phieu_len where content_id = {int(content_id)} and trang_thai <> 'bo' and chu is not null")
+    except Exception: return set()
+    return {((tuple(ds_l(x["c"].get("pt"))), tuple(ds_l(x["c"].get("hl"))), tuple(ds_l(x["c"].get("de")))), x["l"] or "") for x in json.loads(r or "[]") if isinstance(x.get("c"), dict)}
 _TAO_CR = re.compile(r"^/api/v1/creatives(?:/bulk-jobs)?/?$")
 def lech_tao(duong, body):
     """lệnh TẠO creative (/api/v1/creatives, /creatives/bulk-jobs — thân dict, mảng trần hoặc {items}) → tên các bản chữ KHÁC form; không phải lệnh tạo → [].

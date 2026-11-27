@@ -84,14 +84,14 @@ def cho():
             for x in (l.split("|") for l in q("""select cr_goc, camp_goc, content_id, coalesce(lang, 'en'), coalesce(kieu_goc, ''), coalesce(bo_goc, ''), kieu_moi, bo_moi,
                 coalesce(cr_moi, 0), lan from etp.luot2 where tt = 'dang' order by lan, luc, cr_goc""").splitlines()) if len(x) == 10]
 
-def chep_so(goc, moi):
+def chep_so(goc, moi, ghi=None, ai="máy · lượt 2"):   # ghi / ai: phiếu duyệt (len-phieu.py creative cũ) — mặc định lượt 2
     """bản lượt 2 cùng video với gốc → chép dòng kho + phiếu chấm của gốc cho id mới (cổng chấm Sạch của nhan-ban đọc etp.cham_cong); ghi duyệt theo lệnh anh"""
     q(f"""insert into etp.creative (creative_id, content_id, dang, tu, den, doan, lang, lo, video, anh, cta_dat, cap_nhat)
           select {moi}, content_id, dang, tu, den, doan, lang, lo, video, anh, cta_dat, now() from etp.creative where creative_id = {goc} on conflict (creative_id) do nothing""")
     q(f"""insert into etp.cham (creative_id, doan, luc, may, lop, diem, ly_do, meta, afs, ket, loi, khung)
           select {moi}, doan, luc, may, lop, diem, ly_do, meta, afs, ket, loi, khung from etp.cham where creative_id = {goc} on conflict (creative_id) do nothing""")
     q(f"insert into etp.diem_cham (creative_id, cham, nguon, luc) select {moi}, cham, nguon, luc from etp.diem_cham where creative_id = {goc} on conflict (creative_id) do nothing")
-    q(f"insert into etp.cham_duyet (creative_id, ok, ai, ghi) values ({moi}, true, 'máy · lượt 2', {s(DUYET)}) on conflict (creative_id) do nothing")
+    q(f"insert into etp.cham_duyet (creative_id, ok, ai, ghi) values ({moi}, true, {s(ai)}, {s(ghi or DUYET)}) on conflict (creative_id) do nothing")
 
 def nb(args, luat):
     try:

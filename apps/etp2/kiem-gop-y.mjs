@@ -958,6 +958,15 @@ const LUAT = [
   { card: 'roas-2711', tep: 'apps/etp/len-phieu.py', co: 'coalesce(c.phieu_roas, p.roas_ds[1], p.roas)', vi: 'lên camp theo mức ROAS của đúng thẻ' },
   { card: 'roas-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-logo-goc', vi: 'phiếu hiện logo gốc đã tách của phim' },
   { card: 'roas-2711', tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'if c.get("cid"): day_logo(', vi: 'logo gốc tách xong đẩy kho + etp.logo_goc' },
+  // CREATIVE CŨ + GIỌNG / CÂU ĐỌC (anh 27/11/2026): chip Cũ (số lần dùng, chi · thu · ROI 7 ngày + tổng) → không dựng mới; luật 25/11 → bản mới cùng video, không gắn creative_id cũ
+  { card: 'cu-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-ds-cu', cam: 'Kiên', vi: 'phiếu có danh sách creative cũ để chọn' },
+  { card: 'cu-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-goi-y-giong', vi: 'AD hiện giọng đọc dự kiến + chọn giọng ngay đầu phiếu' },
+  { card: 'cu-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-cau={c.id}', vi: 'AD hiện câu đọc (hook) để chọn' },
+  { card: 'cu-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: 'o: { giong:', vi: 'ghim giọng / câu vào tuy_chon.o.giong của dung-mau' },
+  { card: 'cu-2711', tep: 'apps/etp/len-phieu.py', co: 'AF.ban_nha(nguon', vi: 'creative cũ → bản mới cùng video (không gắn creative_id cũ vào camp mới)' },
+  { card: 'cu-2711', tep: 'apps/xuong-video/scripts/ethopex/cho_len.py', co: "? 'cr_cu')", vi: 'máy tải Chờ lên bỏ qua thẻ creative cũ' },
+  { card: 'cu-2711', tep: 'apps/etp/ethopex_api.py', co: 'def chu_phieu(', vi: 'cửa form chữ nhận chữ + link của phiếu cùng phim' },
+  { card: 'kt-2711', tep: 'apps/xuong-video/scripts/ethopex/may-sinh-ke-chuyen.mjs', co: "includes('KT') || kt === 'true'", vi: 'máy sinh kể chuyện đọc 🔒 Gác dạng — KT gác thì không sinh / không đưa lên Chờ lên (anh 27/11 "Bỏ form cũ này đi")' },
 ];
 
 const loi = [];

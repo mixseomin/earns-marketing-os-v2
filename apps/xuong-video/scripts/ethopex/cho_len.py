@@ -140,6 +140,7 @@ def nha(lo, ly):
 def chay_len():
     """bản đã duyệt chưa ai nhận (người gọi gốc là lệnh một lần: sửa CTA, dựng lại logo…) → chạy len-creative theo từng dạng"""
     ds = [json.loads(l) for l in (_sql(f"""select row_to_json(t) from (select id, khoa, dang, muc from etp.cho_len where trang_thai = 'duyet'
+            and not (coalesce(muc, '{{}}'::jsonb) ? 'cr_cu')   -- creative CŨ (phiếu CU): len-phieu.py tạo bản cùng video, không tải lại
             and (loi is null or cap_nhat < now() - interval '{LOI_NGHI}') order by duyet_luc nulls last, id limit 20) t""") or "").splitlines() if l.strip()]
     nhom = {}
     for v in ds: nhom.setdefault(v["dang"] or "canh cuoi", []).append({**v["muc"], "khoa_cho": v["khoa"]})
@@ -161,6 +162,7 @@ def tu_kiem():
     src = open(os.path.join(D, "len-creative.py")).read()
     for k in ("CL.loc(", "CL.ghi_cho(", "CL.xong("): assert k in src, f"len-creative.py thiếu {k} — cổng chờ anh duyệt bị gỡ"
     assert src.index("CL.loc(") < src.index("bulk-jobs\",json"), "cổng chờ duyệt phải đứng trước bulk-jobs"
+    assert "? 'cr_cu'" in open(os.path.abspath(__file__)).read().split("def chay_len")[1].split("def tu_kiem")[0], "chay_len phải bỏ thẻ creative cũ (len-phieu.py lo)"
     print("cho_len tự kiểm: đạt")
 
 if __name__ == "__main__":

@@ -36,14 +36,14 @@ def patch(cid, body=BODY):
         return cid, "ok"
     except Exception as e: return cid, str(e)[:160]
 
-def ban_nha(cr, duoi=" - form nha"):   # duoi: đuôi tên bản mới (luot2.py: " - luot 2")
+def ban_nha(cr, duoi=" - form nha", body=None):   # duoi: đuôi tên bản mới (luot2.py: " - luot 2") · body: chữ + link khác form (len-phieu.py creative cũ: chữ của phiếu)
     """creative của người khác (đội) / ad chạy bài đăng có sẵn: tạo BẢN NHÀ cùng phim + cùng video, chữ = form — creative gốc không đụng.
     Trả id creative mới (bulk-jobs, đợi xong)."""
     c = EA.api(f"/api/v1/creatives/{int(cr)}"); c = c.get("data", c)
     v = c.get("video_url"); v = json.loads(v) if isinstance(v, str) and v.strip().startswith("[") else (v or [])
     if c.get("creative_type") != F["creative_type"] or not v: raise RuntimeError(f"creative {cr} không phải {F['creative_type']} có video — không sao")
     it = {"name": f"{c.get('name') or cr}{duoi}", "content_id": int(c["content_id"]), "creative_type": F["creative_type"], "traffic_source": "facebook",
-          "status": "active", "image_url": [], "video_url": v, **{k: BODY[k] for k in ("call_to_action", "link_url", "asset_spec")}}
+          "status": "active", "image_url": [], "video_url": v, **{k: (body or BODY)[k] for k in ("call_to_action", "link_url", "asset_spec")}}
     j = EA.api("/api/v1/creatives/bulk-jobs", [it])   # thân là MẢNG trần (len-creative.py), bọc {"items": …} thì 400 unmarshal
     import time
     for _ in range(40):

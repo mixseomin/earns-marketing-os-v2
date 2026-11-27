@@ -9,6 +9,10 @@ Duyệt = duyệt creative + lệnh lên camp. Máy dòng phim (iMac, cho_len.py
 tệp này chờ creative_id (≤ CHO_GIAY, vé sống ve_phut phút) rồi gọi nhan-ban MỘT lần với đúng phiếu: khuôn theo ngôn ngữ · bộ bo_phim_moi · ROAS (dàn / số) · ngân sách ·
 domain (--mien) · giờ (khung cố định hoặc giờ anh đặt, --gio-tu-do khi ngoài khung). Kết quả ghi etp.cho_len.camp_id / camp_loi + etp.phieu_len.camp_ids / trang_thai.
 Không tự xin vé (máy luật không bao giờ xin) — chờ quá hạn vé thì ghi camp_loi, thẻ hiện nút Lên camp để anh bấm lại (vé mới).
+
+CREATIVE CŨ (phiếu dạng CU, anh 27/11/2026 "chọn creative cũ … ko phải tạo creative mới nữa"): thẻ mang muc.cr_cu = creative nguồn; cho_len.py KHÔNG tải thẻ này.
+Luật 25/11 cấm gắn creative_id cũ vào camp mới → tệp này tạo BẢN MỚI cùng video với chữ + link của phiếu (ap-form-chu.ban_nha), chép sổ chấm của nguồn
+(luot2.chep_so — cổng chấm Sạch của nhan-ban), đặt thẻ 'da_len' rồi đi tiếp đường nhan-ban như AD. Không dựng, không tốn tiền AI.
 """
 import json, os, re, subprocess, sys, time
 
@@ -16,6 +20,9 @@ D = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, D)
 SC = os.path.join(D, "..", "xuong-video", "scripts", "ethopex")
 KHUON_CR = {"en": 65110, "es": 65734}   # trùng lenh_cho.KHUON_CR + apps/etp2/src/lib/etp-ke-cr.ts KHUON_CR
 import cong as CG
+import importlib.util as iu
+def _nap(ten):   # ap-form-chu.py / luot2.py tên có gạch → nạp bằng đường dẫn
+    sp = iu.spec_from_file_location(ten.replace("-", "_"), os.path.join(D, ten + ".py")); m = iu.module_from_spec(sp); sp.loader.exec_module(m); return m
 CHO_GIAY = CG.VE_PHUT * 60 - 45   # vé trực tiếp sống ve_phut phút — gọi nhan-ban trước khi vé hết
 HET_VE = "chờ creative tải lên quá hạn vé — bấm Lên camp lại trên thẻ (vé mới)"
 
@@ -48,12 +55,15 @@ def ghi_kq(cl, pid, camp, loi):
 
 def chay(cl):
     r = q(f"""select row_to_json(t) from (select c.id cl, c.trang_thai, c.creative_id, c.camp_id, c.loi, p.id, p.content_id, coalesce(p.lang, c.lang) lang, p.kieu, p.link, p.dang,
-            p.mien, coalesce(c.phieu_roas, p.roas_ds[1], p.roas) roas, p.ns, p.gio, p.tu_do, f.ten phim from etp.cho_len c join etp.phieu_len p on p.id = c.phieu_id left join etp.phim f on f.content_id = p.content_id
+            p.mien, coalesce(c.phieu_roas, p.roas_ds[1], p.roas) roas, p.ns, p.gio, p.tu_do, p.chu, (c.muc ->> 'cr_cu')::int cr_cu, f.ten phim from etp.cho_len c join etp.phieu_len p on p.id = c.phieu_id left join etp.phim f on f.content_id = p.content_id
           where c.id = {int(cl)}) t""")
     if not r: raise SystemExit(f"cho_len #{cl} không có phiếu — không lên")
     p = json.loads(r)
     if p.get("camp_id"): print(f"cho_len #{cl} đã có camp #{p['camp_id']}"); return
     q(f"update etp.phieu_len set trang_thai = 'len', cap_nhat = now() where id = {int(p['id'])} and trang_thai in ('cho_duyet', 'loi')")
+    if p.get("cr_cu") and not p.get("creative_id"):
+        loi = ban_cu(p)
+        if loi: ghi_kq(cl, p["id"], None, loi); return
     t0 = time.time()
     while True:
         x = json.loads(q(f"select row_to_json(t) from (select trang_thai, creative_id, loi from etp.cho_len where id = {int(cl)}) t"))
@@ -74,6 +84,36 @@ def chay(cl):
     ghi_kq(cl, p["id"], kq.get("moi") if kq.get("ok") else None, None if kq.get("ok") else (kq.get("loi") or "nhan-ban không trả kết quả"))
     print(json.dumps({"ok": bool(kq.get("ok")), "camp": kq.get("moi"), "cr": cr, "loi": kq.get("loi")}, ensure_ascii=False))
 
+def body_cu(p):
+    """chữ + link của phiếu cho bản mới từ creative cũ (CTA theo form như mọi bản nhà)"""
+    c = p.get("chu") or {}
+    if not (c.get("pt") and c.get("hl")): raise SystemExit(f"phiếu #{p['id']}: thiếu chữ — không tạo bản")
+    return {"call_to_action": CG_FORM()["call_to_action"], "link_url": p.get("link") or CG_FORM()["link_url"],
+            "asset_spec": {"primaryTexts": list(c["pt"]), "headlines": list(c["hl"]), "descriptions": list(c.get("de") or [])}}
+
+def CG_FORM():
+    import ethopex_api as EA
+    return EA.FORM
+
+def ban_cu(p):
+    """creative cũ → bản mới cùng video (chữ phiếu) → thẻ 'da_len'. Trả câu lỗi hoặc None. Nhận thẻ trước (một máy một thẻ), lỗi thì trả thẻ về 'duyet'."""
+    cl, nguon, pid = int(p["cl"]), int(p["cr_cu"]), int(p["id"])
+    if not q(f"""update etp.cho_len set trang_thai = 'dang_len', loi = null, cap_nhat = now() where id = {cl} and creative_id is null
+              and (trang_thai = 'duyet' or (trang_thai = 'dang_len' and cap_nhat < now() - interval '15 minutes')) returning id"""):
+        return f"thẻ #{cl} không ở trạng thái duyệt (đang có máy khác tạo bản?) — không tạo trùng"
+    try:
+        AF, L2 = _nap("ap-form-chu"), _nap("luot2")
+        moi = AF.ban_nha(nguon, f" - phieu {pid}", body_cu(p))
+        L2.chep_so(nguon, moi, ghi=f"anh duyệt creative cũ #{nguon} ở etp2 › Chờ lên (phiếu #{pid}, thẻ #{cl})", ai=f"anh (phiếu lên camp #{pid})")
+        q(f"""update etp.cho_len set trang_thai = 'da_len', creative_id = {int(moi)}, ket = '{json.dumps({"ok": True, "creative_id": int(moi), "tu": nguon})}'::jsonb, loi = null, cap_nhat = now()
+              where id = {cl}""")
+        print(f"creative cũ #{nguon} → bản mới #{moi} (chữ phiếu #{pid})", flush=True)
+        return None
+    except BaseException as e:
+        ly = str(e)[:300].replace("'", "")
+        q(f"update etp.cho_len set trang_thai = 'duyet', loi = '{ly}', cap_nhat = now() where id = {cl} and trang_thai = 'dang_len'")
+        return f"không tạo được bản mới từ creative cũ #{nguon}: {ly}"
+
 def tu_kiem():
     p = {"id": 7, "content_id": 123, "lang": "es", "phim": "Café: Ñ!", "kieu": "kien", "link": "search.com", "dang": "AD", "mien": "maybic.com", "roas": "dan", "ns": 5, "gio": "lich", "tu_do": False}
     a = lenh(p, 999, "42")
@@ -84,6 +124,13 @@ def tu_kiem():
     assert CHO_GIAY > 60
     try: lenh({**p, "roas": "dan,1.1"}, 5, "42"); raise AssertionError("danh sách mức phải bị từ chối — mỗi thẻ một mức")
     except SystemExit: pass
+    b = body_cu({"id": 7, "link": "search.com", "chu": {"pt": ["a"], "hl": ["b"], "de": []}})
+    assert b["link_url"] == "search.com" and b["asset_spec"]["primaryTexts"] == ["a"] and b["call_to_action"], b
+    try: body_cu({"id": 7, "link": "x", "chu": {"pt": [], "hl": []}}); raise AssertionError("phiếu thiếu chữ phải bị từ chối")
+    except SystemExit: pass
+    AF, L2 = _nap("ap-form-chu"), _nap("luot2")
+    import inspect
+    assert "body" in inspect.signature(AF.ban_nha).parameters and "ghi" in inspect.signature(L2.chep_so).parameters
     print("len-phieu tự kiểm: ok")
 
 if __name__ == "__main__":

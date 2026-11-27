@@ -248,7 +248,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   const [napXong, setNapXong] = useState(false);                        // đã đọc phiếu + nháp → từ đây mới ghi nháp (không đè nháp bằng mặc định)
 
   // ngôn ngữ chữ K = ngôn ngữ phim, khoá cứng, không có nút đổi (anh 27/11/2026 #1909)
-  const nn: 'en' | 'es' = (p?.lang ?? 'en').toLowerCase() === 'es' ? 'es' : 'en';
+  const nn: 'en' | 'es' = (p?.lang ?? '').toLowerCase().startsWith('es') ? 'es' : 'en';   // cùng luật máy chủ (etp-phieu-len.ts lc)
   const sinhK = async () => {
     setKieu('kien'); setSinh({ dang: true });
     const r = await sinhChuK(cid);
@@ -275,7 +275,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   };
   useEffect(() => { docPhieu(cid).then((r) => {
     if ('loi' in r) return setLoiMo(r.loi);
-    const l = (r.p.lang ?? 'en').toLowerCase() === 'es' ? 'es' : 'en';
+    const l = (r.p.lang ?? '').toLowerCase().startsWith('es') ? 'es' : 'en';
     setP(r.p); setMien(r.p.mien_mac ?? r.p.mien[0] ?? '');
     const n = docNhap(cid), p0 = r.p;
     if (n) {   // phiếu đang dở của phim này (F5 / đóng mở lại): trả đúng lựa chọn + chữ đã sinh, thứ không còn hợp lệ thì bỏ

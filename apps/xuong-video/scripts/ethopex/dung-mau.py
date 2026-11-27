@@ -1078,7 +1078,7 @@ def xem_soan():
             AT.sql(f"update etp.cr_soan set xem_tt = case when xem_yc > {s_(yc)}::timestamptz then 'cho' else {s_('xong' if anh else 'loi')} end, "
                    f"xem_loi = {s_(loi)}, xem_xong = now(){', xem_anh = ' + s_(anh) if anh else ''} where id = {int(s['id'])}")
 
-SONG_SONG = 5   # số phim dựng cùng lúc trong --hang (VideoExpress nhận ~5 việc render song song)
+SONG_SONG = 10  # số phim dựng cùng lúc trong --hang. Khe VideoExpress (5 render) giữ ở vx-br guiCoKhe, nên 10 phim = 5 phim đang render + 5 phim làm trước bước khung / ghép / chữ (anh 27/11/2026: ~12 clip/giờ → tối ưu theo 5 khe × 4 phút)
 def hang():
     """mọi phim anh chọn (etp.mau_phim) HỢP mọi việc ghi thẳng vào etp.mau_dung 'cho' (phiếu lên camp etp2 — chỉ ghi mau_dung, không ghi mau_phim;
     27/11/2026 phiếu #1 AD nằm chờ mãi vì hàng chỉ đọc mau_phim) cho mẫu có hàm vẽ ở đây mà chưa dựng xong / chưa đang dựng"""

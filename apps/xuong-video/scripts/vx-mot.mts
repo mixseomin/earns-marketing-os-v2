@@ -6,7 +6,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { napKhung, guiShot, getMedia, catId, trenApp, ngu } from './vx-br.mts';
+import { napKhung, guiCoKhe, getMedia, catId, trenApp, ngu } from './vx-br.mts';
 
 const a = process.argv.slice(2);
 const gia = (k: string) => { const i = a.indexOf(`--${k}`); return i >= 0 ? a[i + 1] : undefined; };
@@ -29,8 +29,10 @@ if (!uuid) {
   const mediaId = await napKhung(anh!, catId('default'));
   if (!mediaId) { bao({ ok: false, loi: 'nạp ảnh khung đầu lên VideoExpress hỏng' }); process.exit(4); }
   // enhance tắt: giữ nguyên câu chuyển động của mẫu (không để máy họ viết lại thêm người / chữ)
-  uuid = guiShot(mediaId, readFileSync(tepLenh!, 'utf8').trim(), false) || '';
-  if (!uuid) { bao({ ok: false, loi: 'VideoExpress từ chối image2video (hết chỗ render song song / hết lượt)' }); process.exit(5); }
+  // chờ khe (VideoExpress render tối đa 5 việc cùng lúc) + giữ trần 300/ngày — nhiều phim dựng song song chỉ xếp hàng ở đây
+  const g = await guiCoKhe(mediaId, readFileSync(tepLenh!, 'utf8').trim(), false);
+  uuid = g.uuid || '';
+  if (!uuid) { bao({ ok: false, loi: g.loi || 'VideoExpress từ chối image2video' }); process.exit(5); }
   bao({ gui: true, uuid });
 }
 const cat = catId('my_ai_videos'), t0 = Date.now();

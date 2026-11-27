@@ -1011,6 +1011,13 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
                 loi_tv = [d.strip() for d in (r_tv.stderr + r_tv.stdout).splitlines() if d.strip().startswith(("✗", "RuntimeError", "SystemExit", "LINE "))]
                 if loi_tv: ly_len = " · ".join(loi_tv[-2:])[:300]   # câu lỗi THẬT của bước tải lên → ô lỗi camp (anh 27/11/2026: câu đoán "cổng chữ / studio loại" che mất lỗi SQL)
                 if phieu: AT.sql(SQL_GAN_PHIEU.format(p=phieu, dk=f"c.khoa = 'tv{int(tv)}'")); phieu_tt("cho_duyet")
+                # CÂU ĐỌC HOOK lên thẻ Chờ lên (muc.vo, cùng khuôn ghep-lai-cc2): bản AD trước không ghi → thẻ báo "không có giọng đọc hook" dù video có đọc hook (anh 27/11/2026
+                # "đéo hiểu sao lại ko có Hook"). Câu dựng lại y như AT.giong (cau_doc + hook_phim thứ so_cau — sổ vừa ghi, không gọi AI lại).
+                try:
+                    hk_, _ = AT.hook_phim(cid, lang, ten, thu=so_cau)
+                    vo_ = {"giong": kg, "mau": so_cau, "cau": AT.cau_doc(lang, so_cau, kg, ten, (hk_ or {}).get("cau")), **({"hook": hk_} if hk_ else {})}
+                    AT.sql(f"update etp.cho_len set muc = coalesce(muc, '{{}}'::jsonb) || jsonb_build_object('vo', {s_(json.dumps(vo_, ensure_ascii=False))}::jsonb) where khoa = 'tv{int(tv)}'")
+                except Exception as e: print(f"✗ không ghi được câu đọc hook lên thẻ Chờ lên (tv{tv}): {e}", file=sys.stderr)
                 c_id = AT.sql(f"select coalesce(creative_id::text, '') from etp.thu_vien where id = {int(tv)}")
                 if c_id: cr.append(int(c_id)); AT.sql(f"update etp.mau_dung set creative_ids = array_append(creative_ids, {int(c_id)}) where mau = {s_(ma)} and content_id = {int(cid)}")
             if thu: continue

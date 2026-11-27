@@ -81,10 +81,11 @@ if __name__ == "__main__":
         kieu, _, mau = gy.partition(":"); lg = loc[:2].lower(); mau = int(mau or 0) % len(AT.CAU[lg]); ten_ = AT.ten_sach(ten)
         if kieu == "phim": kieu = AT.giong_phim({"the_loai": tl})[0]
         if kieu not in AT.KIEU_GIONG: raise SystemExit(f"kiểu giọng '{kieu}' không có trong anh-tinh.KIEU_GIONG ({', '.join(AT.KIEU_GIONG)})")
-        mp3, vnd, _ = AT.giong(cid, lg, ten_, kieu, os.path.dirname(lop), mau)
+        hook, vnd_hook = AT.hook_phim(cid, lg, ten_)   # hook giữ chân cốt truyện trong câu đọc (anh 27/11/2026) — sổ hook_phim, chỉ gọi AI lần đầu mỗi phim
+        mp3, vnd, _ = AT.giong(cid, lg, ten_, kieu, os.path.dirname(lop), mau, hook)
         if not (mp3 and os.path.exists(mp3) and os.path.getsize(mp3) > 2000):   # cổng giọng trả tệp rỗng không kêu (27/11/2026 lần ghép song song) → dừng to, không ghép video câm hook
             if mp3 and os.path.exists(mp3): os.replace(mp3, mp3 + ".hong")
             raise SystemExit(f"giọng đọc hook {cid}: cổng giọng trả tệp rỗng ({mp3}) — chạy lại")
-        vo = {"giong": kieu, "mau": mau, "cau": AT.cau_doc(lg, mau, kieu, ten_), "vnd": vnd, "mp3": mp3}
+        vo = {"giong": kieu, "mau": mau, "cau": AT.cau_doc(lg, mau, kieu, ten_, (hook or {}).get("cau")), "vnd": vnd + vnd_hook, "mp3": mp3, **({"hook": hook} if hook else {})}
     tam = f[:-4] + ".cc2-tam.mp4"; g = DC.ghep(vao, ls, lop, tam, vo=vo and vo["mp3"]); os.replace(tam, f)
     print(json.dumps({"file": f, "sach": round(ls, 2), "cach": cach, "giay": g, "lop": lop, **({"vo": vo} if vo else {})}, ensure_ascii=False))

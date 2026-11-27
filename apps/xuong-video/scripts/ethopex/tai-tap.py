@@ -152,8 +152,15 @@ def mo_ta(url):
         h = lay(mo_rong(url)).decode("utf-8", "ignore")
         m = re.search(r'<meta[^>]+(?:property|name)="(?:og:)?description"[^>]+content="([^"]+)"', h)
         og = H.unescape(m.group(1)) if m else ""; loi = re.sub(r"\.{3}$|…$", "", og.split("; ")[-1]).strip()[:60]
-        dai = [json.loads('"' + x + '"') for x in re.findall(r'"(?:special_desc|introduction|book_desc|description|desc|synopsis)"\s*:\s*"((?:[^"\\]|\\.){40,2000})"', h)]
-        dai = [x for x in dai if loi and loi in x]; t = max(dai, key=len) if dai else og
+        dai = []   # NetShort nhúng tóm tắt đủ ở shotIntroduce trong JSON có nháy thoát (\\"…\\") — meta chỉ có bản cắt "..." (27/11/2026)
+        for x in re.findall(r'"(?:special_desc|introduction|shotIntroduce|introduce|book_desc|description|desc|synopsis)"\s*:\s*"((?:[^"\\]|\\.){40,2000})"', h + "\n" + h.replace('\\"', '"')):
+            try: dai.append(json.loads('"' + x + '"'))
+            except Exception: pass
+        khop = [x for x in dai if loi and loi in x]
+        # trang TẬP DramaBox: og = nhãn tập ("Kneel Before The Dragon Queen 1 full episode" / "Episodio 1 Ver en línea") không có câu nào → lọc theo og loại hết
+        # đoạn giới thiệu thật, trả nhãn tập làm tóm tắt (27/11/2026, hook câu đọc ra rỗng). og trơn → đoạn giới thiệu ĐẦU trang = của chính phim (các đoạn sau là phim gợi ý).
+        if not khop and dai and len(og.split()) < 12: khop = [dai[0]]
+        t = re.sub(r"\s+", " ", max(khop, key=len) if khop else og).strip()
         return "" if re.search(r"(?i)download reelshort|app store|google play|stream drama & tv", t[:120]) else t
     except Exception: return ""
 

@@ -530,20 +530,111 @@ assert all(len(giong_ban(k, "AI theo chủ đề phim", t)) == 1 for k in ("hao_
 assert GIONG_MAC_DINH == "hao_hung" or [giong_ban("hao_hung", "AI", t)[0][0] for t in range(2)] == [GIONG_MAC_DINH, "hao_hung"], "hai giọng xoay qua hai bản (hai hình)"
 assert giong_ban("gao", "anh ghim", 1) == [("gao", "anh ghim")]
 
-def cau_doc(lang, so_mau, kieu, ten):
-    """câu đọc của một mẫu — MỘT chỗ cho giọng đọc lẫn dấu sổ. Gộp mạo từ lặp khi tên phim đã mở bằng nó ("Watch the The Great…" — Genie 21/11/2026)"""
+def cau_doc(lang, so_mau, kieu, ten, hook=None):
+    """câu đọc của một mẫu — MỘT chỗ cho giọng đọc lẫn dấu sổ. Gộp mạo từ lặp khi tên phim đã mở bằng nó ("Watch the The Great…" — Genie 21/11/2026).
+    hook = CÂU HOOK CỐT TRUYỆN (anh 27/11/2026 "Nội dung câu đọc phải là hook giữ chân"; hook_phim): đọc ngay sau vế mời xem, trước câu chốt —
+    "Watch X for Free Now. <hook> Watch More Now!" (tên phim vẫn mở câu, luật 21/11/2026)."""
     a_, b_, c_ = CAU[lang][so_mau]
     ten = re.sub(r"^[¡¿\s]+|[!?¡¿.\s]+$", "", ten or "")   # tên phim nằm GIỮA câu: bỏ ¡…! / ¿…? của chính tên ("¡Mira ¡Lárgate de mi Bugatti! gratis" — anh 27/11/2026)
-    cau = KIEU_GIONG[kieu][1].format(a=a_.format(t=ten), b=b_.format(t=ten), c=c_.format(t=ten))
+    b_ = b_.format(t=ten) + (" " + hook.strip() if hook and hook.strip() else "")
+    cau = KIEU_GIONG[kieu][1].format(a=a_.format(t=ten), b=b_, c=c_.format(t=ten))
     return re.sub(r"\b(the|el|la)\s+(?=\1\b)", "", cau, flags=re.I)
 assert all("¡Mira ¡" not in cau_doc("es", i, "thuong", "¡Lárgate de mi Bugatti!") and "!!" not in cau_doc("es", i, "thuong", "¡Lárgate de mi Bugatti!") for i in range(len(CAU["es"]))), "cau_doc để lọt dấu ¡…! của tên phim"
 assert all("the The" not in cau_doc("en", i, "thuong", "The X") for i in range(len(CAU["en"]))), "cau_doc không gộp được mạo từ lặp"
 
-def danh_dau(tv, kieu, lang, ten, so_mau=0, them=None):
+assert "They mocked him. He owns it all." in cau_doc("en", 0, "thuong", "X", "They mocked him. He owns it all.") and cau_doc("en", 0, "thuong", "X", "") == cau_doc("en", 0, "thuong", "X"), "cau_doc không chèn / bỏ hook đúng"
+
+# HOOK GIỮ CHÂN CỦA CÂU ĐỌC (anh 27/11/2026 "Nội dung câu đọc phải là hook giữ chân"): câu đọc chỉ có mời xem ("Watch X for free now. Watch more now.") không giữ ai;
+# creative đội lãi đọc thêm MỘT câu cốt truyện ("They mocked this old man… Big mistake. Their son owns the airline."). Luật hook 31/10/2026: chữ từ nguồn THẬT, AI không tự nghĩ:
+#   NỘI DUNG = chữ thật của CHÍNH phim: QC spy của phim (qc-spy-phim.sql) + tóm tắt app (tai-tap.mo_ta) — hook giữ ≥ HOOK_GIU chữ của nguồn này.
+#   NHỊP = câu mở QC phim ngắn chạy lâu nhất cùng tiếng (qc-spy-hook.sql) — chỉ làm khuôn, KHÔNG lấy truyện: đó là tóm tắt phim khác
+#   (thử 27/11/2026: lấy truyện từ kho này thì AI chép nguyên tóm tắt phim khác vào phim Bugatti — sai truyện).
+# Kết quả ghi sổ etp.cau_hinh 'hook_phim' {cid: {lang: {cau, nguon, mau}}} — mọi bản dựng sau của phim dùng lại, không gọi AI lần hai. Hỏng → không có hook, KÊU TO.
+HOOK_GIU, HOOK_CHU = 0.5, 30
+HOOK_CTA = re.compile(r"(?i)\b(watch|click|free|download|episode|mira|gratis|descarga|haz clic|ver m[aá]s|serie completa)\b")
+def _chu(t): return [w for w in re.findall(r"[^\W\d_]{3,}", (t or "").lower())]
+def hook_dat(cau, goc, ten, mau=()):
+    """→ lỗi (chuỗi) hoặc None: hook ngắn, không mời xem, không nhắc tên phim, giữ đủ chữ của nguồn thật CỦA PHIM (goc), không chép nguyên câu khuôn của phim khác"""
+    if not cau or len(cau.split()) > HOOK_CHU: return f"dài {len((cau or '').split())} chữ > {HOOK_CHU}"
+    if HOOK_CTA.search(cau): return "có chữ mời xem / free"
+    t = re.sub(r"[^\w\s]", "", (ten or "").lower()).strip()
+    if t and t in re.sub(r"[^\w\s]", "", cau.lower()): return "nhắc tên phim"
+    c, g = _chu(cau), set(_chu(goc))
+    giu = sum(1 for w in c if w in g) / max(1, len(c))
+    if giu < HOOK_GIU: return f"chỉ {giu:.0%} chữ có trong tóm tắt / QC thật của phim < {HOOK_GIU:.0%} — chữ tự nghĩ"
+    for m in mau:
+        mm = set(_chu(m))
+        if mm and sum(1 for w in c if w in mm and w not in g) / max(1, len(c)) > 0.25: return "chép chữ truyện của phim khác (câu khuôn)"
+    return None
+assert hook_dat("They mocked Leo on the plane. Big mistake. His son owns the airline.", "Leo, an old man mocked on the plane; his son owns the airline.", "Sky") is None
+assert hook_dat("A brand new story nobody wrote before about dragons.", "Leo, an old man mocked on the plane.", "Sky") and hook_dat("Watch it free now.", "Watch it free now.", "Sky")
+assert hook_dat("Leo hid that he was the Sinclair heiress magnate.", "Leo hid his past.", "Sky", ["She hid that she was the Sinclair heiress and made him a magnate."])
+
+def _spy(tep, **v):
+    """chạy một tệp .sql trên DB spy (box3) → các dòng TSV"""
+    vs = " ".join(f"-v {k}={str(x)}" for k, x in v.items())
+    r = subprocess.run(["ssh", B, f". /root/.secrets/spy.env; psql \"$DATABASE_URL\" {vs} -tA -F'\t' -f -"], input=open(os.path.join(D, tep)).read(), capture_output=True, text=True, timeout=180)
+    if r.returncode != 0: raise RuntimeError(f"{tep}: {r.stderr[-200:]}")
+    return [l.split("\t") for l in r.stdout.splitlines() if l.strip()]
+
+def _cong_ai(de, viec, model="haiku", toi=160):
+    """cổng AI chung (spy.on.tc/api/ai — donk → ckey → fal, tự lùi) → (chữ, ₫)"""
+    import urllib.request
+    k = dict(l.strip().split("=", 1) for l in open(os.path.expanduser("~/.secrets/cong-ai.env")) if "=" in l)["CONG_AI_KEY"].strip().strip('"')
+    r = urllib.request.urlopen(urllib.request.Request("https://spy.on.tc/api/ai", method="POST", headers={"authorization": f"Bearer {k}", "content-type": "application/json", "user-agent": "Mozilla/5.0 anh-tinh"},
+        data=json.dumps({"viec": viec, "model": model, "max_tokens": toi, "noi_dung": de, "bo_chinh_hang": True}).encode()), timeout=120)
+    j = json.loads(r.read()); return str(j.get("kq") or ""), round((j.get("chi_usd") or 0) * 26000)
+
+def hook_phim(cid, lang, ten, ghi=True):
+    """→ ({cau, nguon, mau} | None, ₫). Sổ trước; chữ từ QC spy của phim + tóm tắt app; nhịp từ câu mở QC phim ngắn chạy lâu nhất."""
+    cid, lang = int(cid), (lang or "en")[:2].lower()
+    try: so = json.loads(sql("select gia_tri::text from etp.cau_hinh where khoa = 'hook_phim'") or "{}")
+    except Exception as e: print(f"⚠ không đọc được sổ hook_phim: {str(e)[:120]}", file=sys.stderr); so = {}
+    if (so.get(str(cid)) or {}).get(lang): return so[str(cid)][lang], 0
+    url = sql(f"select coalesce((select url from etp.phim where content_id = {cid}), (select url from etp.thu_vien_phim where content_id = {cid}), '')")
+    mo = _mo_ta(url) if url else ""
+    rieng = []
+    try:   # QC spy của chính phim — câu mở
+        for r in _spy("qc-spy-phim.sql", ids=cid):
+            c = re.match(r"^(.{30,220}?[.!?])(\s|$)", r[6] if len(r) > 6 else "")
+            if c and not HOOK_CTA.search(c.group(1)): rieng.append((c.group(1), r[1]))
+    except Exception as e: print(f"⚠ QC spy của phim {cid}: {e}", file=sys.stderr)
+    goc = " ".join([mo] + [c for c, _ in rieng]).strip()
+    if len(goc) < 40: print(f"✗ HOOK phim {cid}: không có tóm tắt / QC thật của phim (url {url or 'trống'}) — câu đọc KHÔNG có hook", file=sys.stderr); return None, 0
+    try: mau = [{"cau": r[3], "id": r[0], "so_ngay": int(r[2] or 0)} for r in _spy("qc-spy-hook.sql", lang=lang) if len(r) > 3][:20]
+    except Exception as e: print(f"⚠ kho câu khuôn spy: {e}", file=sys.stderr); mau = []
+    chi, loi = 0, ""
+    de = (f"Short drama: {ten}\nREAL synopsis of THIS drama (from the app):\n{mo[:1200]}\n"
+          + ("REAL ads of THIS drama (opening lines):\n" + "\n".join(f"- {c}" for c, _ in rieng[:6]) + "\n" if rieng else "")
+          + ("\nOpening lines of long-running ads for OTHER dramas — use ONLY as rhythm / hook style examples, NEVER copy their story, names or facts:\n"
+             + "\n".join(f"{i + 1}. {m['cau']}" for i, m in enumerate(mau)) + "\n" if mau else "")
+          + f"\nWrite ONE spoken hook line for a video ad of THIS drama: the most gripping conflict / twist from its synopsis, built mostly from the synopsis' own words "
+          f"(names, roles, facts exactly as in the synopsis), at most {HOOK_CHU - 4} words, present the setup and the stakes, no spoiler of the ending, no title, "
+          f"no 'watch' / 'free' / call to action, in {'Spanish (Latin America)' if lang == 'es' else 'English'}.\n"
+          "Answer EXACTLY two lines:\nSTYLE: <number of the example whose rhythm you followed, or 0>\nHOOK: <line>")
+    for lan in range(2):
+        try:
+            t, v = _cong_ai(de + (f"\n\nYour previous answer was rejected: {loi}. Use the synopsis' own words." if loi else ""), "etp-hook-cau-doc"); chi += v
+            p = re.search(r"STYLE:\s*(\d+)", t); h = re.search(r"HOOK:\s*(.+)", t)
+            if not h: loi = f"không đúng khuôn: {t[:100]!r}"; continue
+            cau = h.group(1).strip().strip('"“”')
+            loi = hook_dat(cau, goc, ten, [m["cau"] for m in mau]) or ""
+            if loi: print(f"✗ hook phim {cid} lần {lan + 1}: {loi} — {cau!r}", file=sys.stderr, flush=True); continue
+            k = int(p.group(1)) if p else 0; m = mau[k - 1] if 1 <= k <= len(mau) else None
+            ra = {"cau": cau, "nguon": "tóm tắt app" + (" + QC spy phim " + ",".join(i for _, i in rieng[:3]) if rieng else ""),
+                  **({"mau": {"cau": m["cau"], "spy": m["id"], "so_ngay": m["so_ngay"]}} if m else {})}
+            if ghi:
+                so = json.loads(sql("select gia_tri::text from etp.cau_hinh where khoa = 'hook_phim'") or "{}"); so.setdefault(str(cid), {})[lang] = ra
+                sql(f"insert into etp.cau_hinh (khoa, gia_tri) values ('hook_phim', $J${json.dumps(so, ensure_ascii=False).replace('$J$', '')}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri")
+            return ra, chi
+        except Exception as e: loi = str(e)[:120]; print(f"✗ hook phim {cid} lần {lan + 1} lỗi: {loi}", file=sys.stderr, flush=True)
+    print(f"✗ HOOK phim {cid}: AI hai lần không ra hook đạt ({loi}) — câu đọc KHÔNG có hook", file=sys.stderr); return None, chi
+
+def danh_dau(tv, kieu, lang, ten, so_mau=0, them=None, hook=None):
     """DẤU KIỂU GIỌNG vào sổ điểm chạm của creative (etp.diem_cham.cham) để đo kiểu nào tốt / xấu — anh 05/11/2026. len-creative ghi khuôn
     cảnh cắt (thoại gốc, nút CTA mẫu Kiên); ảnh tĩnh không có những thứ đó → ghi đúng cái creative này có."""
     v, mau = KIEU_GIONG[kieu]
-    j = json.dumps({"voice": {"thoai": "khong", "giong": kieu, "nguoi_doc": v, "mau": so_mau, "cau": cau_doc(lang, so_mau, kieu, ten)},
+    j = json.dumps({"voice": {"thoai": "khong", "giong": kieu, "nguoi_doc": v, "mau": so_mau, "cau": cau_doc(lang, so_mau, kieu, ten, (hook or {}).get("cau")), **({"hook": hook} if hook else {})},
                     "chu_video": {"bo_cuc": "anh_tinh_ten_phim", "phu_de": "xoa", **({"ten": "poster" if them.get("ten_poster") else "chu_vang"} if them else {})},
                     "cta": {"mau": "watch_for_free" if (them or {}).get("free") else "khong_nut"}, **({"anh_tinh": {"ban": them.get("ban"), "khung": f"{them.get('tap')}#{them.get('khung_so')}", "chon": "ai" if MOI else "may", "hd": MOI}} if them else {})}, ensure_ascii=False).replace("$J$", "")
     return sql(f"update etp.diem_cham d set cham = d.cham || $J${j}$J$::jsonb, luc = now() from etp.thu_vien v where v.id = {int(tv)} and d.creative_id = v.creative_id returning d.creative_id")
@@ -563,9 +654,9 @@ def doc_giong(cid, lang, v, cau, tm):
     sh("scp", "-q", f"{B}:{xa}/{h}.mp3", f)
     m = re.search(r"tiền (\d+)₫", r.stdout); return f, int(m.group(1)) if m else 156
 
-def giong(cid, lang, ten, kieu, tm, so_mau=0):
-    """giọng đọc mẫu câu CAU theo kiểu → (giong.mp3, ₫ đã chi, kiểu)"""
-    f, vnd = doc_giong(cid, lang, KIEU_GIONG[kieu][0], cau_doc(lang, so_mau, kieu, ten), tm)
+def giong(cid, lang, ten, kieu, tm, so_mau=0, hook=None):
+    """giọng đọc mẫu câu CAU theo kiểu (+ hook cốt truyện của hook_phim) → (giong.mp3, ₫ đã chi, kiểu)"""
+    f, vnd = doc_giong(cid, lang, KIEU_GIONG[kieu][0], cau_doc(lang, so_mau, kieu, ten, (hook or {}).get("cau")), tm)
     return f, vnd, kieu
 
 def dung(nen, chu, mp3, ra):
@@ -619,17 +710,19 @@ def mot(p, xem, kieu, ban=1):
     except Exception as e:
         return [{"content_id": cid, "ten": ten, "loi": str(e)[-300:]}]
     mau0 = random.randrange(len(CAU[lang])); ra = []
+    hook, vnd_hook = hook_phim(cid, lang, ten)   # hook giữ chân của câu đọc — một lần mỗi phim, các bản dùng chung (anh 27/11/2026)
+    vnd_ai += vnd_hook
     uv = xoay_khung(tm, DANG, uv); con = list(uv)
     for b in range(min(ban, len(uv))):
         try:
             so_mau = (mau0 + b) % len(CAU[lang])   # bốc ngẫu nhiên mẫu đầu, các bản sau xoay vòng (anh 06/11/2026)
             # MỖI BẢN MỘT KIỂU GIỌNG chỉ khi --giong xoay (anh 08/11/2026 đo kiểu voice; 18/11/2026 đã có số → mặc định mọi bản cùng giọng tốt nhất)
             kieu_b = kieu_ban(kieu, b, XOAY)
-            k, nen, chu = khung_sach_mat(con, lambda k_: (k_.__setitem__("lang", lang), anh(cid, ten, k_, tm, b))[1], uv); mp3, vnd, kieu_ = giong(cid, lang, ten, kieu_b, tm, so_mau)
+            k, nen, chu = khung_sach_mat(con, lambda k_: (k_.__setitem__("lang", lang), anh(cid, ten, k_, tm, b))[1], uv); mp3, vnd, kieu_ = giong(cid, lang, ten, kieu_b, tm, so_mau, hook)
             out = os.path.join(tm, f"anh-tinh-{cid}-{b + 1}.mp4"); giay = dung(nen, chu, mp3, out)
             r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay)) if not k.get("free") else sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay), "--free")   # cổng chữ trên video (tên phim) — cùng cổng mọi creative; --free: gỡ đúng câu lớp Free nhà vẽ
             if r.returncode != 0: raise RuntimeError(r.stdout.strip()[-200:])
-            kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "ban": b + 1, "giay": giay, "vnd": vnd + (vnd_ai if b == 0 else 0), "giong": kieu_, "mau": so_mau,
+            kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "ban": b + 1, "giay": giay, "vnd": vnd + (vnd_ai if b == 0 else 0), "giong": kieu_, "mau": so_mau, **({"hook": hook} if hook else {}),
                   "ten_poster": bool(k.get("ten_poster")), "free": bool(k.get("free")), **({"free_mau": free_mau(b)} if k.get("free") else {}), "ai": ly_ai[:200] if b == 0 else "", **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "khung_so": k["so"]}
             if not xem:
                 xa = f"/var/tmp/anh-tinh/{cid}"; sh("ssh", B, f"mkdir -p {xa}"); sh("rsync", "-a", out, f"{B}:{xa}/", han=900)
@@ -676,5 +769,5 @@ if __name__ == "__main__":
     tv = [str(x["tv"]) for x in kq if x.get("tv")]
     if tv: subprocess.run(["python3", os.path.join(D, "thu-vien-len.py"), *tv])   # thư viện → creative; chấm Sạch thì nhịp ethopex lên camp theo lịch chung
     for x in kq:
-        if x.get("tv"): print(f"dấu giọng tv{x['tv']} {x['giong']} → creative", danh_dau(x["tv"], x["giong"], x["lang"], x["ten"], x.get("mau", 0), x) or "(chưa thành creative)")
+        if x.get("tv"): print(f"dấu giọng tv{x['tv']} {x['giong']} → creative", danh_dau(x["tv"], x["giong"], x["lang"], x["ten"], x.get("mau", 0), x, x.get("hook")) or "(chưa thành creative)")
     subprocess.run(["python3", os.path.join(D, "don-kho.py")])   # dọn tập tải về để chọn khung (anh 15/11/2026: iMac cấm đầy ổ)

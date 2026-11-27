@@ -219,6 +219,21 @@ export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string
   }
   return loi;
 }
+/** Cắt lựa chọn bình chọn quá 25 ký tự về ≤ 25, giữ nguyên ý: bỏ từ cuối thừa. Thuần — militarycalc 28/11/2026: 2/2 đề chết
+ *  "lựa chọn quá 25 ký tự (giới hạn X)" sau 3 lượt dù prompt đã nói "under 25 characters" — mô hình rẻ vẫn viết dài, lỗi cắt được như gạch ngang dài. */
+export const catLuaBinhChon = (de: Record<string, unknown>): void => {
+  const lua = de.lua;
+  if (!Array.isArray(lua)) return;
+  de.lua = lua.map((l) => {
+    if (typeof l !== 'string' || l.length <= 25) return l;
+    let s = l.trim().slice(0, 25);
+    if (!s.slice(0, -1).includes(' ') && s.length === 25) return s; // một từ dài: cứ cắt
+    const cuoi = s.lastIndexOf(' ');
+    s = cuoi > 8 ? s.slice(0, cuoi) : s; // giữ từ nguyên vẹn khi còn đuôi đáng kể
+    return s.replace(/[\s,;:.\-–—]+$/, '');
+  });
+};
+
 /** Thay gạch ngang dài (— –) trong mọi chuỗi của một giá trị JSON: giữa hai chữ số "2–4" → "2-4", còn lại → ", ". Thuần. */
 export const boGachDai = <T,>(v: T): T => {
   if (typeof v === 'string') return v.replace(/(\d)\s*[—–]\s*(\d)/g, '$1-$2').replace(/\s*[—–]+\s*/g, ', ').replace(/^, |, $/g, '').replace(/,\s*([,.?!])/g, '$1') as T;
@@ -350,6 +365,7 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     // gạch ngang dài là lỗi CHỮ thuần, máy tự thay được (militarycalc 18/11/2026: --sinh-kho binh-chon 2/3 đề chết "đề sai luật sau 3 lượt: gạch ngang dài"
     // dù prompt đã cấm — mô hình rẻ vẫn viết, mỗi lượt sửa lại đốt một lượt gọi) → thay trên MỌI chuỗi của đề trước khi kiemDe, không xin mô hình viết lại.
     r.data = boGachDai(r.data);
+    if (mau === 'binh-chon') catLuaBinhChon(r.data.de as Record<string, unknown>); // lựa chọn quá 25 ký tự là lỗi cắt được — không đốt lượt gọi (28/11/2026)
     vnd += r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260; tk.in += r.tokens.in; tk.out += r.tokens.out;
     // lượt KHOÁ = kho chỉ còn đúng một hook: mô hình rẻ vẫn khai trống / sai mã, hoặc tự viết tiêu đề (militarycalc 12/11/2026 top-n-42942: kho 3 hook,
     // cả 4 lượt "chưa chọn hook QC gốc") → máy tự gắn mã hook đã khoá; tiêu đề lệch hook thì dùng NGUYÊN VĂN câu hook (trừ khi trùng tiêu đề đã có).
@@ -377,6 +393,7 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     const de = rapDe({ sp: o.sp, goc: o.goc, dang_bai: o.dang_bai, mau, de: r.data.de, chu: r.data.chu, dich: o.dich, hook: timHook(hooksLuot, maHook) });
     // lượt KHOÁ ở trên gán tiêu đề / moc = NGUYÊN câu hook QC, mà câu QC gốc hay có gạch dài (lượt sau 0be6a7dd7 vẫn 2/6 đề chết "gạch ngang dài") → thay lần nữa trên bài đã ráp
     de.dang.title = boGachDai(de.dang.title); de.dang.description = boGachDai(de.dang.description); de.de = boGachDai(de.de);
+    if (mau === 'binh-chon') catLuaBinhChon(de.de as unknown as Record<string, unknown>); // đề đã ráp lại phải cắt lần nữa (hook ghép có thể thêm chữ)
     loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title ?? '', description: de.dang.description ?? '', nhan: o.sp.nhan, ngon_ngu: o.sp.ngon_ngu, hooks: hooksLuot, hook_qc: maHook });
     // tiêu đề trùng bài có sẵn của máy = Phòng Nội dung chặn chống spam → sinh lại ngay ở đây (31/10/2026: hook video thắng chép nguyên văn trùng chính video đó)
     const chuanTd = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();

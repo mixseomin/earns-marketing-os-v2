@@ -13,7 +13,7 @@ MÀU CHỮ CHÍNH nên rụng mọi thứ khác màu của logo (American Sniper
 Chạy tay để soát: logo-goc.py <poster.jpg> "<tên phim>" <ra.png>
 tra-repo-ok: bước xử lý ảnh nội bộ của máy dựng (numpy + scipy có sẵn trong venv poster-mau), thay một hàm đang có
 """
-import importlib.util, json, os, re, subprocess, sys
+import importlib.util, json, os, re, subprocess, sys, time
 import numpy as np
 from PIL import Image
 from scipy import ndimage as nd
@@ -47,19 +47,29 @@ def tach_nen(rgb):
 DE_LOGO_KHOA = ("Edit this movie poster. Keep the movie TITLE LOGO exactly as it is: same letters, same font, same colors, same ornaments, same size and same position. "
     "Replace absolutely everything else in the image (people, background, other small text and app labels) with one flat solid pure magenta color #FF00FF. "
     "No shadows, no glow, no gradient on the magenta. The result is only the unchanged title logo on a flat magenta background.")
-def anh_khoa(link, ra, ma=""):
+# LỆNH CHẶT (27/11/2026 Deny Me, Dragon King 57545: logo đè lên người + váy, AI giữ nguyên cả người → khoá màu trượt cổng "nét phủ 93% hộp chữ", máy rơi xuống
+# BiRefNet ra logo lốm đốm, anh: "Deny Me logo bóc xấu quá"): ảnh khoá đầu giữ phần không phải logo trong hộp chữ → sinh lại MỘT lần với lệnh nói rõ người / vải SAU chữ
+# và khe giữa các nét cũng phải hồng. Một lần / phim (tệp dấu .chat), ảnh khoá cũ cất cạnh, không xoá.
+DE_LOGO_KHOA_CHAT = DE_LOGO_KHOA + (" IMPORTANT: the title logo overlaps people, hair, clothes and fabric. Remove ALL of them too, including the parts directly behind the letters "
+    "and visible through the gaps inside and between the letters: every pixel that is not part of the letters or their ornaments must be flat magenta #FF00FF. Do not keep any person, skin, hair or cloth.")
+def anh_khoa(link, ra, ma="", chat=False):
     import base64, urllib.request, urllib.error
-    if os.path.exists(ra) and os.path.getsize(ra) > 20000: return ra, 0
+    dau = ra + ".chat"
+    if chat:
+        if os.path.exists(dau): return None, 0   # đã sinh lại lệnh chặt một lần cho phim này — không đốt tiền lần nữa
+        if os.path.exists(ra): os.replace(ra, ra[:-4] + f"-giu-nguoi-{int(time.time())}.png")
+    elif os.path.exists(ra) and os.path.getsize(ra) > 20000: return ra, 0
     if not link: raise RuntimeError("không có link poster công khai để gửi mô hình ảnh")
     k = dict(l.strip().split("=", 1) for l in open(os.path.expanduser("~/.secrets/cong-ai.env")) if "=" in l)["CONG_AI_KEY"].strip().strip('"')
     try:
         r = urllib.request.urlopen(urllib.request.Request("https://spy.on.tc/api/ai", method="POST", headers={"authorization": f"Bearer {k}", "content-type": "application/json", "user-agent": "Mozilla/5.0 logo-goc"},
-            data=json.dumps({"loai": "anh", "viec": "etp-logo-khoa", "ma": str(ma), "prompt": DE_LOGO_KHOA, "ti_le": "3:4", "tham_chieu": [link], "bo_chinh_hang": True}).encode()), timeout=400)
+            data=json.dumps({"loai": "anh", "viec": "etp-logo-khoa", "ma": str(ma), "prompt": DE_LOGO_KHOA_CHAT if chat else DE_LOGO_KHOA, "ti_le": "3:4", "tham_chieu": [link], "bo_chinh_hang": True}).encode()), timeout=400)
         j = json.loads(r.read())
     except urllib.error.HTTPError as e: raise RuntimeError(f"cổng ảnh từ chối: {e.read()[:200].decode('utf8', 'replace')}")
     if not j.get("anh_b64"): raise RuntimeError(f"cổng ảnh không trả ảnh: {str(j.get('loi'))[:160]}")
     open(ra, "wb").write(base64.b64decode(j["anh_b64"])); v = round((j.get("chi_usd") or 0) * 26000)
-    print(f"logo gốc: ảnh khoá màu AI {j.get('model')} {v}₫ → {ra}", flush=True); return ra, v
+    if chat: open(dau, "w").write(str(v))
+    print(f"logo gốc: ảnh khoá màu AI{' (lệnh chặt)' if chat else ''} {j.get('model')} {v}₫ → {ra}", flush=True); return ra, v
 
 DOC_RONG = 1800   # poster hẹp hơn thì phóng lên ~mức này trước khi đưa máy đọc chữ
 def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
@@ -185,13 +195,14 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
     # gỡ ám hồng ở mép). Cổng: đủ nét như các tầng khác + nét đặc phải KHỚP poster gốc (AI vẽ lại chữ thì bỏ, lùi về tầng nền sạch). khoa(poster) → đường dẫn ảnh nền hồng.
     # KHOÁ MÀU ĐI TRƯỚC (21/11/2026 Get Out of My Bugatti: tầng cắt 0₫ qua cổng mà vẫn dính mảng áo + đốm nền quanh logo): có khoa thì luôn thử khoá màu trước,
     # trượt cổng mới giữ kết quả tầng cắt 0₫ (ly của nó không đổi)
-    if khoa:
+    for chat in ((False, True) if khoa else ()):   # lần 2 = ảnh khoá lệnh chặt, chỉ khi lần 1 giữ phần không phải logo (nền hồng ít / nét phủ quá dày)
+        lai = False
         try:
-            kp = khoa(poster)
+            kp = khoa(poster, chat)
             if kp:
                 Kh = np.asarray(Image.open(kp).convert("RGB")).astype(np.float32); KY, KX = Kh.shape[:2]
                 k = np.minimum(Kh[..., 0], Kh[..., 2]) - Kh[..., 1]; nen_h = k > 175
-                if nen_h.mean() < 0.35: noi("ảnh khoá màu: nền hồng chưa tới 35% ảnh — AI không tô nền, bỏ")
+                if nen_h.mean() < 0.35: noi("ảnh khoá màu: nền hồng chưa tới 35% ảnh — AI không tô nền, bỏ"); lai = True
                 else:
                     M = np.median(Kh[nen_h], 0); a = 1 - np.clip((k - 45) / 125, 0, 1)
                     lon = lambda m: np.asarray(Image.fromarray(m.astype(np.uint8) * 255).resize((KX, KY), Image.NEAREST)) > 127   # mặt nạ cỡ poster → cỡ ảnh khoá
@@ -225,12 +236,13 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
                     lech = float(np.abs(goc_lon - F).mean(-1)[loi_].mean()) if loi_.any() else 255.0
                     tim = (np.minimum(F[..., 0], F[..., 2]) - F[..., 1] > 25) & (a > 0.5)   # đốm hồng AI tô lẫn vào vân chữ (25/11/2026 FIGHTER lấm tấm tím trên nền tối): nét đặc → lấy màu thật của poster gốc tại chỗ đó
                     F[tim] = goc_lon[tim]
-                    if lyk: noi(f"khoá màu trượt cổng ({lyk})")
+                    if lyk: noi(f"khoá màu trượt cổng ({lyk})"); lai = bool(re.match(r"nét phủ", lyk)) and nho(dac)[Y0:Y1, X0:X1][chu].mean() > 0.82
                     elif lech > 38: noi(f"khoá màu: nét logo lệch poster gốc {lech:.0f}/255 (chuẩn ≤ 38) — AI vẽ lại chữ, bỏ")
                     else:
                         a = nd.gaussian_filter(a, 0.6); ys, xs = np.where(a > 0.06)
                         Image.fromarray(np.dstack([F, a * 255]).astype(np.uint8)[ys.min():ys.max() + 1, xs.min():xs.max() + 1], "RGBA").save(ra); return ra, "khoa"
         except Exception as e: noi(f"tầng khoá màu lỗi: {str(e)[:160]}")
+        if not lai: break
     if ly and nen_sach:   # TẦNG AI (anh 20/11/2026 "nếu ko đc thì vẫn phải cho AI vào support, dùng mô hình nào rẻ nhất"): mô hình ảnh rẻ nhất của cổng chung xoá chữ khỏi poster
         # → NỀN SẠCH thật; logo = chỗ poster gốc lệch nền sạch, ĐIỂM ẢNH VẪN LẤY TỪ POSTER GỐC (AI không vẽ nét logo nào). Nền sạch phải khớp poster ở vùng không chữ, không thì bỏ.
         try:
@@ -297,5 +309,5 @@ if __name__ == "__main__":
         remove(Image.open(sys.argv[2]).convert("RGB"), session=new_session("birefnet-general-lite", providers=["CPUExecutionProvider"]), only_mask=True).save(sys.argv[3]); sys.exit(0)
     # --khoa <link poster công khai> <mã phim>: cho phép tầng khoá màu (chuẩn tách nền) — máy gọi bằng tiến trình con vì Python hệ thống của dòng phim không có numpy / scipy
     a_ = sys.argv; kl = a_[a_.index("--khoa") + 1:a_.index("--khoa") + 3] if "--khoa" in a_ else None
-    r_ = tach(a_[2], a_[1], a_[3], lambda s: print("✗", s, file=sys.stderr), None, (lambda p_: anh_khoa(kl[0], os.path.join(os.path.dirname(os.path.abspath(a_[1])), "logo-khoa.png"), kl[1])[0]) if kl and kl[0] else None)
+    r_ = tach(a_[2], a_[1], a_[3], lambda s: print("✗", s, file=sys.stderr), None, (lambda p_, chat=False: anh_khoa(kl[0], os.path.join(os.path.dirname(os.path.abspath(a_[1])), "logo-khoa.png"), kl[1], chat)[0]) if kl and kl[0] else None)
     print(json.dumps({"ra": r_[0], "kieu": r_[1]}))

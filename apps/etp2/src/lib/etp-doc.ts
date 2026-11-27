@@ -1,5 +1,6 @@
 // ĐỌC KHO ETP cho etp.on.tc (anh 24/10/2026: "hệ thống quản lý backend riêng tập trung… quản lý hiệu quả camp, creative và roi").
 // Chỉ đọc schema `etp` (apps/etp/dong-bo.py đồng bộ 10 phút/lần) — không gọi API Ethopex. Ngày = ngày Ethopex (UTC, 07:00–07:00 VN).
+import { tenBuocDung } from './etp-buoc-dung';
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { sqlBan, banCr, sqlGiong, giongCr } from './etp-ban';
@@ -43,7 +44,7 @@ export type XetLuat = { ma: string; ten: string; mo_ta: string; dk: [string, str
 export type KhoiEtp = { id: number; ten: string; roas: number; /** mức ★ ROAS dàn theo creative (khoi.muc — etp.ke_cr) */ muc?: number[] | null; ns: number; gio: string; mien: string | null; nuoc: number | null; locale: boolean; cr_camp: number;
   tran_ngay: number | null; dang: string | null; mau: string | null; mau_ten: string | null; trang_thai: string; so_phim: number; so_camp: number; thanh_phan: { ten: string; luat: string }[];
   /** camp khuôn theo tiếng {"en": id, "es": id} · ai bấm ▶ Bắt đầu sản xuất, lúc nào (0471) */ khuon: Record<string, number> | null; duyet_ai: string | null; duyet_luc: string | null };
-export type CampEtpKho = { camp_id: number; /** miền trang đích của ad (Ethopex ad.domain, vd maybic.com) — null = chưa đọc / dòng chờ (0462, anh 23/11/2026) */ mien?: string | null; /** DÒNG CHỜ ANH DUYỆT (camp_id < 0): ▶ Lên sẽ tạo gì + cổng sẽ bỏ qua (anh 22/11/2026 "phải xem được đang làm gì mới duyệt được") */ xep?: { khuon: number; lang: string; cta: boolean; truoc: string | null; /** giờ anh bấm ▶ Lên, nhan-ban chưa xong (#1770) — hoặc đã tạo camp `moi` mà kho chưa về */ gui: string | null; /** camp vừa tạo (nhật ký lên) — kho chưa đồng bộ */ moi?: number | null; /** ⏸ anh tạm dừng (khoá hoan_cr) — máy không lên */ hoan?: boolean } | null; /** dòng 🏭 ĐANG SẢN XUẤT (#1832, dong_bo 'dang_sx'): dòng phim đang làm creative cho camp sắp lên */ sx?: { dong: number; buoc: string; so_camp: number | null; ai: string | null; /** camp thứ mấy của dòng (khối: mỗi creative cr_camp camp) */ thu?: number; khoi?: KhoiEtp | null; /** khối: tiếng của phim (etp.phim.locale) + camp khuôn tiếng đó */ tieng?: string | null; khuon?: number | null;
+export type CampEtpKho = { camp_id: number; /** miền trang đích của ad (Ethopex ad.domain, vd maybic.com) — null = chưa đọc / dòng chờ (0462, anh 23/11/2026) */ mien?: string | null; /** DÒNG CHỜ ANH DUYỆT (camp_id < 0): ▶ Lên sẽ tạo gì + cổng sẽ bỏ qua (anh 22/11/2026 "phải xem được đang làm gì mới duyệt được") */ xep?: { khuon: number; lang: string; cta: boolean; truoc: string | null; /** giờ anh bấm ▶ Lên, nhan-ban chưa xong (#1770) — hoặc đã tạo camp `moi` mà kho chưa về */ gui: string | null; /** camp vừa tạo (nhật ký lên) — kho chưa đồng bộ */ moi?: number | null; /** ⏸ anh tạm dừng (khoá hoan_cr) — máy không lên */ hoan?: boolean } | null; /** dòng 🏭 ĐANG SẢN XUẤT (#1832, dong_bo 'dang_sx'): dòng phim đang làm creative cho camp sắp lên */ sx?: { dong: number; /** dòng sinh từ PHIẾU LÊN CAMP (etp.phieu_len 'dung') — anh 27/11/2026 "Phim tạo phiếu thì phải tạo camp dạng Đang sản xuất luôn" */ phieu?: number | null; buoc: string; so_camp: number | null; ai: string | null; /** camp thứ mấy của dòng (khối: mỗi creative cr_camp camp) */ thu?: number; khoi?: KhoiEtp | null; /** khối: tiếng của phim (etp.phim.locale) + camp khuôn tiếng đó */ tieng?: string | null; khuon?: number | null;
     /** khối: dòng chưa bắt đầu sinh creative (dong_phim 'cho') = 📝 Đang lên kế hoạch (anh 25/11/2026) */ ke?: boolean } | null; ten: string; bo: string | null; trang_thai: string; giao: string | null; ngan_sach: number; creative_id: number | null; content_id: number | null; cam?: { luc: string | null; ly_do: string | null } | null;
   goc: number | null; /** mã bài post "<page>_<post>" của ad (etp.camp.bai_viet) — cây camp gom các camp chung bài (#1758) */ bai?: string | null; lich: string | null; tao: string | null; loi: string | null; dong_bo?: string | null; phim: string | null; the_loai: string | null; dang: string | null; /** bản mẫu (PO.1…PO.5) — sqlBan */ ban: string | null; /** giọng đọc (ky_di…) — sqlGiong */ giong: string | null; doan: string | null; cung_doan: number;
   thang: SoTien; qua: SoTien; nay: SoTien;
@@ -549,7 +550,30 @@ async function docEtpDu(ng?: string, nhe = false): Promise<DuLieuEtp> {
     where (d.trang_thai = 'chay' and not exists (select 1 from etp.dong_buoc b where b.dong_id = d.id and b.trang_thai in ('dung', 'loi'))
       and exists (select 1 from etp.dong_buoc b where b.dong_id = d.id and b.buoc = 'creative' and b.trang_thai not in ('xong', 'bo_qua')))
       or (d.trang_thai = 'cho' and k.trang_thai in ('cho', 'duyet', 'chay') and not exists (select 1 from etp.dong_buoc b where b.dong_id = d.id))
+      and d.phieu_id is null   -- dòng của phiếu hiện qua dòng phiếu bên dưới (một phiếu = một dòng)
     order by d.khoi_id nulls last, d.content_id, d.id`).catch((e) => { console.error('etp sxCr', e); return []; });
+  // phần CHƯA CÓ của mọi dòng 🏭 (dòng phim lẫn phiếu): chưa creative / camp nên số = 0, kiểu lên ★ ROAS — một chỗ khai
+  const SX_TRONG = { loi: null, dong_bo: 'dang_sx', ban: null, giong: null, doan: null, cung_doan: 0, thang: st(0, 0), qua: st(0, 0), nay: st(0, 0), lich_tat: false, nuoc: [], ab: null, dong: null, chien_luoc: 'LOWEST_COST_WITH_MIN_ROAS' } satisfies Partial<CampEtpKho>;
+  // PHIẾU LÊN CAMP ĐANG DỰNG (anh 27/11/2026 "Phim tạo phiếu thì phải tạo camp dạng Đang sản xuất luôn"): gửi phiếu xong là có ngay một dòng 🏭 trong nhóm phim, mang đúng
+  // tham số phiếu (dạng, ★ ROAS từng mức, $, giờ, bộ, miền) — trước chỉ hiện một dòng chữ trong ngăn phiếu. Bước = mau_dung (AD) / dong_buoc của dòng phiếu (CC2).
+  const phieuRs = await runNha<Record<string, unknown>>(sql`select p.id, p.content_id, p.dang, p.roas, p.roas_ds, p.ns, p.gio, p.bo, p.mien, p.ai, p.tao::text tao, f.ten phim, f.the_loai,
+      (select m.buoc from etp.mau_dung m where p.dang = 'AD' and m.content_id = p.content_id and m.tuy_chon ->> 'phieu' = p.id::text order by m.cap_nhat desc limit 1) buoc_ad,
+      (select d.id from etp.dong_phim d where d.phieu_id = p.id order by d.id desc limit 1) dong,
+      (select b.buoc from etp.dong_phim d join etp.dong_buoc b on b.dong_id = d.id where d.phieu_id = p.id and b.trang_thai not in ('xong', 'bo_qua') order by d.id desc, b.thu_tu limit 1) buoc_dong,
+      (select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo_moi
+    from etp.phieu_len p left join etp.phim f on f.content_id = p.content_id
+    where p.trang_thai = 'dung' and p.tao > now() - interval '3 days' order by p.content_id, p.id`).catch((e) => { console.error('etp phieuSx', e); return []; });
+  for (const r of phieuRs) {
+    const ds = (Array.isArray(r.roas_ds) && r.roas_ds.length ? (r.roas_ds as unknown[]) : [r.roas]).map(String), so = Math.max(1, ds.length), ns = n(r.ns ?? BANG_LUAT.hoi_cho.ns);
+    const ro = ds.map(Number).find((x) => Number.isFinite(x)) ?? null, g = String(r.gio ?? 'lich');
+    const lich = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(g) ? new Date(`${g.replace(' ', 'T')}:00+07:00`).toISOString() : gioKhung;
+    const bAd = r.buoc_ad as string | null, bD = r.buoc_dong as string | null;
+    const b = bAd ? (bAd === 'cho' ? 'chờ máy dựng (iMac)' : `máy dựng: ${tenBuocDung(bAd)}`) : bD ? TEN_BUOC_SX[bD] ?? bD : 'chờ máy nhận';
+    hangCr.push({ camp_id: -(30_000_000 + n(r.id)),
+      ten: `🏭 đang sản xuất · phiếu #${n(r.id)} · ${(r.dang as string) ?? '?'} · ${b} · ★ ROAS ${ds.join(' / ')} · $${ns}${so > 1 ? ` · ${so} camp` : ''}`,
+      sx: { dong: r.dong == null ? 0 : n(r.dong), phieu: n(r.id), buoc: b, so_camp: so, ai: (r.ai as string) ?? null }, mien: (r.mien as string) ?? null,
+      bo: (r.bo as string) || (r.bo_moi as string) || null, trang_thai: 'ACTIVE', giao: null, ngan_sach: ns * so, creative_id: null, content_id: r.content_id == null ? null : n(r.content_id), goc: null,
+      lich, tao: (r.tao as string) ?? null, phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, roas: ro, ...SX_TRONG }); }
   const docKhoi = (v: unknown): KhoiEtp | null => { if (!v || typeof v !== 'object') return null; const k = v as Record<string, unknown>;
     const mau = (MAU_CR.mau as { ma: string; ten?: string; o?: { ten: string; luat: string }[] }[]).find((m) => m.ma === k.mau);
     return { id: n(k.id), ten: String(k.ten ?? ''), roas: Number(k.roas), ns: Number(k.ns), gio: String(k.gio ?? '22:00'), mien: (k.mien as string) ?? null, nuoc: k.nuoc == null ? null : n(k.nuoc),
@@ -565,8 +589,7 @@ async function docEtpDu(ng?: string, nhe = false): Promise<DuLieuEtp> {
       ten: `🏭 đang sản xuất · ${(r.loai as string) ?? '?'} · ${b} · ★ ROAS ${kh?.muc?.length ? kh.muc.join(' / ') : ro} · $${ns}${kh ? ` · khối #${kh.id} · ${(r.phim as string) ?? `#${r.content_id}`} · ${soK} camp` : sc && sc > 1 ? ` · ${sc} camp` : ''}`,
       sx: { dong: n(r.id), buoc: b, so_camp: kh ? soK : sc, ai: (r.ai as string) ?? null, khoi: kh, tieng, khuon: kh?.khuon && tieng ? kh.khuon[tieng] ?? null : null, ke: !!kh && r.tt === 'cho' }, mien: kh?.mien ?? null,
       bo: (r.bo as string) || (r.bo_moi as string) || null, trang_thai: 'ACTIVE', giao: null, ngan_sach: kh && soK ? ns * soK : ns, creative_id: null, content_id: r.content_id == null ? null : n(r.content_id), goc: null,
-      lich: gioKhung, tao: (r.tao as string) ?? null, loi: null, dong_bo: 'dang_sx', phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.loai as string) ?? null,
-      ban: null, giong: null, doan: null, cung_doan: 0, thang: st(0, 0), qua: st(0, 0), nay: st(0, 0), lich_tat: false, nuoc: [], ab: null, dong: null, roas: ro, chien_luoc: 'LOWEST_COST_WITH_MIN_ROAS' }); }
+      lich: gioKhung, tao: (r.tao as string) ?? null, phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.loai as string) ?? null, roas: ro, ...SX_TRONG }); }
   // MIỀN ĐẶT TRƯỚC (anh 25/11/2026 "Chỗ này phải set trước chứ ko phải đợi"): dòng chờ lên / đang sản xuất chưa có ad để đọc — miền là khoá etp.cau_hinh mien_len,
   // đúng thứ nhan-ban.py gắn vào ad và cửa ethopex_api.thieu_tin bắt buộc (camp khác miền không được tạo)
   const mienLen = cauHinh.find((k) => k.khoa === 'mien_len')?.gia_tri;

@@ -11,6 +11,7 @@ import { Cay, NutCay } from '@/components/ui/cay';
 import { Dem, MO_SO } from '@/components/etp-so';
 import { useSoNho } from '@/lib/so-nho';
 import { openEntityDrawer } from '@/lib/entity-drawer';
+import { BUOC_DUNG } from '@/lib/etp-buoc-dung';
 import { SU_KIEN_MAU } from '@/lib/etp-mau-su-kien';
 import { loiThuongMau } from '@/lib/etp-mau-loi';
 import { DS_DANG } from '@/lib/etp-dang';
@@ -156,7 +157,7 @@ function DongPhimGon({ f, ma, anAnh = false }: { f: PhimSx; ma: string; /** mẫ
   </div>;
 }
 // các bước máy dựng theo mẫu (dung-mau.py) — thanh tiến độ trong chân thẻ
-export const BUOC_DUNG: [string, string][] = [['cho', 'chờ máy'], ['nang_cap', 'chờ nâng cấp mẫu'], ['trang_phim', 'chờ link tập'], ['tai_tap', 'tải tập'], ['chon_khung', 'chọn khung'], ['ve_mau', 'vẽ mẫu'], ['giong', 'giọng'], ['video', 'video'], ['thu_vien', 'thư viện'], ['creative', 'tải creative'], ['xong', 'xong']];
+export { BUOC_DUNG };   // tên bước máy dựng theo mẫu — một chỗ khai ở lib (dòng 🏭 phiếu trong etp-doc cũng đọc)
 const gioNgan = (s: string) => new Date(s).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
 const XAM_DUNG = '#94a3b8';   // việc máy đã dừng (trang_thai 'dung') — không phải đang chạy, không phải lỗi
 /** TRẠNG THÁI MÁY DỰNG (góp ý #1726 anh 20/11/2026 "Cần show thêm trạng thái máy dựng"): một dòng — máy iMac còn sống không (nhịp etp.dong_may, ngưỡng 60 giây

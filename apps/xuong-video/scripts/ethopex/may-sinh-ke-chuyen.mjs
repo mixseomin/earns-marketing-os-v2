@@ -156,7 +156,8 @@ try {
     if (r.status !== 0) throw new Error((r.stderr || r.stdout || 'CTA lỗi').slice(-400));
     const tep = `${C}/${d.tap}/${d.tap}-kt.mp4`;
     execFileSync('rsync', ['-a', tep, `${B}:/var/tmp/vx-kc/${d.tap}/`], { timeout: 600e3 });
-    const ra = ssh(`scripts/ethopex/thu-vien-them.mts ${d.tap} /var/tmp/vx-kc/${d.tap}/${d.tap}-kt.mp4 --chi-vnd=${d.chi_vnd ?? 0} --ghi=${q(`máy sinh ${d.bat_dau} → ${gio()}`)}`, 600);
+    // --lop-free: thẻ cuối kiểu AD (cta-logo.py) vẽ nhãn All Episodes Released + nút WATCH FREE của nhà → cổng chữ gỡ đúng lớp đó (28/11/2026 Chờ lên #94)
+    const ra = ssh(`scripts/ethopex/thu-vien-them.mts ${d.tap} /var/tmp/vx-kc/${d.tap}/${d.tap}-kt.mp4 --lop-free --chi-vnd=${d.chi_vnd ?? 0} --ghi=${q(`máy sinh ${d.bat_dau} → ${gio()}`)}`, 600);
     ghi(`  ${ra.split('\n').pop()}`);
     if (d.lam_lai) { psql(`update etp.thu_vien set creative_id = null, trang_thai = 'san_sang', ghi = ${lit(`làm lại: ${d.ly ?? ''}`)}, cap_nhat = now() where tap_id = ${Number(d.tap)};`); ghi('  làm lại xong → thư viện "sẵn sàng", nhịp sau đưa lên creative mới'); }
     so.ngay[ngay()] = (so.ngay[ngay()] ?? 0) + 1;

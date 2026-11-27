@@ -62,9 +62,14 @@ def loc(lo, ma):
                 x["_cho_len"] = v["id"]
                 x["kieu"] = v.get("kieu") or "kien"   # kiểu chữ anh chọn lúc duyệt (etp2 Chờ lên, mặc định Kiên) → chu-qc.py tạo đúng chữ đó
                 if v.get("phieu_chu"): x["chu_phieu"], x["link_phieu"] = v["phieu_chu"], v.get("phieu_link")   # PHIẾU LÊN CAMP: đúng bộ chữ + link anh chọn lúc gửi phiếu
-                if not x["file"].startswith("box3:") and not os.path.exists(x["file"]):   # tệp gốc đã dọn → kéo bản đã đẩy kho (đúng tệp anh xem)
+                # LÊN ĐÚNG TỆP ANH XEM (28/11/2026 Chờ lên #94 KT tv5820): muc.file là ảnh chụp lúc vào hàng chờ — thẻ cuối dựng lại sau đó (thư viện đổi sang bản 30,2s)
+                # mà tệp cục bộ cũ 41,9s vẫn nằm trên đĩa nên lên nhầm bản cũ, cổng chữ chặn "FREE" của bản cũ. Có link xem (c.video) thì LUÔN kéo đúng link đó.
+                if not x["file"].startswith("box3:") and (v.get("video") or not os.path.exists(x["file"])):
                     os.makedirs(os.path.join(C, "cho-len"), exist_ok=True); f = os.path.join(C, "cho-len", f"cl{v['id']}.mp4")
                     subprocess.run(["curl", "-sSfL", "-o", f, v["video"]], check=True); x["file"] = f
+                    g = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], capture_output=True, text=True).stdout.strip()
+                    if g: x["den"] = round(float(g), 1)
+                if x.get("tv") and (_sql(f"select coalesce(chu_qc->>'lop_free', '') from etp.thu_vien where id = {int(x['tv'])}") or "").strip() == "true": x["lop_free"] = True   # dấu lớp Free đọc lúc lên, không lấy ảnh chụp muc
                 di.append(x); continue
         if tt == "duyet": ra.append(dong_cho(x, ma, f"anh đã duyệt (#{v['id']}) nhưng lên lỗi, thử lại sau {LOI_NGHI}: {v.get('loi')}", False)); continue
         ra.append(dong_cho(x, ma, f"{LY} #{v['id']}" + (" — đang lên" if tt == "dang_len" else "")))

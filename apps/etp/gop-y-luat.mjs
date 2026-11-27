@@ -1948,5 +1948,7 @@ export const LUAT = [
   { card: 1911, tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: 'gan_vo(kq["tv"], cid)', vi: 'bản AT nạp thư viện kèm câu đọc hook (chu_qc.vo)' },
   { card: 1911, tep: 'apps/xuong-video/scripts/ethopex/tinh-ba-kieu.py', co: 'AT.gan_vo(tv, cid)', vi: 'cửa nạp chung (PO / mẫu AD / dựng lại logo) gắn câu đọc hook vào bản thư viện' },
   { card: 1911, tep: 'apps/xuong-video/scripts/ethopex/thu-vien-len.py', co: '**({"vo": r["vo"]} if r.get("vo") else {})', vi: 'câu đọc hook đi tiếp vào Chờ lên (muc.vo) → thẻ không còn ghi "không có giọng đọc hook"' },
+  { card: 'cho-len-94-2811', tep: 'apps/xuong-video/scripts/ethopex/cho_len.py', co: 'and (v.get("video") or not os.path.exists(x["file"])):', vi: 'Chờ lên: lên đúng tệp anh xem (link c.video), không lên tệp cục bộ cũ trong ảnh chụp muc — #94 lên nhầm bản 41,9s trước khi dựng lại thẻ cuối (anh 28/11/2026 "Lắm lỗi quá")' },
+  { card: 'cho-len-94-2811', tep: 'apps/xuong-video/scripts/ethopex/may-sinh-ke-chuyen.mjs', co: '-kt.mp4 --lop-free', vi: 'KT thẻ cuối kiểu AD mang dấu lớp Free của nhà → cổng chữ không chặn nút WATCH FREE nhà vẽ' },
   { card: 'bai-ve-phim-2811', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'ct_ve = moi["content"] if moi else (q(f"select content_id from etp.camp where camp_id = {int(goc)}") or None)', vi: 'thẻ dùng lại post (BAI) anh duyệt ở Chờ lên: vé nút etp2 gắn phim phải khớp bản clone camp gốc qua phim của camp gốc — không còn "--mien chỉ đi cùng vé TRỰC TIẾP" (thẻ #90, 28/11/2026)' },
 ];

@@ -92,6 +92,14 @@ def chep_so(goc, moi, ghi=None, ai="máy · lượt 2"):   # ghi / ai: phiếu d
           select {moi}, doan, luc, may, lop, diem, ly_do, meta, afs, ket, loi, khung from etp.cham where creative_id = {goc} on conflict (creative_id) do nothing""")
     q(f"insert into etp.diem_cham (creative_id, cham, nguon, luc) select {moi}, cham, nguon, luc from etp.diem_cham where creative_id = {goc} on conflict (creative_id) do nothing")
     q(f"insert into etp.cham_duyet (creative_id, ok, ai, ghi) values ({moi}, true, {s(ai)}, {s(ghi or DUYET)}) on conflict (creative_id) do nothing")
+    # GỐC LÀ CREATIVE ĐỘI (anh 27/11/2026: phiếu lên camp dùng lại creative đội tự dựng): kho nhà không có dòng gốc → dựng dòng kho từ etp.anh_cr (video / ảnh)
+    # + camp_ngoai (phim) và phiếu chấm rỗng 'đội đã chạy' — creative đội đang chạy thật trên Ethopex, anh duyệt thẻ ở Chờ lên = duyệt (cham_duyet ok ở trên)
+    q(f"""insert into etp.creative (creative_id, content_id, dang, video, anh, cap_nhat)
+          select {moi}, (select n.content_id from etp.camp_ngoai n where n.creative_id = {goc} and n.content_id is not null limit 1), 'DOI', a.video, a.anh, now()
+          from etp.anh_cr a where a.creative_id = {goc} and a.video is not null and not exists (select 1 from etp.creative c where c.creative_id = {goc})
+          on conflict (creative_id) do nothing""")
+    q(f"""insert into etp.cham (creative_id, may, ket) select {moi}, 'doi', 'creative đội #{goc} đang chạy — anh duyệt dùng lại'
+          where not exists (select 1 from etp.creative where creative_id = {goc}) and not exists (select 1 from etp.cham where creative_id = {goc}) and exists (select 1 from etp.creative where creative_id = {moi}) on conflict (creative_id) do nothing""")
 
 def nb(args, luat):
     try:

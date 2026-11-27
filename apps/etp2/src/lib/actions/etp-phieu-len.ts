@@ -89,7 +89,9 @@ export async function docPhieu(cid: number): Promise<{ ok: true; p: PhieuMo } | 
   const [lg] = await run<{ url: string; kieu: string | null }>(sql`select url, kieu from etp.logo_goc where content_id = ${id}`);
   const lc = (f.lang ?? '').startsWith('es') ? 'es' : 'en', ten = f.ten;
   const cau = (CAU[lc] ?? []).map((m, i) => ({ id: `${lc}:${i}`, chu: m.map((v) => v.replace('{t}', ten)).join(' ') }));
-  const cu = (await docCrCu(id)).map((x) => ({ ...x, anh: anhUrl(x.anh) }));
+  const [crNha, crDoi] = await Promise.all([docCrCu(id), docCrDoi(id)]);
+  // đang lãi 7 ngày lên đầu (thu7 > chi7), rồi theo chi 7 ngày — creative nhà và creative đội xếp chung
+  const cu = [...crNha, ...crDoi].sort((a, b) => Number(b.thu7 > b.chi7) - Number(a.thu7 > a.chi7) || b.chi7 - a.chi7 || b.chi - a.chi).map((x) => ({ ...x, anh: anhUrl(x.anh) }));
   const bai = (await docBai(id)).map((x) => ({ ...x, anh: anhUrl(x.anh) }));
   const [bo, mau_doi] = await Promise.all([docBo(), docMauDoi(lc)]);
   return { ok: true, p: { cid: id, ten: f.ten, lang: f.lang, poster: anhUrl(f.poster), logo: lg ? { url: lg.url, kieu: lg.kieu } : null,
@@ -141,6 +143,28 @@ async function docCrCu(cid: number): Promise<CrCu[]> {
     (select b.cta from etp.bai_cr b where b.creative_id = ng.nguon and b.cta is not null limit 1) fb, coalesce(c.cta_dat, false) cta_dat,
     (select k.gia_tri -> ng.nguon::text ->> 'ghi' from xv_khoa_ngoai k where k.ten = 'ethopex_cta_dat') cta_ghi
   from ng left join so using (goc) left join gan using (goc) left join nh using (goc) left join dn using (goc) left join etp.creative c on c.creative_id = ng.nguon order by coalesce(so.chi7, 0) desc, coalesce(so.chi, 0) desc, ng.nguon desc limit 40`);
+}
+
+/** CREATIVE ĐỘI TỰ DỰNG (anh 27/11/2026 phim #180973 "bên tk của đội có sẵn nhiều creative đang lãi sao lại ko có"): creative chỉ có trong etp.camp_ngoai
+ *  (đội tự tạo trên Ethopex, kho nhà etp.creative không có) — docCrCu không thấy. Video / ảnh = etp.anh_cr (dong-bo + anh-creative.py đọc từ Ethopex),
+ *  số = camp đội (etp.so_ngay_ca gồm cả so_ngay_ngoai), người = etp.tai_khoan.nguoi (tk không phải nhà). Lên camp: len-phieu ban_cu → ap-form-chu.ban_nha tạo bản NHÀ
+ *  cùng video với chữ phiếu (creative đội không đụng); luot2.chep_so dựng dòng kho + phiếu chấm cho bản mới từ etp.anh_cr. */
+const SQL_CR_DOI = (cid: number) => sql`with n as (select n.creative_id, n.camp_id, n.trang_thai, n.tao, t.nguoi from etp.camp_ngoai n left join etp.tai_khoan t using (ad_account_id)
+      where n.content_id = ${cid} and n.creative_id is not null and not coalesce(t.nha, false)
+        and not exists (select 1 from etp.creative c where c.creative_id = n.creative_id)),
+    so as (select n.creative_id, count(distinct n.camp_id) n_camp, count(distinct s.camp_id) filter (where s.chi > 0) n_chi, coalesce(sum(s.chi), 0) chi, coalesce(sum(s.thu), 0) thu,
+        coalesce(sum(s.chi) filter (where s.ngay > current_date - 7), 0) chi7, coalesce(sum(s.thu) filter (where s.ngay > current_date - 7), 0) thu7, (max(s.ngay) filter (where s.chi > 0))::text ngay
+      from n left join etp.so_ngay_ca s using (camp_id) group by n.creative_id),
+    gan as (select distinct on (creative_id) creative_id, camp_id, trang_thai from n order by creative_id, tao desc nulls last, camp_id desc),
+    ten as (select creative_id, string_agg(distinct nguoi, ', ') ten from n where nguoi is not null group by creative_id)`;
+async function docCrDoi(cid: number): Promise<CrCu[]> {
+  return run<CrCu>(sql`${SQL_CR_DOI(cid)}
+  select so.creative_id goc, so.creative_id nguon, 'DOI' dang, a.anh, null giong, 1 n_ban, so.n_camp::int, so.n_chi::int,
+    round(so.chi::numeric, 2)::float chi, round(so.thu::numeric, 2)::float thu, round(so.chi7::numeric, 2)::float chi7, round(so.thu7::numeric, 2)::float thu7,
+    so.ngay, gan.camp_id gan_camp, gan.trang_thai gan_tt, ten.ten doi, false nha,
+    (select b.cta from etp.bai_cr b where b.creative_id = so.creative_id and b.cta is not null limit 1) fb, false cta_dat, null cta_ghi
+  from so join etp.anh_cr a on a.creative_id = so.creative_id and a.video is not null left join gan on gan.creative_id = so.creative_id left join ten on ten.creative_id = so.creative_id
+  order by (so.thu7 > so.chi7) desc, so.chi7 desc limit 30`);
 }
 
 /** BÀI ĐĂNG NHÀ của phim — KHÔNG lấy bài của đội (anh 27/11/2026 "check dashboard Ethopex có hỗ trợ chưa, chưa thì tạm pause không cho dùng lại bài của đội"):
@@ -228,7 +252,11 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
   type CrNguon = { creative_id: number; video: string; anh: string | null; dang: string | null; giay: number | null };
   const nguon = crCu.length ? await run<CrNguon>(sql`select c.creative_id, c.video, coalesce(nullif(c.anh, ''), (select a.anh from etp.anh_cr a where a.creative_id = c.creative_id)) anh, c.dang,
       (c.den - c.tu)::float giay from etp.creative c left join etp.cham_cong cc using (creative_id)
-    where c.content_id = ${cid} and c.creative_id = any(${`{${crCu.join(',')}}`}::int[]) and c.video is not null and coalesce(c.tu_choi, '') = '' and coalesce(cc.duoc_len, false)`) : [];
+    where c.content_id = ${cid} and c.creative_id = any(${`{${crCu.join(',')}}`}::int[]) and c.video is not null and coalesce(c.tu_choi, '') = '' and coalesce(cc.duoc_len, false)
+    union all   -- creative ĐỘI (docCrDoi): video / ảnh từ etp.anh_cr, chỉ creative đội của ĐÚNG phim này
+    select a.creative_id, a.video, a.anh, 'DOI', null from etp.anh_cr a
+    where a.creative_id = any(${`{${crCu.join(',')}}`}::int[]) and a.video is not null and not exists (select 1 from etp.creative c where c.creative_id = a.creative_id)
+      and exists (select 1 from etp.camp_ngoai n left join etp.tai_khoan t using (ad_account_id) where n.creative_id = a.creative_id and n.content_id = ${cid} and not coalesce(t.nha, false))`) : [];
   const thieu = crCu.filter((x) => !nguon.some((o) => o.creative_id === x));
   if (thieu.length) return { loi: `creative ${thieu.map((x) => `#${x}`).join(', ')} không dùng lại được (khác phim / không có video / bị từ chối / chưa được lên) — tải lại phiếu` };
   const baiCo = laBai ? (await docBai(cid)).filter((b) => baiDs.includes(b.bai)) : [];

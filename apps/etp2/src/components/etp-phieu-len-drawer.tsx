@@ -55,7 +55,7 @@ function DsDungLai({ ds, chon, bat }: { ds: CrCu[]; chon: number[]; bat: (n: num
   if (!ds.length) return <div style={{ fontSize: 12, color: MO_SO }}>chưa có creative dùng lại được</div>;
   return <div style={{ maxHeight: 260, overflowY: 'auto', border: `1px solid ${VIEN}`, borderRadius: 8 }} data-ds-cu>
     {ds.map((c) => { const on = chon.includes(c.nguon);
-      return <label key={c.nguon} title={`đã dùng: ${c.n_ban} bản · ${c.n_camp} camp nhà (${c.n_chi} có tiêu)${c.gan_camp ? ` · camp gần nhất #${c.gan_camp} ${c.gan_tt ?? ''}` : ''}${c.goc !== c.nguon ? ` · gốc #${c.goc}` : ''}`}
+      return <label key={c.nguon} title={`đã dùng: ${c.n_ban} bản · ${c.n_camp} camp ${c.nha ? 'nhà' : 'đội'} (${c.n_chi} có tiêu)${c.gan_camp ? ` · camp gần nhất #${c.gan_camp} ${c.gan_tt ?? ''}` : ''}${c.goc !== c.nguon ? ` · gốc #${c.goc}` : ''}`}
         style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 8px', borderBottom: `1px solid ${VIEN}`, cursor: 'pointer', background: on ? 'rgba(37,99,235,.10)' : undefined }}>
         <input type="checkbox" checked={on} onChange={() => bat(c.nguon)} />
         {c.anh ? <img src={c.anh} alt="" style={{ width: 26, height: 40, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <div style={{ width: 26, height: 40, background: VIEN, borderRadius: 3, flex: 'none' }} />}

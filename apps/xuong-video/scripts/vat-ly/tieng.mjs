@@ -153,6 +153,10 @@ function tiengTran(g, { N, cong, ngau, kick, kenNot, ghi }) {
     else if (e.k === 'truot') cong(e.t + 0.05, nhieu(1.6, 0.06, (t) => 0.38 * Math.min(1, t / 0.2) * Math.exp(-t * 1.5)));
     else if (e.k === 'sut') cong(e.t, nhieu(0.9, 0.12, (t) => 0.14 * Math.min(1, t / 0.3) * Math.exp(-t * 2.5)), pan * 0.4);   // khán đài nín thở / ồ lên theo cú sút
     else if (e.k === 'replay') { cong(e.t, vut(0.5)); cong(e.t + e.dai - 0.35, vut(0.5)); }
+    else if (e.k === 'var') { cong(e.t, nhieu(2.5, 0.06, (t) => 0.22 * Math.min(1, t / 0.4) * Math.exp(-t * 0.6))); for (let k = 0; k < 3; k++) cong(e.t + 0.3 + k * 0.5, kenNot(880, 0.05, 0.18)); }   // VAR: khán đài rì rầm chờ + ba tiếng bíp
+    else if (e.k === 'varKq') { const vui = e.ket === 'pen' || e.ket === 'ok' || e.ket === 'giu'; cong(e.t, nhieu(2.2, vui ? 0.25 : 0.05, (t) => (vui ? 0.42 : 0.36) * Math.min(1, t / 0.2) * Math.exp(-t * 1.4))); }   // công bố: reo hoặc la ó
+    else if (e.k === 'dau') cong(e.t + 0.1, nhieu(1.5, 0.05, (t) => 0.2 * Math.min(1, t / 0.3) * Math.exp(-t * 1.8)));   // khán đài lặng đi, xì xào
+    else if (e.k === 'thay') cong(e.t + 0.4, nhieu(1.8, 0.2, (t) => 0.16 * Math.min(1, t / 0.4) * Math.exp(-t * 1.5)));   // vỗ tay đón người vào
     else if (e.k === 'ban') {
       // khán đài gầm: tiếng ồn dải giữa phồng lên 0,3 s rồi tắt dần trong 3 s, kèm hai nốt kèn
       cong(e.t, nhieu(3.4, 0.25, (t) => 0.55 * Math.min(1, t / 0.3) * Math.exp(-Math.max(0, t - 0.4) * 0.9)), pan * 0.4);
@@ -162,6 +166,7 @@ function tiengTran(g, { N, cong, ngau, kick, kenNot, ghi }) {
   // nền khán đài: tiếng rì rầm suốt trận, to hơn ở 15 phút cuối
   const tKt = g.ketThuc?.t ?? DAI, nen = nhieu(DAI, 0.08, (t) => { const m = Math.max(0, Math.min(1, (t - g.dauGiay) / 1)); const cuoi = t > tKt - 15 && t < tKt ? 1 + 0.6 * (1 - (tKt - t) / 15) : 1; return 0.07 * m * cuoi * (t > tKt ? Math.max(0.5, 1.6 - (t - tKt) * 0.2) * 1.8 : 1); });
   cong(0, nen);
+  if (g.troi === 'mua') cong(0, nhieu(DAI, 0.7, (t) => 0.05 * Math.min(1, t / 1.5)));   // mưa rào đều trên mái khán đài
   if (g.ketThuc?.thang >= 0) [523.25, 659.25, 783.99, 1046.5].forEach((f, k) => cong(tKt + 1 + k * 0.14, kenNot(f, 0.14, 2.8 - k * 0.14)));
   return ghi();
 }

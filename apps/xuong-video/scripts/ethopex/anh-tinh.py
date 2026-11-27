@@ -491,9 +491,8 @@ def anh(cid, ten, k, tm, ban=0):
     lop.save(os.path.join(tm, f"chu-{ban}.png"))
     return nen, os.path.join(tm, f"chu-{ban}.png")
 
-# (27/11/2026 anh đổi: mặc định = thuong, ky_di không ưu tiên — GIONG_SAU ở trên; đoạn dưới là lý do cũ 18/11)
-# GIỌNG MẶC ĐỊNH = GIỌNG TỐT NHẤT ĐÃ ĐO (anh 18/11/2026, sổ luật chung giong_at — thay luật xoay 5 giọng 05/11/2026): Brian / ky_di ROI −24% tốt nhất cả trước lẫn sau 12/11,
-# George / thuong −39% tệ nhất. Mọi bản AT (kể cả bản 2, 3… của một phim) đọc giọng này; --giong <kiểu> ép kiểu khác, --giong xoay = cách xoay cũ (đo lại khi cần).
+# GIỌNG MẶC ĐỊNH sổ luật (giong_at.mac_dinh) = CHỖ LÙI CUỐI khi không có giọng anh ghim, AI chưa chọn theo chủ đề, thể loại không có trong sổ (giong_phim).
+# Không phải giọng cố định cho mọi bản (anh 27/11/2026 "Giọng thì phải theo phim và nội dung. Tao đéo chọn giọng nào cố định hết").
 GIONG_MAC_DINH = json.load(open(os.path.join(D, "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))["giong_at"]["mac_dinh"]
 assert GIONG_MAC_DINH not in GIONG_SAU, f"sổ luật giong_at.mac_dinh '{GIONG_MAC_DINH}' là giọng không ưu tiên (anh 27/11/2026: mặc định giọng thường)"
 assert not GIONG_SAU & set(THE_LOAI_GIONG.values()), "THE_LOAI_GIONG trỏ vào giọng không ưu tiên"
@@ -505,11 +504,21 @@ assert kieu_ban("gao", 2, False) == "gao" and kieu_ban("gao", 1, True) == "cam_x
 XOAY = False   # --giong xoay (main đặt lại)
 
 def xoay_giong(ds, yeu_cau):
-    """kiểu giọng cho từng phim → {content_id: kiểu}. MẶC ĐỊNH (anh 18/11/2026) = GIONG_MAC_DINH cho mọi phim. --giong <kiểu> ép một kiểu,
-    --giong theo-phim chọn theo thể loại (THE_LOAI_GIONG), --giong xoay = cách 05/11/2026: kiểu ít creative ảnh tĩnh nhất (đếm trong sổ điểm chạm) lên trước,
+    """kiểu giọng cho từng phim → {content_id: kiểu}. MẶC ĐỊNH = giong_phim từng phim (AI đã chọn theo chủ đề, lưu ở xem-uv.json của phim → thể loại → mặc định sổ luật;
+    anh 27/11/2026 giọng theo phim, không cố định). --giong <kiểu> ép một kiểu, --giong theo-phim chọn theo thể loại (THE_LOAI_GIONG), --giong xoay = cách 05/11/2026: kiểu ít creative ảnh tĩnh nhất (đếm trong sổ điểm chạm) lên trước,
     không lặp kiểu phim đó đã có."""
     if yeu_cau == "theo-phim": return {int(p["content_id"]): THE_LOAI_GIONG.get(p.get("the_loai") or "", "thuong") for p in ds}
-    if yeu_cau != "xoay": return {int(p["content_id"]): (yeu_cau or GIONG_MAC_DINH) for p in ds}
+    if yeu_cau: return {int(p["content_id"]): yeu_cau for p in ds} if yeu_cau != "xoay" else _xoay(ds)
+    return {int(p["content_id"]): giong_phim(p, giong_ai_luu(p["content_id"]))[0] for p in ds}
+
+def giong_ai_luu(cid):
+    """kiểu giọng AI đã chọn theo chủ đề phim ở lượt xếp khung trước (dung-mau ghi xem-uv.json) — không gọi AI lại. Không có → None"""
+    try: return json.load(open(os.path.join(C, str(int(cid)), "xem-uv.json"))).get("giong")
+    except (OSError, ValueError): return None
+
+assert giong_ai_luu(-1) is None, "phim chưa có xem-uv.json → không có giọng AI, lùi theo thể loại / mặc định"
+
+def _xoay(ds):
     # đếm trong CHÍNH sổ điểm chạm (hook.dang + noi_dung.content_id do len-creative ghi) — etp.creative chỉ có creative mới sau lượt đồng bộ 10 phút
     da = json.loads(sql(f"select coalesce(json_agg(x), '[]') from (select (cham->'noi_dung'->>'content_id')::int content_id, cham->'voice'->>'giong' giong from etp.diem_cham "
                         f"where cham->'hook'->>'dang' = '{DANG}' and cham->'voice'->>'giong' is not null) x") or "[]")

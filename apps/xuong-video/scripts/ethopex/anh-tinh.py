@@ -11,7 +11,7 @@ MỘT lệnh lo trọn, mỗi phim:
   4. cổng chữ trên video (kiem-thoai.py) → thư viện etp (thu-vien-them.mts, dạng "ảnh tĩnh", nguồn anh_tinh) → creative (thu-vien-len.py)
 Từ đó nhịp ethopex (apps/cty/worker/ethopex.mjs) thấy creative ảnh tĩnh chấm Sạch của phim đang chạy → lên camp $1, giờ chạy theo lịch chung (nhan-ban.lich_len).
 Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--ban N bản / phim] [--xem] [--giong ky_di|gao|cam_xuc|hao_hung|thuong|theo-phim|xoay]
-  giọng mặc định = sổ luật giong_at.mac_dinh = thuong / George (anh 27/11/2026, ky_di cấm — trước đó ky_di 18/11/2026) cho MỌI bản; --giong xoay = xoay 5 kiểu như 05/11/2026;
+  giọng mặc định = sổ luật giong_at.mac_dinh = thuong / George (anh 27/11/2026, ky_di KHÔNG ƯU TIÊN — vẫn dùng được, xếp cuối; trước đó ky_di mặc định 18/11/2026) cho MỌI bản; --giong xoay = xoay 5 kiểu như 05/11/2026;
   dấu kiểu ghi vào etp.diem_cham.cham.voice.giong để đo
   lớp Free (nhãn tím "All Episodes Released" + tên phim + nút xanh "Watch For Free") LUÔN vẽ — anh chốt 19/11/2026 (at_chi_dang_free): AT chỉ một dạng, không tắt được
   --anh <tệp ảnh> (lặp được) = KHUNG CHỈ ĐỊNH (anh 22/11/2026 "trên spy … cắt theo 1 cảnh tương tự … ảnh dùng chung cho cả EN/ES thay nội dung"): bỏ bước tải tập + AI xếp hạng,
@@ -43,19 +43,18 @@ KIEU_GIONG = {
     "tinh_nghich": ("Charlotte", "[mischievously] {a}... [laughs] {b} [excited] {c}"),   # phép thuật / hài / tình cảm vui (anh 25/11/2026 giọng theo chủ đề phim)
 }
 # MÔ TẢ KIỂU GIỌNG cho mô hình chọn theo chủ đề phim (xep-khung.py, cùng lượt xếp khung) — thêm kiểu mới vào KIEU_GIONG thì thêm mô tả ở đây
-MO_TA_GIONG = {"ky_di": "male, whispering then sinister laugh then shouting — supernatural, dark fantasy, system / cultivation, mystery",
+MO_TA_GIONG = {"ky_di": "LOW PRIORITY, pick only when no other style fits — male, whispering then sinister laugh then shouting — supernatural, dark fantasy, system / cultivation, mystery",
                "gao": "male, shouting and screaming — revenge, hidden billionaire / underdog, mafia, power reversal, action",
                "cam_xuc": "female, crying then shouting — regret, betrayal, mother and child, tragic family drama",
                "hao_hung": "female, excited and screaming — passionate romance, school love, period drama",
                "thuong": "male, plain calm narration — serious drama, biography, war, when no strong mood fits",
                "tinh_nghich": "female, mischievous with laughs then excited — magic / wishes, comedy, light-hearted or sweet romance"}
 assert set(MO_TA_GIONG) == set(KIEU_GIONG), "MO_TA_GIONG phải mô tả đủ mọi kiểu trong KIEU_GIONG"
-# GIỌNG CẤM (anh 27/11/2026 "Đổi hết các giọng AD về dạng thường là mặc định, ko dùng kiểu Kỳ Dị nữa"): kiểu còn trong KIEU_GIONG chỉ để đọc sổ cũ / đo số,
-# máy KHÔNG BAO GIỜ chọn nữa — không mặc định, không AI chọn, không thể loại, không xoay, không ép bằng --giong; anh ghim cũ trỏ vào nó → giọng thường.
-GIONG_CAM = {"ky_di"}
-KIEU_CHON = [k for k in KIEU_GIONG if k not in GIONG_CAM]
-def bo_cam(k): return "thuong" if k in GIONG_CAM else k
-THE_LOAI_GIONG = {"fantasy": "thuong", "soi": "thuong", "vien_tuong": "thuong", "he_thong": "thuong",   # từng là ky_di — cấm 27/11/2026
+# GIỌNG KHÔNG ƯU TIÊN (anh 27/11/2026 "Đổi hết các giọng AD về dạng thường là mặc định" + "ko phải cấm ky_di mà là ko ưu tiên nó"): KHÔNG cấm —
+# --giong ky_di / anh ghim / AI chọn vẫn ra ky_di; chỉ không bao giờ là mặc định, không gắn sẵn cho thể loại nào, xếp CUỐI trong vòng xoay và AI được dặn chỉ chọn khi không kiểu nào khác hợp.
+GIONG_SAU = {"ky_di"}
+KIEU_CHON = [k for k in KIEU_GIONG if k not in GIONG_SAU] + [k for k in KIEU_GIONG if k in GIONG_SAU]   # thứ tự ưu tiên: giọng không ưu tiên xếp cuối
+THE_LOAI_GIONG = {"fantasy": "thuong", "soi": "thuong", "vien_tuong": "thuong", "he_thong": "thuong",   # từng là ky_di — 27/11/2026 ky_di không ưu tiên nên không gắn sẵn cho thể loại
                   "vo_danh": "gao", "ty_phu": "gao", "mafia": "gao", "doi_thuong": "gao",
                   "hoi_han": "cam_xuc", "me_con": "cam_xuc", "tinh_cam": "hao_hung", "hoc_duong": "hao_hung", "co_trang": "hao_hung"}
 UNG_VIEN = 20   # số khung ứng viên gửi AI xếp hạng
@@ -491,17 +490,17 @@ def anh(cid, ten, k, tm, ban=0):
     lop.save(os.path.join(tm, f"chu-{ban}.png"))
     return nen, os.path.join(tm, f"chu-{ban}.png")
 
-# (27/11/2026 anh đổi: mặc định = thuong, ky_di cấm — GIONG_CAM ở trên; đoạn dưới là lý do cũ 18/11)
+# (27/11/2026 anh đổi: mặc định = thuong, ky_di không ưu tiên — GIONG_SAU ở trên; đoạn dưới là lý do cũ 18/11)
 # GIỌNG MẶC ĐỊNH = GIỌNG TỐT NHẤT ĐÃ ĐO (anh 18/11/2026, sổ luật chung giong_at — thay luật xoay 5 giọng 05/11/2026): Brian / ky_di ROI −24% tốt nhất cả trước lẫn sau 12/11,
 # George / thuong −39% tệ nhất. Mọi bản AT (kể cả bản 2, 3… của một phim) đọc giọng này; --giong <kiểu> ép kiểu khác, --giong xoay = cách xoay cũ (đo lại khi cần).
 GIONG_MAC_DINH = json.load(open(os.path.join(D, "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))["giong_at"]["mac_dinh"]
-assert GIONG_MAC_DINH in KIEU_CHON, f"sổ luật giong_at.mac_dinh '{GIONG_MAC_DINH}' là giọng cấm / không có (anh 27/11/2026: mặc định giọng thường)"
-assert not GIONG_CAM & set(THE_LOAI_GIONG.values()), "THE_LOAI_GIONG trỏ vào giọng cấm"
+assert GIONG_MAC_DINH not in GIONG_SAU, f"sổ luật giong_at.mac_dinh '{GIONG_MAC_DINH}' là giọng không ưu tiên (anh 27/11/2026: mặc định giọng thường)"
+assert not GIONG_SAU & set(THE_LOAI_GIONG.values()), "THE_LOAI_GIONG trỏ vào giọng không ưu tiên"
 assert GIONG_MAC_DINH in KIEU_GIONG, f"sổ luật giong_at.mac_dinh '{GIONG_MAC_DINH}' không có trong KIEU_GIONG"
 def kieu_ban(kieu, b, xoay):
     """kiểu giọng của bản thứ b (0 = bản đầu): xoay → lần lượt các kiểu kế (luật 08/11/2026), không xoay → mọi bản cùng một kiểu"""
-    kieu = bo_cam(kieu); ks = KIEU_CHON; return ks[(ks.index(kieu) + b) % len(ks)] if xoay else kieu
-assert kieu_ban("gao", 2, False) == "gao" and kieu_ban("gao", 1, True) == "cam_xuc" and kieu_ban("ky_di", 0, False) == "thuong" and all(kieu_ban("gao", b, True) not in GIONG_CAM for b in range(9))
+    ks = KIEU_CHON; return ks[(ks.index(kieu) + b) % len(ks)] if xoay else kieu
+assert kieu_ban("gao", 2, False) == "gao" and kieu_ban("gao", 1, True) == "cam_xuc" and kieu_ban("ky_di", 0, False) == "ky_di" and KIEU_CHON[-1] in GIONG_SAU
 XOAY = False   # --giong xoay (main đặt lại)
 
 def xoay_giong(ds, yeu_cau):
@@ -509,7 +508,7 @@ def xoay_giong(ds, yeu_cau):
     --giong theo-phim chọn theo thể loại (THE_LOAI_GIONG), --giong xoay = cách 05/11/2026: kiểu ít creative ảnh tĩnh nhất (đếm trong sổ điểm chạm) lên trước,
     không lặp kiểu phim đó đã có."""
     if yeu_cau == "theo-phim": return {int(p["content_id"]): THE_LOAI_GIONG.get(p.get("the_loai") or "", "thuong") for p in ds}
-    if yeu_cau != "xoay": return {int(p["content_id"]): bo_cam(yeu_cau or GIONG_MAC_DINH) for p in ds}
+    if yeu_cau != "xoay": return {int(p["content_id"]): (yeu_cau or GIONG_MAC_DINH) for p in ds}
     # đếm trong CHÍNH sổ điểm chạm (hook.dang + noi_dung.content_id do len-creative ghi) — etp.creative chỉ có creative mới sau lượt đồng bộ 10 phút
     da = json.loads(sql(f"select coalesce(json_agg(x), '[]') from (select (cham->'noi_dung'->>'content_id')::int content_id, cham->'voice'->>'giong' giong from etp.diem_cham "
                         f"where cham->'hook'->>'dang' = '{DANG}' and cham->'voice'->>'giong' is not null) x") or "[]")
@@ -522,11 +521,11 @@ def xoay_giong(ds, yeu_cau):
 def giong_phim(p, ai=None, ghim=None):
     """KIỂU GIỌNG CỦA MỘT PHIM (anh 25/11/2026 "giọng cần phiên bản theo film và theme film") — thứ tự: anh ghim (ô Giọng) → AI chọn theo chủ đề câu chuyện
     (xep_ai chon_giong) → thể loại trong sổ (THE_LOAI_GIONG) → giọng mặc định sổ luật. → (kiểu, nguồn)"""
-    if ghim in KIEU_GIONG: return bo_cam(ghim), "anh ghim"
+    if ghim in KIEU_GIONG: return ghim, "anh ghim"
     if ai in KIEU_CHON: return ai, "AI theo chủ đề phim"
     tl = THE_LOAI_GIONG.get(p.get("the_loai") or "")
     return (tl, f"thể loại {p.get('the_loai')}") if tl else (GIONG_MAC_DINH, "mặc định sổ luật")
-assert giong_phim({}, "ky_di")[0] == GIONG_MAC_DINH and giong_phim({}, None, "ky_di")[0] == "thuong" and giong_phim({"the_loai": "fantasy"})[0] == "thuong", "giọng cấm vẫn lọt"
+assert giong_phim({}, "ky_di")[0] == "ky_di" and giong_phim({}, None, "ky_di")[0] == "ky_di" and giong_phim({"the_loai": "fantasy"})[0] == "thuong" and giong_phim({})[0] not in GIONG_SAU, "ky_di phải dùng được khi chọn rõ, nhưng không là mặc định (anh 27/11/2026 không ưu tiên, không cấm)"
 assert giong_phim({"the_loai": "mafia"}) == ("gao", "thể loại mafia") and giong_phim({}, "tinh_nghich")[0] == "tinh_nghich" and giong_phim({}, "x", "cam_xuc")[0] == "cam_xuc" and giong_phim({})[0] == GIONG_MAC_DINH
 
 def giong_ban(kg, ng, thu=0):

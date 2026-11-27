@@ -82,7 +82,6 @@ if __name__ == "__main__":
         s_ = importlib.util.spec_from_file_location("anh_tinh", os.path.join(D, "anh-tinh.py")); AT = importlib.util.module_from_spec(s_); s_.loader.exec_module(AT)
         kieu, _, mau = gy.partition(":"); lg = loc[:2].lower(); mau = int(mau or 0) % len(AT.CAU[lg]); ten_ = AT.ten_sach(ten)
         if kieu == "phim": kieu = AT.giong_phim({"the_loai": tl})[0]
-        if kieu in AT.GIONG_CAM: raise SystemExit(f"kiểu giọng '{kieu}' bị cấm (anh 27/11/2026 — mặc định giọng thường)")
         if kieu not in AT.KIEU_GIONG: raise SystemExit(f"kiểu giọng '{kieu}' không có trong anh-tinh.KIEU_GIONG ({', '.join(AT.KIEU_GIONG)})")
         hook, vnd_hook = AT.hook_phim(cid, lg, ten_, thu=thu_hook if thu_hook is not None else mau)   # bản thứ N của phim → hook thứ N (anh 27/11/2026 "Ko cho chạy đồng thời")   # hook giữ chân cốt truyện trong câu đọc (anh 27/11/2026) — sổ hook_phim, chỉ gọi AI lần đầu mỗi phim
         mp3, vnd, _ = AT.giong(cid, lg, ten_, kieu, os.path.dirname(lop), mau, hook)

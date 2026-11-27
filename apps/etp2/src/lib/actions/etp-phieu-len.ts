@@ -32,7 +32,7 @@ const CU_TOI_DA = 10, CAMP_TOI_DA = 20;
 const CAU = (SO_MAU as unknown as { thu_vien: { giong: { cau: Record<string, string[][]> } } }).thu_vien.giong.cau;
 const GIONG_MAC = (BANG_LUAT as unknown as { giong_at: { mac_dinh: string } }).giong_at.mac_dinh;
 // trùng apps/xuong-video/scripts/ethopex/anh-tinh.py THE_LOAI_GIONG (giong_phim: anh ghim → AI theo chủ đề → thể loại → mặc định) — chỉ để BÁO trước, máy vẫn tự chọn khi anh không ghim
-const THE_LOAI_GIONG: Record<string, string> = { fantasy: 'thuong', soi: 'thuong', vien_tuong: 'thuong', he_thong: 'thuong',   /* ky_di cấm 27/11/2026 */ vo_danh: 'gao', ty_phu: 'gao', mafia: 'gao', doi_thuong: 'gao',
+const THE_LOAI_GIONG: Record<string, string> = { fantasy: 'thuong', soi: 'thuong', vien_tuong: 'thuong', he_thong: 'thuong',   /* ky_di không ưu tiên 27/11/2026 — không gắn sẵn cho thể loại */ vo_danh: 'gao', ty_phu: 'gao', mafia: 'gao', doi_thuong: 'gao',
   hoi_han: 'cam_xuc', me_con: 'cam_xuc', tinh_cam: 'hao_hung', hoc_duong: 'hao_hung', co_trang: 'hao_hung' };
 export type CrCu = { goc: number; nguon: number; dang: string | null; anh: string | null; giong: string | null; n_ban: number; n_camp: number; n_chi: number;
   chi: number; thu: number; chi7: number; thu7: number; ngay: string | null; gan_camp: number | null; gan_tt: string | null;

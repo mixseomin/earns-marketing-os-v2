@@ -24,6 +24,7 @@ import { kieuCr } from '@/lib/etp-doc';
 export type ChoDuyet = {
   creative_id: number; content_id: number | null; phim: string | null; lang: string | null; dang: string | null; video: string | null; anh: string | null;
   /** giọng đọc (ky_di…) — giongCr (#1844 "show thêm kiểu giọng") */ giong: string | null;
+  /** CÂU ĐỌC TRONG VIDEO (anh 27/11/2026 "Show chi tiết rõ ràng Câu đọc trong video ra ngay ngoài"): lời máy chấm nghe từ video (etp.cham.lop.giong) + ngôn ngữ nghe được */ cau_doc: string | null; cau_nn: string | null;
   ghi: string; tao: string; duyet: boolean | null; /** ✎ Sửa lại (#1863, 0477): duyet = false + cờ này */ sua_lai?: boolean; diem_thap: string | null; camp_id: number | null; trang_thai: string | null; nhat_ky: string | null;
   /** nhận xét anh ghi trước đó cho creative KHÁC của cùng phim (etp.nhan_xet_cr, 0474) — đọc lại để thấy hướng sửa đã nêu */ nx: { cr: number; ok: boolean; sua?: boolean; chu: string; luc: string }[];
   /** '1.1|5' = mức ★ ROAS · $ máy sẽ lên — view etp.ke_cr (khối dàn muc 0.9/1.0/1.1/1.2 theo creative · sổ len_cr_roas), trống = hoi_cho */ roas: string | null;
@@ -48,7 +49,9 @@ function nhatKy(cr: number): string | null {
 export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean } | { loi: string }> {
   const me = await getCurrentUser();
   if (me?.role !== 'admin') return { loi: 'chỉ admin' };
-  const ds = await run<Omit<ChoDuyet, 'nhat_ky' | 'ke' | 'tl' | 'tlLoi' | 'nx'>>(sql`select h.creative_id, r.content_id, f.ten phim, r.lang, r.dang, r.video, r.anh, ${giongCr('h.creative_id')} giong, h.ghi, h.tao::text tao, u.ok duyet, coalesce(u.sua_lai, false) sua_lai,
+  const ds = await run<Omit<ChoDuyet, 'nhat_ky' | 'ke' | 'tl' | 'tlLoi' | 'nx'>>(sql`select h.creative_id, r.content_id, f.ten phim, r.lang, r.dang, r.video, r.anh, ${giongCr('h.creative_id')} giong,
+      (select nullif(c.lop -> 'giong' ->> 'noi_dung', '') from etp.cham c where c.creative_id = h.creative_id) cau_doc,
+      (select nullif(c.lop -> 'giong' ->> 'ngon_ngu', '') from etp.cham c where c.creative_id = h.creative_id) cau_nn, h.ghi, h.tao::text tao, u.ok duyet, coalesce(u.sua_lai, false) sua_lai,
       (select string_agg(e.k || ' ' || e.v, ', ' order by e.v::numeric) from etp.cham c, jsonb_each_text(c.diem) e(k, v)
         where c.creative_id = h.creative_id and (e.k like 'meta.%' or e.k like 'afs.%') and e.v::numeric <= 4) diem_thap,
       k.camp_id, k.trang_thai,

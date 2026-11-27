@@ -36,6 +36,7 @@ function TomTl({ x }: { x: ChoDuyet }) {
     {/* #1844 "show thêm kiểu giọng áp dụng với loại creative này": giọng đọc lúc dựng (giongCr — ghi thư viện, lùi về sổ điểm chạm); người đọc + cách đọc ở rê chuột */}
     {dong('Giọng', x.giong ? `${tenGiong(x.giong)} (${maGiong(x.giong)})` : null,
       x.giong ? (MO_TA_GIONG[x.giong] ?? tenGiong(x.giong) ?? '') : 'bản dựng trước 25/11 không lưu lại giọng đã dùng — từ 25/11 mỗi lượt dựng ra 2 bản: giọng mặc định (kỳ dị) + giọng hợp chủ đề phim')}
+    <CauDocThe x={x} />
     {dong('Ngôn ngữ', t.g_ngon_ngu || 'All languages', 'nhan-ban bỏ targeting.locales của mọi camp — không nhắm ngôn ngữ (luật cố định 24/11/2026)', t.g_ngon_ngu ? '#f87171' : '#4ade80')}
     {dong('Nước', nuoc, [t.g_nuoc, t.g_loai_nuoc ? `loại: ${t.g_loai_nuoc}` : ''].filter(Boolean).join('\n'))}
     {dong('Tuổi · GT', [t.g_tuoi, t.g_gioi ? t.g_gioi.split(', ').map((g) => (g === '1' ? 'Male' : g === '2' ? 'Female' : g)).join(', ') : 'All genders'].filter(Boolean).join(' · ') || null,
@@ -52,6 +53,21 @@ function TomTl({ x }: { x: ChoDuyet }) {
   </div>;
 }
 
+/** CÂU ĐỌC TRONG VIDEO ra ngay trên thẻ (anh 27/11/2026 "Câu đọc chính là điểm chạm đầu tiên của Hook" · "Show chi tiết rõ ràng Câu đọc trong video ra ngay ngoài"):
+ *  lời máy chấm nghe từ video (etp.cham.lop.giong). Cảnh cuối logo (CC2) không có giọng đọc hook — chỉ thoại gốc phim → ghi rõ. Tiếng nghe được khác tiếng camp → báo đỏ. */
+function CauDocThe({ x }: { x: ChoDuyet }) {
+  const cc = /cảnh cuối|canh cuoi/i.test(x.dang ?? '');
+  const lech = !!(x.cau_nn && x.lang && x.cau_nn.slice(0, 2).toLowerCase() !== x.lang.slice(0, 2).toLowerCase());
+  return <div data-o="cau-doc-the" style={{ display: 'flex', gap: 6, minWidth: 0 }}>
+    <span style={{ flex: 'none', width: 62, color: 'var(--fg-3, #888)' }}>Câu đọc</span>
+    <span style={{ minWidth: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {cc ? <b style={{ color: '#f59e0b' }}>không có giọng đọc hook — video chỉ có thoại gốc phim:</b> : null}
+      {lech ? <b style={{ color: '#f87171' }}>⚠ tiếng nghe được {x.cau_nn!.toUpperCase()} ≠ tiếng camp {x.lang!.toUpperCase()}</b> : null}
+      {x.cau_doc ? <span style={cc ? { color: 'var(--fg-2)', fontStyle: 'italic' } : undefined}>“{x.cau_doc.length > 240 ? `${x.cau_doc.slice(0, 240)}…` : x.cau_doc}”</span>
+        : <span style={{ color: 'var(--fg-3, #888)' }}>chưa nghe được lời đọc (máy chấm chưa chấm creative này)</span>}
+    </span></div>;
+}
+
 /** NHẬN XÉT ĐÃ GHI cho creative khác của cùng phim (etp.nhan_xet_cr) — anh thấy mình đã dặn gì, con thấy hướng sửa */
 function NhanXetCu({ ds }: { ds: ChoDuyet['nx'] }) {
   if (!ds?.length) return null;
@@ -66,13 +82,9 @@ function NhanXetCu({ ds }: { ds: ChoDuyet['nx'] }) {
 function TrangThaiCr({ x, dk }: { x: ChoDuyet; dk: boolean }) {
   const lich = x.tl?.g_lich ?? null;
   const hien = x.duyet == null ? { chu: '⏸ Chờ duyệt', mau: '#f59e0b' } : x.duyet === false && x.sua_lai ? { chu: '✎ Sửa lại', mau: SUA_MAU } : x.duyet === false ? { chu: '✕ Đã loại', mau: '#f87171' } : x.camp_id ? { chu: `✓ camp #${x.camp_id} (${x.trang_thai ?? '?'})`, mau: '#4ade80' } : { chu: '⏳ Chờ lên camp', mau: '#60a5fa' };
-  return <div data-o="tt-cr" style={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: 11.5, borderTop: '1px solid var(--line)', paddingTop: 4 }}>
-    <div><span style={{ color: 'var(--fg-3, #888)' }}>Hiện tại: </span><b style={{ color: hien.mau }}>{hien.chu}</b></div>
-    {x.duyet == null ? <>
-      <div title={GIAI}><span style={{ color: 'var(--fg-3, #888)' }}>Duyệt → </span><b style={{ color: '#60a5fa' }}>⏳ Chờ lên camp</b> · máy tạo camp {kieu(x.roas)}{dk ? ' khi nhả dừng khẩn' : lich ? ` lúc ${lich}` : ''}</div>
-      <div title={GIAI_SUA}><span style={{ color: 'var(--fg-3, #888)' }}>Sửa lại → </span><b style={{ color: SUA_MAU }}>✎ Sửa lại</b> · không lên camp, con dựng lại theo nhận xét</div>
-      <div><span style={{ color: 'var(--fg-3, #888)' }}>Loại → </span><b style={{ color: '#f87171' }}>✕ Loại</b> · không lên camp</div>
-    </> : null}
+  const sau = x.duyet == null ? `\nDuyệt → ⏳ Chờ lên camp · máy tạo camp ${kieu(x.roas)}${dk ? ' khi nhả dừng khẩn' : lich ? ` lúc ${lich}` : ''}\nSửa lại → ✎ Sửa lại · không lên camp, con dựng lại theo nhận xét\nLoại → ✕ Loại · không lên camp` : '';
+  return <div data-o="tt-cr" title={`Hiện tại: ${hien.chu}${sau}`} style={{ fontSize: 11.5, borderTop: '1px solid var(--line)', paddingTop: 4, cursor: 'help' }}>
+    <span style={{ color: 'var(--fg-3, #888)' }}>Hiện tại: </span><b style={{ color: hien.mau }}>{hien.chu}</b>
   </div>;
 }
 
@@ -118,9 +130,9 @@ function NutDuyet({ cr, roas, lich, dk, dang, bam }: { cr: number; roas: string 
     </div>;
   }
   return <div style={{ display: 'flex', gap: 6 }}>
-    <button type="button" disabled={dang} onClick={() => setHoi(true)} style={{ ...nut, borderColor: '#22c55e', color: '#4ade80', fontWeight: 600 }}>{dang ? '…' : '✓ Duyệt'}</button>
+    <button type="button" disabled={dang} onClick={() => setHoi(true)} title={`Duyệt → ⏳ Chờ lên camp · máy tạo camp ${kieu(roas)}${dk ? ' khi nhả dừng khẩn' : lich ? ` lúc ${lich}` : ''}\n${GIAI}`} style={{ ...nut, borderColor: '#22c55e', color: '#4ade80', fontWeight: 600 }}>{dang ? '…' : '✓ Duyệt'}</button>
     <button type="button" data-o="nut-sua-lai" disabled={dang} onClick={() => setHoi('sua')} title={GIAI_SUA} style={{ ...nut, borderColor: '#f97316', color: SUA_MAU }}>✎ Sửa lại</button>
-    <button type="button" disabled={dang} onClick={() => setHoi(false)} style={{ ...nut, borderColor: '#ef4444', color: '#f87171' }}>✕ Loại</button>
+    <button type="button" disabled={dang} onClick={() => setHoi(false)} title="Loại → ✕ Loại · creative không bao giờ lên camp" style={{ ...nut, borderColor: '#ef4444', color: '#f87171' }}>✕ Loại</button>
   </div>;
 }
 

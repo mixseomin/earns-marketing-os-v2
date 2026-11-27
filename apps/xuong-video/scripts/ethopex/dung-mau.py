@@ -676,28 +676,15 @@ def dt_ten_tren_nut_duoi(c):
     nut(lop, cta(c, "WATCH NOW!"), int(H * 0.74), ph("georgia_bi", 64), (40, 24, 10), (255, 236, 190), (214, 160, 50), (70, 18))
     nen = nen_dat_mat(c, hop[3] + 40, int(H * 0.74) - 40); return (None if nen == c["nen"] else nen), lop   # mặt nằm GIỮA đáy tên và nút
 
-# ---------- ẢNH ĐỘNG: khung sạch → AI chuyển động (cổng AI chung spy.on.tc/api/ai, video_gui / video_doc) → lớp phủ hiện ở giây 1,5 ----------
+# ---------- ẢNH ĐỘNG: khung sạch → VideoExpress chuyển động (scripts/vx-mot.mts, 0₫ — anh 27/11/2026 cấm cổng video trả tiền cho AD) → lớp phủ hiện ở giây 1,5 ----------
 DONG = {"dt_anh_dong_logo"}   # mẫu có nền chuyển động (dạng ảnh tĩnh mở rộng thành ảnh động)
 DONG_GIAY, DONG_HIEN = 8, 1.5   # giây clip AI · giây lớp phủ (logo + nút) hiện
 DONG_LENH = ("Subtle cinematic motion of this exact still frame from a short drama: slow camera push-in, gentle movement of hair, clothes and light, natural breathing "
              "and small eye movement. Keep every face, person, outfit and the composition exactly the same, no new people, no text, no logo, no cuts, no scene change.")
-def _cong(b, han=120):
-    k = dict(l.strip().split("=", 1) for l in open(os.path.expanduser("~/.secrets/cong-ai.env")) if "=" in l)["CONG_AI_KEY"].strip().strip('"')
-    try:
-        r = urllib.request.urlopen(urllib.request.Request("https://spy.on.tc/api/ai", method="POST", headers={"authorization": f"Bearer {k}", "content-type": "application/json", "user-agent": "Mozilla/5.0 dung-mau"},
-                                   data=json.dumps({"viec": "etp-dung-mau", **b}).encode()), timeout=han)
-        j = json.loads(r.read())
-    except urllib.error.HTTPError as e:   # cổng trả 4xx KÈM thân JSON (vd video_doc {done, ok:false, treo:true}) — đọc thân, không ném HTTPError trơn (25/11/2026: PlenX treo → 'HTTP Error 400' sau 15 phút, không gửi lại)
-        try: j = json.loads(e.read())
-        except Exception: raise RuntimeError(f"cổng AI HTTP {e.code}") from None
-        if b.get("loai") == "video_doc" and j.get("done"): return j
-    if j.get("loi"): raise RuntimeError(f"cổng AI: {str(j['loi'])[:300]}")
-    return j
-DONG_LUI = [("kie", "kie:veo3_lite"), ("shopaikey", "shopaikey:grok-video-3-10s")]   # cổng TREO (nhận việc nhưng không chạy) → gửi lại ép cổng kế, theo đúng thứ tự chuỗi rẻ → đắt của cổng (spy cong-media chuoiVideo)
 LAT_LECH = 4.0   # chênh trung bình (/255) tối đa giữa khung lật và gương của khung cũ để coi là cùng khung
 CHI_LAT = [False]   # --lat: cấm gửi AI chuyển động (chỉ lật clip đã trả)
 def chuyen_dong(nen, tm, cid, ma, b):
-    """khung sạch (chưa chữ) → clip AI 8 giây 9:16 → (tệp mp4, ₫). Ảnh đưa lên R2 qua box3 (tai-len.mts) làm anh_dau; cổng tự lùi nếu cổng đầu lỗi."""
+    """khung sạch (chưa chữ) → clip VideoExpress 9:16 (scripts/vx-mot.mts, 0₫) → (tệp mp4, 0). Lỗi thì dừng kêu to, không lùi về cổng video trả tiền."""
     _l = "-lat" if CHI_LAT[0] else ""   # bản lật mang tên riêng: chung tên dong-<mẫu>-<b> với clip gốc thì vòng dưới bỏ qua đúng clip gương của nó + ghi đè clip đã trả
     jpg = os.path.join(tm, f"dong-{ma}{_l}-{b}.jpg"); moi = Image.open(nen).convert("RGB"); ra = os.path.join(tm, f"dong-{ma}{_l}-{b}.mp4")
     # DỰNG LẠI CÙNG KHUNG = DÙNG LẠI CLIP ĐÃ TRẢ TIỀN (anh 25/11/2026 thêm nhãn "All Episodes" vào mẫu → dựng lại creative Genie): clip AI chỉ phụ thuộc khung sạch,
@@ -720,44 +707,32 @@ def chuyen_dong(nen, tm, cid, ma, b):
             moi.save(jpg, quality=92); print(f"chuyển động: khung lật của {os.path.basename(j)} → clip đó lật ngang · 0₫", flush=True); return ra, 0
     if CHI_LAT[0]: raise RuntimeError(f"--lat: không tìm thấy clip đã trả tiền khớp khung gốc của bản lật (lệch /255, ngưỡng {LAT_LECH}: {', '.join(ds_lech) or 'không có clip'}) — không gửi AI (giữ giá ~0₫)")
     moi.save(jpg, quality=92)
-    tmb = f"/var/tmp/anh-dong/{int(cid)}"; AT.sh("ssh", AT.B, f"mkdir -p {tmb}", han=60)
-    r = AT.sh("rsync", "-q", jpg, f"{AT.B}:{tmb}/", han=300)
-    if r.returncode: raise RuntimeError(f"đẩy khung lên box3 lỗi: {(r.stderr or r.stdout)[-200:]}")
-    r = AT.sh("ssh", AT.B, f"{AT.XV} scripts/tai-len.mts {tmb}/{os.path.basename(jpg)} etp-anh-dong", han=180)
-    url = next((x for x in r.stdout.split() if x.startswith("https://")), None)
-    if not url: raise RuntimeError(f"tải khung lên kho ảnh lỗi: {(r.stderr or r.stdout)[-200:]}")
-    # lượt đã trả tiền ghi ra sổ TRƯỚC khi chờ: lỗi ở bước chờ / tải thì lần chạy sau dùng lại task, không gửi (trả tiền) lần nữa
-    so = os.path.expanduser(f"~/.cache/ethopex/anh-dong/{int(cid)}-{ma}-{b}.json"); os.makedirs(os.path.dirname(so), exist_ok=True)
-    g = json.load(open(so)) if os.path.exists(so) and time.time() - os.path.getmtime(so) < 6 * 3600 else None
-    if g: print(f"dùng lại lượt đã trả: task {g.get('task_id')} ({so})", flush=True)
-    ep, vnd = None, 0
-    for _ in range(len(DONG_LUI) + 1):
-        if not g:
-            g = _cong({"loai": "video_gui", "ma": f"{ma}:{cid}", "prompt": DONG_LENH, "anh_dau": url, "giay": DONG_GIAY, "ti_le": "9:16", "bo_chinh_hang": True, **({"cong": ep[0], "model": ep[1]} if ep else {})})
-            json.dump(g, open(so, "w"))
-        v1 = int(g.get("vnd") or round((g.get("chi_usd") or 0) * 26000)); vnd += v1; print(f"chuyển động: {g.get('cong')}:{g.get('model')} · {v1}₫ · task {g.get('task_id')}", flush=True)
-        t0 = time.time()
-        while True:
-            time.sleep(10)
-            d = _cong({"loai": "video_doc", "cong": g["cong"], "task_id": g["task_id"], "tao_luc": g.get("tao_luc")})
-            if d.get("done"): break
-            if time.time() - t0 > 1200: raise RuntimeError(f"AI chuyển động quá 20 phút chưa xong ({g.get('cong')} task {g.get('task_id')})")
-        # cổng TREO hoặc TỪ CHỐI (kiểm duyệt riêng của cổng, vd PlenX "Ảnh/video chứa người nổi tiếng" — 27/11/2026 #1897 bản dựng lại Undercover chết ở đây vì
-        # trước chỉ lùi khi treo) → gửi lại cổng kế trong chuỗi; hết cổng mới dừng kêu to.
-        if d.get("ok"): break
-        sau = [x for i, x in enumerate(DONG_LUI) if i > next((j for j, y in enumerate(DONG_LUI) if y[0] == g.get("cong")), -1)]
-        if not sau: break
-        print(f"{g.get('cong')} {'treo' if d.get('treo') else 'từ chối'} ({d.get('loi')}) → gửi lại qua {sau[0][1]}", flush=True)
-        os.remove(so); ep, g = sau[0], None
-    if not d.get("ok") or not d.get("uri"): raise RuntimeError(f"AI chuyển động hỏng ({g.get('cong')}): {str(d.get('loi'))[:300]}")
-    if d.get("can_khoa"):
-        import base64; open(ra, "wb").write(base64.b64decode(_cong({"loai": "video_tai", "uri": d["uri"]}, 400)["video_b64"]))
-    else:  # kho clip (CDN) chặn user-agent mặc định của Python → 403
-        with urllib.request.urlopen(urllib.request.Request(d["uri"], headers={"user-agent": "Mozilla/5.0 dung-mau"}), timeout=300) as r: open(ra, "wb").write(r.read())
-    try: _cong({"loai": "video_xoa", "cong": g["cong"], "uri": d["uri"]})
-    except Exception as e: print("xoá clip trên cổng lỗi (bỏ qua):", e, file=sys.stderr)
+    # CHỈ VIDEOEXPRESS (anh 27/11/2026: "AD chỉ lên qua ckey hoặc VideoExpress · dùng videoexpress để làm video") — ckey không bán video, cổng AI chung
+    # rơi xuống Kie veo3_lite 4.550₫/bản. VideoExpress = tài khoản đã mua trọn, 0₫, chạy qua phiên br trên iMac (scripts/vx-mot.mts). Lỗi thì DỪNG, không lùi về cổng trả tiền.
+    # Sổ uuid ghi TRƯỚC khi chờ: lỗi giữa chừng thì lần chạy sau chỉ chờ + tải đúng việc đã gửi, không gửi trùng.
+    so = os.path.expanduser(f"~/.cache/ethopex/anh-dong/{int(cid)}-{ma}-{b}.vx.json"); os.makedirs(os.path.dirname(so), exist_ok=True)
+    g = json.load(open(so)) if os.path.exists(so) and time.time() - os.path.getmtime(so) < 24 * 3600 else {}
+    lenh = os.path.join(tm, f"dong-{ma}-{b}.txt"); open(lenh, "w").write(DONG_LENH)
+    xv = os.path.normpath(os.path.join(D, "..", ".."))
+    for lan in range(2):   # lần 2: uuid cũ VideoExpress bỏ việc → gửi lại một lần
+        th = ["--ra", ra, *(["--uuid", g["uuid"]] if g.get("uuid") else ["--anh", jpg, "--prompt-tep", lenh])]
+        tsx = next((x for x in (os.path.join(xv, "..", "..", "node_modules", ".bin", "tsx"), os.path.expanduser("~/Me/GitHub/earns-marketing-os-v2/node_modules/.bin/tsx")) if os.path.exists(x)), None)
+        if not tsx: raise RuntimeError("không thấy tsx (node_modules của repo) để chạy scripts/vx-mot.mts")
+        p = subprocess.Popen([tsx, "scripts/vx-mot.mts", *th], cwd=xv, stdout=subprocess.PIPE, text=True,
+                             env={**os.environ, "NODE_OPTIONS": "--conditions=react-server"})
+        kq = {}
+        for dong in p.stdout:
+            if not dong.startswith("VX: "): continue
+            kq = json.loads(dong[4:])
+            if kq.get("gui"): json.dump({"uuid": kq["uuid"]}, open(so, "w")); print(f"chuyển động: videoexpress · 0₫ · việc {kq['uuid']}", flush=True)
+        p.wait(timeout=60)
+        if kq.get("ok"): break
+        if g.get("uuid") and "bỏ việc" in str(kq.get("loi")): os.remove(so); g = {}; continue
+        raise RuntimeError(f"VideoExpress chuyển động hỏng: {kq.get('loi') or f'vx-mot thoát mã {p.returncode}'}")
+    if not kq.get("ok"): raise RuntimeError(f"VideoExpress chuyển động hỏng: {kq.get('loi')}")
+    print(f"chuyển động: videoexpress xong · {kq.get('giay')}s {kq.get('kho')} · 0₫", flush=True)
     os.remove(so)
-    return ra, vnd
+    return ra, 0
 GIONG_TRE = 0.4   # giọng vào sau 0,4s (adelay của dung_dong)
 NHIP_GIAY, NHIP_NAY = 1.8, 0.5   # độ dài hiệu ứng nút · giây mỗi nhịp nảy
 def moc_cta(mp3, cau_cta):

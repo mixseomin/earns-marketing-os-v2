@@ -1023,6 +1023,9 @@ const LUAT = [
   { card: 'mau-doi-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'function MauDoiPop(', vi: 'anh 27/11/2026: hover dòng chữ hiện mẫu chữ đội đang thắng' },
   { card: 'mau-doi-2711', tep: 'apps/etp2/src/components/etp-co-vi.tsx', co: 'them', vi: 'ChuVi nhận khối them để hiện mẫu đội' },
   { card: 'mau-doi-2711', tep: 'apps/etp/dong-bo.py', co: 'etp.chu_doi', vi: 'dong-bo đọc chữ creative đội lãi vào etp.chu_doi' },
+  { card: 'phim-doi-2711', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<PhimDoiChuaCo />', vi: 'anh 27/11/2026: tab Camp › Theo phim có danh sách phim đội có camp mà nhà chưa có' },
+  { card: 'phim-doi-2711', tep: 'apps/etp2/src/components/etp-phim-doi.tsx', co: "openEntityDrawer('etp-phieu-len', r.cid)", vi: 'mỗi phim đội có nút mở Phiếu lên camp' },
+  { card: 'phim-doi-2711', tep: 'apps/etp2/src/lib/actions/etp-phim-doi.ts', co: 'where not exists (select 1 from etp.camp k where k.content_id = d.cid)', vi: 'chỉ phim nhà chưa có camp nào' },
 ];
 
 const loi = [];

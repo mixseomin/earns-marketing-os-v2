@@ -28,6 +28,7 @@ import { NHOM_DANG, DS_DANG, dangTheoTen } from '@/lib/etp-dang';
 import { maGiong } from '@/lib/etp-dang';
 import { lyDoChan, chuChan, type TieuChi } from '@/lib/etp-chan';
 import { openEntityDrawer } from '@/lib/entity-drawer';
+import { PhimDoiChuaCo } from '@/components/etp-phim-doi';   // phim đội có camp, nhà chưa có — đầu tab Theo phim (anh 27/11/2026)
 import { wrapHref } from '@/components/external-link';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
@@ -3929,7 +3930,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
           cot: [...cotCamp.filter((k) => k.key === 'phim' || /^kh_/.test(k.key)).map((k) => (k.key === 'phim' ? { ...k, group: 'cr', width: 250 } : k)), ...cotNgay],
           nhom: [{ key: 'cr', label: 'Creative', color: '#34d399', title: 'phim · creative đang gắn vào camp (bấm ảnh xem video)' }, NHOM_NGAY, ...NHOM.filter((g) => g.key === 'kh')] }} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} trangThai={ttCamp} keHoach={keHoachTl} keDong={keDongTl} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
-        <CayCamp camps={camps} hang={hangLoc} hl={hlCamp} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e, camp) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr, camp }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} />
+        <>{!laNguoi ? <PhimDoiChuaCo /> : null}<CayCamp camps={camps} hang={hangLoc} hl={hlCamp} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e, camp) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr, camp }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} /></>
       ) : tab === 'camp' ? (
         <>
         <TongPhim du={du} ckh={ckh} anh={anh} tl={tl} khTen={khNhan} chon={phimLoc} onChon={doiPhim} />

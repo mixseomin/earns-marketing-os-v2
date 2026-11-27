@@ -72,7 +72,7 @@ def loc(lo, ma):
     return di, moi, ra
 
 # GẮN THẺ VÀO PHIẾU (0489): thẻ thứ i của phiếu nhận mức roas_ds[i]; phiếu đủ thẻ (= số mức) thì thẻ dư không gắn. Dùng ở ghi_cho (CC2) và dung-mau.py (AD).
-SQL_GAN_PHIEU = ("update etp.cho_len c set phieu_id = p.id, phieu_roas = coalesce(p.roas_ds, array[p.roas])[1 + (select count(*) from etp.cho_len x where x.phieu_id = p.id and x.trang_thai <> 'bo')] "
+SQL_GAN_PHIEU = ("update etp.cho_len c set phieu_id = p.id, phieu_roas = (coalesce(p.roas_ds, array[p.roas]))[1 + (select count(*) from etp.cho_len x where x.phieu_id = p.id and x.trang_thai <> 'bo')] "
                  "from etp.phieu_len p where p.id = {p} and {dk} and c.phieu_id is null "
                  "and (select count(*) from etp.cho_len x where x.phieu_id = p.id and x.trang_thai <> 'bo') < coalesce(array_length(p.roas_ds, 1), 1)")
 PHIEU_DANG = {"canh cuoi logo": "CC2", "cảnh cuối logo": "CC2", "ảnh động": "AD", "anh dong": "AD",

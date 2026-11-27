@@ -1086,9 +1086,11 @@ def xem_soan():
                    f"xem_loi = {s_(loi)}, xem_xong = now(){', xem_anh = ' + s_(anh) if anh else ''} where id = {int(s['id'])}")
 
 def hang():
-    """mọi phim anh chọn (etp.mau_phim) cho mẫu có hàm vẽ ở đây mà chưa dựng xong / chưa đang dựng"""
-    ds = AT.sql(bang_sql() + " select m.mau || ':' || m.content_id from etp.mau_phim m left join etp.mau_dung d using (mau, content_id) "
-                f"where m.mau in ({','.join(s_(x) for x in HAM)}) and (d.mau is null or d.trang_thai = 'cho') order by d.cap_nhat nulls first, m.luc")
+    """mọi phim anh chọn (etp.mau_phim) HỢP mọi việc ghi thẳng vào etp.mau_dung 'cho' (phiếu lên camp etp2 — chỉ ghi mau_dung, không ghi mau_phim;
+    27/11/2026 phiếu #1 AD nằm chờ mãi vì hàng chỉ đọc mau_phim) cho mẫu có hàm vẽ ở đây mà chưa dựng xong / chưa đang dựng"""
+    ds = AT.sql(bang_sql() + " select m.mau || ':' || m.content_id from (select mau, content_id, luc from etp.mau_phim union select mau, content_id, cap_nhat from etp.mau_dung where trang_thai = 'cho') m "
+                "left join etp.mau_dung d using (mau, content_id) "
+                f"where m.mau in ({','.join(s_(x) for x in HAM)}) and (d.mau is null or d.trang_thai = 'cho') group by m.mau, m.content_id order by min(d.cap_nhat) nulls first, min(m.luc)")
     for l in [x for x in (ds or "").splitlines() if ":" in x]:
         ma, cid = l.split(":")
         try: mot(ma, int(cid))

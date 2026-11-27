@@ -1099,7 +1099,8 @@ def mau_hang():
     if SX[0].get("khan") or time.time() - MAU_HANG["luot"] < 120 or (MAU_HANG["th"] and MAU_HANG["th"].is_alive()): return   # dừng khẩn: không dựng theo mẫu
     MAU_HANG["luot"] = time.time(); py = os.path.expanduser("~/.venvs/poster-mau/bin/python")
     if not os.path.exists(py): return
-    try: n = int(sql("select count(*) from etp.mau_phim m left join etp.mau_dung d using (mau, content_id) where d.mau is null or (d.trang_thai = 'cho' and (d.buoc = 'cho' or d.cap_nhat < now() - interval '20 minutes'))") or 0)
+    # nguồn việc = phim anh chọn (etp.mau_phim) HỢP việc đã ghi thẳng vào etp.mau_dung 'cho' (phiếu lên camp etp2 chỉ ghi mau_dung — 27/11/2026 phiếu #1 AD nằm 'dung' vì hàng chỉ đọc mau_phim)
+    try: n = int(sql("select count(*) from (select mau, content_id from etp.mau_phim union select mau, content_id from etp.mau_dung where trang_thai = 'cho') m left join etp.mau_dung d using (mau, content_id) where d.mau is null or (d.trang_thai = 'cho' and (d.buoc = 'cho' or d.cap_nhat < now() - interval '20 minutes'))") or 0)
     except Exception: return   # bảng chưa có / box3 không tới được → lượt sau
     if not n: return
     def chay():

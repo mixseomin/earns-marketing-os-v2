@@ -119,6 +119,9 @@ function DsBai({ ds, chon, bat, mien }: { ds: BaiCu[]; chon: string[]; bat: (b: 
       </label>; })}</div>;
 }
 
+/** trạng thái phiếu lên camp (etp.phieu_len.trang_thai) bằng chữ người đọc — không in mã thô 'dung' (anh 27/11/2026 "cái gì đây") */
+const TT_PHIEU: Record<string, string> = { dung: 'đang chờ máy dựng creative (iMac)', cho_duyet: 'bản dựng đã vào Chờ lên, chờ anh duyệt', len: 'đang lên camp', loi: 'lỗi, xem Chờ lên' };
+const gioVn = (t: string) => new Date(t).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
 const TT_HANG: Record<string, string> = { moi: 'đang xếp chấm', dang: 'đang chấm', xong: 'chấm xong — video không có lời đọc', loi: 'chấm lỗi', giu_phanh: 'giữ (phanh chợ)' };
 /** CÂU ĐỌC CỦA ĐỘI để so với câu nhà (anh 27/11/2026 "câu đọc này cũng phải show của đội để so sánh"): lời đọc creative đội phim này + đội đang lãi cùng ngôn ngữ — chỉ xem, không chọn */
 function CauDoi({ ds, b }: { ds: CauDoi[]; b: BanVi }) {
@@ -355,7 +358,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
     <button className="modal-close" onClick={onClose}>✕</button></div>;
 
   const form = p ? <>
-    {p.dang_cho.length ? <div style={{ fontSize: 12, color: VANG, marginBottom: 8 }}>phiếu đang dở: {p.dang_cho.map((x) => `#${x.id} ${x.dang} (${x.trang_thai})`).join(' · ')}</div> : null}
+    {p.dang_cho.length ? <div style={{ fontSize: 12, color: VANG, marginBottom: 8 }} data-phieu-dang>Phiếu đã gửi cho phim này, chưa xong: {p.dang_cho.map((x) => `#${x.id} ${x.dang} — ${TT_PHIEU[x.trang_thai] ?? x.trang_thai} (gửi ${gioVn(x.tao)})`).join(' · ')}</div> : null}
     <Khoi icon="🎬" ten="Creative" phu={laCu || laBai ? 'không dựng mới, không tốn tiền AI' : dangChon ? `${dangChon.gia} · ${dangChon.thoi_gian}` : 'mẫu ảnh động + logo gốc + CTA'}>
       <Hang ten="Dạng">
         <button style={chip(dang === 'AD')} onClick={() => setDang('AD')} data-dang="AD" title="Ảnh động: mẫu logo gốc + giọng đọc + nút CTA">AD</button>

@@ -256,7 +256,7 @@ def day_logo(cid, tep, kieu, ep=False):
         if not ep and AT.sql(f"select 1 from etp.logo_goc where content_id = {int(cid)} and ban = {LOGO_BAN}"): return None
         B = "root@167.233.241.16"; xa = f"/tmp/logo-goc-{int(cid)}.png"
         subprocess.run(["rsync", "-a", tep, f"{B}:{xa}"], check=True, capture_output=True, timeout=120)
-        r = subprocess.run(["ssh", B, f"kho phat {xa} ethopex logo-goc {int(cid)}-v{LOGO_BAN}.png | tail -1; rm -f {xa}"], capture_output=True, text=True, timeout=120)
+        r = subprocess.run(["ssh", B, f"kho phat {xa} ethopex thanh-pham logo-goc-{int(cid)}-v{LOGO_BAN}.png | tail -1; rm -f {xa}"], capture_output=True, text=True, timeout=120)
         url = (r.stdout.strip().splitlines() or [""])[-1]
         if not url.startswith("http"): raise RuntimeError(f"kho phat không trả link: {r.stderr.strip()[-200:]}")
         AT.sql(f"insert into etp.logo_goc (content_id, url, kieu, ban) values ({int(cid)}, {s_(url)}, {s_(kieu)}, {LOGO_BAN}) "

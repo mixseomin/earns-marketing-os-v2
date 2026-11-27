@@ -4,6 +4,7 @@
 // ✕ Bỏ = không bao giờ lên. Lỗi hiện thành ô đỏ ngay dưới nút. Không có gì chờ → không vẽ gì. Cùng khuôn thẻ với ô Chờ anh duyệt (etp-cho-duyet.tsx).
 import { useCallback, useEffect, useState } from 'react';
 import { Dau3s } from '@/components/ui/dau-3s';
+import { DichVi } from '@/components/etp-co-vi';
 import { BadgeDangNgan } from '@/components/etp-so';
 import { boChoLen, doiKieuChoLen, dsChoLen, duyetChoLen, lenCampLaiChoLen, sinhChuKien, type ChoLen, type ChuQc } from '@/lib/actions/etp-cho-len';
 
@@ -116,5 +117,6 @@ function CauDocCho({ x }: { x: ChoLen }) {
     style={{ padding: '5px 7px', borderLeft: `4px solid ${x.vo ? '#f59e0b' : 'var(--line)'}`, borderRadius: 4, background: x.vo ? 'rgba(245,158,11,.12)' : 'transparent', cursor: x.vo ? 'help' : 'default' }}>
     <div style={{ fontSize: 10.5, fontWeight: 700, color: '#f59e0b', letterSpacing: '.02em' }}>CÂU ĐỌC · 3S ĐẦU</div>
     {x.vo ? <b style={{ fontSize: 14, lineHeight: 1.35, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>“{sach}”</b> : <span style={{ color: 'var(--fg-3, #888)' }}>không có giọng đọc hook</span>}
+    {sach ? <DichVi goc={sach} /> : null}
   </div>;
 }

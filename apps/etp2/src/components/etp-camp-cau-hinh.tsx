@@ -235,7 +235,7 @@ export function CamCauHinh({ campId, soLieu, xemTruoc, phim, ke }: {
             Camp DỰ KIẾN — chưa tạo · chép khuôn #{String(r.ke_khuon ?? '')} + ô máy đè lúc lên{r.ke_thieu ? <b style={{ color: '#f87171' }}> · {String(r.ke_thieu)}</b> : null}</div>
           : !docDuoc ? <div title="apps/etp/bai-qc.py đọc ở lượt đồng bộ kế (~10 phút); các ô dưới chỉ có phần kho camp sẵn có" style={{ border: '1px solid #fbbf24', background: 'rgba(251,191,36,.08)', borderRadius: 8, padding: '8px 10px', fontSize: 12 }}>Kho chưa đọc cấu hình Ethopex · chờ lượt đồng bộ kế</div>
           : <div style={{ fontSize: 11, color: 'var(--fg-3, #777)' }}>Đọc từ Ethopex lúc {gioVn(String(r.du_luc)) ?? String(r.du_luc)} · chỉ xem</div>}
-        {trang === 'camp' ? trangCamp : trang === 'nhom' ? trangNhom : trang === 'ss' ? <SoThang campId={campId} nay={r} chung={du?.chung ?? []} rong={rong} /> : trangAd}
+        {trang === 'camp' ? trangCamp : trang === 'nhom' ? trangNhom : trang === 'ss' ? <SoThang campId={campId} cidKe={ke?.cid ?? null} nay={r} chung={du?.chung ?? []} rong={rong} /> : trangAd}
       </div>;
 
   return rong
@@ -266,13 +266,13 @@ const KHAC_SAN = new Set(['c_tk', 'a_page_ten', 'a_lp']);
 const tachTap = (s: string | null) => (s ?? '').split(/,\s*|\n|\s·\s/).map((x) => x.trim()).filter(Boolean);
 const gioTrongNgay = (s: string | null) => { if (!s) return null; const g = gioVn(s); return g ? g.slice(0, 5) : s; };
 
-function SoThang({ campId, nay, chung, rong }: { campId: number; nay: DongTl | null; chung: string[]; rong: boolean }) {
+function SoThang({ campId, cidKe, nay, chung, rong }: { campId: number; cidKe: number | null; nay: DongTl | null; chung: string[]; rong: boolean }) {
   const [ds, setDs] = useState<{ nay: SoBay | null; thang: SoBay[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
   const [chon, setChon] = useState<number | null>(null);
   const [ref, setRef] = useState<{ r: DongTl | null; chung: string[] } | null>(null);
   useEffect(() => { let bo = false; setDs(null); setLoi(null);
-    campThang(campId).then((x) => { if (bo) return; if ('loi' in x) setLoi(x.loi); else { setDs(x); setChon(x.thang[0]?.camp_id ?? null); } }, (e) => { if (!bo) setLoi(String(e?.message ?? e)); });
-    return () => { bo = true; }; }, [campId]);
+    campThang(campId, cidKe).then((x) => { if (bo) return; if ('loi' in x) setLoi(x.loi); else { setDs(x); setChon(x.thang[0]?.camp_id ?? null); } }, (e) => { if (!bo) setLoi(String(e?.message ?? e)); });
+    return () => { bo = true; }; }, [campId, cidKe]);
   useEffect(() => { let bo = false; setRef(null); if (chon == null) return;
     docThietLap([chon]).then((x) => { if (bo) return; if ('loi' in x) setLoi(x.loi); else setRef({ r: x.dong[0] ?? null, chung: x.chung }); }, (e) => { if (!bo) setLoi(String(e?.message ?? e)); });
     return () => { bo = true; }; }, [chon]);
@@ -312,7 +312,7 @@ function SoThang({ campId, nay, chung, rong }: { campId: number; nay: DongTl | n
     </div>
     <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rong ? 'fixed' : 'auto' }}>
       <colgroup><col style={{ width: rong ? 170 : undefined }} /><col /><col /></colgroup>
-      <thead><tr style={{ textAlign: 'left', fontSize: 11, color: 'var(--fg-2)' }}><th style={o}>Trường</th><th style={o}>Camp này #{campId}<div style={{ fontWeight: 400 }}>{so(ds.nay)}</div></th>
+      <thead><tr style={{ textAlign: 'left', fontSize: 11, color: 'var(--fg-2)' }}><th style={o}>Trường</th><th style={o}>{cidKe ? 'Camp dự kiến (chưa tạo)' : `Camp này #${campId}`}<div style={{ fontWeight: 400 }}>{cidKe ? 'chưa chạy — chưa có số' : so(ds.nay)}</div></th>
         <th style={o}>{th.nguoi} #{th.camp_id}<div style={{ fontWeight: 400 }}>{so(th)}</div></th></tr></thead>
       <tbody>{hang.map(({ f, oA, oB, vang, khac }, i) => <Fragment key={f.k}>
         {i === 0 || SS[i - 1]!.nhom !== f.nhom ? <tr><td colSpan={3} style={{ ...o, fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3, #777)' }}>{f.nhom}</td></tr> : null}

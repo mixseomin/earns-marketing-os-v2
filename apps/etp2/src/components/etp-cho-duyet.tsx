@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dau3s } from '@/components/ui/dau-3s';
+import { DichVi } from '@/components/etp-co-vi';
 import { Drawer } from '@/components/ui';
 import { CamCauHinh } from './etp-camp-cau-hinh';
 import { KhungBaiQc } from './etp-bai-qc';
@@ -64,6 +65,7 @@ function CauDocThe({ x }: { x: ChoDuyet }) {
       {lech ? <b style={{ color: '#f87171' }}>⚠ tiếng nghe được {x.cau_nn!.toUpperCase()} ≠ tiếng camp {x.lang!.toUpperCase()}</b> : null}
       {x.cau_doc ? <span style={cc ? { color: 'var(--fg-2)', fontStyle: 'italic' } : { fontSize: 14, fontWeight: 700, lineHeight: 1.35 }}>“{x.cau_doc.length > 240 ? `${x.cau_doc.slice(0, 240)}…` : x.cau_doc}”</span>
         : <span style={{ color: 'var(--fg-3, #888)' }}>chưa nghe được lời đọc (máy chấm chưa chấm creative này)</span>}
+      {x.cau_doc ? <DichVi goc={x.cau_doc.length > 240 ? x.cau_doc.slice(0, 240) : x.cau_doc} /> : null}
     </span></div>;
 }
 

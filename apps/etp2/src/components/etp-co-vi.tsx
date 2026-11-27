@@ -32,6 +32,15 @@ export function useDichDs(ds: string[]): BanVi {
   return { vi, loi, cho };
 }
 
+/** CÂU DỊCH HIỆN SẴN dưới chữ ngoại ngữ (anh 27/11/2026 "Tao đéo hiểu ES" — xem trên điện thoại, không rê chuột được): câu đọc / chữ quan trọng
+ *  hiện luôn dòng 🇻🇳 tiếng Việt bên dưới; đang dịch → "đang dịch…", lỗi → nói lỗi. Cùng nguồn dịch layDich. */
+export function DichVi({ goc }: { goc: string }) {
+  const b = useDichDs(goc ? [goc] : []); const v = b.vi[goc];
+  if (!goc.trim()) return null;
+  if (v) return trungGoc(goc, v) ? null : <div data-dich-vi style={{ fontSize: 12.5, lineHeight: 1.4, color: 'var(--fg-2)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>🇻🇳 {v}</div>;
+  return <div data-dich-vi={b.loi ? 'loi' : 'cho'} style={{ fontSize: 11.5, color: b.loi ? '#f87171' : 'var(--fg-3, #888)' }}>{b.loi ? `🇻🇳 không dịch được: ${b.loi}` : '🇻🇳 đang dịch…'}</div>;
+}
+
 /** RÊ VÀO CHỮ = HIỆN CÂU DỊCH (anh 27/11/2026 "bỏ cờ đi, hover vào chữ thì hiện phần dịch tiếng Việt là xong"): không thêm ký hiệu nào cạnh chữ →
  *  chữ giữ nguyên chỗ, các lựa chọn thẳng cột. Bong bóng dùng chung lớp .info-hint / .info-hint__pop (CSS thuần, không native title).
  *  Đang dịch / câu không cần dịch → chữ trần; lỗi dịch → title nói lỗi. */

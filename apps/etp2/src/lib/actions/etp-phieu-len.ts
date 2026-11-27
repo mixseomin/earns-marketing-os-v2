@@ -341,13 +341,13 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
   if (cta) { const [l, ...r] = cta.split(':'); if (!(NUT[l ?? ''] ?? []).includes(r.join(':'))) return { loi: `chữ nút CTA lạ: ${cta}` }; }
   const crCu = g.dang === 'CU' ? [...new Set((g.cr_cu ?? []).map((x) => Math.trunc(Number(x))).filter((x) => x > 0))] : [];
   if (g.dang === 'CU' && !crCu.length) return { loi: 'chọn ít nhất một creative cũ' };
-  if (crCu.length > CU_TOI_DA) return { loi: `tối đa ${CU_TOI_DA} creative cũ mỗi phiếu` };
+  if (crCu.length > CU_TOI_DA) return { loi: `tối đa ${CU_TOI_DA} creative cũ mỗi lần lên` };
   const gKieu = g.dang === 'AD' && g.giong?.kieu ? String(g.giong.kieu) : null, gId = g.dang === 'AD' && g.giong?.id ? String(g.giong.id) : null;
   if (gKieu && !(gKieu in TEN_GIONG)) return { loi: `kiểu giọng lạ: ${gKieu}` };
   if (gId && !/^[a-z]{2}:\d+$/.test(gId)) return { loi: `câu đọc lạ: ${gId}` };
   const baiDs = laBai ? [...new Set((g.bai ?? []).map(String).filter((x) => /^\d+_\d+$/.test(x)))] : [];
   if (laBai && !baiDs.length) return { loi: 'chọn ít nhất một bài đăng' };
-  if (baiDs.length > CU_TOI_DA) return { loi: `tối đa ${CU_TOI_DA} bài đăng mỗi phiếu` };
+  if (baiDs.length > CU_TOI_DA) return { loi: `tối đa ${CU_TOI_DA} bài đăng mỗi lần lên` };
   const pt = (g.chu?.pt ?? []).map(String).filter(Boolean), hl = (g.chu?.hl ?? []).map(String).filter(Boolean), de = (g.chu?.de ?? []).map(String).filter(Boolean);
   if (!laBai && (!pt.length || !hl.length)) return { loi: 'chữ QC trống — chọn K (máy sinh) hoặc D trước khi gửi' };
   const link = laBai ? 'search.com' : String(g.link ?? '').trim(); if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(link)) return { loi: `link không hợp lệ: ${link}` };
@@ -362,8 +362,8 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
   const tuDo = gio !== 'lich' && !laKhung(gio);
   const bo = !laBai && g.bo ? String(g.bo).trim() : null;
   if (bo && !(await docBo()).ds.some((x) => x.ma === bo)) return { loi: `bộ tài khoản lạ: ${bo}` };
-  if (baiDs.length * roasDs.length > CAMP_TOI_DA) return { loi: `${baiDs.length} bài × ${roasDs.length} mức ROAS = ${baiDs.length * roasDs.length} camp — tối đa ${CAMP_TOI_DA} mỗi phiếu` };
-  if (crCu.length * roasDs.length > CAMP_TOI_DA) return { loi: `${crCu.length} creative × ${roasDs.length} mức ROAS = ${crCu.length * roasDs.length} camp — tối đa ${CAMP_TOI_DA} mỗi phiếu` };
+  if (baiDs.length * roasDs.length > CAMP_TOI_DA) return { loi: `${baiDs.length} bài × ${roasDs.length} mức ROAS = ${baiDs.length * roasDs.length} camp — tối đa ${CAMP_TOI_DA} mỗi lần lên` };
+  if (crCu.length * roasDs.length > CAMP_TOI_DA) return { loi: `${crCu.length} creative × ${roasDs.length} mức ROAS = ${crCu.length * roasDs.length} camp — tối đa ${CAMP_TOI_DA} mỗi lần lên` };
   const [f] = await run<{ lang: string | null; ten: string | null; cam: string | null }>(sql`select coalesce(p.locale, v.locale) lang, coalesce(p.ten, v.ten) ten,
       (select gia_tri -> ${String(cid)} ->> 'ly_do' from xv_khoa_ngoai where ten = 'ethopex_phim_cam' and jsonb_typeof(gia_tri) = 'object' and gia_tri ? ${String(cid)}) cam
     from (select ${cid}::int content_id) k left join etp.phim p using (content_id) left join etp.thu_vien_phim v using (content_id)`);
@@ -377,21 +377,21 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
     where a.creative_id = any(${`{${crCu.join(',')}}`}::int[]) and a.video is not null and not exists (select 1 from etp.creative c where c.creative_id = a.creative_id)
       and exists (select 1 from etp.camp_ngoai n left join etp.tai_khoan t using (ad_account_id) where n.creative_id = a.creative_id and n.content_id = ${cid} and not coalesce(t.nha, false))`) : [];
   const thieu = crCu.filter((x) => !nguon.some((o) => o.creative_id === x));
-  if (thieu.length) return { loi: `creative ${thieu.map((x) => `#${x}`).join(', ')} không dùng lại được (khác phim / không có video / bị từ chối / chưa được lên) — tải lại phiếu` };
+  if (thieu.length) return { loi: `creative ${thieu.map((x) => `#${x}`).join(', ')} không dùng lại được (khác phim / không có video / bị từ chối / chưa được lên) — mở lại ngăn Lên camp` };
   const baiCo = laBai ? (await docBai(cid)).filter((b) => baiDs.includes(b.bai)) : [];
   if (laBai) {
     const ml = mien ?? (await run<{ m: string | null }>(sql`select gia_tri #>> '{}' m from etp.cau_hinh where khoa = 'mien_len'`))[0]?.m ?? null;
     const la = baiDs.filter((x) => !baiCo.some((b) => b.bai === x));
-    if (la.length) return { loi: `bài ${la.join(', ')} không phải bài nhà của phim này — tải lại phiếu` };
+    if (la.length) return { loi: `bài ${la.join(', ')} không phải bài nhà của phim này — mở lại ngăn Lên camp` };
     const lech = baiCo.filter((b) => (b.mien ?? '') !== (ml ?? ''));
     if (lech.length) return { loi: `bài ${lech.map((b) => `${b.bai} (${b.mien ?? 'chưa rõ miền'})`).join(', ')} khác domain lên camp ${ml ?? '?'} — máy chặn clone bài khác miền; chọn domain đúng miền của bài` };
   }
   const [trung] = g.dang === 'CU' || laBai ? [] : await run<{ id: number }>(sql`select id from etp.phieu_len where content_id = ${cid} and dang = ${g.dang} and trang_thai = 'dung' and tao > now() - interval '2 days'`);
-  if (trung) return { loi: `phim này đang có phiếu #${trung.id} dạng ${g.dang} chờ máy dựng — chờ bản dựng vào Chờ lên rồi gửi phiếu mới` };
+  if (trung) return { loi: `phim này đang có camp đang sản xuất #${trung.id} dạng ${g.dang} chờ máy dựng — chờ bản dựng vào Chờ lên rồi lên camp mới` };
   const chu = laBai ? null : JSON.stringify({ pt, hl, de });
   const [p] = await run<{ id: number }>(sql`insert into etp.phieu_len (content_id, lang, kieu, chu, link, dang, mien, roas, roas_ds, ns, gio, tu_do, ai, bo)
     values (${cid}, ${f?.lang ?? null}, ${g.kieu}, ${chu}::jsonb, ${link}, ${g.dang}, ${mien}, ${roas}, ${`{${roas}}`}::text[], ${ns}, ${gio}, ${tuDo}, ${me.email}, ${bo}) returning id`);
-  if (!p) return { loi: 'không ghi được phiếu' };
+  if (!p) return { loi: 'không tạo được camp đang sản xuất' };
   const k = g.kieu === 'kien' ? 'K' : 'D';
   const loiPhieu = async (l: string) => { await run(sql`update etp.phieu_len set trang_thai = 'loi', loi = ${l.slice(0, 400)}, cap_nhat = now() where id = ${p.id}`); return { loi: l }; };
   if (laBai) {
@@ -410,15 +410,15 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
     for (const c of nguon) for (const r of roasDs) {
       await run(sql`insert into etp.cho_len (khoa, content_id, lang, dang, ten, ma, video, anh, giay, muc, ghi, kieu, phieu_id, phieu_roas)
         values (${`cu:${p.id}:${c.creative_id}:${r}`}, ${cid}, ${f?.lang ?? null}, ${c.dang ?? 'CU'}, ${f?.ten ?? null}, ${`cr${c.creative_id}`}, ${c.video}, ${c.anh}, ${c.giay},
-          ${JSON.stringify({ cr_cu: c.creative_id, ten: f?.ten ?? null })}::jsonb, ${`creative cũ #${c.creative_id} — không dựng: duyệt là tạo bản mới cùng video với chữ ${k} của phiếu #${p.id} rồi lên camp`},
+          ${JSON.stringify({ cr_cu: c.creative_id, ten: f?.ten ?? null })}::jsonb, ${`creative cũ #${c.creative_id} — không dựng: duyệt là tạo bản mới cùng video với chữ ${k} của camp đang sản xuất #${p.id} rồi lên camp`},
           ${g.kieu}, ${p.id}, ${r}) on conflict (khoa) do nothing`);
     }
     await run(sql`update etp.phieu_len set trang_thai = 'cho_duyet', cap_nhat = now() where id = ${p.id}`);
   } else if (g.dang === 'AD') {
     const [dang] = await run<{ tt: string }>(sql`select trang_thai tt from etp.mau_dung where mau = ${MAU_AD} and content_id = ${cid} and trang_thai in ('dang', 'cho', 'cho_nang_cap') and (tuy_chon is not null or trang_thai = 'dang')`);
-    if (dang) return await loiPhieu(`AD đang dựng cho phim này (${dang.tt === 'dang' ? 'đang làm' : 'đang chờ máy'}) — chờ xong rồi gửi phiếu mới`);
+    if (dang) return await loiPhieu(`AD đang dựng cho phim này (${dang.tt === 'dang' ? 'đang làm' : 'đang chờ máy'}) — chờ xong rồi lên camp mới`);
     const r = await run<{ mau: string }>(sql`insert into etp.mau_dung (mau, content_id, buoc, trang_thai, ghi, ten_mau, tuy_chon)
-      values (${MAU_AD}, ${cid}, 'cho', 'cho', ${`phiếu lên camp #${p.id} — chờ máy dựng ${roasDs.length} bản AD (iMac) nhận`}, 'Ảnh động logo gốc + CTA', ${JSON.stringify({ phieu: p.id, ban: roasDs.length, ...(gKieu || gId || cta ? { o: { ...(gKieu || gId ? { giong: { ...(gId ? { id: gId } : {}), ...(gKieu ? { kieu: gKieu } : {}) } } : {}), ...(cta ? { cta: { id: cta } } : {}) } } : {}) })}::jsonb)
+      values (${MAU_AD}, ${cid}, 'cho', 'cho', ${`camp đang sản xuất #${p.id} — chờ máy dựng ${roasDs.length} bản AD (iMac) nhận`}, 'Ảnh động logo gốc + CTA', ${JSON.stringify({ phieu: p.id, ban: roasDs.length, ...(gKieu || gId || cta ? { o: { ...(gKieu || gId ? { giong: { ...(gId ? { id: gId } : {}), ...(gKieu ? { kieu: gKieu } : {}) } } : {}), ...(cta ? { cta: { id: cta } } : {}) } } : {}) })}::jsonb)
       on conflict (mau, content_id) do update set buoc = 'cho', trang_thai = 'cho', tuy_chon = excluded.tuy_chon, cap_nhat = now(), ghi = excluded.ghi
       where etp.mau_dung.trang_thai in ('loi', 'cho', 'xong', 'dung') returning mau`);
     if (!r[0]) return await loiPhieu('việc dựng AD của phim đang ở trạng thái không nhận bản mới');
@@ -431,7 +431,7 @@ export async function guiPhieu(g: PhieuGui): Promise<{ ok: true; id: number; chu
   const tuLen = laBai || g.dang === 'CU' ? await lenNgayPhieu(p.id) : null;
   const chuLen = !tuLen ? '' : 'loi' in tuLen ? ` · ⚠ chưa tự lên được: ${tuLen.loi} — duyệt tay ở Chờ lên`
     : ` · đã lệnh lên ${tuLen.len} camp (không chờ duyệt), máy tạo camp hẹn ${chuGio}${tuLen.giu.length ? ` · ⚠ ${tuLen.giu.length} thẻ giữ ở Chờ lên: ${tuLen.giu.join(' · ')}` : ''}`;
-  if (laBai) return { ok: true, id: p.id, chu: `đã gửi phiếu #${p.id}: dùng lại ${baiDs.length} post × ${roasDs.length} mức ROAS = ${baiDs.length * roasDs.length} camp · ${mien ?? 'domain mặc định'} · $${ns} — không dựng, chữ / link / nút giữ của bài${chuLen}` };
-  if (g.dang === 'CU') return { ok: true, id: p.id, chu: `đã gửi phiếu #${p.id}: ${k} · ${crCu.length} creative cũ × ${roasDs.length} mức ROAS = ${crCu.length * roasDs.length} camp · ${link} · ${mien ?? 'domain mặc định'} · $${ns} — không dựng creative mới, máy tạo bản cùng video với chữ phiếu${chuLen}` };
-  return { ok: true, id: p.id, chu: `đã gửi phiếu #${p.id}: ${k} · ${g.dang} · ${link} · ${mien ?? 'domain mặc định'} · ROAS ${roasDs.map((x) => x === 'dan' ? 'dàn' : x).join(' / ')} · $${ns} · ${chuGio} — máy dựng ${roasDs.length} creative mới (mỗi mức ROAS một bản), xong hiện ở Chờ lên, anh duyệt bản nào là lên camp mức của bản đó` };
+  if (laBai) return { ok: true, id: p.id, chu: `đã tạo camp đang sản xuất #${p.id}: dùng lại ${baiDs.length} post × ${roasDs.length} mức ROAS = ${baiDs.length * roasDs.length} camp · ${mien ?? 'domain mặc định'} · $${ns} — không dựng, chữ / link / nút giữ của bài${chuLen}` };
+  if (g.dang === 'CU') return { ok: true, id: p.id, chu: `đã tạo camp đang sản xuất #${p.id}: ${k} · ${crCu.length} creative cũ × ${roasDs.length} mức ROAS = ${crCu.length * roasDs.length} camp · ${link} · ${mien ?? 'domain mặc định'} · $${ns} — không dựng creative mới, máy tạo bản cùng video với chữ đã chọn${chuLen}` };
+  return { ok: true, id: p.id, chu: `đã tạo camp đang sản xuất #${p.id}: ${k} · ${g.dang} · ${link} · ${mien ?? 'domain mặc định'} · ROAS ${roasDs.map((x) => x === 'dan' ? 'dàn' : x).join(' / ')} · $${ns} · ${chuGio} — máy dựng ${roasDs.length} creative mới (mỗi mức ROAS một bản), xong hiện ở Chờ lên, anh duyệt bản nào là lên camp mức của bản đó` };
 }

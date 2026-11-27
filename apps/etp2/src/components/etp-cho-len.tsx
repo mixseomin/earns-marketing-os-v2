@@ -70,7 +70,7 @@ export function ChoLenEtho() {
                 <div style={{ color: mau, fontWeight: 600 }}>{tt}{x.creative_id ? ` → creative #${x.creative_id}` : ''}{x.trang_thai !== 'cho' ? <span style={{ fontWeight: 400, color: 'var(--fg-3, #888)' }}> · {gioVn(x.cap_nhat)}</span> : null}</div>
                 {x.phieu ? <div data-cho-len-phieu={x.phieu.id} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <div style={{ color: 'var(--fg-2)' }} title={x.phieu.tu_do ? 'giờ ngoài khung cố định (anh đã đặt)' : undefined}>
-                      phiếu #{x.phieu.id} · <b>{x.phieu.kieu === 'kien' ? 'K' : 'D'}</b> · {x.phieu.dang} · ROAS {ROAS_CHU(x.phieu.roas)} · ${x.phieu.ns} · {x.phieu.gio === 'lich' ? 'khung gần nhất' : x.phieu.gio}{x.phieu.tu_do ? ' ⚠' : ''}</div>
+                      🏭 #{x.phieu.id} · <b>{x.phieu.kieu === 'kien' ? 'K' : 'D'}</b> · {x.phieu.dang} · ROAS {ROAS_CHU(x.phieu.roas)} · ${x.phieu.ns} · {x.phieu.gio === 'lich' ? 'khung gần nhất' : x.phieu.gio}{x.phieu.tu_do ? ' ⚠' : ''}</div>
                     {x.phieu.mien ? <div style={{ color: 'var(--fg-3, #888)' }}>domain {x.phieu.mien}</div> : null}
                     <ChuXem c={x.phieu.chu} />
                     {x.camp_id ? <div style={{ color: '#4ade80', fontWeight: 600 }}>✓ camp #{x.camp_id}</div> : null}

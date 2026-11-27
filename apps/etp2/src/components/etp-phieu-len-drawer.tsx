@@ -74,7 +74,7 @@ function XemCr({ c, onClose }: { c: CrCu; onClose: () => void }) {
         {c.pt || c.hl || c.de ? <>{ds('Primary text', c.pt)}{ds('Headline', c.hl)}{ds('Description', c.de)}</>
           : <div style={{ fontSize: 12, color: MO_SO, marginTop: 4 }}>sổ chưa có chữ form của creative này (etp.bai_cr chưa đồng bộ)</div>}
         <div style={{ fontSize: 12, marginTop: 10, color: MO_SO }}>nút FB: <b>{c.fb ?? '?'}</b> · link: <b>{c.link ?? '?'}</b></div>
-        <div style={{ fontSize: 11, color: MO_SO, marginTop: 6 }}>bản lên lại dùng video này với chữ của phiếu (khối Form text bên dưới), không chép chữ cũ</div>
+        <div style={{ fontSize: 11, color: MO_SO, marginTop: 6 }}>bản lên lại dùng video này với chữ đã chọn (khối Form text bên dưới), không chép chữ cũ</div>
       </div>
     </div></div>;
 }
@@ -327,7 +327,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
     !roas.length ? 'chưa chọn mức ROAS nào' : null,
     ns == null ? 'ngân sách phải là số $1–$50' : null,
     gio === 'tay' && !gioTay ? 'chưa nhập giờ tự đặt' : null,
-    soCamp > 12 ? `${soCamp} camp — tối đa 12 mỗi phiếu` : null,
+    soCamp > 12 ? `${soCamp} camp — tối đa 12 mỗi lần lên` : null,
   ].filter((x): x is string => !!x);
   const guiDi = async () => {
     if ((!chu && !laBai) || ns == null) return; setGui({ dang: true });
@@ -354,12 +354,12 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
     {p?.poster ? <img src={p.poster} alt="" style={{ width: 44, height: 62, objectFit: 'cover', borderRadius: 6, flex: 'none' }} /> : null}
     {p?.logo ? <img src={p.logo.url} alt="logo gốc" title={`logo gốc đã tách (${p.logo.kieu ?? '?'})`} data-logo-goc style={{ height: 62, maxWidth: 160, objectFit: 'contain', borderRadius: 6, flex: 'none', padding: 4,
       background: 'repeating-conic-gradient(#3f3f46 0% 25%, #27272a 0% 50%) 50% / 16px 16px' }} /> : p ? <div style={{ fontSize: 11, color: MO_SO, width: 90, flex: 'none' }} data-logo-goc>chưa có logo gốc (máy tách lúc dựng AD)</div> : null}
-    <div><div className="id-line">phiếu lên camp · phim #{cid}</div><h2 style={{ margin: 0 }}>{p?.ten ?? '…'}</h2>
+    <div><div className="id-line">lên camp · phim #{cid}</div><h2 style={{ margin: 0 }}>{p?.ten ?? '…'}</h2>
       <div style={{ fontSize: 12, color: MO_SO, marginTop: 2 }}>ngôn ngữ phim: <b>{(p?.lang ?? '?').toUpperCase()}</b>{p?.the_loai ? ` · ${p.the_loai}` : ''}</div></div></div>
     <button className="modal-close" onClick={onClose}>✕</button></div>;
 
   const form = p ? <>
-    {p.dang_cho.length ? <div style={{ fontSize: 12, color: VANG, marginBottom: 8 }} data-phieu-dang>Phiếu đã gửi cho phim này, chưa xong: {p.dang_cho.map((x) => `#${x.id} ${x.dang} — ${TT_PHIEU[x.trang_thai] ?? x.trang_thai} (gửi ${gioVn(x.tao)})`).join(' · ')}</div> : null}
+    {p.dang_cho.length ? <div style={{ fontSize: 12, color: VANG, marginBottom: 8 }} data-phieu-dang>🏭 Camp đang sản xuất của phim này (đã có dòng trong cây camp): {p.dang_cho.map((x) => `#${x.id} ${x.dang} — ${TT_PHIEU[x.trang_thai] ?? x.trang_thai} (gửi ${gioVn(x.tao)})`).join(' · ')}</div> : null}
     <Khoi icon="🎬" ten="Creative" phu={laCu || laBai ? 'không dựng mới, không tốn tiền AI' : dangChon ? `${dangChon.gia} · ${dangChon.thoi_gian}` : 'mẫu ảnh động + logo gốc + CTA'}>
       <Hang ten="Dạng">
         <button style={chip(dang === 'AD')} onClick={() => setDang('AD')} data-dang="AD" title="Ảnh động: mẫu logo gốc + giọng đọc + nút CTA">AD</button>
@@ -370,7 +370,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
         <button style={chip(laBai)} onClick={() => setDang('BAI')} data-dang="BAI" title="dùng lại bài đăng (post) nhà đang có lãi (lãi 7 ngày; chưa tiêu 7 ngày thì lãi tổng) — clone bài sang camp mới; chữ / link / nút là của bài, không đổi được">Dùng lại post ({p.bai.length})</button>
         {laCu ? <div style={{ width: '100%' }}><DsDungLai ds={p.cu} chon={cu} bat={batCu} /></div> : null}
         {laBai ? <div style={{ width: '100%' }}><DsBai ds={p.bai} chon={bai} bat={batBai} mien={mienPhieu} />
-          <div style={{ fontSize: 11.5, color: MO_SO, marginTop: 4 }} data-bai-ghi>used post: chữ form, link, nút CTA lấy nguyên từ bài — không chọn form text khác được (muốn chữ mới trên cùng video thì dùng “Dùng lại” creative). Bài mang miền khác domain phiếu thì khoá.</div></div> : null}
+          <div style={{ fontSize: 11.5, color: MO_SO, marginTop: 4 }} data-bai-ghi>used post: chữ form, link, nút CTA lấy nguyên từ bài — không chọn form text khác được (muốn chữ mới trên cùng video thì dùng “Dùng lại” creative). Bài mang miền khác domain đã chọn thì khoá.</div></div> : null}
       </Hang>
     </Khoi>
 
@@ -403,7 +403,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       </Hang>
     </Khoi> : NOI_DUNG_VIDEO[dang] ? <Khoi icon="🎞" ten={`Nội dung trong video · ${dang}`} phu="máy dựng theo khuôn cố định — chưa có tuỳ chọn">
       <Hang ten="Máy dựng"><ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5 }} data-noi-dung-video>{NOI_DUNG_VIDEO[dang].map((x) => <li key={x}>{x}</li>)}</ul></Hang>
-    </Khoi> : dang === 'LT' ? <Khoi icon="🎞" ten="Nội dung trong video · LT"><Hang ten="Máy dựng"><div style={{ fontSize: 12.5 }}>dòng LT ra ~10 creative mỗi lượt; phiếu chỉ gắn số bản bằng số mức ROAS đã chọn ({roas.length}), bản còn lại nằm ở thư viện creative của phim</div></Hang></Khoi> : null}
+    </Khoi> : dang === 'LT' ? <Khoi icon="🎞" ten="Nội dung trong video · LT"><Hang ten="Máy dựng"><div style={{ fontSize: 12.5 }}>dòng LT ra ~10 creative mỗi lượt; camp chỉ gắn số bản bằng số mức ROAS đã chọn ({roas.length}), bản còn lại nằm ở thư viện creative của phim</div></Hang></Khoi> : null}
 
     {laBai ? null : <Khoi icon="🔘" ten="Nội dung CTA">
       <Hang ten="Nút Facebook"><span style={{ ...chip(true), cursor: 'default' }}>WATCH_MORE</span><span style={{ fontSize: 11.5, color: MO_SO }}>cố định theo form chữ{laCu ? ' — bản lên lại cũng mang nút này' : ''}</span></Hang>
@@ -421,7 +421,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       </Hang>}
     </Khoi>}
 
-    {laBai ? null : <Khoi icon="✍" ten="Form text" phu={tien > 0 ? `AI đã tiêu ${Math.round(tien).toLocaleString('vi-VN')}₫ trong phiếu này` : undefined}>
+    {laBai ? null : <Khoi icon="✍" ten="Form text" phu={tien > 0 ? `AI đã tiêu ${Math.round(tien).toLocaleString('vi-VN')}₫ cho lần lên này` : undefined}>
       <Hang ten="Bộ chữ">
         <button style={chip(kieu === 'kien')} onClick={() => void sinhK()} title={kieu === 'kien' ? 'bấm lần nữa = máy sinh lại cả bộ K' : 'máy sinh bộ chữ K cho phim'} data-chon-k>K{kieu === 'kien' ? ' ↻' : ''}</button>
         <button style={chip(kieu === 'dol')} onClick={() => setKieu('dol')} data-chon-d>D</button>
@@ -449,7 +449,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
       <Hang ten="Mức ROAS">
         {ROAS.map((r) => <button key={r.v} style={chip(roas.includes(r.v))} onClick={() => batRoas(r.v)} data-roas={r.v} title={r.v === 'dan' ? GOI_Y_DAN : `bid ROAS cố định ${r.t}`}>{r.t}</button>)}
         <InfoHint align="right">{GOI_Y_DAN}</InfoHint>
-      {soCamp > 1 ? <div style={{ fontSize: 12, color: VANG, fontWeight: 600, width: '100%' }} data-canh-roas>⚠ sẽ lên {soCamp} camp — {laBai ? `${bai.length} post × ${roas.length} mức ROAS, clone bài, không dựng mới` : laCu ? `${cu.length} creative × ${roas.length} mức ROAS, không dựng mới` : `máy dựng ${soCamp} creative mới, mỗi mức một bản`}{dang === 'CC2' ? ' (dòng CC2 ra 1–3 bản mỗi lượt; thiếu mức nào phiếu báo đỏ)' : ''}</div> : null}
+      {soCamp > 1 ? <div style={{ fontSize: 12, color: VANG, fontWeight: 600, width: '100%' }} data-canh-roas>⚠ sẽ lên {soCamp} camp — {laBai ? `${bai.length} post × ${roas.length} mức ROAS, clone bài, không dựng mới` : laCu ? `${cu.length} creative × ${roas.length} mức ROAS, không dựng mới` : `máy dựng ${soCamp} creative mới, mỗi mức một bản`}{dang === 'CC2' ? ' (dòng CC2 ra 1–3 bản mỗi lượt; thiếu mức nào dòng 🏭 báo đỏ)' : ''}</div> : null}
       </Hang>
     </Khoi>
 
@@ -473,9 +473,9 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
     <div style={{ flex: 1, minWidth: 0, fontSize: 12 }}>
       {gui.loi ? <span style={{ color: DO }}>✗ {gui.loi}</span> : gui.ok ? <span style={{ color: XANH }}>✓ {gui.ok}</span>
         : thieu.length ? <span style={{ color: DO }} data-con-thieu>Còn thiếu: {thieu.join(' · ')}</span>
-        : <span style={{ color: MO_SO }} title="dựng xong creative hiện ở Chờ lên; anh duyệt creative là lên camp đúng phiếu này">✓ đủ — bấm Gửi</span>}
+        : <span style={{ color: MO_SO }} title="dựng xong creative hiện ở Chờ lên; anh duyệt creative là lên camp đúng thiết lập này">✓ đủ — bấm Gửi</span>}
     </div>
-    <GuardedButton className="btn btn-primary" reason={gui.dang ? 'đang gửi' : gui.ok ? 'đã gửi phiếu' : thieu.join(' · ')} onClick={() => void guiDi()} data-gui-phieu
+    <GuardedButton className="btn btn-primary" reason={gui.dang ? 'đang gửi' : gui.ok ? 'đã tạo camp đang sản xuất' : thieu.join(' · ')} onClick={() => void guiDi()} data-gui-phieu
       style={{ flex: 'none' }}>{gui.dang ? 'đang gửi…' : laBai ? `Gửi · ${soCamp} camp · clone post` : laCu ? `Gửi · ${soCamp} camp · không dựng mới` : soCamp > 1 ? `Gửi · dựng ${soCamp} creative → ${soCamp} camp` : 'Gửi · máy dựng creative'}</GuardedButton>
   </div> : null;
 

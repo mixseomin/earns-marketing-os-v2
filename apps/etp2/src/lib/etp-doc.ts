@@ -570,7 +570,7 @@ async function docEtpDu(ng?: string, nhe = false): Promise<DuLieuEtp> {
     const bAd = r.buoc_ad as string | null, bD = r.buoc_dong as string | null;
     const b = bAd ? (bAd === 'cho' ? 'chờ máy dựng (iMac)' : `máy dựng: ${tenBuocDung(bAd)}`) : bD ? TEN_BUOC_SX[bD] ?? bD : 'chờ máy nhận';
     hangCr.push({ camp_id: -(30_000_000 + n(r.id)),
-      ten: `🏭 đang sản xuất · phiếu #${n(r.id)} · ${(r.dang as string) ?? '?'} · ${b} · ★ ROAS ${ds.join(' / ')} · $${ns}${so > 1 ? ` · ${so} camp` : ''}`,
+      ten: `🏭 đang sản xuất #${n(r.id)} · ${(r.dang as string) ?? '?'} · ${b} · ★ ROAS ${ds.join(' / ')} · $${ns}${so > 1 ? ` · ${so} camp` : ''}`,
       sx: { dong: r.dong == null ? 0 : n(r.dong), phieu: n(r.id), buoc: b, so_camp: so, ai: (r.ai as string) ?? null }, mien: (r.mien as string) ?? null,
       bo: (r.bo as string) || (r.bo_moi as string) || null, trang_thai: 'ACTIVE', giao: null, ngan_sach: ns * so, creative_id: null, content_id: r.content_id == null ? null : n(r.content_id), goc: null,
       lich, tao: (r.tao as string) ?? null, phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, roas: ro, ...SX_TRONG }); }

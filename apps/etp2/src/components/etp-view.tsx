@@ -1291,7 +1291,7 @@ function MenuPhim({ p }: { p: PhimEtpKho }) {
   // form Chạy tự động (Loại nội dung QC) bỏ 27/11/2026 — lên camp chỉ qua Phiếu lên camp
   return <><MenuBaCham tieuDe="Phim" phu={p.ten ?? `#${p.content_id}`} title={`Thao tác phim #${p.content_id}`} groups={[
     { label: 'Xem', items: [{ label: 'Nội dung, điểm, tiến độ', emoji: '▸', onClick: () => openEntityDrawer('etp-phim', p.content_id) }] },
-    { label: 'Lên camp', items: [{ label: 'Phiếu lên camp (K/D · AD/CC2 · bid · giờ)…', emoji: '🚀', onClick: () => openEntityDrawer('etp-phieu-len', p.content_id) }] },
+    { label: 'Lên camp', items: [{ label: 'Lên camp (K/D · AD/CC2 · bid · giờ) — tạo ngay camp 🏭 đang sản xuất…', emoji: '🚀', onClick: () => openEntityDrawer('etp-phieu-len', p.content_id) }] },
     // phim cấm (etp:phim-cam-quet-2011): không có Chạy tự động — mục chỉ ghi CẤM + lý do sổ
     ...(p.cam ? [{ label: 'Tự động', items: [{ label: `CẤM — ${p.cam.ly_do ?? 'phim trong sổ cấm'}`.slice(0, 90), emoji: '🚫', onClick: () => undefined }] }] : []),
   ]} /></>;
@@ -2469,7 +2469,7 @@ function NutMoRong({ cid, k, cam, vuaTT }: { cid: number; k?: number; /** phim c
   if (cam) return <NhanCam cam={cam} />;
   // ＋ mở PHIẾU LÊN CAMP (anh 27/11/2026 "Bỏ cái lên camp … kia đi" — form Loại nội dung QC cũ bỏ)
   return <>
-    <ReThe the={() => ({ tieu: 'Mở rộng phim', mau: '#4ade80', moc: [{ ten: 'Bấm', mau: '#4ade80', chu: 'mở Phiếu lên camp: K/D · AD/CC2/creative cũ · ROAS · ngân sách · giờ' }, { ten: 'Sau đó', mau: '#60a5fa', chu: 'tab Sản xuất làm hết: cắt phần thiếu → soát + chấm → lên đủ số camp → chờ camp chạy' }] })}><button className="btn"
+    <ReThe the={() => ({ tieu: 'Mở rộng phim', mau: '#4ade80', moc: [{ ten: 'Bấm', mau: '#4ade80', chu: 'mở ngăn Lên camp: K/D · AD/CC2/creative cũ · ROAS · ngân sách · giờ' }, { ten: 'Sau đó', mau: '#60a5fa', chu: 'tab Sản xuất làm hết: cắt phần thiếu → soát + chấm → lên đủ số camp → chờ camp chạy' }] })}><button className="btn"
       onClick={(e) => { e.stopPropagation(); openEntityDrawer('etp-phieu-len', cid); }} onMouseDown={(e) => e.stopPropagation()}
       style={{ padding: vuaTT ? 0 : '0 6px', fontSize: 11, lineHeight: '16px', fontWeight: 400, color: '#4ade80', borderColor: '#14532d', ...(vuaTT ? { width: 22, justifyContent: 'center', flexShrink: 0, boxSizing: 'border-box' } : null) }}>＋</button></ReThe></>;   // .btn là inline-flex → textAlign vô tác dụng, ＋ dạt trái; căn giữa bằng justifyContent (anh 27/11/2026 #1904 "dấu + vào giữa")   // chỉ dấu ＋ — số máy tính điền sẵn trong form (anh 04/11/2026)
 }
@@ -2763,7 +2763,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, m
   // sd7 / tongNgay / idPhim / demCamp (dòng camp, dòng phim cả phim, dòng tổng cả tài khoản) nằm ở useCotNgay — một nguồn cho Cây + Thiết lập (#1819)
   // DÒNG CHỜ ANH DUYỆT (anh 22/11/2026 "Chờ duyệt thì tao phải xem được mày đang làm gì mới duyệt được"): ▶ Lên sẽ tạo đúng camp nào + cổng nào sẽ bỏ qua — máy KHÔNG tự lên dòng ★ ROAS
   const chuDangSx = (c: CampEtpKho) => { const vn = c.lich ? new Date(new Date(c.lich).getTime() + 7 * 3600_000) : null, p = (k: number) => String(k).padStart(2, '0');   // #1832
-    return [c.sx?.phieu ? `🏭 ĐANG SẢN XUẤT — phiếu lên camp #${c.sx.phieu} đang dựng creative, bước: ${c.sx.buoc}` : `🏭 ĐANG SẢN XUẤT — dòng phim #${c.sx?.dong ?? '?'} đang làm creative, bước: ${c.sx?.buoc ?? '?'}`,
+    return [c.sx?.phieu ? `🏭 ĐANG SẢN XUẤT — camp #${c.sx.phieu} đang dựng creative, bước: ${c.sx.buoc}` : `🏭 ĐANG SẢN XUẤT — dòng phim #${c.sx?.dong ?? '?'} đang làm creative, bước: ${c.sx?.buoc ?? '?'}`,
       `· phim: ${c.phim ?? `#${c.content_id ?? '?'}`} · dạng creative: ${c.dang ?? '?'}`,
       `· sẽ lên ${c.sx?.so_camp ?? 1} camp ★ ROAS ${c.roas} (Lowest cost + min ROAS) · $${c.ngan_sach}/ngày · bộ ${c.bo ?? '?'}`,
       `· giờ chạy: ${vn ? `${p(vn.getUTCHours())}:${p(vn.getUTCMinutes())} ${p(vn.getUTCDate())}/${p(vn.getUTCMonth() + 1)} giờ VN` : 'chưa hẹn'}${c.sx?.ai ? ` · lệnh của ${c.sx.ai}` : ''}`,

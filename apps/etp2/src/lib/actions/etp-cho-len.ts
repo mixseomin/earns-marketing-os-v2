@@ -58,11 +58,11 @@ export async function dsChoLen(): Promise<{ ds: ChoLen[] } | { loi: string }> {
 async function lenTheoPhieu(n: number, me: { email: string }, duyet: boolean): Promise<{ ok: true; chu: string } | { loi: string } | { canh: string }> {
   const [c] = await run<{ content_id: number; phieu_id: number; ns: number; dang: string; kieu: Kieu; roas: string; gio: string; camp_id: number | null; trang_thai: string }>(sql`select c.content_id,
       c.phieu_id, p.ns, p.dang, p.kieu, coalesce(c.phieu_roas, p.roas_ds[1], p.roas) roas, p.gio, c.camp_id, c.trang_thai from etp.cho_len c join etp.phieu_len p on p.id = c.phieu_id where c.id = ${n}`);
-  if (!c) return { loi: `#${n} không có phiếu` };
+  if (!c) return { loi: `#${n} không gắn camp đang sản xuất nào` };
   if (c.camp_id) return { loi: `#${n} đã có camp #${c.camp_id}` };
   if (duyet ? !['cho', 'duyet'].includes(c.trang_thai) : !['duyet', 'dang_len', 'da_len'].includes(c.trang_thai)) return { loi: `#${n} đang ở trạng thái ${c.trang_thai} — tải lại trang` };
   const k = c.kieu === 'kien' ? 'K' : 'D';
-  const lenh = `anh duyệt creative #${n} ở etp2 › Chờ lên = lên camp theo phiếu #${c.phieu_id} (${k} · ${c.dang} · ROAS ${c.roas} · $${c.ns})`;
+  const lenh = `anh duyệt creative #${n} ở etp2 › Chờ lên = lên camp theo camp đang sản xuất #${c.phieu_id} (${k} · ${c.dang} · ROAS ${c.roas} · $${c.ns})`;
   const v = await xinVeTrucTiep('tao_camp', { content: c.content_id, lenh, ns: c.ns });
   if (!('ma' in v)) return 'canh' in v ? { canh: `${v.canh} — bấm lần nữa để vẫn lên` } : v;
   if (duyet) {
@@ -74,8 +74,8 @@ async function lenTheoPhieu(n: number, me: { email: string }, duyet: boolean): P
   const repo = process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2', log = openSync(`/tmp/etp-len-phieu-${n}.log`, 'a');
   chayTach('python3', [`${repo}/apps/etp/len-phieu.py`, String(n)], { cwd: repo, detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
   if (c.dang === 'BAI') return { ok: true, chu: `${duyet ? 'đã duyệt' : 'gửi lại lệnh'} #${n}: dùng lại post — máy clone bài sang camp mới (ROAS ${c.roas} · $${c.ns}), chữ / link / nút giữ của bài` };
-  if (c.dang === 'CU') return { ok: true, chu: `${duyet ? 'đã duyệt' : 'gửi lại lệnh'} #${n}: creative cũ — máy tạo bản mới cùng video với chữ ${k} của phiếu #${c.phieu_id} (không dựng, ~1–2 phút) rồi tạo camp (ROAS ${c.roas} · $${c.ns})` };
-  return { ok: true, chu: `${duyet ? 'đã duyệt' : 'gửi lại lệnh'} #${n}: máy iMac tải creative lên Ethopex (~1–2 phút) rồi tạo camp theo phiếu #${c.phieu_id} (${k} · ${c.dang} · $${c.ns})` };
+  if (c.dang === 'CU') return { ok: true, chu: `${duyet ? 'đã duyệt' : 'gửi lại lệnh'} #${n}: creative cũ — máy tạo bản mới cùng video với chữ ${k} của camp đang sản xuất #${c.phieu_id} (không dựng, ~1–2 phút) rồi tạo camp (ROAS ${c.roas} · $${c.ns})` };
+  return { ok: true, chu: `${duyet ? 'đã duyệt' : 'gửi lại lệnh'} #${n}: máy iMac tải creative lên Ethopex (~1–2 phút) rồi tạo camp theo camp đang sản xuất #${c.phieu_id} (${k} · ${c.dang} · $${c.ns})` };
 }
 
 /** PHIẾU KHÔNG DỰNG CREATIVE MỚI tự lên (anh 27/11/2026 "camp mà ko phải review lại creative thì cứ thế push lên chờ giờ chạy luôn, ko phải chờ duyệt nữa"):

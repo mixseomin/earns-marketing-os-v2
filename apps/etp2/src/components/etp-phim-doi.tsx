@@ -10,7 +10,7 @@ import { KeToan, MO_SO, mauLai, Dem } from '@/components/etp-so';
 
 const KHOA = 'etp-phim-doi.mo';
 const roi = (r: PhimDoi) => (r.chi7 > 0 ? Math.round(((r.thu7 - r.chi7) / r.chi7) * 100) : null);
-const PHIEU: Record<string, string> = { dung: 'phiếu nháp', cho_duyet: 'phiếu chờ duyệt', len: 'phiếu đang lên', loi: 'phiếu lỗi' };
+const PHIEU: Record<string, string> = { dung: '🏭 đang sản xuất', cho_duyet: '🏭 chờ duyệt', len: '🏭 đang lên camp', loi: '🏭 sản xuất lỗi' };
 
 const COT: DataColumn<PhimDoi>[] = [
   { key: 'phim', header: 'Phim', align: 'left', width: 300, sortValue: (r) => r.ten, cell: (r) => <span style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
@@ -25,7 +25,7 @@ const COT: DataColumn<PhimDoi>[] = [
   { key: 'lai7', header: 'Lãi 7n', width: 90, sortValue: (r) => r.thu7 - r.chi7, cell: (r) => <KeToan v={r.thu7 - r.chi7} mau={mauLai(r.thu7 - r.chi7)} />, total: (rs) => { const v = rs.reduce((a, r) => a + r.thu7 - r.chi7, 0); return <KeToan v={v} mau={mauLai(v)} />; } },
   { key: 'roi', header: 'ROI 7n', width: 70, sortValue: (r) => roi(r), cell: (r) => { const v = roi(r); return v == null ? <span style={{ color: MO_SO }}>—</span> : <b style={{ color: mauLai(v) }}>{v > 0 ? '+' : ''}{v}%</b>; } },
   { key: 'len', header: '', align: 'center', width: 130, cell: (r) => <span style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
-    <button data-phim-doi-len={r.cid} onClick={(e) => { e.stopPropagation(); openEntityDrawer('etp-phieu-len', r.cid); }} title="mở Phiếu lên camp cho phim này — camp chỉ tạo khi anh ✓ Duyệt"
+    <button data-phim-doi-len={r.cid} onClick={(e) => { e.stopPropagation(); openEntityDrawer('etp-phieu-len', r.cid); }} title="mở ngăn Lên camp cho phim này — camp chỉ tạo khi anh ✓ Duyệt"
       style={{ fontSize: 11.5, padding: '2px 8px', borderRadius: 6, border: '1px solid var(--line-2)', background: 'var(--bg-2)', cursor: 'pointer', whiteSpace: 'nowrap' }}>🚀 Lên camp</button>
     {r.phieu ? <span style={{ fontSize: 10.5, color: MO_SO, whiteSpace: 'nowrap' }}>{PHIEU[r.phieu] ?? r.phieu}</span> : null}</span> },
 ];

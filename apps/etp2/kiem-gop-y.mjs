@@ -958,6 +958,10 @@ const LUAT = [
   { card: 'roas-dan-2611', tep: 'apps/etp2/src/components/etp-dong.tsx', co: '★ ROAS ${CHU_DAN}', cam: 'RO.roas', vi: 'nút không hứa ROAS cứng' },
   // PHIẾU LÊN CAMP (anh 27/11/2026): poster + tên + ngôn ngữ → K/D (bấm K lại = sinh lại) → AD/CC2 → link · domain · bid · ngân sách · giờ (ngoài khung cảnh báo) → duyệt creative = lên camp, không duyệt camp lần hai; nhãn chỉ K / D
   { card: 'phieu-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'onClick={() => void sinhK()}', cam: 'Kiên', vi: 'bấm K lần nữa = máy sinh lại chữ K; không ghi tên người' },
+  { card: '1910', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: 'lc = lcPhim(f.lang)', vi: 'câu đọc máy xoay + ✨ sinh câu theo MỘT khoá ngôn ngữ phim' },
+  { card: '1910', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: "${LC_DOC} = ${lc}", vi: 'câu đọc của đội lọc theo tiếng đọc thật trong video, không theo locale phim' },
+  { card: '1910', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: 'never mix languages', vi: '✨ sinh câu: mọi vế kể cả lời kêu bấm cùng ngôn ngữ phim' },
+  { card: '1910', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: "const nn: 'en' | 'es' = p?.lc ?? 'en';", cam: "(p?.lang ?? 'en').toLowerCase()", vi: 'ngăn kéo không tự suy ngôn ngữ, dùng khoá máy chủ' },
   { card: 'phieu-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-canh-gio', cam: 'Dol', vi: 'giờ tự đặt ngoài khung cố định hiện cảnh báo' },
   { card: 'phieu-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: "useState<DangPhieu>('AD')", vi: 'creative mặc định AD' },
   { card: 'gac-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'phiếu KHÔNG xét gác', cam: 'data-dang-khoa', vi: 'anh 27/11 "Bỏ hết gác đi": phiếu không khoá dạng vì gác' },

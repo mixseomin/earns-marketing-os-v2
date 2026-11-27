@@ -248,7 +248,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   const [napXong, setNapXong] = useState(false);                        // đã đọc phiếu + nháp → từ đây mới ghi nháp (không đè nháp bằng mặc định)
 
   // ngôn ngữ chữ K = ngôn ngữ phim, khoá cứng, không có nút đổi (anh 27/11/2026 #1909)
-  const nn: 'en' | 'es' = (p?.lang ?? 'en').toLowerCase() === 'es' ? 'es' : 'en';
+  const nn: 'en' | 'es' = p?.lc ?? 'en';   // khoá ngôn ngữ do máy chủ chuẩn hoá (lcPhim) — không tự suy lại từ lang (#1910)
   const sinhK = async () => {
     setKieu('kien'); setSinh({ dang: true });
     const r = await sinhChuK(cid);
@@ -275,7 +275,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   };
   useEffect(() => { docPhieu(cid).then((r) => {
     if ('loi' in r) return setLoiMo(r.loi);
-    const l = (r.p.lang ?? 'en').toLowerCase() === 'es' ? 'es' : 'en';
+    const l = r.p.lc;
     setP(r.p); setMien(r.p.mien_mac ?? r.p.mien[0] ?? '');
     const n = docNhap(cid), p0 = r.p;
     if (n) {   // phiếu đang dở của phim này (F5 / đóng mở lại): trả đúng lựa chọn + chữ đã sinh, thứ không còn hợp lệ thì bỏ
@@ -299,7 +299,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   useEffect(() => { if (napXong && !gui.ok) ghiNhap(cid, { kieu, chuK, nn, dang, link, mien, roas, ns, nsTxt, gio, gioTay, cu, bai, bo, giong, cau, cta, tien }); },
     [napXong, cid, kieu, chuK, nn, dang, link, mien, roas, ns, nsTxt, gio, gioTay, cu, bai, bo, giong, cau, cta, tien, gui.ok]);
 
-  const lc = (p?.lang ?? 'en').toLowerCase();
+  const lc = nn;   // câu đọc · CTA · chữ K: MỘT khoá ngôn ngữ phim (#1910)
   const chu = kieu === 'kien' ? chuK : p?.chu.D ?? null;
   // rê vào chữ ngoại ngữ = hiện câu dịch, không cờ (anh 27/11/2026) — câu đọc · nút CTA · chữ form; một nguồn dịch etp-co-vi
   const bv = useDichDs(p ? [...p.cau.map((c) => c.chu), ...p.cau_doi.map((c) => c.chu ?? '').filter(Boolean), ...p.cta, ...(chu ? [...chu.pt, ...chu.hl, ...chu.de] : [])] : []);
@@ -385,7 +385,7 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
         {p.cau.map((c, i) => <button key={c.id} style={{ ...chip(cau === c.id), textAlign: 'left', borderRadius: 8, width: '100%' }} onClick={() => setCau(c.id)} data-cau={c.id}>{i + 1}. <ChuVi goc={c.chu} b={bv} /></button>)}
         <CauDoi ds={p.cau_doi} b={bv} />
         {promptCau === null ? <button style={chip(false)} disabled={sinhCau.dang} onClick={() => setPromptCau(p.cau_huong)} data-sinh-cau
-          title="mở ô prompt (sửa được) rồi máy AI (cổng chung, model rẻ) viết thêm câu đọc cho ngôn ngữ phim — lưu vào sổ, máy xoay và mọi phim cùng ngôn ngữ dùng được">✨ Sinh thêm câu kiểu khác</button>
+          title="mở ô prompt (sửa được) rồi máy AI (cổng chung, model rẻ) viết thêm câu đọc cho ngôn ngữ phim — lưu vào sổ, máy xoay và mọi phim cùng ngôn ngữ dùng được" data-nn-cau={lc}>✨ Sinh thêm câu kiểu khác · tiếng {lc === 'es' ? 'Tây Ban Nha' : 'Anh'} (theo phim)</button>
           : <div style={{ width: '100%', border: `1px solid ${VIEN}`, borderRadius: 8, padding: 8, display: 'grid', gap: 6 }} data-prompt-cau>
             <div style={{ fontSize: 11.5, color: MO_SO }}>Yêu cầu cho máy (sửa nếu cần — khuôn 3 vế, có tên phim, không mở bằng Free máy vẫn giữ):</div>
             <textarea value={promptCau} onChange={(e) => setPromptCau(e.target.value)} rows={4} style={{ width: '100%', fontSize: 12.5, padding: 6, borderRadius: 6, border: `1px solid ${VIEN}`, background: 'transparent', color: 'inherit', resize: 'vertical' }} data-prompt-cau-o />

@@ -61,6 +61,7 @@ const ROAS_MUC = ['dan', '0.9', '1', '1.1', '1.2'] as const;
 // NHIỀU MỨC ROAS (0489, anh 27/11/2026): N mức = N creative MỚI (AD: dung-mau tuy_chon.ban = N, mỗi bản một khung) + N camp, thẻ thứ i lên mức roas_ds[i]
 export type PhieuMo = {
   cid: number; ten: string | null; lang: string | null; poster: string | null;
+  lc: 'en' | 'es';                                    // NGÔN NGỮ PHIM đã chuẩn hoá (lcPhim) — câu đọc, ✨ sinh câu, câu đội, CTA, chữ K đều theo đúng khoá này; giao diện KHÔNG tự suy lại từ lang (#1910)
   logo: { url: string; kieu: string | null } | null;
   the_loai: string | null;
   giong: { mac: string; the_loai: string | null };   // mac = mặc định sổ luật (giong_at.mac_dinh) · the_loai = giọng theo thể loại phim (bản xoay với mặc định khi anh không ghim)
@@ -96,14 +97,14 @@ export async function docPhieu(cid: number): Promise<{ ok: true; p: PhieuMo } | 
   const dang = await run<{ id: number; dang: string; trang_thai: string; tao: string }>(sql`select id, dang, trang_thai, tao::text tao from etp.phieu_len
     where content_id = ${id} and trang_thai in ('dung', 'cho_duyet', 'len', 'loi') and tao > now() - interval '3 days' order by tao desc`);
   const [lg] = await run<{ url: string; kieu: string | null }>(sql`select url, kieu from etp.logo_goc where content_id = ${id}`);
-  const lc = (f.lang ?? '').startsWith('es') ? 'es' : 'en', ten = f.ten;
+  const lc = lcPhim(f.lang), ten = f.ten;
   const cau = dsCau(lc, await docCauThem(), ten);
   const [crNha, crDoi] = await Promise.all([docCrCu(id), docCrDoi(id)]);
   // đang lãi 7 ngày lên đầu (thu7 > chi7), rồi theo chi 7 ngày — creative nhà và creative đội xếp chung
   const cu = [...crNha, ...crDoi].sort((a, b) => Number(b.thu7 > b.chi7) - Number(a.thu7 > a.chi7) || b.chi7 - a.chi7 || b.chi - a.chi).map((x) => ({ ...x, anh: anhUrl(x.anh) }));
   const bai = (await docBai(id)).map((x) => ({ ...x, anh: anhUrl(x.anh) }));
   const [bo, mau_doi, cau_doi] = await Promise.all([docBo(), docMauDoi(lc), docCauDoi(id, lc)]);
-  return { ok: true, p: { cid: id, ten: f.ten, lang: f.lang, poster: anhUrl(f.poster), logo: lg ? { url: lg.url, kieu: lg.kieu } : null,
+  return { ok: true, p: { cid: id, ten: f.ten, lang: f.lang, lc, poster: anhUrl(f.poster), logo: lg ? { url: lg.url, kieu: lg.kieu } : null,
     the_loai: f.the_loai, giong: { mac: GIONG_MAC, the_loai: THE_LOAI_GIONG[f.the_loai ?? ''] ?? null }, cau, cu, bai, chu: { K: so.kien(id), D: so.dol }, mien, mien_mac: m?.mac ?? null, khung: haiKhung(), dang_cho: dang,
     dang: await loaiPhieu(), cta: NUT[lc] ?? [], nhom_goc: f.nhom_goc, bo: bo.ds, bo_mac: bo.mac, mau_doi, cau_doi, cau_huong: CAU_HUONG } };
 }
@@ -134,7 +135,7 @@ async function docCauWin(lc: string, n = 12): Promise<CauDoi[]> {
       round(so.chi7::numeric, 2)::float chi7, round(so.thu7::numeric, 2)::float thu7, null::text hang
     from d join so using (creative_id) join etp.cham ch using (creative_id) left join etp.phim p on p.content_id = d.content_id left join etp.thu_vien_phim v on v.content_id = d.content_id
     where nullif(trim(ch.lop -> 'giong' ->> 'noi_dung'), '') is not null and so.thu7 > so.chi7 and so.chi7 >= 5
-      and (case when coalesce(p.locale, v.locale, 'en') like 'es%' then 'es' else 'en' end) = ${lc}
+      and ${LC_DOC} = ${lc}
     order by so.thu7 - so.chi7 desc limit 80`))
     .filter((c) => { const k = (c.chu ?? '').toLowerCase().replace(/\W+/g, ' ').trim(); if (!k || da.has(k)) return false; da.add(k); return true; }).slice(0, n);
 }
@@ -149,7 +150,7 @@ async function docCauDoi(cid: number, lc: string): Promise<CauDoi[]> {
       round(coalesce(so.chi7, 0)::numeric, 2)::float chi7, round(coalesce(so.thu7, 0)::numeric, 2)::float thu7,
       (select h.trang_thai from etp.cham_hang h where h.creative_id = d.creative_id order by h.luc desc nulls last limit 1) hang
     from d left join so using (creative_id) left join etp.cham ch using (creative_id) left join etp.phim p on p.content_id = d.content_id left join etp.thu_vien_phim v on v.content_id = d.content_id
-    where d.content_id = ${cid}
+    where d.content_id = ${cid} and (nullif(ch.lop -> 'giong' ->> 'noi_dung', '') is null or ${LC_DOC} = ${lc})
     order by (coalesce(so.thu7, 0) > coalesce(so.chi7, 0)) desc, coalesce(so.thu7, 0) - coalesce(so.chi7, 0) desc limit 40`))
     .concat(await docCauWin(lc))
     .filter((c) => { if (!c.chu) return true; const k = c.chu.toLowerCase().replace(/\W+/g, ' ').trim(); if (da.has(k)) return false; da.add(k); return true; });
@@ -160,7 +161,7 @@ async function docMauDoi(lc: string): Promise<MauDoi[]> {
       where n.ngay > current_date - 7 and c.creative_id is not null group by c.creative_id having sum(n.thu) > sum(n.chi) and sum(n.chi) >= 5)
     select d.nguoi, coalesce(p.ten, v.ten) phim, round(so.chi7::numeric, 2)::float chi7, round(so.thu7::numeric, 2)::float thu7, d.pt, d.hl, d.de
     from so join etp.chu_doi d using (creative_id) left join etp.phim p on p.content_id = d.content_id left join etp.thu_vien_phim v on v.content_id = d.content_id
-    where (case when coalesce(p.locale, v.locale, 'en') like 'es%' then 'es' else 'en' end) = ${lc}
+    where ${lcSql(sql`coalesce(p.locale, v.locale)`)} = ${lc}
     order by (d.nguoi ilike '%kien%' or d.nguoi ilike '%kiên%') desc, so.thu7 - so.chi7 desc limit 12`);
 }
 
@@ -242,6 +243,13 @@ function dsCau(lc: string, them: Record<string, Mau3[]>, ten: string) {
   const ds = [...(CAU[lc] ?? []), ...(them[lc] ?? []).filter((m) => Array.isArray(m) && m.length === 3)];
   return ds.map((m, i) => ({ id: `${lc}:${i}`, chu: m.map((v) => v.replace('{t}', ten)).join(' ') }));
 }
+/** NGÔN NGỮ PHIM — MỘT chỗ chuẩn hoá (anh 27/11/2026 #1910 "cái này cũng phải sinh theo ngôn ngữ phim"): locale phim → khoá câu đọc / ✨ sinh câu / câu đội / CTA.
+ *  Trước rải 5 bản `startsWith('es') ? 'es' : 'en'` ở máy chủ lẫn ngăn kéo, mỗi chỗ tự suy → dễ lệch nhau. Giao diện đọc p.lc, không tự suy. */
+function lcPhim(lang: string | null | undefined): 'en' | 'es' { return /^\s*(es|span)/i.test(lang ?? '') ? 'es' : 'en'; }
+function lcSql(expr: ReturnType<typeof sql>) { return sql`(case when coalesce(${expr}, '') ~* '^\\s*(es|span)' then 'es' else 'en' end)`; }
+/** ngôn ngữ CÂU ĐỌC ĐỘI = tiếng đọc thật máy chấm nghe ra trong video (etp.cham.lop.giong.ngon_ngu), chưa có mới lùi về locale phim —
+ *  creative đội đọc tiếng khác ngôn ngữ phim không lọt vào khối Câu đọc của đội / mẫu win gửi ✨ (cần alias ch = etp.cham, p = etp.phim, v = etp.thu_vien_phim) */
+const LC_DOC = lcSql(sql`coalesce(nullif(ch.lop -> 'giong' ->> 'ngon_ngu', ''), p.locale, v.locale)`);
 const CAU_HUONG = 'FIRST study the TEAM WINNING voice-overs listed at the top (profitable last 7 days, ours are losing). Copy their structure, length, rhythm, the "for free" promise and the call to action as closely as you can, putting {t} where their drama title is. Do not invent a new style and do not use any example that is not in that list. Keep each hook generic (no plot details) so it fits any drama. Write 4 new hooks.';   // phần anh sửa được trong ô prompt ✨ (khuôn a/b/c + luật Free giữ cứng ở system, cổng kiem chấm)
 const MO_FREE = /^\W*(for\s+free|free|gratis)\b/i;   // cổng chấm loại câu đọc mở bằng Free / gratis (anh 21/11/2026) — câu đầu phải là tên phim
 
@@ -252,7 +260,7 @@ export async function sinhCauDoc(cid: number, huong?: string): Promise<{ ok: tru
   const [f] = await run<{ ten: string | null; lang: string | null }>(sql`select coalesce(p.ten, v.ten) ten, coalesce(p.locale, v.locale) lang
     from (select ${id}::int content_id) k left join etp.phim p using (content_id) left join etp.thu_vien_phim v using (content_id)`);
   if (!f?.ten) return { loi: `phim #${id} không có trong etp.phim / thư viện phim` };
-  const ten = f.ten, lc = (f.lang ?? '').startsWith('es') ? 'es' : 'en';
+  const ten = f.ten, lc = lcPhim(f.lang);   // câu sinh theo NGÔN NGỮ PHIM (#1910) — cùng khoá với danh sách máy xoay docPhieu
   const them = await docCauThem();
   const co: string[][] = [...(CAU[lc] ?? []), ...(them[lc] ?? [])];
   const khoa = (m: string[]) => m.join(' ').toLowerCase().replace(/[^\p{L}\p{N}{} ]/gu, '').replace(/\s+/g, ' ').trim();
@@ -268,7 +276,7 @@ export async function sinhCauDoc(cid: number, huong?: string): Promise<{ ok: tru
       system: 'You write voice-over hooks for short-drama video ads (Facebook). Each hook has 3 parts read in order: a = opens with the drama title placeholder {t} '
         + '(a must contain {t} exactly once, and must NOT start with the word Free / For free / Gratis), b = short continuation (the "for free" promise goes here), '
         + 'c = call to action telling the viewer to tap the button (Watch More / Learn More / See more). Spoken, punchy, under 9 words per part, no emojis, no hashtags. '
-        + 'Write in the requested language only. Never repeat an existing hook word for word. Follow the operator instructions.',
+        + 'Write every part (a, b and c, including the call to action) in the requested language only — the drama is in that language; never mix languages. Never repeat an existing hook word for word. Follow the operator instructions.',
       noi_dung: `Language: ${lc === 'es' ? 'Spanish (Latin America)' : 'English'}\nTEAM WINNING voice-overs — THE REFERENCE, study these first (profitable last 7 days; titles are other dramas, use {t} instead):\n${doi.map((c) => `- ${c.chu} (7 days: spent $${c.chi7}, earned $${c.thu7})`).join('\n')}\nOur existing hooks (losing — do not repeat these wordings, do not imitate their style):\n${co.map((m) => `- ${m.join(' | ')}`).join('\n')}\nOperator instructions:\n${yc}\nReturn {"cau":[{"a","b","c"}]} (1 to 8 hooks).`,
       schema: { type: 'object', properties: { cau: { type: 'array', items: { type: 'object', properties: { a: { type: 'string' }, b: { type: 'string' }, c: { type: 'string' } }, required: ['a', 'b', 'c'] } } }, required: ['cau'] } },
     { kiem: (k) => {

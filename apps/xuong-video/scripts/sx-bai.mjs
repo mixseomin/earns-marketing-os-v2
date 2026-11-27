@@ -15,14 +15,26 @@ const chay = (l, a, o = {}) => execFileSync(l, a, { encoding: 'utf8', timeout: 9
 /** Thoát một chuỗi cho shell bên kia ssh: bọc nháy đơn, nháy đơn bên trong thành '\'' — không gì bị bung ra ($, `, \, ", khoảng trắng). */
 export const shq = (x) => `'${String(x).replace(/'/g, `'\\''`)}'`;
 
+/** Site gốc tai-tap.py đọc được — GIỮ KHỚP `src/lib/xuong-video/phim-tai.ts › HOST_PHIM` (sx-may --tu-kiem so hai bên, lệch là đỏ). */
+export const HOST_PHIM = ['reelshort.com', 'netshort.com', 'dramaboxdb.com', 'dramabox.com'];
+
+/** Dấu lỗi KHÔNG chữa được bằng thử lại (nguồn phim sai) — sx-may đọc dấu này để khỏi thử lần hai. */
+export const LOI_VINH_VIEN = 'LỖI VĨNH VIỄN';
+
 /** Tải tập miễn phí của phim về kho (một lần cho mỗi phim) → thư mục chứa tap01.mp4… Dùng chính tai-tap.py đang có. */
 export function taiTap(contentId, urlPhim) {
   const ra = `${KHO}/phim-${contentId}`;
   if (existsSync(`${ra}/tap01.mp4`)) return ra;
-  if (!urlPhim) throw new Error(`phim ${contentId} chưa có link trang phim để tải tập`);
+  if (!urlPhim) throw new Error(`${LOI_VINH_VIEN}: phim ${contentId} chưa có link trang phim để tải tập — chọn phim khác`);
+  // NGUỒN LẠ: tai-tap.py chỉ đọc 3 site gốc trên; đề mang link nguồn khác (flickreels…) thì tải là chắc chắn hỏng, thử lại một lần cũng vô ích.
+  // Nói RÕ nguồn + cách xử ngay tại đây: mia-calloway 29/11 chỉ nhận "tai-tap.py không lấy được tập nào của phim 219774", không ai biết vì sao.
+  let host = '';
+  try { host = new URL(String(urlPhim)).hostname.toLowerCase(); } catch { /* link rác */ }
+  if (!HOST_PHIM.some((x) => host === x || host.endsWith(`.${x}`)))
+    throw new Error(`${LOI_VINH_VIEN}: phim ${contentId} — nguồn ${host || String(urlPhim).slice(0, 60)} chưa tải được tập (chỉ ReelShort / NetShort / DramaBox), chọn phim khác rồi nạp lại đề`);
   mkdirSync(ra, { recursive: true });
   chay('python3', [path.join(TOI, 'ethopex', 'tai-tap.py'), urlPhim, ra, '2']);
-  if (!existsSync(`${ra}/tap01.mp4`)) throw new Error(`tai-tap.py không lấy được tập nào của phim ${contentId}`);
+  if (!existsSync(`${ra}/tap01.mp4`)) throw new Error(`tai-tap.py không lấy được tập nào của phim ${contentId} (${host}) — kiểm trang phim còn mở không`);
   return ra;
 }
 

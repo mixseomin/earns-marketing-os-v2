@@ -4,8 +4,8 @@
 // tới lượt dựng mới chết "tai-tap.py không lấy được tập nào của phim 219774" → ngày đó thiếu bài mà không ai biết trước.
 // Chặn ngay ở cổng nạp đề (napVideo) để đề sai không bao giờ vào kho. Thuần, không chạm cơ sở dữ liệu.
 
-/** Site gốc tai-tap.py đọc được (tên miền + mọi tên miền con). */
-export const HOST_PHIM = ['reelshort.com', 'netshort.com', 'dramaboxdb.com'];
+/** Site gốc tai-tap.py đọc được (tên miền + mọi tên miền con). drama**box**.com tách khỏi drama**boxdb**.com: tai-tap.py đọc cả hai (grep `dramabox.com` trong ethopex/tai-tap.py). */
+export const HOST_PHIM = ['reelshort.com', 'netshort.com', 'dramaboxdb.com', 'dramabox.com'];
 
 /** Lỗi của một đề mang phim, hoặc null nếu dựng được. `url` = etp.thu_vien_phim.url của content_id đó ('' nếu chưa có). */
 export function loiPhim(phim: unknown, url: unknown): string | null {

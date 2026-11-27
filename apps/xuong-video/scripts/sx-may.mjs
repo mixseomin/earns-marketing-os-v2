@@ -15,7 +15,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { LAM, MIET_THI, doanSach, shq } from './sx-bai.mjs';
+import { HOST_PHIM, LAM, LOI_VINH_VIEN, MIET_THI, doanSach, shq, taiTap } from './sx-bai.mjs';
 import { nhapCty } from '../src/lib/xuong-video/cty.mjs';
 const { loiChuPersona } = await nhapCty('worker/cham-dang.mjs');   // mã chấm của cty — repo riêng, nạp lúc chạy (tách 18/11/2026)
 
@@ -230,6 +230,11 @@ const main = async () => {
     a.deepEqual(docTongBai('✓ quora-1 (m, 33₫) → x\n✗ viết bài góc #2: lỗi (0₫)\n✓ quora-3 (m, 30₫) → y'), { so: 2, vnd: 63 });
     a.ok(docTongBai('✗ viết bài góc #2: hết câu hỏi (0₫)').loi.includes('hết câu hỏi'), '0 bài phải kèm lý do');
     a.ok(KHO.duong_rieng.includes('yesterdays-news-tonight') && KHO.duong_rieng.includes('mia-calloway'), 'sổ: kênh lịch sử + Mia đi đường riêng');
+    // NGUỒN PHIM: hai danh sách site phải TRÙNG nhau, lệch là một bên cho qua còn bên kia chặn (hoặc ngược lại) — 27/11/2026 mia-calloway chỉ nhận
+    // "tai-tap.py không lấy được tập nào của phim 219774" mà không biết nguồn flickreels; nay báo rõ nguồn + không thử lần hai.
+    const HOST_MAY = [...readFileSync(path.join(D, '..', 'src', 'lib', 'xuong-video', 'phim-tai.ts'), 'utf8').match(/HOST_PHIM\s*=\s*\[([^\]]*)\]/)[1].matchAll(/'([^']+)'/g)].map((x) => x[1]);
+    a.deepEqual(HOST_PHIM, HOST_MAY, 'HOST_PHIM ở sx-bai.mjs và phim-tai.ts phải trùng');
+    try { taiTap(219774, 'https://www.flickreels.net/playlist/called-a-jinx/14928/episode-1'); a.ok(false, 'nguồn flickreels phải bị chặn ngay'); } catch (e) { a.ok(e.message.includes(LOI_VINH_VIEN) && /flickreels\.net/.test(e.message), 'nguồn phim lạ phải báo LỖI VĨNH VIỄN + tên nguồn, không đi tải'); }
     // MỌI máy đi đường riêng PHẢI khai lệnh lấp kho riêng, không có là may-dung.mts chỉ in câu "chưa khai" (24/11/2026: Mia thiếu 1 bài facebook).
     // giochap-van-khan từng được miễn với lý do "Phòng Nội dung không xếp việc kho|" — SAI: cham-dang.mjs chỉ bỏ qua máy trong _kho.may, còn duong_rieng
     // vẫn nhận việc kho|, nên máy đó kẹt cứng ở câu "chưa khai" (25/11/2026). Nay khai đủ lệnh thật cho cả ba.
@@ -270,7 +275,8 @@ const main = async () => {
     const id = moLuot(b);
     // THỬ LẠI MỘT LẦN: lỗi mạng / R2 / ssh chập chờn thường qua ở lần hai (Reel 13₫, ảnh 65₫). Vẫn hỏng thì ghi 'hong' — Phòng Nội dung xếp việc
     // `social:sx|<máy>` cho Khang (cham-dang.mjs › xepKhang) sửa gốc rồi dựng lại; không ai phải mở tab mới biết.
-    const thu2 = async () => { try { return await dungMot(b); } catch (e) { console.log(`↻ ${b.slug}: thử lại (${String(e.message).split('\n')[0].slice(0, 120)})`); return dungMot(b); } };
+    // LỖI VĨNH VIỄN (nguồn phim sai, chữ persona sai…) thì KHÔNG thử lại: lần hai chắc chắn hỏng y hệt, chỉ tốn thời gian và làm log khó đọc.
+    const thu2 = async () => { try { return await dungMot(b); } catch (e) { if (String(e.message).includes(LOI_VINH_VIEN)) throw e; console.log(`↻ ${b.slug}: thử lại (${String(e.message).split('\n')[0].slice(0, 120)})`); return dungMot(b); } };
     try { const kq = await thu2(); tien += kq.vnd ?? 0; dongLuot(id, b, true, kq); console.log(`✓ ${b.slug} (${b.kieu}) ${kq.vnd ?? 0}₫ — ${kq.ghi ?? ''}`); }
     catch (e) { hong++; const l = String(e.message).split('\n')[0].slice(0, 300); dongLuot(id, b, false, {}, l); console.log(`✗ ${b.slug} (${b.kieu}): ${l.slice(0, 200)}`); }
   }

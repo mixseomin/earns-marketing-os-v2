@@ -43,6 +43,28 @@ def lenh(p, cr, bo):
     chu = f"phiếu #{p['id']}: {k} · {p.get('link')} · {p.get('dang')} · {p.get('mien') or 'domain mặc định'} · ROAS {p['roas']} · ${int(p['ns'])} · giờ {p.get('gio')}"
     return a + ["--that", "--luat", f"anh duyệt creative #{cr} ở etp2 › Chờ lên ({chu})", "--ai", f"anh (etp2 phiếu lên camp #{p['id']})"]
 
+def lenh_bai(p):
+    """DÙNG LẠI POST (anh 27/11/2026): ★ ROAS clone bài đăng của camp nhà goc — không --creative / --bo (bộ + Page + bài của camp gốc), chữ / link / nút là của bài"""
+    if not re.fullmatch(r"dan|\d+(\.\d+)?", str(p["roas"])): raise SystemExit(f"phiếu #{p['id']}: mức ROAS lạ {p['roas']!r} — không lên")
+    if not (re.fullmatch(r"\d+_\d+", str(p.get("bai") or "")) and str(p.get("goc") or "").isdigit()): raise SystemExit(f"phiếu #{p['id']}: thẻ dùng lại post thiếu mã bài / camp gốc — không lên")
+    a = [os.path.join(SC, "nhan-ban.py"), str(int(p["goc"])), "--roas", "dan" if p["roas"] == "dan" else f"{float(p['roas']):g}", "--ns", str(int(p["ns"])), "--tay"]
+    if p.get("mien"): a += ["--mien", p["mien"]]
+    if p.get("gio") and p["gio"] != "lich": a += ["--gio", p["gio"]] + (["--gio-tu-do"] if p.get("tu_do") else [])
+    chu = f"phiếu #{p['id']}: dùng lại post {p['bai']} (camp #{p['goc']}) · {p.get('mien') or 'domain mặc định'} · ROAS {p['roas']} · ${int(p['ns'])} · giờ {p.get('gio')}"
+    return a + ["--that", "--luat", f"anh duyệt dùng lại post ở etp2 › Chờ lên ({chu})", "--ai", f"anh (etp2 phiếu lên camp #{p['id']})"]
+
+def chay_lenh(cl, p, a, cr):
+    print("nhan-ban " + " ".join(a[1:]), flush=True)
+    r = None
+    try:
+        r = subprocess.run(["python3", *a], capture_output=True, text=True, timeout=1500, cwd=SC)
+        print(r.stdout[-3000:], r.stderr[-1500:], sep="\n", flush=True)
+        kq = json.loads(next((l for l in reversed(r.stdout.strip().splitlines()) if l.startswith("{")), "{}") or "{}")
+    except Exception as e: kq = {"ok": False, "loi": str(e)[:300]}
+    if not kq and r is not None and r.returncode: kq = {"ok": False, "loi": (r.stderr.strip().splitlines() or ["nhan-ban lỗi"])[-1]}
+    ghi_kq(cl, p["id"], kq.get("moi") if kq.get("ok") else None, None if kq.get("ok") else (kq.get("loi") or "nhan-ban không trả kết quả"))
+    print(json.dumps({"ok": bool(kq.get("ok")), "camp": kq.get("moi"), "cr": cr, "bai": p.get("bai"), "loi": kq.get("loi")}, ensure_ascii=False))
+
 def ghi_kq(cl, pid, camp, loi):
     loi_s = (loi or "").replace("$", "")[:400]
     q(f"update etp.cho_len set camp_id = {int(camp) if camp else 'null'}, camp_loi = {('$L$' + loi_s + '$L$') if loi else 'null'}, cap_nhat = now() where id = {int(cl)}")
@@ -55,12 +77,22 @@ def ghi_kq(cl, pid, camp, loi):
 
 def chay(cl):
     r = q(f"""select row_to_json(t) from (select c.id cl, c.trang_thai, c.creative_id, c.camp_id, c.loi, p.id, p.content_id, coalesce(p.lang, c.lang) lang, p.kieu, p.link, p.dang,
-            p.mien, coalesce(c.phieu_roas, p.roas_ds[1], p.roas) roas, p.ns, p.gio, p.tu_do, p.chu, (c.muc ->> 'cr_cu')::int cr_cu, f.ten phim from etp.cho_len c join etp.phieu_len p on p.id = c.phieu_id left join etp.phim f on f.content_id = p.content_id
+            p.mien, coalesce(c.phieu_roas, p.roas_ds[1], p.roas) roas, p.ns, p.gio, p.tu_do, p.chu, (c.muc ->> 'cr_cu')::int cr_cu, c.muc ->> 'bai' bai, (c.muc ->> 'goc')::int goc, f.ten phim from etp.cho_len c join etp.phieu_len p on p.id = c.phieu_id left join etp.phim f on f.content_id = p.content_id
           where c.id = {int(cl)}) t""")
     if not r: raise SystemExit(f"cho_len #{cl} không có phiếu — không lên")
     p = json.loads(r)
     if p.get("camp_id"): print(f"cho_len #{cl} đã có camp #{p['camp_id']}"); return
     q(f"update etp.phieu_len set trang_thai = 'len', cap_nhat = now() where id = {int(p['id'])} and trang_thai in ('cho_duyet', 'loi')")
+    if p.get("bai"):   # dùng lại post: không tải / không tạo bản — nhận thẻ (một máy một thẻ) rồi clone bài
+        if not q(f"""update etp.cho_len set trang_thai = 'dang_len', loi = null, cap_nhat = now() where id = {int(cl)}
+                  and (trang_thai = 'duyet' or (trang_thai = 'dang_len' and cap_nhat < now() - interval '15 minutes')) returning id"""):
+            ghi_kq(cl, p["id"], None, f"thẻ #{cl} không ở trạng thái duyệt (đang có máy khác lên?) — không lên trùng"); return
+        try: a = lenh_bai(p)
+        except SystemExit as e:
+            ghi_kq(cl, p["id"], None, str(e)); q(f"update etp.cho_len set trang_thai = 'duyet', cap_nhat = now() where id = {int(cl)} and trang_thai = 'dang_len'"); return
+        chay_lenh(cl, p, a, None)
+        q(f"update etp.cho_len set trang_thai = case when camp_id is not null then 'da_len' else 'duyet' end, cap_nhat = now() where id = {int(cl)} and trang_thai = 'dang_len'")   # lỗi → về duyệt để Lên camp lại
+        return
     if p.get("cr_cu") and not p.get("creative_id"):
         loi = ban_cu(p)
         if loi: ghi_kq(cl, p["id"], None, loi); return
@@ -74,15 +106,7 @@ def chay(cl):
     cr = int(x["creative_id"])
     bo = q("select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi'")
     if not bo: ghi_kq(cl, p["id"], None, "thiếu bộ lên camp (etp.cau_hinh bo_phim_moi)"); return
-    a = lenh(p, cr, bo); print("nhan-ban " + " ".join(a[1:]), flush=True)
-    try:
-        r = subprocess.run(["python3", *a], capture_output=True, text=True, timeout=1500, cwd=SC)
-        print(r.stdout[-3000:], r.stderr[-1500:], sep="\n", flush=True)
-        kq = json.loads(next((l for l in reversed(r.stdout.strip().splitlines()) if l.startswith("{")), "{}") or "{}")
-    except Exception as e: kq = {"ok": False, "loi": str(e)[:300]}
-    if not kq and r.returncode: kq = {"ok": False, "loi": (r.stderr.strip().splitlines() or ["nhan-ban lỗi"])[-1]}
-    ghi_kq(cl, p["id"], kq.get("moi") if kq.get("ok") else None, None if kq.get("ok") else (kq.get("loi") or "nhan-ban không trả kết quả"))
-    print(json.dumps({"ok": bool(kq.get("ok")), "camp": kq.get("moi"), "cr": cr, "loi": kq.get("loi")}, ensure_ascii=False))
+    chay_lenh(cl, p, lenh(p, cr, bo), cr)
 
 def body_cu(p):
     """chữ + link của phiếu cho bản mới từ creative cũ (CTA theo form như mọi bản nhà)"""
@@ -119,6 +143,10 @@ def tu_kiem():
     a = lenh(p, 999, "42")
     assert a[1] == "65734" and a[a.index("--roas") + 1] == "dan" and "--gio" not in a and a[a.index("--mien") + 1] == "maybic.com" and a[a.index("--ten") + 1] == "duyet Caf: ! ES - cr moi #999", a
     b = lenh({**p, "lang": "en", "roas": "1.1", "ns": 8, "mien": None, "gio": "2026-11-28 03:30", "tu_do": True}, 5, "42")
+    c = lenh_bai({**p, "bai": "146_122", "goc": 91637, "roas": "1", "mien": None})
+    assert c[1] == "91637" and c[c.index("--roas") + 1] == "1" and "--creative" not in c and "--bo" not in c and "--mien" not in c and "--that" in c, c
+    try: lenh_bai({**p, "bai": "", "goc": 91637}); raise AssertionError("thiếu bài phải chặn")
+    except SystemExit: pass
     assert b[1] == "65110" and b[b.index("--roas") + 1] == "1.1" and b[b.index("--ns") + 1] == "8" and "--mien" not in b and b[b.index("--gio") + 1] == "2026-11-28 03:30" and "--gio-tu-do" in b
     assert "--gio-tu-do" not in lenh({**p, "gio": "2026-11-28 22:00", "tu_do": False}, 5, "42") and "--that" in a and "Kiên" not in " ".join(a) and "Dol" not in " ".join(a)
     assert CHO_GIAY > 60

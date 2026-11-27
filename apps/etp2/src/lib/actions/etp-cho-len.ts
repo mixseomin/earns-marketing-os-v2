@@ -71,6 +71,7 @@ async function lenTheoPhieu(n: number, me: { email: string }, duyet: boolean): P
   await run(sql`update etp.cho_len set camp_loi = null, cap_nhat = now() where id = ${n}`);
   const repo = process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2', log = openSync(`/tmp/etp-len-phieu-${n}.log`, 'a');
   chayTach('python3', [`${repo}/apps/etp/len-phieu.py`, String(n)], { cwd: repo, detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
+  if (c.dang === 'BAI') return { ok: true, chu: `${duyet ? 'đã duyệt' : 'gửi lại lệnh'} #${n}: dùng lại post — máy clone bài sang camp mới (ROAS ${c.roas} · $${c.ns}), chữ / link / nút giữ của bài` };
   if (c.dang === 'CU') return { ok: true, chu: `${duyet ? 'đã duyệt' : 'gửi lại lệnh'} #${n}: creative cũ — máy tạo bản mới cùng video với chữ ${k} của phiếu #${c.phieu_id} (không dựng, ~1–2 phút) rồi tạo camp (ROAS ${c.roas} · $${c.ns})` };
   return { ok: true, chu: `${duyet ? 'đã duyệt' : 'gửi lại lệnh'} #${n}: máy iMac tải creative lên Ethopex (~1–2 phút) rồi tạo camp theo phiếu #${c.phieu_id} (${k} · ${c.dang} · $${c.ns})` };
 }

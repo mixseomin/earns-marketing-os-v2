@@ -961,7 +961,7 @@ const LUAT = [
   { card: 'gac-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: "chayDong(cid, g.dang, '', undefined, null, p.id)", cam: 'đang gác — ${ld.gac}', vi: 'gửi phiếu không từ chối dạng gác, dòng mang phieu_id' },
   { card: 'gac-2711', tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: 'if (!ph_id && (await dangGac()).includes(loai))', vi: 'chayDong từ phiếu bỏ qua gác' },
   { card: 'gac-2711', tep: 'apps/etp/dong_phim.py', co: 'in gac and not d.get("phieu_id")', vi: 'máy dòng phim không dừng dòng tạo từ phiếu' },
-  { card: 'phieu-nhap-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'ghiNhap(cid, { kieu, chuK, nn, dang, link, mien, roas, ns, nsTxt, gio, gioTay, cu, giong, cau, cta, tien })', vi: 'phiếu lên camp lưu nháp theo phim — F5 không mất lựa chọn + chữ đã sinh (anh 27/11/2026)' },
+  { card: 'phieu-nhap-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'ghiNhap(cid, { kieu, chuK, nn, dang, link, mien, roas, ns, nsTxt, gio, gioTay, cu, bai, giong, cau, cta, tien })', vi: 'phiếu lên camp lưu nháp theo phim — F5 không mất lựa chọn + chữ đã sinh (anh 27/11/2026)' },
   { card: 'phieu-nhap-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'if (n?.chuK?.pt?.length) setChuK(n.chuK);', vi: 'F5 không sinh lại chữ K (tốn tiền AI) khi nháp đã có' },
   { card: 'cu-cta-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-cta-cu={c.nguon}', cam: "laCu ? 'giữ nguyên như video cũ'", vi: 'dùng lại: khối CTA hiện CTA của từng creative đang chọn (anh 27/11/2026)' },
   { card: 'cu-doi-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-cr-doi', vi: 'dùng lại: creative của thành viên đội có nhãn đội · tên (anh 27/11/2026)' },
@@ -1009,6 +1009,11 @@ const LUAT = [
   { card: 'bo-form-cu-2711', tep: 'apps/etp2/src/components/etp-view.tsx', cam: '<FormChayDong', vi: 'anh 27/11/2026: form Loại nội dung QC cũ bỏ — mọi lối lên camp mở Phiếu lên camp' },
   { card: 'bo-form-cu-2711', tep: 'apps/etp2/src/components/etp-view.tsx', co: "openEntityDrawer('etp-phieu-len', cid)", vi: 'nút ＋ dòng phim mở Phiếu lên camp' },
   { card: 'bo-form-cu-2711', tep: 'apps/etp2/src/lib/actions/etp-cho-len.ts', co: 'where c.phieu_id is not null', vi: 'ô Chờ lên chỉ hiện bản dựng theo phiếu, thẻ form cũ không hiện' },
+  { card: 'bai-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-dang="BAI"', vi: 'anh 27/11/2026: phiếu có lựa chọn Dùng lại post' },
+  { card: 'bai-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'data-ds-bai', vi: 'danh sách post kèm hiệu suất 7n / tổng như creative' },
+  { card: 'bai-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: 'bai:${p.id}', vi: 'gửi phiếu post tạo thẻ Chờ lên theo bài' },
+  { card: 'bai-2711', tep: 'apps/etp/len-phieu.py', co: "muc ->> 'bai'", vi: 'máy lên camp đọc bài của thẻ' },
+  { card: 'bai-2711', tep: 'apps/etp/len-phieu.py', co: 'def lenh_bai(', vi: 'thẻ post lên bằng nhan-ban.py clone bài' },
 ];
 
 const loi = [];

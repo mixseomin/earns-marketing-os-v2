@@ -61,13 +61,10 @@ if [ -n "${DATABASE_URL:-}" ] && [ -d "packages/db/migrations" ]; then
     );
   " >/dev/null
   # Một truy vấn lấy cả danh sách đã chạy (trước đây mỗi tệp một kết nối psql: 249 tệp = 12,5s mỗi lần deploy).
-  da_chay=$(psql "$DATABASE_URL" -tAc "SELECT filename FROM _file_migrations")
-  for sql_file in packages/db/migrations/[0-9][0-9][0-9][0-9]_*.sql; do
-    [ -f "$sql_file" ] || continue
-    fname=$(basename "$sql_file")
-    if grep -qxF "$fname" <<<"$da_chay"; then
-      continue
-    fi
+  # Tệp CHƯA chạy = danh sách tệp trừ danh sách đã chạy, MỘT lần sort/comm (trước: mỗi tệp một lần grep + basename ≈ 490 tiến trình, 4s mỗi deploy — anh 27/11/2026).
+  chua_chay=$(comm -23 <(cd packages/db/migrations && ls [0-9][0-9][0-9][0-9]_*.sql 2>/dev/null | LC_ALL=C sort) <(psql "$DATABASE_URL" -tAc "SELECT filename FROM _file_migrations" | LC_ALL=C sort))
+  for fname in $chua_chay; do
+    sql_file="packages/db/migrations/$fname"
     echo "→ Applying $fname"
     if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$sql_file"; then
       psql "$DATABASE_URL" -c "INSERT INTO _file_migrations (filename) VALUES ('$fname') ON CONFLICT DO NOTHING;" >/dev/null

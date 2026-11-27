@@ -13,10 +13,14 @@ doc() { sed -n "s/^ *$1 *= *//p" "$CRED" | head -1; }
 TOKEN=$(doc dns_cloudflare_api_token); KEY=$(doc dns_cloudflare_api_key); EMAIL=$(doc dns_cloudflare_email)
 cf() { if [ -n "$TOKEN" ]; then curl -s -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' "$@"; else curl -s -H "X-Auth-Key: $KEY" -H "X-Auth-Email: $EMAIL" -H 'content-type: application/json' "$@"; fi; }
 TEN=$(nginx -T 2>/dev/null | sed -n 's/^\s*server_name\s\+\(.*\);/\1/p' | tr ' ' '\n' | grep -E '^[a-z0-9-]+\.on\.tc$' | sort -u)
+# MỘT lần gọi lấy mọi tên đã có bản ghi (trước: mỗi tên một lần gọi Cloudflare ≈ 10s mỗi deploy — anh 27/11/2026 tối ưu deploy)
+DA_CO=$(cf "https://api.cloudflare.com/client/v4/zones/$ZONE/dns_records?per_page=5000" | python3 -c 'import json,sys
+try:
+    d=json.load(sys.stdin); assert d.get("success")
+    print("\n".join(sorted({r["name"] for r in d.get("result") or []})))
+except Exception: print("__LOI__")')
 for t in $TEN; do
-  co=$(cf "https://api.cloudflare.com/client/v4/zones/$ZONE/dns_records?name=$t" | python3 -c 'import json,sys
-try: d=json.load(sys.stdin); print(len(d.get("result") or []) if d.get("success") else "loi")
-except Exception: print("loi")')
+  if [ "$DA_CO" = "__LOI__" ]; then co=loi; elif grep -qxF "$t" <<<"$DA_CO"; then co=1; else co=0; fi
   if [ "$co" = "0" ]; then
     ok=$(cf -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE/dns_records" -d "{\"type\":\"A\",\"name\":\"$t\",\"content\":\"$IP\",\"proxied\":true,\"comment\":\"deploy/dns-on-tc.sh\"}" | python3 -c 'import json,sys
 try: print("ok" if json.load(sys.stdin).get("success") else "loi")

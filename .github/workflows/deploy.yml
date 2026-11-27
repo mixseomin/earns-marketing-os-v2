@@ -38,7 +38,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }   # cần lịch sử để so before..sha khi chọn app phải build
+        # cần lịch sử để so before..sha khi chọn app phải build; blob:none = chỉ kéo commit + cây (git diff --name-only không cần nội dung tệp cũ), đỡ ~5s (anh 27/11/2026 'tối ưu tốc độ deploy')
+        with: { fetch-depth: 0, filter: 'blob:none' }
       # Chỉ build app có thay đổi (anh chốt 11/10/2026): lượt chỉ sửa cty từ ~4 phút còn ~1,5 phút. Không xác định được khoảng
       # thay đổi (nhánh mới, chạy tay, đổi chính workflow) → build HẾT. web = mọi thay đổi nằm ngoài 3 app con (packages, scripts,
       # deploy.sh, lockfile…) — khớp điều kiện WEB_CHANGED/DEPS_CHANGED của deploy.sh nên box không bao giờ phải tự build web.
@@ -52,6 +53,9 @@ jobs:
           # Đọc lỗi / gốc lạ → giữ before như cũ.
           OK=$(gh api "repos/${{ github.repository }}/actions/workflows/deploy.yml/runs?event=push&status=success&branch=main&per_page=1" --jq '.workflow_runs[0].head_sha' 2>/dev/null || true)
           if [ -n "$OK" ] && git cat-file -e "$OK^{commit}" 2>/dev/null && git merge-base --is-ancestor "$OK" "${{ github.sha }}"; then echo "gốc so: lượt deploy thành công $OK (push liền trước: $B)"; B="$OK"; fi
+          # Khoá cache Next theo GIỜ (anh 27/11/2026 tối ưu deploy): trúng khoá giờ này thì actions/cache bỏ bước LƯU (3 app ~16s mỗi lượt) —
+          # mỗi app lưu tối đa một lần / giờ, lượt sau khôi phục bản ≤1 giờ tuổi (build tăng dần vẫn ăn).
+          echo "gio=$(date -u +%Y%m%d%H)" >> "$GITHUB_OUTPUT"
           A="${{ inputs.app }}"
           # Chạy tay một app: chỉ dựng app đó, máy chủ chỉ thay + khởi động lại app đó (web chỉ khi chọn web).
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "$A" ] && [ "$A" != "het" ]; then
@@ -91,19 +95,19 @@ jobs:
       - name: Restore Next.js build cache (web)
         if: steps.chon.outputs.web == '1'
         uses: actions/cache@v4
-        with: { path: apps/web/.next/cache, key: "nextcache-web-${{ github.sha }}", restore-keys: nextcache-web- }
+        with: { path: apps/web/.next/cache, key: "nextcache-web-${{ steps.chon.outputs.gio }}", restore-keys: nextcache-web- }
       - name: Restore Next.js build cache (store)
         if: steps.chon.outputs.store == '1'
         uses: actions/cache@v4
-        with: { path: apps/store/.next/cache, key: "nextcache-store-${{ github.sha }}", restore-keys: nextcache-store- }
+        with: { path: apps/store/.next/cache, key: "nextcache-store-${{ steps.chon.outputs.gio }}", restore-keys: nextcache-store- }
       - name: Restore Next.js build cache (studio)
         if: steps.chon.outputs.studio == '1'
         uses: actions/cache@v4
-        with: { path: apps/xuong-video/.next/cache, key: "nextcache-studio-${{ github.sha }}", restore-keys: nextcache-studio- }
+        with: { path: apps/xuong-video/.next/cache, key: "nextcache-studio-${{ steps.chon.outputs.gio }}", restore-keys: nextcache-studio- }
       - name: Restore Next.js build cache (etp2)
         if: steps.chon.outputs.etp2 == '1'
         uses: actions/cache@v4
-        with: { path: apps/etp2/.next/cache, key: "nextcache-etp2-${{ github.sha }}", restore-keys: nextcache-etp2- }
+        with: { path: apps/etp2/.next/cache, key: "nextcache-etp2-${{ steps.chon.outputs.gio }}", restore-keys: nextcache-etp2- }
       - name: Kiểm tĩnh
         run: |
           node scripts/check-sql-aliases.mjs
@@ -148,9 +152,10 @@ jobs:
       # Tarball + chỗ bung ở /var/tmp/mos2-deploy (đĩa), KHÔNG /tmp: /tmp của box3 là tmpfs 512M, các phiên khác hay lấp đầy → deploy hỏng "No space left" (26/10/2026).
       - name: Ship + server-side deploy (migrations + swap + restart)
         run: |
-          if ls *.tar.gz >/dev/null 2>&1; then ls -la *.tar.gz; ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} "mkdir -p /var/tmp/mos2-deploy"; scp -i ~/.ssh/id_ed25519 *.tar.gz root@${{ secrets.DEPLOY_HOST }}:/var/tmp/mos2-deploy/; else echo "↺ không app nào dựng lượt này"; fi
-          ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} '
+          # MỘT phiên ssh: tarball chảy qua stdin rồi bung + deploy luôn (trước: ssh mkdir + scp + ssh deploy = 3 lần bắt tay sang Đức, anh 27/11/2026 tối ưu deploy).
+          if ls *.tar.gz >/dev/null 2>&1; then ls -la *.tar.gz >&2; tar -cf - *.tar.gz; else echo "↺ không app nào dựng lượt này" >&2; tar -cf - --files-from /dev/null; fi | ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} '
             set -e
+            mkdir -p /var/tmp/mos2-deploy && tar -xf - -C /var/tmp/mos2-deploy
             for a in web store xuong-video etp2; do
               [ -f "/var/tmp/mos2-deploy/$a.tar.gz" ] || { echo "↺ $a: không build lượt này"; continue; }
               mkdir -p "/opt/earns-marketing-os-v2/apps/$a" && cd "/opt/earns-marketing-os-v2/apps/$a"

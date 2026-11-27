@@ -582,16 +582,8 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         # PHIM CẤM (anh 19/11/2026) — trước bước chấm nhóm gốc (tốn AI): phim / camp trong sổ ethopex_phim_cam → chặn mọi việc tăng chi, kể cả ROAS / vé / lệnh anh / ngoai
         ly_cam = phim_cam([camp_id] if camp_id else (), [ct] if ct else ())
         if ly_cam: return ly_cam
-<<<<<<< /var/folders/kk/v47ng44j0mgbtg5k6h6nb3s00000gn/T/tmp.AxXXdZRuuC/mine
         # CHỈ PHIM ÂU-MỸ đứng TRƯỚC vé trực tiếp (anh 28/11/2026 "Sao lại chọn phim châu Á? Cấm hoàn toàn cơ mà?"): camp 112587 phim 166081 nhóm trung lọt
         # vì vé trực tiếp miễn mọi phanh phía sau — lệnh anh không nêu phim, phim do máy / Claude chọn. Nhóm gốc là CẤM như sổ phim cấm, không phải phanh.
-=======
-        # LỆNH TRỰC TIẾP CỦA ANH (anh 20/11/2026 09:35): vé loai 'truc_tiep' (CLI --ve-truc-tiep, đã cảnh báo một lần lúc cấp) miễn MỌI phanh phía sau — chỉ phim cấm (trên) và camp đội chặn
-        # nhân bản truyền camp_id=None + goc=<camp gốc>: vé trực tiếp của nút etp2 gắn camp GỐC → khớp cả goc (25/11/2026: trước chỉ khớp camp_id → vé nhân bản tay không miễn phanh)
-        if not ngoai and truc_tiep(viec, [x for x in (camp_id, goc) if x], ct): return None
-        ly_lc = luat_cu_chan(viec, [camp_id] if camp_id else (), ct)   # LUẬT CŨ DỪNG (anh 22/11/2026) — luật máy trước 20/11 không lên camp mới / nhân bản nữa
-        if ly_lc: return ly_lc
->>>>>>> /var/folders/kk/v47ng44j0mgbtg5k6h6nb3s00000gn/T/tmp.AxXXdZRuuC/theirs
         ng = _q(f"select coalesce(nhom_goc, '') from etp.phim where content_id = {int(ct)}") if ct else ''
         if ct and not ng:   # KÍN (anh 29/10/2026 "làm cho kín"): phim chưa chấm → chấm poster NGAY (nhom_goc.py, ckey ~36₫/phim); không chấm được → CHẶN
             import importlib.util as _iu
@@ -600,7 +592,8 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
             if not ng: return f"phim #{ct} chưa chấm được nhóm gốc ({_ly}) — chỉ lên camp phim Âu-Mỹ đã chấm (anh 29/10/2026 'làm cho kín')"
         if ng and ng != 'au_my': return LY_AU_MY.format(ng)
         # LỆNH TRỰC TIẾP CỦA ANH (anh 20/11/2026 09:35): vé loai 'truc_tiep' (CLI --ve-truc-tiep, đã cảnh báo một lần lúc cấp) miễn MỌI phanh phía sau — chỉ phim cấm (trên) và camp đội chặn
-        if not ngoai and truc_tiep(viec, [camp_id] if camp_id else (), ct): return None
+        # nhân bản truyền camp_id=None + goc=<camp gốc>: vé trực tiếp của nút etp2 gắn camp GỐC → khớp cả goc (25/11/2026: trước chỉ khớp camp_id → vé nhân bản tay không miễn phanh)
+        if not ngoai and truc_tiep(viec, [x for x in (camp_id, goc) if x], ct): return None
         ly_lc = luat_cu_chan(viec, [camp_id] if camp_id else (), ct)   # LUẬT CŨ DỪNG (anh 22/11/2026) — luật máy trước 20/11 không lên camp mới / nhân bản nữa
         if ly_lc: return ly_lc
         ch = doc_cau_hinh()

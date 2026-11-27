@@ -355,7 +355,6 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     // cả 4 lượt "chưa chọn hook QC gốc") → máy tự gắn mã hook đã khoá; tiêu đề lệch hook thì dùng NGUYÊN VĂN câu hook (trừ khi trùng tiêu đề đã có).
     if (xa && hookCu) {
       const hc = hookCu;
-      if (!timHook(hooksLuot, r.data.hook_qc)) r.data.hook_qc = hc.id;
       if (loiHook([r.data.chu.title], hc.chu).length && !daCo.has(tdChuan(hc.chu))) r.data.chu.title = hc.chu;
       // MÁY GHÉP TIÊU ĐỀ khi hook (đã là tiêu đề một bài cũ nên không chép được) bị mô hình viết lệch — chạy cho CẢ hai lỗi: "sửa quá xa" (giữ <35% chữ hook)
       // và "tiêu đề trùng" (chép đúng câu cũ). Câu hook nhiều vế → ghép vế (ghepHook, esimfares 19/11/2026); hook MỘT câu (không có vế sau) → ghepHook trả rỗng,
@@ -366,6 +365,10 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
         const g = ghepMoi(); if (g) r.data.chu.title = g;
         else { loiCu.push(`tiêu đề trùng một bài có sẵn của máy và ghép hook không ra bản mới: "${r.data.chu.title}"`); continue; }
       } else if (loiHook([r.data.chu.title], hc.chu).length) { const g = ghepMoi(); if (g) r.data.chu.title = g; }
+      // mã hook phải có trong kho lượt này: mô hình rẻ hay trả rỗng / viết tên hook thay vì mã → gán mã đã khoá.
+      // Không gán thì kiemDe báo "chưa chọn hook QC gốc" và lượt sau BỎ hook này (astrolas 27/11/2026: ghép được tiêu đề vẫn 0/2 đề vì lỗi này).
+      // Gán SAU khi ghép: ghepHook tách tiêu đề ở dấu câu đầu, mã hook đứng trước không ảnh hưởng — nhưng giữ thứ tự cũ để lỗi cũ không đổi nghĩa.
+      if (!timHook(hooksLuot, r.data.hook_qc)) r.data.hook_qc = hc.id;
     }
     const maHook = maHookKhop(hooksLuot, r.data.hook_qc, r.data.chu.title); hookCu = timHook(hooksLuot, maHook) ?? hookCu;
     // mô hình không khai mã hook nào trong kho (bỏ trống / tự viết hook) → lượt sau KHOÁ vào hook gần tiêu đề nhất, đưa nguyên câu làm khuôn

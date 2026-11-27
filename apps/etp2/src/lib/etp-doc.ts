@@ -562,7 +562,8 @@ async function docEtpDu(ng?: string, nhe = false): Promise<DuLieuEtp> {
       (select b.buoc from etp.dong_phim d join etp.dong_buoc b on b.dong_id = d.id where d.phieu_id = p.id and b.trang_thai not in ('xong', 'bo_qua') order by d.id desc, b.thu_tu limit 1) buoc_dong,
       (select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo_moi
     from etp.phieu_len p left join etp.phim f on f.content_id = p.content_id
-    where p.trang_thai in ('dung', 'loi') and p.tao > now() - interval '3 days' order by p.content_id, p.id`)   -- 'loi' vẫn giữ dòng 🏭 (báo đỏ), không biến mất im lặng.catch((e) => { console.error('etp phieuSx', e); return []; });
+    where p.trang_thai in ('dung', 'loi') and p.tao > now() - interval '3 days' order by p.content_id, p.id   -- 'loi' vẫn giữ dòng 🏭 (báo đỏ), không biến mất im lặng
+  `).catch((e) => { console.error('etp phieuSx', e); return []; });
   for (const r of phieuRs) {
     const ds = (Array.isArray(r.roas_ds) && r.roas_ds.length ? (r.roas_ds as unknown[]) : [r.roas]).map(String), so = Math.max(1, ds.length), ns = n(r.ns ?? BANG_LUAT.hoi_cho.ns);
     const ro = ds.map(Number).find((x) => Number.isFinite(x)) ?? null, g = String(r.gio ?? 'lich');

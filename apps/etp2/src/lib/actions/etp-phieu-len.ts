@@ -34,7 +34,13 @@ const GIONG_MAC = (BANG_LUAT as unknown as { giong_at: { mac_dinh: string } }).g
 const THE_LOAI_GIONG: Record<string, string> = { fantasy: 'ky_di', soi: 'ky_di', vien_tuong: 'ky_di', he_thong: 'ky_di', vo_danh: 'gao', ty_phu: 'gao', mafia: 'gao', doi_thuong: 'gao',
   hoi_han: 'cam_xuc', me_con: 'cam_xuc', tinh_cam: 'hao_hung', hoc_duong: 'hao_hung', co_trang: 'hao_hung' };
 export type CrCu = { goc: number; nguon: number; dang: string | null; anh: string | null; giong: string | null; n_ban: number; n_camp: number; n_chi: number;
-  chi: number; thu: number; chi7: number; thu7: number; ngay: string | null; gan_camp: number | null; gan_tt: string | null };
+  chi: number; thu: number; chi7: number; thu7: number; ngay: string | null; gan_camp: number | null; gan_tt: string | null;
+  // CREATIVE ĐỘI (anh 27/11/2026 "cho chọn lại creative của thành viên trong đội, có ghi rõ để phân biệt"): doi = tên thành viên đội có camp dùng creative này (etp.tai_khoan.nguoi, tk không phải nhà),
+  // nha = nhà có camp dùng nó. Creative chỉ đội dùng → số chi / thu là số camp của đội.
+  doi: string | null; nha: boolean;
+  // CTA của creative (anh 27/11/2026 "dùng lại thì phải hiện CTA của creative đang chọn"): fb = nút Facebook camp cũ của nó (etp.bai_cr.cta), cta_dat = video đạt luật CTA mới
+  // (studio ethopex_cta_dat, ghi = lời soát), bản lên lại luôn mang nút form chữ (len-phieu.py)
+  fb: string | null; cta_dat: boolean; cta_ghi: string | null };
 const MAU_AD = 'dt_anh_dong_logo';
 // CTA (anh 27/11/2026 "Thêm 1 khối nữa là Nội dung CTA"): nút Facebook cố định WATCH_MORE (form-chu.json, cổng dung_form chặn khác); chữ nút TRONG VIDEO của AD chọn được
 // từ sổ etp-mau-cr.json › thu_vien.nut.chu (dung-mau.py đọc tuy_chon.o.cta.id = 'en:WATCH MORE'); CC2 cố định WATCH FREE / VER GRATIS (lop-logo-cc2.py NUT_CC2)
@@ -87,7 +93,11 @@ async function docCrCu(cid: number): Promise<CrCu[]> {
       coalesce((select l.cr_goc from etp.luot2 l where l.cr_moi = c.creative_id limit 1),
                (select (k.muc ->> 'cr_cu')::int from etp.cho_len k where k.creative_id = c.creative_id and k.muc ? 'cr_cu' limit 1), c.creative_id) goc
     from etp.creative c left join etp.cham_cong cc using (creative_id) where c.content_id = ${cid}),
-  ca as (select distinct cr.goc, x.camp_id from cr join etp.cr_co_camp x on x.creative_id = cr.creative_id and not x.doi),
+  cx as (select distinct cr.goc, x.camp_id, x.doi from cr join etp.cr_co_camp x on x.creative_id = cr.creative_id),
+  nh as (select goc, bool_or(not doi) nha from cx group by goc),
+  ca as (select cx.goc, cx.camp_id from cx join nh using (goc) where cx.doi = not nh.nha),   -- số của nhà; creative chỉ đội dùng → số camp đội
+  dn as (select cx.goc, string_agg(distinct t.nguoi, ', ') ten from cx join etp.camp_ngoai n on n.camp_id = cx.camp_id join etp.tai_khoan t on t.ad_account_id = n.ad_account_id
+    where cx.doi and not coalesce(t.nha, false) and t.nguoi is not null group by cx.goc),
   so as (select ca.goc, count(distinct ca.camp_id) n_camp, count(distinct s.camp_id) filter (where s.chi > 0) n_chi, coalesce(sum(s.chi), 0) chi, coalesce(sum(s.thu), 0) thu,
       coalesce(sum(s.chi) filter (where s.ngay > current_date - 7), 0) chi7, coalesce(sum(s.thu) filter (where s.ngay > current_date - 7), 0) thu7, (max(s.ngay) filter (where s.chi > 0))::text ngay
     from ca left join etp.so_ngay_ca s using (camp_id) group by ca.goc),
@@ -95,8 +105,10 @@ async function docCrCu(cid: number): Promise<CrCu[]> {
   ng as (select distinct on (goc) goc, creative_id nguon, dang, anh from cr where video is not null and tc = '' and dl order by goc, creative_id desc)
   select ng.goc, ng.nguon, ng.dang, ng.anh, ${giongCr('ng.nguon')} giong, (select count(*) from cr where cr.goc = ng.goc)::int n_ban, coalesce(so.n_camp, 0)::int n_camp, coalesce(so.n_chi, 0)::int n_chi,
     round(coalesce(so.chi, 0)::numeric, 2)::float chi, round(coalesce(so.thu, 0)::numeric, 2)::float thu, round(coalesce(so.chi7, 0)::numeric, 2)::float chi7, round(coalesce(so.thu7, 0)::numeric, 2)::float thu7,
-    so.ngay, gan.camp_id gan_camp, gan.trang_thai gan_tt
-  from ng left join so using (goc) left join gan using (goc) order by coalesce(so.chi7, 0) desc, coalesce(so.chi, 0) desc, ng.nguon desc limit 40`);
+    so.ngay, gan.camp_id gan_camp, gan.trang_thai gan_tt, dn.ten doi, coalesce(nh.nha, false) nha,
+    (select b.cta from etp.bai_cr b where b.creative_id = ng.nguon and b.cta is not null limit 1) fb, coalesce(c.cta_dat, false) cta_dat,
+    (select k.gia_tri -> ng.nguon::text ->> 'ghi' from xv_khoa_ngoai k where k.ten = 'ethopex_cta_dat') cta_ghi
+  from ng left join so using (goc) left join gan using (goc) left join nh using (goc) left join dn using (goc) left join etp.creative c on c.creative_id = ng.nguon order by coalesce(so.chi7, 0) desc, coalesce(so.chi, 0) desc, ng.nguon desc limit 40`);
 }
 
 /** chọn K (hoặc bấm K lần nữa) → máy sinh bộ chữ K mới cho phim (apps/etp/sinh-chu-kien.py --lai --xem --json: không ghi sổ, chữ chỉ đi theo phiếu khi gửi) */

@@ -58,6 +58,9 @@ function DsDungLai({ ds, chon, bat }: { ds: CrCu[]; chon: number[]; bat: (n: num
         {c.anh ? <img src={c.anh} alt="" style={{ width: 26, height: 40, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <div style={{ width: 26, height: 40, background: VIEN, borderRadius: 3, flex: 'none' }} />}
         <Badge d={maDang(c.dang)} />
         <span style={{ fontSize: 12.5, fontWeight: 600, flex: 'none' }}>#{c.nguon}</span>
+        {c.nha ? <span data-cr-nha style={{ fontSize: 11, color: MO_SO, flex: 'none' }} title={c.doi ? `nhà đã dùng · đội cũng dùng: ${c.doi}` : 'creative của nhà'}>nhà{c.doi ? ` · cùng ${c.doi}` : ''}</span>
+          : <span data-cr-doi style={{ fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 6, flex: 'none', background: 'rgba(217,119,6,.16)', color: VANG }}
+          title="creative của thành viên trong đội — nhà chưa có camp nào dùng nó; số chi / thu là của camp đội">đội · {c.doi ?? 'chưa rõ người'}</span>}
         <span style={{ fontSize: 11.5, color: MO_SO, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {c.giong ? `${tenGiong(c.giong)} · ` : ''}{c.n_camp} camp{c.ngay ? ` · tiêu ${c.ngay.slice(8, 10)}/${c.ngay.slice(5, 7)}` : ''}</span>
         <OSo t="7n" chi={c.chi7} thu={c.thu7} /><OSo t="tổng" chi={c.chi} thu={c.thu} />
@@ -205,11 +208,12 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
   const gioKhung = new Set(p?.khung.map((k) => k.gio.slice(11, 16)) ?? []);
   const ngoaiKhung = gio === 'tay' && !!gioTay && !gioKhung.has(gioTay.slice(11, 16));
   const laCu = dang === 'CU';
+  const crChon = laCu && p ? p.cu.filter((c) => cu.includes(c.nguon)) : [];
   const soCamp = laCu ? cu.length * roas.length : roas.length;
   const khoaDang = (d: DangMo): string | null => !d.chay ? (d.khoa ?? 'chưa chạy được') : p?.nhom_goc && p.nhom_goc !== 'au_my' ? `phim nhóm gốc '${p.nhom_goc}' — dòng phim chỉ chạy phim Âu-Mỹ` : null;   // phiếu KHÔNG xét gác (anh 27/11/2026)
   const dsDang = p ? [...p.dang].sort((a, b) => (a.ma === 'CC2' ? -1 : b.ma === 'CC2' ? 1 : 0)) : [];
   const dangChon = dsDang.find((d) => d.ma === dang) ?? null;
-  const nut = dang === 'AD' ? (cta || 'WATCH MORE (mặc định mẫu)') : dang === 'CC2' ? (lc === 'es' ? 'VER GRATIS' : 'WATCH FREE') : laCu ? 'giữ nguyên như video cũ' : 'theo dòng phim (máy)';
+  const nut = dang === 'AD' ? (cta || 'WATCH MORE (mặc định mẫu)') : dang === 'CC2' ? (lc === 'es' ? 'VER GRATIS' : 'WATCH FREE') : laCu ? (crChon.map((c) => `#${c.nguon} ${c.cta_dat ? 'CTA mới' : 'CTA cũ'}`).join(' · ') || 'chưa chọn creative') : 'theo dòng phim (máy)';
   const thieu = [
     !chu?.pt.length ? (sinh.dang ? 'máy đang sinh chữ K' : 'chưa có chữ form') : null,
     dongSinh ? 'đang sinh lại một dòng chữ' : null,
@@ -276,13 +280,19 @@ export function EtpPhieuLenDrawer({ cid, onClose }: { cid: number; onClose: () =
     </Khoi> : dang === 'LT' ? <Khoi icon="🎞" ten="Nội dung trong video · LT"><Hang ten="Máy dựng"><div style={{ fontSize: 12.5 }}>dòng LT ra ~10 creative mỗi lượt; phiếu chỉ gắn số bản bằng số mức ROAS đã chọn ({roas.length}), bản còn lại nằm ở thư viện creative của phim</div></Hang></Khoi> : null}
 
     <Khoi icon="🔘" ten="Nội dung CTA">
-      <Hang ten="Nút Facebook"><span style={{ ...chip(true), cursor: 'default' }}>WATCH_MORE</span><span style={{ fontSize: 11.5, color: MO_SO }}>cố định theo form chữ</span></Hang>
+      <Hang ten="Nút Facebook"><span style={{ ...chip(true), cursor: 'default' }}>WATCH_MORE</span><span style={{ fontSize: 11.5, color: MO_SO }}>cố định theo form chữ{laCu ? ' — bản lên lại cũng mang nút này' : ''}</span></Hang>
+      {laCu ? <Hang ten="Trong video">{crChon.length ? crChon.map((c) => <div key={c.nguon} data-cta-cu={c.nguon} style={{ display: 'flex', gap: 6, alignItems: 'center', width: '100%', fontSize: 12.5 }}>
+          <b style={{ flex: 'none' }}>#{c.nguon}</b>{c.nha ? null : <span style={{ fontSize: 11, color: VANG, flex: 'none' }}>đội{c.doi ? ` · ${c.doi}` : ''}</span>}
+          <span style={{ ...chip(c.cta_dat), cursor: 'default', flex: 'none', ...(c.cta_dat ? {} : { borderColor: VANG, color: VANG }) }}>{c.cta_dat ? 'CTA luật mới ✓' : 'CTA cũ — chưa đạt luật CTA mới'}</span>
+          <span style={{ fontSize: 11.5, color: MO_SO, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.cta_ghi ?? undefined}>
+            {c.fb ? `nút FB camp cũ: ${c.fb}` : 'chưa có bài camp'}{c.cta_ghi ? ` · ${c.cta_ghi}` : ''}</span></div>)
+        : <span style={{ fontSize: 11.5, color: MO_SO }}>chọn creative ở khối Creative để xem CTA của nó</span>}</Hang> :
       <Hang ten="Trong video">
         {dang === 'AD' ? <>
           <button style={chip(!cta)} onClick={() => setCta('')} data-cta="">mặc định mẫu (WATCH MORE)</button>
           {p.cta.map((c) => <button key={c} style={chip(cta === c)} onClick={() => setCta(c)} data-cta={c}><ChuVi goc={c} b={bv} /></button>)}
         </> : <><span style={{ ...chip(true), cursor: 'default' }}>{nut}</span>{dang === 'CC2' ? <span style={{ fontSize: 11.5, color: MO_SO }}>CC2 cố định nút này</span> : null}</>}
-      </Hang>
+      </Hang>}
     </Khoi>
 
     <Khoi icon="✍" ten="Form text" phu={tien > 0 ? `AI đã tiêu ${Math.round(tien).toLocaleString('vi-VN')}₫ trong phiếu này` : undefined}>

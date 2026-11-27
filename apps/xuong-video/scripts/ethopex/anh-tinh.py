@@ -533,8 +533,10 @@ assert giong_ban("gao", "anh ghim", 1) == [("gao", "anh ghim")]
 def cau_doc(lang, so_mau, kieu, ten):
     """câu đọc của một mẫu — MỘT chỗ cho giọng đọc lẫn dấu sổ. Gộp mạo từ lặp khi tên phim đã mở bằng nó ("Watch the The Great…" — Genie 21/11/2026)"""
     a_, b_, c_ = CAU[lang][so_mau]
+    ten = re.sub(r"^[¡¿\s]+|[!?¡¿.\s]+$", "", ten or "")   # tên phim nằm GIỮA câu: bỏ ¡…! / ¿…? của chính tên ("¡Mira ¡Lárgate de mi Bugatti! gratis" — anh 27/11/2026)
     cau = KIEU_GIONG[kieu][1].format(a=a_.format(t=ten), b=b_.format(t=ten), c=c_.format(t=ten))
     return re.sub(r"\b(the|el|la)\s+(?=\1\b)", "", cau, flags=re.I)
+assert all("¡Mira ¡" not in cau_doc("es", i, "thuong", "¡Lárgate de mi Bugatti!") and "!!" not in cau_doc("es", i, "thuong", "¡Lárgate de mi Bugatti!") for i in range(len(CAU["es"]))), "cau_doc để lọt dấu ¡…! của tên phim"
 assert all("the The" not in cau_doc("en", i, "thuong", "The X") for i in range(len(CAU["en"]))), "cau_doc không gộp được mạo từ lặp"
 
 def danh_dau(tv, kieu, lang, ten, so_mau=0, them=None):

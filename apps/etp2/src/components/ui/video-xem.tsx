@@ -8,6 +8,16 @@
 // bấm nút hay bấm loa của một video đều phát sự kiện SU_KIEN → mọi video đang mở + nút đổi theo ngay (tab khác theo qua sự kiện storage).
 import { useEffect, useRef, useState, type Ref, type VideoHTMLAttributes } from 'react';
 
+// MỘT VIDEO MỘT LÚC cả trang (anh 27/11/2026 "SAO LẠI BẬT PLAY HẾT VIDEO CÙNG 1 LÚC"): video nào bắt đầu chạy thì mọi video khác đang chạy dừng lại.
+// Bắt sự kiện play ở tầng document (pha capture) → áp cho mọi <video> trên trang, kể cả video không đi qua khung này.
+if (typeof document !== 'undefined' && !(window as { __motVideo?: boolean }).__motVideo) {
+  (window as { __motVideo?: boolean }).__motVideo = true;
+  document.addEventListener('play', (e) => {
+    const t = e.target; if (!(t instanceof HTMLVideoElement)) return;
+    document.querySelectorAll('video').forEach((v) => { if (v !== t && !v.paused) v.pause(); });
+  }, true);
+}
+
 type Props = Omit<VideoHTMLAttributes<HTMLVideoElement>, 'muted' | 'autoPlay'> & { ref?: Ref<HTMLVideoElement> };
 
 const KHOA_TIENG = 'etp2-video-tieng'; // '1' = bật tiếng; không có / '0' = tắt tiếng (mặc định)

@@ -725,7 +725,7 @@ export const LUAT = [
   { card: 'roas-dem-2211', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"muc": [0.9, 1.1], "ns": 5, "dem"', vi: 'sổ nhân đôi ★ ROAS lãi qua đêm: 0.9 + 1.1 ở $5 (camp mới $5, anh 25/11/2026), giữ gốc' },
   { card: 'roas-dem-2211', tep: 'apps/etp/nuoi_bo.py', co: 'import roas_doi; rd = roas_doi.chay(xem)', vi: 'worker gọi máy nhân đôi ★ ROAS mỗi nhịp' },
   // roas-dem-2211 (22/11: gốc không bài đăng → ★ ROAS dùng lại creative gốc) BỊ ANH ĐẢO 25/11/2026 "Mỗi camp mới đều phải có creative mới !! Cấm dùng lại" — xem cr-moi-2511
-  { card: 'roas-dem-2211', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if not re.fullmatch(r"\\d+_\\d+", sid): raise ValueError(f"camp gốc #{goc_id} không có mã bài đăng', vi: 'gốc ★ ROAS không có bài đăng → báo rõ "không có mã bài đăng", không dùng lại creative (anh 25/11/2026)' },
+  { card: 'roas-dem-2211', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if not re.fullmatch(r"\\d+_\\d+", sid): raise ChanLuat(f"camp gốc #{goc_id} không có mã bài đăng', vi: 'gốc ★ ROAS không có bài đăng → báo rõ "không có mã bài đăng", không dùng lại creative (anh 25/11/2026); là LUẬT CHẶN (ok NULL), không đếm lệnh roas lỗi / cảnh báo (27/11/2026 #112218)' },
   { card: 'roas-dem-2211', tep: 'apps/etp/cong.py', co: 'NGUON_MOI = ("lenh_cho", "roas_doi")', vi: 'nhân đôi ★ ROAS là luật mới 22/11 — cổng luật cũ không chặn' },
   { card: 'roas-dem-2211', tep: 'apps/etp/roas_doi.py', co: 'env={**os.environ, "ETP_NGUON": "roas_doi"}', vi: 'máy nhân đôi tự khai nguồn khi gọi nhan-ban' },
   { card: 'roas-dem-2211', tep: 'apps/etp/roas_doi.py', co: '"--roas-doi"]', vi: 'bản nhân đôi lên sáng theo lich_len, không chờ khung tối' },

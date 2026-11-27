@@ -607,7 +607,9 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
                 "campaign": {"source_payload": sp_c, "ad_groups": [{"type_run": lich, "source_payload": sp_g,
                     "ads": [{"content_id": moi["content"], "creative_id": moi["creative"], "facebook_page_id": page, "domain": MIEN_LEN,
                              "source_payload": {"name": ten, "status": "ACTIVE"}}]}]}}
-        if not re.fullmatch(r"\d+_\d+", sid): raise ValueError(f"camp gốc #{goc_id} không có mã bài đăng (effective_object_story_id) để dùng lại")
+        # LUẬT CHẶN, không phải lỗi máy (27/11/2026: 11 lệnh tay ★ ROAS từ camp dựng bằng creative mới — Ethopex không giữ mã bài, luật 25/11 cấm dùng lại creative
+        # → không có đường lên; ValueError bị đếm "lệnh roas lỗi" + cảnh báo). Cùng lớp dòng 602 + 704; etp2 nhanBanTay chặn sớm ngay lúc bấm.
+        if not re.fullmatch(r"\d+_\d+", sid): raise ChanLuat(f"camp gốc #{goc_id} không có mã bài đăng (effective_object_story_id) để dùng lại — camp dựng từ creative mới, Ethopex không giữ bài; creative cũ cấm dùng lại (anh 25/11/2026) → nhân bản bằng creative mới")
         if bo and str(bo) != str(bo_cua_camp(c)): raise ChanLuat("camp ROAS dùng bài đăng của camp gốc → phải cùng bộ tài khoản / Page với camp gốc")
         return d, ten, a.get("content_id"), {
             "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo) if bo else None,

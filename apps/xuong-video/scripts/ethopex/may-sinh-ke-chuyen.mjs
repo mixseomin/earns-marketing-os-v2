@@ -85,16 +85,16 @@ function hong(loi) {
 }
 // ── ĐƯA BẢN SẴN SÀNG LÊN CREATIVE (tối đa 2 / nhịp, trước khi làm phim dở — bản xong không nằm chờ người chọn) ──
 try {
-  const tv = execFileSync('ssh', [B, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -tAc "select id from etp.thu_vien where trang_thai = 'san_sang' and creative_id is null and nguon = 'videoexpress' and not exists (select 1 from etp.cho_len c where c.khoa = 'tv' || etp.thu_vien.id and c.trang_thai in ('cho', 'duyet', 'dang_len')) order by id limit 2"`], { encoding: 'utf8', timeout: 60e3 }).trim().split(/\s+/).filter(Boolean);
+  const tv = execFileSync('ssh', [B, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -tAc "select id from etp.thu_vien where trang_thai = 'san_sang' and creative_id is null and nguon = 'videoexpress' and not exists (select 1 from etp.cho_len c where c.khoa = 'tv' || etp.thu_vien.id and c.trang_thai in ('cho', 'duyet', 'dang_len', 'bo')) order by id limit 2"`], { encoding: 'utf8', timeout: 60e3 }).trim().split(/\s+/).filter(Boolean);
   if (tv.length) {
     const r = spawnSync('python3', [`${XV}/scripts/ethopex/thu-vien-len.py`, ...tv], { cwd: XV, encoding: 'utf8', timeout: 40 * 60e3, maxBuffer: 64 << 20 });
-    ghi(`đưa lên creative tv${tv.join(', tv')}: ${(r.stdout || r.stderr || '').trim().split('\n').filter((l) => /^[✓✗⏸]|tv\d+:/.test(l)).slice(-3).join(' · ') || `mã thoát ${r.status}`}`);
+    ghi(`đưa lên creative tv${tv.join(', tv')}: ${(r.stdout || r.stderr || '').trim().split('\n').filter((l) => /^[✓✗⏸⊘]|tv\d+:/.test(l)).slice(-3).join(' · ') || `mã thoát ${r.status}`}`);
     // ĐẾM HỎNG TỪNG BẢN: hỏng 3 nhịp → thư viện 'loai' (không bốc lại mãi); hỏng vì đoạn phim bị máy soát cấm = phim không dùng được, chỉ loại;
     // hỏng vì lý do khác = lỗi máy → giao Huy kèm đầu ra
     const raLen = `${r.stdout || ''}\n${r.stderr || ''}`; so.len_hong ??= {};
     for (const id of tv) {
       if (new RegExp(`✓ tv${id}\\b`).test(raLen)) { delete so.len_hong[id]; continue; }
-      if (new RegExp(`⏸ tv${id}\\b`).test(raLen)) { delete so.len_hong[id]; continue; }   // chờ anh duyệt trước khi lên (cho_len.py, anh 27/11/2026) ≠ hỏng: không đếm, không giao Huy
+      if (new RegExp(`[⏸⊘] tv${id}\\b`).test(raLen)) { delete so.len_hong[id]; continue; }   // ⊘ = anh bỏ ở Chờ lên (quyết định, không phải hỏng)   // chờ anh duyệt trước khi lên (cho_len.py, anh 27/11/2026) ≠ hỏng: không đếm, không giao Huy
       const n = (so.len_hong[id] = (so.len_hong[id] ?? 0) + 1);
       if (n < 3) continue;
       const cam = /đã bị cấm|không đoạn nào được đẩy/.test(raLen), ly = raLen.trim().split('\n').filter((l) => /✗|bị cấm|không đoạn|lỗi|Error/i.test(l)).slice(-4).join(' · ').slice(0, 400);

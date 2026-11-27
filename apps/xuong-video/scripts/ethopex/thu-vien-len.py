@@ -25,7 +25,9 @@ for r in rows:
     if r["trang_thai"] != "san_sang" or not r["video"]: print(f"tv{r['id']}: trạng thái {r['trang_thai']} — chỉ đưa bản sẵn sàng"); continue
     t_, c_, i_ = cl.get(f"tv{r['id']}", ("", "", ""))
     if t_ in ("cho", "dang_len"): print(f"⏸ tv{r['id']}: chờ anh duyệt trước khi lên (etp2 › Camp › Chờ lên #{i_}{' — đang lên' if t_ == 'dang_len' else ''})"); continue
-    if t_ == "bo": print(f"✗ tv{r['id']}: anh bỏ ở etp2 › Chờ lên #{i_}"); continue
+    if t_ == "bo":   # anh bỏ = quyết định, không phải hỏng: thư viện về "loại" để máy sinh không bốc lại rồi đếm hỏng 3 nhịp giao Huy (27/11/2026 tv5792)
+        sql(f"update etp.thu_vien set trang_thai = 'loai', ghi = 'anh bỏ ở etp2 › Chờ lên #{int(i_)}', cap_nhat = now() where id = {r['id']} and trang_thai = 'san_sang' and creative_id is null")
+        print(f"⊘ tv{r['id']}: anh bỏ ở etp2 › Chờ lên #{i_} — thư viện về loại"); continue
     if t_ == "da_len" and c_:
         sql(f"update etp.thu_vien set creative_id = {int(c_)}, trang_thai = 'da_len', cap_nhat = now() where id = {r['id']} and creative_id is null")
         print(f"✓ tv{r['id']} → creative #{c_} (đã lên sau khi anh duyệt, Chờ lên #{i_})"); continue

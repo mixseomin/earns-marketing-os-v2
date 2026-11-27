@@ -6,6 +6,7 @@ Không cắt lại từ tập nguồn: lấy chính tệp thành phẩm, dò ch�
 Chạy (iMac, ~/.venvs/poster-mau/bin/python vì cần numpy + lop-logo-cc2):
   ghep-lai-cc2.py <tệp thành phẩm.mp4> <content_id> <locale> <tên phim> <link phim> [--xem]
 In JSON {file, sach, giay, lop[, vo]}. --xem: chỉ dò + in, không ghi đè.
+  --hook=<N>: hook thứ N của phim (mỗi creative cùng phim một hook khác — anh 27/11/2026); mặc định = số mẫu
   --giong=<kiểu>[:<mẫu>]: thêm GIỌNG ĐỌC HOOK đầu video (anh 27/11/2026 "Sửa lại toàn bộ câu đọc các camp đang chờ giờ lên") — câu khuôn đội trong sổ mẫu
   (etp-mau-cr.json thu_vien.giong.cau, mẫu thứ <mẫu>, mặc định 0) đọc bằng kiểu giọng anh-tinh.KIEU_GIONG qua cổng giọng chung (anh-tinh.giong, ~156₫ / câu);
   kiểu 'phim' = anh-tinh.giong_phim theo thể loại (--the-loai=<x>). Ngôn ngữ giọng = locale.
@@ -66,6 +67,7 @@ if __name__ == "__main__":
     a = [x for x in sys.argv[1:] if not x.startswith("--")]; xem = "--xem" in sys.argv
     gy = next((x.split("=", 1)[1] for x in sys.argv if x.startswith("--giong=")), None)
     tl = next((x.split("=", 1)[1] for x in sys.argv if x.startswith("--the-loai=")), None)
+    thu_hook = next((int(x.split("=", 1)[1]) for x in sys.argv if x.startswith("--hook=")), None)   # bản thứ mấy của phim → hook thứ mấy (mặc định = số mẫu)
     if len(a) != 5: raise SystemExit(__doc__)
     f, cid, loc, ten, url = a
     truoc = f[:-4] + ".truoc-cc2.mp4"
@@ -80,8 +82,9 @@ if __name__ == "__main__":
         s_ = importlib.util.spec_from_file_location("anh_tinh", os.path.join(D, "anh-tinh.py")); AT = importlib.util.module_from_spec(s_); s_.loader.exec_module(AT)
         kieu, _, mau = gy.partition(":"); lg = loc[:2].lower(); mau = int(mau or 0) % len(AT.CAU[lg]); ten_ = AT.ten_sach(ten)
         if kieu == "phim": kieu = AT.giong_phim({"the_loai": tl})[0]
+        if kieu in AT.GIONG_CAM: raise SystemExit(f"kiểu giọng '{kieu}' bị cấm (anh 27/11/2026 — mặc định giọng thường)")
         if kieu not in AT.KIEU_GIONG: raise SystemExit(f"kiểu giọng '{kieu}' không có trong anh-tinh.KIEU_GIONG ({', '.join(AT.KIEU_GIONG)})")
-        hook, vnd_hook = AT.hook_phim(cid, lg, ten_)   # hook giữ chân cốt truyện trong câu đọc (anh 27/11/2026) — sổ hook_phim, chỉ gọi AI lần đầu mỗi phim
+        hook, vnd_hook = AT.hook_phim(cid, lg, ten_, thu=thu_hook if thu_hook is not None else mau)   # bản thứ N của phim → hook thứ N (anh 27/11/2026 "Ko cho chạy đồng thời")   # hook giữ chân cốt truyện trong câu đọc (anh 27/11/2026) — sổ hook_phim, chỉ gọi AI lần đầu mỗi phim
         mp3, vnd, _ = AT.giong(cid, lg, ten_, kieu, os.path.dirname(lop), mau, hook)
         if not (mp3 and os.path.exists(mp3) and os.path.getsize(mp3) > 2000):   # cổng giọng trả tệp rỗng không kêu (27/11/2026 lần ghép song song) → dừng to, không ghép video câm hook
             if mp3 and os.path.exists(mp3): os.replace(mp3, mp3 + ".hong")

@@ -981,6 +981,8 @@ const LUAT = [
   { card: 'cau-doc-the-2711', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: '<CauDocThe x={x} />', vi: 'thẻ Chờ anh duyệt hiện Câu đọc trong video ngay ngoài (anh 27/11/2026)' },
   { card: 'tt-hover-2711', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', cam: "<span style={{ color: 'var(--fg-3, #888)' }}>Sửa lại → </span>", vi: 'chi tiết bước kế của Duyệt / Sửa lại / Loại nằm ở hover, không bày trên thẻ (anh 27/11/2026)' },
   { card: 'cau-mau-doi-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: 'TEAM WINNING voice-overs', vi: '✨ sinh câu đọc lấy câu đọc đội đang lãi làm mẫu (anh 27/11/2026 "câu đọc chính là điểm chạm đầu tiên của Hook")' },
+  { card: 'cau-mau-win-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: 'THE REFERENCE, study these first', vi: '✨ sinh câu đọc: mẫu đội đang lãi đứng đầu prompt, không có thì kêu (anh 27/11/2026)' },
+  { card: 'cau-khong-eg-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', cam: 'e.g. "Watch {t} for free now', vi: 'yêu cầu mặc định ✨ không còn ví dụ e.g. tự đặt (anh 27/11/2026)' },
   { card: 'cau-doi-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: '<CauDoi ds={p.cau_doi} b={bv} />', vi: 'khối Câu đọc hiện câu đọc của đội để so (anh 27/11/2026)' },
   { card: 'prompt-cau-2711', tep: 'apps/etp2/src/components/etp-phieu-len-drawer.tsx', co: 'const r = await sinhCauDoc(cid, promptCau ?? undefined);', vi: '✨ sinh câu đọc mở ô prompt sửa được (anh 27/11/2026)' },
   { card: 'tu-len-2711', tep: 'apps/etp2/src/lib/actions/etp-phieu-len.ts', co: "const tuLen = laBai || g.dang === 'CU' ? await lenNgayPhieu(p.id) : null;", vi: 'phiếu Dùng lại / Dùng lại post lên camp luôn, không chờ duyệt (anh 27/11/2026)' },

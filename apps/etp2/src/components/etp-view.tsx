@@ -2467,7 +2467,7 @@ function NutMoRong({ cid, k, cam, vuaTT }: { cid: number; k?: number; /** phim c
   return <>
     <ReThe the={() => ({ tieu: 'Mở rộng phim', mau: '#4ade80', moc: [{ ten: 'Bấm', mau: '#4ade80', chu: 'mở Phiếu lên camp: K/D · AD/CC2/creative cũ · ROAS · ngân sách · giờ' }, { ten: 'Sau đó', mau: '#60a5fa', chu: 'tab Sản xuất làm hết: cắt phần thiếu → soát + chấm → lên đủ số camp → chờ camp chạy' }] })}><button className="btn"
       onClick={(e) => { e.stopPropagation(); openEntityDrawer('etp-phieu-len', cid); }} onMouseDown={(e) => e.stopPropagation()}
-      style={{ padding: vuaTT ? 0 : '0 6px', fontSize: 11, lineHeight: '16px', fontWeight: 400, color: '#4ade80', borderColor: '#14532d', ...(vuaTT ? { width: 22, textAlign: 'center', flexShrink: 0, boxSizing: 'border-box' } : null) }}>＋</button></ReThe></>;   // chỉ dấu ＋ — số máy tính điền sẵn trong form (anh 04/11/2026)
+      style={{ padding: vuaTT ? 0 : '0 6px', fontSize: 11, lineHeight: '16px', fontWeight: 400, color: '#4ade80', borderColor: '#14532d', ...(vuaTT ? { width: 22, justifyContent: 'center', flexShrink: 0, boxSizing: 'border-box' } : null) }}>＋</button></ReThe></>;   // .btn là inline-flex → textAlign vô tác dụng, ＋ dạt trái; căn giữa bằng justifyContent (anh 27/11/2026 #1904 "dấu + vào giữa")   // chỉ dấu ＋ — số máy tính điền sẵn trong form (anh 04/11/2026)
 }
 // #1781 chế độ TÔ SÁNG: ô lọc không giấu camp nào, camp khớp lựa chọn được tô nền vàng nhạt + vạch vàng mép trái (vạch đỏ / cam cảnh báo vẫn giữ)
 const TO_SANG = { background: 'rgba(250,204,21,.16)', '--dt-row-bg': 'rgba(250,204,21,.16)', boxShadow: 'inset 3px 0 #facc15' } as React.CSSProperties;

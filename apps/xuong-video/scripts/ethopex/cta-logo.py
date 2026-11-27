@@ -45,7 +45,7 @@ def main(than, cid, khung, ra, so_cau=0):
     chu = os.path.join(tm, "kt-chu.png"); lop.save(chu)
     Image.alpha_composite(Image.open(goc).convert("RGBA"), lop).convert("RGB").save(os.path.join(tm, "kt-xem.jpg"), quality=88)
     kg, ng = AT.giong_phim(p)
-    so_cau %= len(AT.CAU[lang]); mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, so_cau); vnd += v
+    so_cau %= len(AT.CAU[lang]); mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, so_cau, hook=False); vnd += v   # KT: thân phim ĐÃ kể chuyện → giọng thẻ cuối chỉ là lời mời, không chèn hook cốt truyện (8479: hook đẩy thẻ cuối lên 21s)
     print(f"giọng CTA: {kg} · {ng} · câu {so_cau} · {v}₫", flush=True)
     clip, v = DM.chuyen_dong(goc, tm, cid, "kt_logo", 0); vnd += v
     DM.DONG_HIEN = HIEN; AT.GIAY_MIN = 0   # dung_dong: lớp phủ hiện ở HIEN, độ dài = giọng + 1,4s (không kéo tới 10s như mẫu đứng riêng)

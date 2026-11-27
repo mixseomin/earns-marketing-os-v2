@@ -901,6 +901,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
         k_ghim, k2_ghim = tim(o_.get("khung")), tim(o_.get("khung_phu"))
         if o_.get("khung") and not k_ghim: raise RuntimeError(f"khung anh ghim {o_['khung'].get('id')} không còn trong khung ứng viên của phim — ghim lại khung khác")
         g_ghim = next((int(x.split(":")[1]) for x in [str((o_.get("giong") or {}).get("id") or "")] if re.fullmatch(r"[a-z]{2}:\d+", x)), None)
+        hien = AT.mau_hien(lang, len(AT.CAU[lang]))   # câu đọc anh đã xoá ở ngăn Lên camp (cau_doc_an) không xoay vào — câu anh GHIM vẫn đọc đúng câu ghim
         if g_ghim is not None and g_ghim >= len(AT.CAU[lang]): raise RuntimeError(f"câu đọc anh ghim {lang}:{g_ghim} không có trong sổ (có {len(AT.CAU[lang])} câu — sổ câu sinh thêm etp.cau_hinh cau_doc_them đọc không được?)")
         # MỖI CREATIVE MỘT HÌNH (anh 25/11/2026 "chỉ đổi giọng mà ko đổi hình thì ko đc coi là khác nhau. Vi phạm nghiêm trọng"): khung đã có creative CHƯA BỊ LOẠI của (mẫu, phim)
         # trong kho thư viện = cấm dựng lại — kể cả khung anh ghim, kể cả sổ mau_dung bị xoá (đọc thẳng thu_vien, không tin mỗi da_khung)
@@ -989,7 +990,7 @@ def mot(ma, cid, xem=False, ban=1, tc_xem=None, thu=False, lat=False):
             for kg, ng in AT.giong_ban(kg, ng, len(da_khung) + b):   # MỘT giọng mỗi khung = giọng của phim, không xoay về giọng cố định (anh 27/11/2026)
                 out = out0 if kg == AT.GIONG_MAC_DINH else out0.replace(".mp4", f"-g{kg}.mp4")
                 print(f"giọng: {kg} · {AT.KIEU_GIONG[kg][0]} · {ng}" + (f" — {_NHO[cid]['giong_ly_do']}" if ng.startswith("AI") and _NHO[cid].get("giong_ly_do") else ""), flush=True)
-                so_cau = g_ghim % len(AT.CAU[lang]) if g_ghim is not None else (len(da_khung) + b) % len(AT.CAU[lang]); mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, so_cau); vnd += v   # câu đọc xoay theo số bản đã dựng
+                so_cau = g_ghim % len(AT.CAU[lang]) if g_ghim is not None else hien[(len(da_khung) + b) % len(hien)]; mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, so_cau); vnd += v   # câu đọc xoay theo số bản đã dựng
                 if ma in DONG:
                     tt("video", g=f"AI làm khung chuyển động {DONG_GIAY}s + dựng video 1080×1920 (lớp phủ hiện ở giây {DONG_HIEN})")
                     clip, v = chuyen_dong(nen, tm, cid, ma, b); vnd += v; nhip = None

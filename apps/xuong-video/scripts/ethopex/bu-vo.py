@@ -22,7 +22,7 @@ for r in rows:
     lang = (r["lang"] or "en")[:2].lower(); kieu = kieu_tu_ghi(r["ghi"]); ds = AT._ds_hook(so, r["content_id"], lang)
     if r["vo"]: print(f"tv{r['id']}: đã có câu đọc — giữ nguyên"); continue
     if not kieu: print(f"tv{r['id']}: ghi chú không có 'giọng <kiểu>' — không bù"); continue
-    if len(ds) != 1: print(f"tv{r['id']}: sổ hook phim có {len(ds)} hook — không biết bản đã đọc câu nào, không bù"); continue
+    if len([h for h in ds if h]) != 1 or not ds[0]: print(f"tv{r['id']}: sổ hook phim có {len(ds)} hook — không biết bản đã đọc câu nào, không bù"); continue
     hook = ds[0]
     vo = {"cau": AT.cau_doc(lang, 0, kieu, r["ten"], hook.get("cau")), "giong": kieu, "mau": 0, "hook": hook, "bu": "bu-vo.py 27/11/2026"}
     j = "$Q$" + json.dumps(vo, ensure_ascii=False).replace("$Q$", "") + "$Q$::jsonb"

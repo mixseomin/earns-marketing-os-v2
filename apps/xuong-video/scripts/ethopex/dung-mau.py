@@ -1078,16 +1078,23 @@ def xem_soan():
             AT.sql(f"update etp.cr_soan set xem_tt = case when xem_yc > {s_(yc)}::timestamptz then 'cho' else {s_('xong' if anh else 'loi')} end, "
                    f"xem_loi = {s_(loi)}, xem_xong = now(){', xem_anh = ' + s_(anh) if anh else ''} where id = {int(s['id'])}")
 
+SONG_SONG = 5   # số phim dựng cùng lúc trong --hang (VideoExpress nhận ~5 việc render song song)
 def hang():
     """mọi phim anh chọn (etp.mau_phim) HỢP mọi việc ghi thẳng vào etp.mau_dung 'cho' (phiếu lên camp etp2 — chỉ ghi mau_dung, không ghi mau_phim;
     27/11/2026 phiếu #1 AD nằm chờ mãi vì hàng chỉ đọc mau_phim) cho mẫu có hàm vẽ ở đây mà chưa dựng xong / chưa đang dựng"""
     ds = AT.sql(bang_sql() + " select m.mau || ':' || m.content_id from (select mau, content_id, luc from etp.mau_phim union select mau, content_id, cap_nhat from etp.mau_dung where trang_thai = 'cho') m "
                 "left join etp.mau_dung d using (mau, content_id) "
                 f"where m.mau in ({','.join(s_(x) for x in HAM)}) and (d.mau is null or d.trang_thai = 'cho') group by m.mau, m.content_id order by min(d.cap_nhat) nulls first, min(m.luc)")
-    for l in [x for x in (ds or "").splitlines() if ":" in x]:
-        ma, cid = l.split(":")
-        try: mot(ma, int(cid))
-        except Exception: traceback.print_exc()
+    # SONG SONG (anh 27/11/2026 "VE chạy song song được 5 hay 10 video một lần"): mỗi phim một tiến trình con `dung-mau.py <mẫu> <phim>` (= mot(mẫu, phim),
+    # tiến trình riêng vì mot() dùng biến chung CANH / _CHI_LOGO / CHI_LAT), tối đa SONG_SONG phim cùng lúc — bước VideoExpress ~4 phút không còn xếp hàng từng phim.
+    viec = [l.split(":") for l in (ds or "").splitlines() if ":" in l]
+    dang = []
+    for ma, cid in viec:
+        while len(dang) >= SONG_SONG:
+            dang = [p for p in dang if p.poll() is None]
+            if len(dang) >= SONG_SONG: time.sleep(5)
+        dang.append(subprocess.Popen([sys.executable, os.path.abspath(__file__), ma, str(int(cid))]))
+    for p in dang: p.wait()
 
 def bang_xem(cid):
     """mọi mẫu trên một phim → ảnh ghép xem trước (không giọng, không nạp)"""

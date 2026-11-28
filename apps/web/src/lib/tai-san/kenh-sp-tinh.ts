@@ -439,7 +439,7 @@ export function cayNguonTien(nguon: NguonTien[] | undefined, tien: KenhSp['tien'
   const usd = (x: number) => `$${x.toFixed(2)}`, MANG: Record<string, string> = { cj: 'CJ', awin: 'Awin', adsense: 'AdSense' };
   return [{ id: 'tien', nhom: true, chu: `💰 Nguồn tiền (${nguon.length})`, phu: `${KY_TIEN} ngày: ${tien?.tong == null ? '– (chưa nguồn nào có máy đọc số)' : usd(tien.tong)} · số từ sổ doanh thu (CJ · Awin · AdSense)` },
     ...nguon.map((n): DongKe => { const t = tien?.nguon[n.ma];
-      return { id: `tien/${n.ma}`, chu: `${n.ten}${n.mang ? ` · ${MANG[n.mang]}` : ''}`, mau: n.mang ? undefined : 'var(--fg-3)',
+      return { id: `tien/${n.ma}`, ...((u) => (u ? { ra: u } : {}))([n.link, n.site].find((x) => /^https?:\/\//.test(x ?? ''))), chu: `${n.ten}${n.mang ? ` · ${MANG[n.mang]}` : ''}`, mau: n.mang ? undefined : 'var(--fg-3)',
         phu: [n.mang ? (t ? `${usd(t.usd)} · ${t.don} đơn / ${KY_TIEN} ngày` : '–') : 'chưa có máy đọc số', n.link ? `link đối tác: ${n.link}` : '', n.ghi ?? ''].filter(Boolean).join(' · ') }; })];
 }
 
@@ -459,6 +459,6 @@ export function caySeeding(s: KenhSp['seeding']): DongKe[] {
   const so = (n: number | null) => (n == null ? '–' : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n));
   return [{ id: 'seed', nhom: true, chu: `🌱 Seeding (${ds.length} kênh mục tiêu)`, o: oSeed(ds), oTieuDe: COT_SEED,
     phu: [`sub mới ${s.subMoi ?? '–'}`, `sub / 100 BL ${dat && s.subMoi != null ? ((100 * s.subMoi) / dat).toFixed(1) : '–'}`, `tốt nhất: ${tot ? tot.ten : 'chưa đủ số'}`, nhap ? `${nhap} BL chờ Phòng Nội dung` : ''].filter(Boolean).join(' · ') },
-    ...ds.map((k): DongKe => ({ id: `seed/${k.kenhId}`, icon: 'youtube', chu: `${k.ten}${k.handle ? ` · ${k.handle}` : ''}`, o: oSeed([k]), oTen: COT_SEED, mau: k.dat ? undefined : 'var(--fg-3)',
+    ...ds.map((k): DongKe => ({ id: `seed/${k.kenhId}`, icon: 'youtube', ra: k.handle ? `https://www.youtube.com/@${k.handle.replace(/^@/, '')}` : `https://www.youtube.com/channel/${k.kenhId}`, chu: `${k.ten}${k.handle ? ` · ${k.handle}` : ''}`, o: oSeed([k]), oTen: COT_SEED, mau: k.dat ? undefined : 'var(--fg-3)',
       phu: [`${so(k.nguoiDk)} sub`, k.chuDe ?? '', `${k.video} video top`, k.dat ? '' : 'chưa bình luận', k.nhap ? `${k.nhap} chờ duyệt` : ''].filter(Boolean).join(' · ') }))];
 }

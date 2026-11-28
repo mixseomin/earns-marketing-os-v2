@@ -48,10 +48,15 @@ def mau_js():
 #   nên cổng chặn chính nút nhà vẽ (cho_len #34 "Ungrateful Daughter" 18 khung), creative anh đã duyệt không lên được
 CHO_FREE = sorted({x for v in CQ.LOP_FREE.values() for x in v} | set(CQ.NUT_FREE.values()), key=len, reverse=True)   # nguồn chung cta_qc (không chép tay)
 _MAU_CHO = re.compile(r"\s*\|?\s*(" + "|".join(re.escape(x) for x in CHO_FREE) + r")\s*\|?", re.I)
+# HOA VĂN HAI BÊN NHÃN "All Episodes Released" (mẫu ảnh động logo vàng vẽ "–■ ALL EPISODES RELEASED ■–"): Vision đọc thành "→ … I" → cổng chặn "→" như mũi tên CTA,
+# creative anh đã duyệt kẹt mãi ở Chờ lên (cho_len 105–107, 28/11/2026). Gỡ tối đa 3 ký tự không phải chữ/số (hoặc một "I/l/1" đứng một mình) DÍNH LIỀN nhãn —
+# chỉ ở NHÃN, không ở nút: mũi tên cạnh nút "Watch For Free" vẫn là mũi tên chỉ trỏ, vẫn chặn.
+_NHAN_FREE = sorted({v[0] for v in CQ.LOP_FREE.values()}, key=len, reverse=True)
+_MAU_NHAN = re.compile(r"\s*\|?\s*(?:[^\w\s|]{1,3}\s*)?(" + "|".join(re.escape(x) for x in _NHAN_FREE) + r")(?:\s*[^\w\s|]{1,3}|\s+[Il1](?=\s*(?:\||$)))?\s*\|?", re.I)
 def soat(cau, cho_free=False):
     """→ từ khớp đầu tiên hoặc None (thoại cấm · CTA dụ nhấp · lớp phủ CTA kích thích của QC app gốc — cta_qc.phu_kich_thich).
     cho_free: video có lớp Free của nhà (anh-tinh.py --free) → gỡ đúng câu nhãn / nút đó trước khi soát"""
-    if cho_free: cau = _MAU_CHO.sub(" | ", cau or "")
+    if cho_free: cau = _MAU_CHO.sub(" | ", _MAU_NHAN.sub(" | ", cau or ""))
     m = MAU.search(cau or "")
     return m.group(0) if m else CQ.phu_kich_thich(cau)
 
@@ -133,6 +138,11 @@ def tu_kiem():
     for c in ("ALL EPISODES RELEASED | Shattering the Scheme of | Ungrateful Daughter | WATCH FREE", "Todos los episodios ya disponibles | LA HEREDERA | VER GRATIS"):   # nút mẫu ảnh động logo / CC2
         assert not soat(c, True), "nút Free nhà phải qua: %s (khớp %s)" % (c, soat(c, True))
     assert soat("ALL EPISODES RELEASED | Ungrateful Daughter | WATCH FREE"), "không cờ --free thì WATCH FREE trần vẫn chặn"
+    # hoa văn nhãn mẫu ảnh động logo (cho_len 105–107, 28/11/2026): OCR "→ ALL EPISODES RELEASED I" qua khi có cờ; mũi tên cạnh NÚT / chữ khác vẫn chặn
+    for c in ("→ ALL EPISODES RELEASED I | MY SISTER IS THE | WARLORD QUEEN | WATCH MORE", "-■ ALL EPISODES RELEASED ■- | X | WATCH FREE", "→ Todos los episodios ya disponibles ← | X"):
+        assert not soat(c, True), "hoa văn nhãn Free nhà phải qua: %s (khớp %s)" % (c, soat(c, True))
+    for c in ("→ ALL EPISODES RELEASED I | X | → WATCH FREE", "ALL EPISODES RELEASED | WATCH MORE →", "→ X | ALL EPISODES RELEASED"): assert soat(c, True), "mũi tên ngoài nhãn vẫn chặn: " + c
+    assert soat("→ ALL EPISODES RELEASED I | X"), "không cờ --free thì hoa văn vẫn chặn"
     # mọi chữ nút Free trong thư viện mẫu (etp2 etp-mau-cr.json thu_vien.nut.chu — dung-mau.cta chọn từ đây) phải qua cổng khi có cờ --free
     sys.path.insert(0, os.path.join(D, "..", "..", "..", "etp")); from goc_etp2 import tep as _t
     nut = [y.strip() for v in json.load(open(_t("src", "lib", "etp-mau-cr.json"), encoding="utf-8"))["thu_vien"]["nut"]["chu"].values() for y in v]   # nguyên chữ nút (nút đôi "· LEARN MORE" gỡ bằng NUT_CHUAN)

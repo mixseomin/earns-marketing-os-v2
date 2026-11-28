@@ -8,6 +8,7 @@ Mỗi lượt:
   4. việc cắt lô dòng phim (etp.viec lô dp*) 'dang' mà thợ đã chết (tho.CHET_SQL: nhịp sống im 10 phút) → xếp lại hàng chờ (tho.py chỉ tự quét việc của chính máy nó)
   5–6. mở lại dòng dừng khi cổng đổi · thử lại dòng lỗi kỹ thuật
   7. lỗi MÃ ở máy luật / lên camp (etp.nhat_ky) → báo Telegram ngay, mỗi kiểu một lần / 6 giờ
+  8. thẻ Chờ lên có phiếu anh đã ✓ Duyệt, creative tải xong mà chưa có camp (len-phieu.SQL_CAN_LEN) → gọi len-phieu.py (unit riêng etp-len-phieu-<id>, sống qua lượt Huy)
 Dùng: manh.py [--thu] (--thu: chỉ in, không ghi / không báo)"""
 import hashlib, importlib.util, json, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cong as CG   # cong.sql_trang_hong: dấu cổng trang phim (09/11/2026)
@@ -46,6 +47,7 @@ MA_BUOC = {"poster": [f"{G}/soat_18_ai.py"], "soat": [f"{XE}/soat_doan.py"], "ca
 # Sửa: (a) dòng dừng ở bước camp vì phanh / dừng lên camp mới mà phanh đó CÒN hiệu lực → không mở (dau_dung giữ nguyên; phanh nhả thì dấu ngày / mã
 # khác dấu đã chụp → mở ở lượt Mạnh đầu tiên sau khi nhả); (b) mỗi lượt Mạnh (2 phút) mở tối đa TRAN_MO dòng, phần còn lại các lượt sau — dàn tải, không đổi luật.
 TRAN_MO = 12
+TRAN_LEN = 6   # mục 8: mỗi lượt gọi tối đa 6 thẻ lên camp (mỗi thẻ một unit riêng)
 def sql_giu_phanh(a="d"):
     """dòng a dừng ở bước camp vì một phanh / dừng lên camp mới đang còn hiệu lực (khoá cong.KHOA_SX còn hạn có phanh · cong.KHOA_DUNG_CAMP_MOI bật)"""
     return (f"(split_part(coalesce({a}.ly_do, ''), ':', 1) = 'camp' and ((strpos({a}.ly_do, 'PHANH') > 0 and coalesce((select gia_tri->>'phanh' from etp.cau_hinh"
@@ -202,10 +204,19 @@ def main():
             lam.append(f"lỗi mã {viec} ×{n}")
             bao(f"🐞 <b>Huy</b> · LỖI MÃ ở máy <b>{viec}</b> — {n} lượt từ {tu} (camp {camps[:120]})\n<code>{loi[:240]}</code>\n"
                 "→ máy gọi tự thử lại ở nhịp sau (nhân bản tài khoản team: sau 6 giờ); cần sửa mã (lỗi không tự hết)")
+    def muc8():
+        # 8. LÊN CAMP THẺ ĐÃ DUYỆT (anh 28/11/2026 "Lỗi ngu fix ngay" — 5 thẻ 'chờ creative tải lên quá hạn vé'): nút ✓ Duyệt chạy len-phieu chờ ~9 phút; creative tải lâu hơn
+        # thì len-phieu thoát êm — mục này gọi lại khi thẻ 'da_len'. len-phieu tự giữ thẻ (muc.len_camp) + cấp lại vé từ bản ghi nút anh (cong.ve_lenh_ghi) → không trùng, không xin anh bấm.
+        LP = importlib.util.spec_from_file_location("len_phieu", os.path.join(G, "len-phieu.py")); lp = importlib.util.module_from_spec(LP); LP.loader.exec_module(lp)
+        for (cl,) in hang(lp.SQL_CAN_LEN)[:TRAN_LEN]:
+            if THU: print("[LÊN]", cl); continue
+            r = subprocess.run(["systemd-run", f"--unit=etp-len-phieu-{int(cl)}", "--collect", "--quiet", "-p", "EnvironmentFile=/opt/earns-marketing-os-v2/.env.production",
+                                "-p", "WorkingDirectory=/opt/earns-marketing-os-v2", "/usr/bin/python3", os.path.join(G, "len-phieu.py"), str(int(cl))], capture_output=True, text=True)
+            lam.append(f"lên camp thẻ #{cl}" + ("" if r.returncode == 0 else f" (đang chạy / lỗi gọi: {(r.stderr or '').strip()[:80]})"))
     # MỖI MỤC CHẠY RIÊNG (05/11/2026: một hàng lạ ở mục 3 làm Mạnh chết cả lượt suốt 24 giờ — mục 1/4/5/6 không chạy, không ai biết):
     # mục hỏng → ghi lại, báo Telegram (một lần mỗi giờ mỗi mục), các mục khác vẫn chạy; cuối lượt trả mã lỗi để systemd vẫn thấy
     hong = []
-    for ten, f in (("mục 1", muc1), ("mục 2", muc2), ("mục 3", muc3), ("mục 4", muc4), ("mục 5", muc5), ("mục 6", muc6), ("mục 7", muc7)):
+    for ten, f in (("mục 8", muc8), ("mục 1", muc1), ("mục 2", muc2), ("mục 3", muc3), ("mục 4", muc4), ("mục 5", muc5), ("mục 6", muc6), ("mục 7", muc7)):
         try: f()
         except Exception as e:
             import traceback; traceback.print_exc(); hong.append(ten)

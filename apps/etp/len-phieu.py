@@ -8,7 +8,9 @@ Ko cần bước review camp thứ 2 nữa").
 Duyệt = duyệt creative + lệnh lên camp. Máy dòng phim (iMac, cho_len.py) tải creative lên Ethopex với ĐÚNG chữ + link của phiếu → 'da_len' + creative_id;
 tệp này chờ creative_id (≤ CHO_GIAY, vé sống ve_phut phút) rồi gọi nhan-ban MỘT lần với đúng phiếu: khuôn theo ngôn ngữ · bộ bo_phim_moi · ROAS (dàn / số) · ngân sách ·
 domain (--mien) · giờ (khung cố định hoặc giờ anh đặt, --gio-tu-do khi ngoài khung). Kết quả ghi etp.cho_len.camp_id / camp_loi + etp.phieu_len.camp_ids / trang_thai.
-Không tự xin vé (máy luật không bao giờ xin) — chờ quá hạn vé thì ghi camp_loi, thẻ hiện nút Lên camp để anh bấm lại (vé mới).
+VÉ (anh 28/11/2026 "Lỗi ngu fix ngay"): vé nút sống ve_phut phút, creative tải (cổng chữ, thử lại) thường lâu hơn → hết vé thì cấp lại TỪ CHÍNH bản ghi ✓ Duyệt
+thẻ của anh (cong.ve_lenh_ghi — chỉ tài khoản admin, không có bản ghi thì không cấp). Creative chưa tải xong thì thoát êm (không ghi lỗi); Huy (manh.py, 2 phút)
+gọi lại tệp này khi thẻ 'da_len' mà chưa có camp. GIỮ THẺ muc.len_camp trước khi gọi nhan-ban → hai tiến trình không lên trùng camp.
 
 CREATIVE CŨ (phiếu dạng CU, anh 27/11/2026 "chọn creative cũ … ko phải tạo creative mới nữa"): thẻ mang muc.cr_cu = creative nguồn; cho_len.py KHÔNG tải thẻ này.
 Luật 25/11 cấm gắn creative_id cũ vào camp mới → tệp này tạo BẢN MỚI cùng video với chữ + link của phiếu (ap-form-chu.ban_nha), chép sổ chấm của nguồn
@@ -23,8 +25,9 @@ import cong as CG
 import importlib.util as iu
 def _nap(ten):   # ap-form-chu.py / luot2.py tên có gạch → nạp bằng đường dẫn
     sp = iu.spec_from_file_location(ten.replace("-", "_"), os.path.join(D, ten + ".py")); m = iu.module_from_spec(sp); sp.loader.exec_module(m); return m
-CHO_GIAY = CG.VE_PHUT * 60 - 45   # vé trực tiếp sống ve_phut phút — gọi nhan-ban trước khi vé hết
-HET_VE = "chờ creative tải lên quá hạn vé — bấm Lên camp lại trên thẻ (vé mới)"
+CHO_GIAY = CG.VE_PHUT * 60 - 45   # chờ creative tải trong một lượt; quá thì thoát êm, Huy gọi lại khi thẻ 'da_len'
+HET_VE = "chờ creative tải lên quá hạn vé — bấm Lên camp lại trên thẻ (vé mới)"   # câu lỗi CŨ (trước 28/11/2026) — Huy coi thẻ mang câu này là chưa lên, gọi lại
+GIU_PHUT = 30   # giữ thẻ (muc.len_camp) — nhan-ban timeout 25 phút; quá 30 phút coi như tiến trình đã chết
 
 def q(s): return CG._q(s)
 
@@ -101,12 +104,31 @@ def chay(cl):
         x = json.loads(q(f"select row_to_json(t) from (select trang_thai, creative_id, loi from etp.cho_len where id = {int(cl)}) t"))
         if x["trang_thai"] == "bo": ghi_kq(cl, p["id"], None, "anh đã bỏ bản này"); return
         if x["trang_thai"] == "da_len" and x.get("creative_id"): break
-        if time.time() - t0 > CHO_GIAY: ghi_kq(cl, p["id"], None, HET_VE + (f" (tải lỗi: {x['loi']})" if x.get("loi") else "")); return
+        if time.time() - t0 > CHO_GIAY: print(f"cho_len #{cl}: creative chưa tải xong — thoát, Huy gọi lại khi xong", flush=True); return
         time.sleep(15)
     cr = int(x["creative_id"])
     bo = chon_bo(p)   # anh chọn bộ trên phiếu (0491 phieu_len.bo, anh 27/11/2026) — trống = bộ mặc định phim mới
     if not bo: ghi_kq(cl, p["id"], None, "thiếu bộ lên camp (camp đang sản xuất không chọn bộ và etp.cau_hinh bo_phim_moi trống)"); return
-    chay_lenh(cl, p, lenh(p, cr, bo), cr)
+    if not giu(cl): print(f"cho_len #{cl}: tiến trình khác đang lên camp thẻ này — không lên trùng", flush=True); return
+    try:
+        if not CG.ve_hop_le("tao_camp", content_id=p["content_id"]):   # vé nút đã hết hạn / đã dùng → cấp lại từ bản ghi ✓ Duyệt thẻ của anh
+            ve, ly = CG.ve_lenh_ghi(cr, p["content_id"], int(p["ns"]))
+            if not ve: ghi_kq(cl, p["id"], None, f"không cấp lại được vé lên camp: {ly}"); return
+            os.environ["ETP_VE"] = ve; print(f"vé mới từ bản ghi: {ly}", flush=True)
+        chay_lenh(cl, p, lenh(p, cr, bo), cr)
+    finally: tha(cl)
+
+def giu(cl):
+    """giữ thẻ trước khi gọi nhan-ban (một tiến trình một thẻ) — True nếu giữ được"""
+    return bool(q(f"""update etp.cho_len set muc = muc || jsonb_build_object('len_camp', now()), cap_nhat = now() where id = {int(cl)} and camp_id is null
+                    and (muc ->> 'len_camp' is null or (muc ->> 'len_camp')::timestamptz < now() - interval '{GIU_PHUT} minutes') returning id"""))
+def tha(cl): q(f"update etp.cho_len set muc = muc - 'len_camp' where id = {int(cl)}")
+
+# THẺ CẦN LÊN (Huy gọi, manh.py): phiếu anh đã ✓ Duyệt bằng tài khoản admin, creative đã tải, chưa camp, không lỗi thật (lỗi nhan-ban giữ nguyên chờ anh), không ai đang giữ
+SQL_CAN_LEN = f"""select c.id from etp.cho_len c where c.phieu_id is not null and c.trang_thai = 'da_len' and c.creative_id is not null and c.camp_id is null
+  and (c.camp_loi is null or c.camp_loi like '{HET_VE[:30]}%') and c.muc ->> 'bai' is null and c.duyet_luc > now() - interval '3 days'
+  and c.duyet_ai in (select x.email from users x join members m on m.user_id = x.id and m.role = 'admin')
+  and (c.muc ->> 'len_camp' is null or (c.muc ->> 'len_camp')::timestamptz < now() - interval '{GIU_PHUT} minutes') order by c.id"""
 
 def chon_bo(p):
     """bộ tk của phiếu: phieu_len.bo (anh chọn) hoặc etp.cau_hinh bo_phim_moi"""
@@ -157,7 +179,7 @@ def tu_kiem():
     except SystemExit: pass
     assert b[1] == "65110" and b[b.index("--roas") + 1] == "1.1" and b[b.index("--ns") + 1] == "8" and "--mien" not in b and b[b.index("--gio") + 1] == "2026-11-28 03:30" and "--gio-tu-do" in b
     assert "--gio-tu-do" not in lenh({**p, "gio": "2026-11-28 22:00", "tu_do": False}, 5, "42") and "--that" in a and "Kiên" not in " ".join(a) and "Dol" not in " ".join(a)
-    assert CHO_GIAY > 60
+    assert CHO_GIAY > 60 and "duyet_ai in (select x.email from users x join members m" in SQL_CAN_LEN and "camp_id is null" in SQL_CAN_LEN
     assert chon_bo({"bo": "3"}) == "3"
     try: chon_bo({"bo": "3; drop"}); raise AssertionError("bộ lạ phải chặn")
     except SystemExit: pass

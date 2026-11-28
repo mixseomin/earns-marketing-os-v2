@@ -337,7 +337,12 @@ def ve_truc_tiep(viec, camp_id=None, content_id=None, lenh="", ns=None, phien=""
 SQL_LENH_GHI = """select coalesce((select 'creative #{cr} · khối #' || k.id || ' anh duyệt ' || to_char(k.duyet_luc at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') || ': ' || coalesce(k.duyet_ai, '')
       from etp.ke_cr e join etp.khoi k on k.id = e.khoi_id and k.trang_thai = 'duyet' where e.creative_id = {cr} limit 1),
     (select 'anh bấm ✓ Duyệt creative #{cr} lúc ' || to_char(u.luc at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') || ' (' || u.ai || ')'
-      from etp.cham_duyet u where u.creative_id = {cr} and u.ok and u.ai in (select x.email from users x join members m on m.user_id = x.id and m.role = 'admin')), '')"""   # người bấm = tài khoản ADMIN thật (bảng members), không đoán qua chuỗi ai
+      from etp.cham_duyet u where u.creative_id = {cr} and u.ok and u.ai in (select x.email from users x join members m on m.user_id = x.id and m.role = 'admin')),
+    (select 'anh bấm ✓ Duyệt thẻ Chờ lên #' || c.id || ' (camp đang sản xuất #' || c.phieu_id || ') lúc ' || to_char(c.duyet_luc at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') || ' (' || c.duyet_ai || ')'
+      from etp.cho_len c where c.creative_id = {cr} and c.phieu_id is not null and c.trang_thai <> 'bo' and c.duyet_luc is not null
+        and c.duyet_ai in (select x.email from users x join members m on m.user_id = x.id and m.role = 'admin') limit 1), '')"""   # người bấm = tài khoản ADMIN thật (bảng members), không đoán qua chuỗi ai
+# + THẺ CHỜ LÊN CÓ PHIẾU (anh 28/11/2026 "Lỗi ngu fix ngay" — 'chờ creative tải lên quá hạn vé'): ✓ Duyệt thẻ = lệnh lên camp; vé nút chỉ sống ve_phut phút mà creative tải lâu hơn
+# → len-phieu.py cấp lại vé từ chính bản ghi nút đó (ve_lenh_ghi), không bắt anh bấm Lên camp lại
 def lenh_ghi(cr):
     """câu nguồn lệnh anh đã ghi sổ cho creative cr | '' (không có — creative đi đường phanh như cũ)"""
     return _q(SQL_LENH_GHI.format(cr=int(cr))) or ""

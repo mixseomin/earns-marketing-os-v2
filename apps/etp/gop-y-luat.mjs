@@ -105,6 +105,7 @@ export const LUAT = [
   { card: 'bo-phim-0811', tep: 'apps/etp/cong.py', co: "\" (select gia_tri#>>'{{}}' from etp.cau_hinh where khoa = 'bo_phim_moi'))\")", vi: 'camp mới lên bộ etp.cau_hinh.bo_phim_moi — một phim nhiều bộ (anh 08/11/2026)' },
   { card: 'bo-phim-0811', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: 'def chan_bo(', vi: 'bỏ luật mỗi phim một bộ (anh 08/11/2026 "1 phim ở nhiều bộ thoải mái")' },
   { card: 've-phieu-2811', tep: 'apps/etp/len-phieu.py', co: 'if not camp and cr: camp = camp_san(cr, p["content_id"])', vi: 'nhan-ban lỗi / hết giờ sau khi đã tạo camp → camp vẫn ghi vào thẻ' },
+  { card: 'cho-len-135', tep: 'apps/etp/dong_phim.py', co: 'try: keo_ma()', vi: 'bản vá tới máy ngay lượt chờ lên kế, không đợi khởi động lại (anh 28/11/2026 "máy tự thử lại là mõm chó")' },
   { card: 'cho-len-135', tep: 'apps/xuong-video/scripts/ethopex/len-creative.py', co: 'if len(crs) != len(lo): raise RuntimeError', vi: 'Chờ lên #135 28/11/2026: Ethopex 5xx → bulk-jobs trả thiếu creative, bản không creative_id đổ KeyError ở cổng chữ' },
   { card: 'cho-len-135', tep: 'apps/xuong-video/scripts/ethopex/len-creative.py', cam: 'print("thử lại cổng", x["creative_id"]', vi: 'dòng thử lại không được tự đổ khi bản thiếu creative_id' },
   { card: 'cho-len-135', tep: 'apps/xuong-video/scripts/ethopex/cho_len.py', co: 'ly = cau_do(ly)', vi: 'thẻ ghi câu lỗi có loại (KeyError: …), không trơ "\'creative_id\'"' },

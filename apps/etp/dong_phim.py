@@ -1160,6 +1160,14 @@ def xem_hang():
 
 # TẢI BẢN ANH ĐÃ DUYỆT (etp.cho_len 'duyet' → cho_len.py len → len-creative → 'da_len'): mỗi phút trong một luồng, một lượt một lúc. Nhật ký ~/Library/Logs/ethopex/cho-len.log
 CL_HANG = {"luot": 0.0, "th": None}
+def keo_ma():
+    """bản vá lên main tới máy NGAY lượt kế (etp:cho-len-135, anh 28/11/2026 "máy tự thử lại là mõm chó"): vỏ etp-dong-phim.sh chỉ kéo lúc khởi động,
+    dong_phim.py sống nhiều giờ → cho_len.py con chạy mã cũ. Kéo ff trước mỗi lượt con; không fast-forward được thì kêu trong nhật ký, chạy mã đang có."""
+    goc = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    if not os.path.isfile(os.path.join(goc, ".may-bam-main")): return
+    r = subprocess.run(["sh", "-c", f'git -C "{goc}" fetch -q origin main && git -C "{goc}" merge -q --ff-only FETCH_HEAD'], capture_output=True, text=True, timeout=120)
+    if r.returncode: print(f"[{time.strftime('%H:%M:%S')}] KÉO MÃ HỎNG (chạy mã cũ): {(r.stderr or r.stdout).strip()[:300]}", flush=True)
+
 def cho_len_chay():
     if SX[0].get("khan") or time.time() - CL_HANG["luot"] < 60 or (CL_HANG["th"] and CL_HANG["th"].is_alive()): return
     CL_HANG["luot"] = time.time()
@@ -1168,6 +1176,8 @@ def cho_len_chay():
     if not n: return
     def chay():
         print(f"[{time.strftime('%H:%M:%S')}] cổng chờ lên: {n} bản anh duyệt → tải lên Ethopex", flush=True)
+        try: keo_ma()
+        except Exception as e: print(f"[{time.strftime('%H:%M:%S')}] KÉO MÃ HỎNG (chạy mã cũ): {type(e).__name__}: {e}", flush=True)
         try:
             with open(os.path.expanduser("~/Library/Logs/ethopex/cho-len.log"), "a") as f:
                 rc = subprocess.run(["python3", os.path.join(E, "cho_len.py"), "len"], stdout=f, stderr=subprocess.STDOUT, timeout=3600).returncode

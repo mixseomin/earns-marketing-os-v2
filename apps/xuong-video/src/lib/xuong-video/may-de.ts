@@ -334,6 +334,13 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
   const tdChuan = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim(), daCo = new Set((o.daDung ?? []).map(tdChuan));
   const hookTrung = (o.hooks ?? []).filter((h) => daCo.has(tdChuan(h.chu)));
   if (hookTrung.length < (o.hooks ?? []).length) for (const h of hookTrung) boHook.add(h.id);
+  // HOOK CÙNG KHUNG với tiêu đề cũ (28/11/2026, front-porch "Only ONE says LARGE PRINT… / SPRING… / BATHROOM…"): QC spy của máy là MỘT khuôn chạy nhiều lần,
+  // nên mọi tiêu đề sinh từ nó đều cùng khung → chắc chắn bị cham-dang 6b chặn. Bỏ khỏi kho khi còn hook KHÁC; chỉ còn toàn hook cùng khung thì giữ
+  // (kho không được rỗng) và prompt dặn đổi câu cú, giữ từ khoá hook.
+  const tenGan = (o.daDung ?? []).slice(0, 80);
+  const hookKhung = (o.hooks ?? []).filter((h) => !boHook.has(h.id) && khuonTrung(h.chu, tenGan));
+  const conHookKhac = (o.hooks ?? []).some((h) => !boHook.has(h.id) && !hookKhung.includes(h));
+  if (conHookKhac) for (const h of hookKhung) boHook.add(h.id);
   for (let lan = 0; lan < 4; lan++) {
     // đã KHOÁ vào một hook mà vẫn trượt "sửa quá xa" → hook đó không hợp góc (ratesbyroom 12/11/2026: "Is PayLater Travel a scam?" khoá vẫn giữ 33%,
     // top-n-40712 kẹt) → bỏ hook đó, lượt sau mở lại phần kho còn lại (trượt nữa thì khoá hook kế), không khoá mãi một câu không bám được.

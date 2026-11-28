@@ -203,7 +203,9 @@ def main(a):
         truoc = doc(cid); kq["truoc"] = truoc
         if viec == "tang":
             ns = int(a[2])
-            if ns not in MUC and not (ns in RN_BAC and cid in CONG.camp_roas()): raise ValueError(f"${ns} không phải mức hợp lệ {sorted(MUC)}" + (f" (★ ROAS thêm {sorted(RN_BAC)})" if ns in RN_BAC else ""))
+            # ANH BẤM TAY (etp2 / Telegram) = mọi mức $ nguyên ≥ 1: thang tay etp2 tính từ ngân sách đang chạy ×1,5 (anh 28/11/2026 #1921) → $5 → $8 bị chặn "không phải mức hợp lệ" (#1925).
+            # Thang cố định (MUC) chỉ gác MÁY tự tăng; trần tuyệt đối $30 vẫn chặn ở CONG.kiem.
+            if ns not in MUC and not (ns in RN_BAC and cid in CONG.camp_roas()) and not tay: raise ValueError(f"${ns} không phải mức hợp lệ {sorted(MUC)}" + (f" (★ ROAS thêm {sorted(RN_BAC)})" if ns in RN_BAC else ""))
             if truoc["tt"] != "ACTIVE": raise ValueError(f"camp đang {truoc['tt']}, không tăng")
             if ns <= float(truoc["ns"] or 0): raise ValueError(f"camp đã ${truoc['ns']} ≥ ${ns}")
             # LỆNH TRỰC TIẾP của anh (vé truc_tiep, cong.py --ve-truc-tiep — anh 20/11/2026 09:35): miễn nhịp 24 giờ + khoá sau giảm; cổng kiem vẫn chặn phim cấm
@@ -219,7 +221,8 @@ def main(a):
             ok = lambda s: float(s["ns"] or 0) == ns
         elif viec == "giam":   # luật GB giảm bậc — chỉ xuống trên thang, tối thiểu $1, cách lần đổi trước ≥ 6 giờ (nhip_tang.py)
             ns = int(a[2])
-            if ns not in MUC_GIAM: raise ValueError(f"${ns} không phải mức hợp lệ {sorted(MUC_GIAM)}")
+            # anh bấm tay: mọi mức $ nguyên ≥ 1 (#1925, thang tay etp2 ÷1,5 ra $5 / $4 / $2…); máy luật vẫn chỉ xuống trên thang
+            if ns < 1 or (not tay and ns not in MUC_GIAM): raise ValueError(f"${ns} không phải mức hợp lệ {sorted(MUC_GIAM)}")
             # camp tạm dừng chỉ được hạ về SÀN $1 (08/11/2026: 2 bản dup bộ 4 PAUSED kẹt ở $3 của AB01 vì lệnh giảm từ chối camp tạm dừng — bật lại sẽ chạy $3)
             if truoc["tt"] != "ACTIVE" and ns != 1: raise ValueError(f"camp đang {truoc['tt']}, chỉ hạ về $1")
             if ns >= float(truoc["ns"] or 0): raise ValueError(f"camp đang ${truoc['ns']} ≤ ${ns}, không phải giảm")

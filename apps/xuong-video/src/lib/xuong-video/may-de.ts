@@ -382,8 +382,16 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
   // hook đã thành nguyên văn tiêu đề một bài có sẵn của máy → không đưa vào kho lượt này (examweight 12/11/2026: kho 2 hook, mô hình chép "EMT exams humbling everyone."
   // = tiêu đề đã có, 3 lượt đều "tiêu đề trùng", 3/5 bài kẹt). Bỏ hết thì vẫn giữ kho cũ để không mất hook.
   const tdChuan = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim(), daCo = new Set((o.daDung ?? []).map(tdChuan));
+  // KHUNG LỪA ĐẢO KHÔNG MƯỢN CHO BÀI KHÔNG PHẢI TIN LỪA (ratesbyroom-scam-or-real 29/11/2026: hook kenh:59 là nguyên câu tiêu đề video thắng của kênh,
+  // "Scam or real? This WhatsApp message says …" — khung của DẠNG tin lừa. Máy đưa nó cho bài bình chọn và bài link, tiêu đề nào cũng chép khung đó:
+  // 28/80 tiêu đề gần nhất mở bằng "Scam or real" → Phòng Nội dung chặn "cùng khung", làm lại 3 lượt vẫn kẹt. Dạng khác scam-or-real thì bỏ hook mang khung lừa
+  // trước khi đưa mô hình, để nó buộc phải bám hook của đúng dạng bài.
+  const camKhung = new Set<string>();
+  if (mau !== 'scam-or-real') for (const h of o.hooks ?? []) if (/\bscam\s+or\s+real\b/i.test(h.chu)) camKhung.add(h.id);
   const hookTrung = (o.hooks ?? []).filter((h) => daCo.has(tdChuan(h.chu)));
   if (hookTrung.length < (o.hooks ?? []).length) for (const h of hookTrung) boHook.add(h.id);
+  // còn hook KHÁC dùng được thì mới bỏ hook mang khung lừa; kho chỉ có nó thì vẫn để (sinhDe tự dặn đổi câu mở) — không để máy chết "hết hook" vì luật mới
+  if ((o.hooks ?? []).some((h) => !camKhung.has(h.id) && !tuMayDe(h.chu).length)) for (const id of camKhung) boHook.add(id);
   // KHÔNG bỏ khỏi kho: hook "kenh:" chính là khung đã thắng của máy, bỏ đi thì mô hình không còn hook nào để chọn (front-porch 28/11/2026 lượt 2: khai mã
   // không có trong danh sách → "chưa chọn hook QC gốc"). Chỉ ĐÁNH DẤU trên dòng hook để prompt dặn đổi cấu trúc câu.
   const tenGan = (o.daDung ?? []).slice(0, 80);
@@ -406,7 +414,9 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
       || (loiCu.some((l) => /tiêu đề trùng/.test(l)) && daCo.has(tdChuan(hookCu.chu)))), khoConLai = (o.hooks ?? []).filter((h) => !tuMayDe(h.chu).length && !boHook.has(h.id)),
       // Khi mọi hook còn lại đã từng là tiêu đề, không được bỏ kho rồi kết luận 0 đề: dùng lại một hook đó làm khuôn đổi vài từ.
       // Lượt khóa + ghepHook ở dưới sẽ giữ đủ chữ hook và tạo tiêu đề mới, thay vì để mô hình sửa xa rồi bị mắc lại.
-      hooksLuot: HookQc[] = xa ? [hookCu as HookQc] : (khoConLai.length ? khoConLai : hookTrung.filter((h) => !tuMayDe(h.chu).length));
+      // hook đang khoá mà mang khung lừa (dạng bài không phải tin lừa) → không khoá vào nó nữa; kho cạn thì bỏ hook, để lần sau nhận hook đúng dạng
+      hooksLuot: HookQc[] = xa ? (hookCu && !camKhung.has(hookCu.id) ? [hookCu as HookQc] : [])
+        : (khoConLai.length ? khoConLai : hookTrung.filter((h) => !tuMayDe(h.chu).length && !camKhung.has(h.id)));
     khoaTruoc = xa; epNguyen = false;
     // kho lọc hết trong lượt (hook trùng tiêu đề / mang từ máy / đã bị chặn) → kiemDe bỏ qua luật hook, rapDe không gắn hook, bài ra "thiếu dang.hook"
     // (sidecue 12/11/2026: spot-the-fake-40162-…-emails làm lại vẫn SỬA LẠI) → dừng, không dựng bài chắc chắn bị chặn
@@ -480,6 +490,7 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
       // trùng tiêu đề mà còn hook khác trong kho → bỏ hook vừa dùng, mở kho phần còn lại (militarycalc 17/11/2026 dung-sai-42960: mô hình bám một hook đã từng thành
       // tiêu đề "Your orders came through. Now the clock st…", 4 lượt đều viết lại đúng câu cũ → lượt lấp kho 0/6). Hết hook khác thì giữ, chỉ dặn đổi câu.
       const hd = timHook(hooksLuot, maHook) ?? hookCu;
+      if (hd && camKhung.has(hd.id)) { boHook.add(hd.id); hookCu = null; khoaTruoc = false; }
       // hook kế cũng NGUYÊN CÂU là tiêu đề cũ thì đổi sang nó cũng chỉ trùng lại (astrolas 27/11/2026: 0/2 đề) → giữ hook hiện tại để lượt sau KHOÁ + dặn đổi chủ thể,
       // thay vì xả hết 4 lượt đi thử lần lượt các câu đã dùng. Chỉ bỏ hook hiện tại khi còn hook KHÁC chưa từng là tiêu đề.
       if (hd && (o.hooks ?? []).some((h) => h.id !== hd.id && !boHook.has(h.id) && !tuMayDe(h.chu).length && !daCo.has(tdChuan(h.chu)))) { boHook.add(hd.id); hookCu = null; khoaTruoc = false; }
@@ -492,14 +503,16 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     if (khungCu) {
       // Mô hình rẻ không đổi được cấu trúc câu khi hook + 38 tiêu đề cũ cùng một khuôn → viết bằng CODE, không đốt thêm lượt AI.
       const hd = timHook(hooksLuot, maHook) ?? hookCu;
-      const tdMoi = hd ? tachTieuDe(hd.chu, o.daDung ?? []) : null;
+      const tdMoi = hd && !camKhung.has(hd.id) ? tachTieuDe(hd.chu, o.daDung ?? []) : null;
       if (tdMoi) {
         de.dang.title = tdMoi;
         loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title, description: de.dang.description ?? '', nhan: o.sp.nhan, ngon_ngu: o.sp.ngon_ngu, hooks: hooksLuot, hook_qc: hd!.id });
         if (!loiCu.length) return { ok: true, de, vnd, model: r.model, tokens: { ...tk, vnd } };
       }
       loiCu.push(`tiêu đề cùng khung với một bài cũ của máy: "${khungCu}" — KHÔNG chỉ đổi vài chữ, hãy đổi tình huống / đối tượng / câu cú cho khác hẳn mà vẫn bám hook QC`);
-      if (hd && (o.hooks ?? []).some((h) => h.id !== hd.id && !boHook.has(h.id) && !tuMayDe(h.chu).length)) { boHook.add(hd.id); hookCu = null; khoaTruoc = false; }
+      // hook mang khung lừa mà bài không phải tin lừa thì không sửa tiêu đề mãi: cấm hook đó, lượt sau chuyển sang hook khác (hoặc dừng sớm báo kho cạn)
+      if (hd && camKhung.has(hd.id)) { boHook.add(hd.id); hookCu = null; khoaTruoc = false; }
+      else if (hd && (o.hooks ?? []).some((h) => h.id !== hd.id && !boHook.has(h.id) && !tuMayDe(h.chu).length)) { boHook.add(hd.id); hookCu = null; khoaTruoc = false; }
       continue;
     }
     // HOOK XÉT NHƯ LÚC CHẤM (12/11/2026, ratesbyroom "Booking a hotel in Osaka? Check prices first." lọc kho qua, bài sửa thành "…for two? Check prices first." bị chặn

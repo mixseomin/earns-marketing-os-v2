@@ -677,7 +677,22 @@ def ap_kien(d, truoc):
     hong = {k: v for k, v in j.items() if v not in ("ok", "không đổi") and "đã gắn camp" not in str(v)}
     return ("dung", "áp chữ Kiên: " + " · ".join(f"#{k}: {v}" for k, v in hong.items())[:400]) if hong else None
 
+# DÒNG CỦA PHIẾU (etp2 › Phiếu lên camp, phieu_id): camp lên bằng apps/etp/len-phieu.py khi anh ✓ Duyệt bản ở etp2 › Camp › Chờ lên (vé trực tiếp của nút anh bấm).
+# Máy dòng phim KHÔNG nhân bản cho dòng phiếu — chỉ đọc camp phiếu đã lên (etp.cho_len.camp_id), kẻo ra camp thứ hai ngoài phiếu.
+def b_camp_phieu(d):
+    v = (sql(f"""select coalesce(string_agg(camp_id::text, ' ' order by id) filter (where camp_id is not null), '') || chr(9) || count(*) || chr(9)
+                || count(*) filter (where trang_thai <> 'bo') || chr(9) || coalesce(string_agg(left(camp_loi, 160), ' · ') filter (where camp_loi is not null and trang_thai <> 'bo'), '')
+                from etp.cho_len where phieu_id = {int(d['phieu_id'])}""") or "\t0\t0\t").split("\t")
+    camps = [int(x) for x in v[0].split()]
+    if camps:
+        sql(f"update etp.dong_phim set camp_id = {camps[0]} where id = {d['id']}")
+        return "xong", f"phiếu #{d['phieu_id']} đã lên camp #{', #'.join(map(str, camps))} (anh duyệt ở Chờ lên)", {"camp_id": camps[0], "ds": camps}
+    if v[3]: return "loi", f"phiếu #{d['phieu_id']} lên camp lỗi: {v[3][:300]}", None
+    if int(v[1] or 0) and not int(v[2] or 0): return "dung", f"anh đã bỏ mọi bản của phiếu #{d['phieu_id']} ở etp2 › Chờ lên — không lên camp", None
+    return "cho", f"chờ anh ✓ Duyệt bản ở etp2 › Camp › Chờ lên — camp lên đúng phiếu #{d['phieu_id']}", None
+
 def b_camp(d, truoc):
+    if d.get("phieu_id"): return b_camp_phieu(d)
     if d.get("loai") == CC2 and (h := ap_kien(d, truoc)): return h[0], h[1], None
     if d.get("khoi"): return b_camp_khoi(d, truoc)
     if d.get("loai") in TINH and not str(d.get("ai") or "").startswith("máy: bù camp"): d = {**d, "so_camp": max(int(d.get("so_camp") or 0), AT_BAN)}   # 3 camp $1 / phim (anh 08/11/2026); dòng bù giữ đúng k (09/11)
@@ -867,6 +882,7 @@ def ve_dong(d): return (sql(SQL_VE_DONG.format(cid=int(d["content_id"]))) or Non
 def cho_phanh(sx, d, buoc, co_ve=False):
     """hàm thuần: khoá san_xuat_cho + dòng + bước (+ phim có vé trực tiếp) → câu lý do chờ | None (chạy)"""
     if not (sx or {}).get("phanh"): return None
+    if d.get("phieu_id"): return None   # phiếu = nút anh bấm trên etp2 (lệnh trực tiếp); bước camp của dòng phiếu không tạo camp (b_camp_phieu) — anh 28/11/2026 "nhiều camp đang sx mà ko thấy phản hồi gì"
     if la_truc_tiep(d): return None if buoc != "camp" or co_ve else f"{sx['phanh']} · dòng lệnh trực tiếp: camp lên bằng vé cong.py --ve-truc-tiep nhan_ban --phim {d.get('content_id')}"
     if sx.get("khan"): return None if buoc == "chay" else sx["phanh"]   # DỪNG KHẨN: mọi bước chưa bắt đầu đứng chờ, không miễn du_tru / chi_sx
     if buoc not in BUOC_SX: return None
@@ -1156,6 +1172,7 @@ def tu_kiem():
     tt = {"content_id": 1, "ai": DONG_TRUC_TIEP + " (chat 21/11)"}
     assert cho_phanh(k, tt, "camp", co_ve=True) is None and cho_phanh(k, {"content_id": 1}, "camp", co_ve=True) == k["phanh"], "vé trực tiếp chỉ mở bước camp của dòng trực tiếp"
     assert cho_phanh(k, tt, "cat") is None and cho_phanh(k, tt, "creative") is None and cho_phanh(k, tt, "camp").startswith(k["phanh"]) and cho_phanh(k, {**tt, "ai": "anh (etp.on.tc)"}, "cat") == k["phanh"], "dòng lệnh trực tiếp: sản xuất qua dừng khẩn, camp vẫn chờ vé"
+    assert all(cho_phanh(x, {"content_id": 1, "phieu_id": 40}, b) is None for x in (p, k) for b in ("nhan", "creative", "camp")), "dòng phiếu (nút anh bấm) không chờ phanh ở bước nào"
     assert cho_phanh({}, {"content_id": 1}, "nhan") is None and cho_phanh({"phanh": None}, {"content_id": 1}, "nhan") is None and cho_phanh(None, {"content_id": 1}, "nhan") is None, "không phanh / khoá quá hạn → chạy như cũ"
     assert set(BUOC_SX) == {b for b, _ in BUOC} - {"chay"} and "not exists" in KHONG_TRUNG
     # phim cấm (etp:phim-cam-con-lai-2011): cùng bộ đọc cong.phim_cam qua ssh — 167292 dừng mọi bước, phim thường đi qua

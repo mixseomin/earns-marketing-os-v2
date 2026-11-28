@@ -104,6 +104,8 @@ export const LUAT = [
   { card: 'cam-1-0811', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: 'ns_ab', vi: 'A/B không còn đặt ngân sách theo nhánh (AB01 từng đặt $3)' },
   { card: 'bo-phim-0811', tep: 'apps/etp/cong.py', co: "\" (select gia_tri#>>'{{}}' from etp.cau_hinh where khoa = 'bo_phim_moi'))\")", vi: 'camp mới lên bộ etp.cau_hinh.bo_phim_moi — một phim nhiều bộ (anh 08/11/2026)' },
   { card: 'bo-phim-0811', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: 'def chan_bo(', vi: 'bỏ luật mỗi phim một bộ (anh 08/11/2026 "1 phim ở nhiều bộ thoải mái")' },
+  { card: 'phieu-phanh-2811', tep: 'apps/etp/dong_phim.py', co: 'if d.get("phieu_id"): return None   # phiếu = nút anh bấm', vi: 'dòng phiếu anh Gửi không bị phanh "chỉ lên theo lệnh" giữ (anh 28/11/2026 "nhiều camp đang sx mà ko thấy phản hồi gì")' },
+  { card: 'phieu-phanh-2811', tep: 'apps/etp/dong_phim.py', co: 'if d.get("phieu_id"): return b_camp_phieu(d)', vi: 'bước camp của dòng phiếu chỉ đọc camp len-phieu.py đã lên, không nhân bản thêm' },
   { card: 'po-0811', tep: 'apps/etp/dong_phim.py', co: 'MAU_PO_MAY = ["ai", "goc", "goc"]', vi: 'máy dòng phim chỉ dựng PO.5 + PO.1 (anh 08/11/2026 "Có mẫu PO5 mới trộn cùng PO"; PO.2 / .3 / .4 không vào máy)' },
   { card: 'po-0811', tep: 'apps/xuong-video/scripts/ethopex/tinh-ba-kieu.py', cam: 'if mau == "le":', vi: 'PO.4 mùa lễ anh gạt ("Xấu. Bỏ luôn") — không dựng lại' },
   { card: 'mua-le-0811', tep: 'apps/etp/cong.py', co: '(ch.get("mua_le") or {}).get("khoa_tang")', vi: 'mùa lễ Mỹ: khoá tăng bậc qua cổng chung (apps/etp/mua_le.py tự chạy)' },

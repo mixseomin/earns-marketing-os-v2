@@ -185,9 +185,13 @@ submit)
       esac
       if [ ! -e "$dir/.git" ] && [ -f "$dir/.ban-dung" ]; then
         # Lên bản bằng rsync, không có git: commit đang chạy = chữ đầu dòng đầu .ban-dung
+        # Commit cũ hơn bản đang chạy vẫn đã lên máy (#1943: nộp ad77021 khi bản chạy là 3a8ad47 ngay sau nó → bị chặn oan).
+        # Không có git nên không hỏi được tổ tiên: lên bản ghi kèm $dir/.ban-dung-gom = các sha có trong bản đang chạy (git log --format=%H), mỗi dòng một sha.
         dang=$(head -1 "$dir/.ban-dung" | awk '{print $1}')
         if [ -z "$dang" ] || [[ "$dang" != "$sha"* && "$sha" != "$dang"* ]]; then
-          echo "submit #$id bị chặn: commit $sha không phải bản đang chạy trên box3 ($dir/.ban-dung ghi ${dang:0:7}) — lên bản chưa xong. Lên bản xong, kiểm trên trang thật, rồi mới nộp." >&2; exit 1
+          if ! { [ -f "$dir/.ban-dung-gom" ] && [ "${#sha}" -ge 7 ] && grep -q "^$sha" "$dir/.ban-dung-gom"; }; then
+            echo "submit #$id bị chặn: commit $sha không có trong bản đang chạy trên box3 ($dir/.ban-dung ghi ${dang:0:7}$([ -f "$dir/.ban-dung-gom" ] || echo ', chưa có .ban-dung-gom nên chỉ nhận đúng commit đầu')) — lên bản chưa xong, hoặc nộp bằng commit đang chạy: https://dantranh.on.tc/#commit=$dang" >&2; exit 1
+          fi
         fi
       elif ! git -C "$dir" merge-base --is-ancestor "$sha" HEAD 2>/dev/null; then
         echo "submit #$id bị chặn: commit $sha chưa nằm trong bản đang chạy trên box3 ($dir đang ở $(git -C "$dir" log -1 --format=%h)) — push chưa thành công hoặc deploy chưa xong. Chờ deploy xanh, kiểm trên trang thật, rồi mới nộp." >&2; exit 1

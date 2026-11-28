@@ -126,15 +126,37 @@ async function bangXepHang(giai) {
   } catch (e) { console.warn(`⚠ bảng xếp hạng ${giai}: ${e.message}`); return new Map(); }
 }
 const thu = (n) => { const m = n % 100; return n + (m >= 11 && m <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'); };
+// Ảnh nền thật: Pexels thử lần lượt 5 cụm (bắt đầu từ cụm theo slug), mỗi cụm chọn ảnh theo số ảnh THẬT trả về; Pexels hỏng / rỗng / giới hạn
+// → Pixabay cùng cụm. Cả hai hỏng mới throw (vòng 28/11/2026: Pexels trả rỗng một lần lẻ làm hỏng cả trận Everton–Liverpool).
 async function pexels(slug, dir) {
-  const key = readFileSync(`${process.env.HOME}/.claude/skills/design/stock-photo-apis/SKILL.md`, 'utf8').match(/\| Pexels \| `([^`]+)`/)?.[1];
-  if (!key) throw new Error('không thấy khoá Pexels trong skill stock-photo-apis');
-  const h = [...slug].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7), q = ['football stadium night', 'soccer stadium crowd', 'football pitch grass', 'soccer stadium floodlights', 'football fans stadium'][h % 5];
-  const r = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=15&orientation=landscape`, { headers: { Authorization: key, 'user-agent': 'Mozilla/5.0' } });
-  const p = (await r.json()).photos?.[(h >> 3) % 15]; if (!p) throw new Error(`Pexels không trả ảnh cho "${q}"`);
-  const anh = await fetch(p.src.large2x, { headers: { 'user-agent': 'Mozilla/5.0' } });
-  writeFileSync(join(dir, 'nen.jpg'), Buffer.from(await anh.arrayBuffer()));
-  return { trang: p.url, nen: p.src.original + '?auto=compress&cs=tinysrgb&w=1920' };
+  const skill = readFileSync(`${process.env.HOME}/.claude/skills/design/stock-photo-apis/SKILL.md`, 'utf8');
+  const kPx = skill.match(/\| Pexels \| `([^`]+)`/)?.[1], kPb = skill.match(/\| Pixabay \| `([^`]+)`/)?.[1];
+  if (!kPx && !kPb) throw new Error('không thấy khoá Pexels / Pixabay trong skill stock-photo-apis');
+  const h = [...slug].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7), CUM = ['football stadium night', 'soccer stadium crowd', 'football pitch grass', 'soccer stadium floodlights', 'football fans stadium'];
+  const UA = { 'user-agent': 'Mozilla/5.0' }, loi = [];
+  const lay = async (url, opt) => { const r = await fetch(url, { ...opt, signal: AbortSignal.timeout(30_000) }); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r; };
+  for (let i = 0; i < CUM.length; i++) {
+    const q = CUM[(h + i) % CUM.length];
+    if (kPx) try {
+      const ds = (await (await lay(`https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=15&orientation=landscape`, { headers: { Authorization: kPx, ...UA } })).json()).photos ?? [];
+      if (ds.length) {
+        const p = ds[(h >> 3) % ds.length];
+        writeFileSync(join(dir, 'nen.jpg'), Buffer.from(await (await lay(p.src.large2x, { headers: UA })).arrayBuffer()));
+        return { trang: p.url, nen: p.src.original + '?auto=compress&cs=tinysrgb&w=1920' };
+      }
+      loi.push(`Pexels "${q}": rỗng`);
+    } catch (e) { loi.push(`Pexels "${q}": ${e.message}`); }
+    if (kPb) try {
+      const ds = (await (await lay(`https://pixabay.com/api/?key=${kPb}&q=${encodeURIComponent(q)}&image_type=photo&orientation=horizontal&per_page=20&safesearch=true`, { headers: UA })).json()).hits ?? [];
+      if (ds.length) {
+        const p = ds[(h >> 3) % ds.length];
+        writeFileSync(join(dir, 'nen.jpg'), Buffer.from(await (await lay(p.largeImageURL, { headers: UA })).arrayBuffer()));
+        return { trang: p.pageURL, nen: p.largeImageURL };
+      }
+      loi.push(`Pixabay "${q}": rỗng`);
+    } catch (e) { loi.push(`Pixabay "${q}": ${e.message}`); }
+  }
+  throw new Error(`không lấy được ảnh nền thật: ${loi.slice(0, 4).join(' · ')}`);
 }
 const giayCua = (f) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim());
 const chup = (mp4, t, ra) => execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(t), '-i', mp4, '-frames:v', '1', '-q:v', '3', ra]);
@@ -214,7 +236,7 @@ async function dungTran(t, ngayDang) {
   const { tieu_de: tdN, ...hookN } = HOOK.ngang, { tieu_de: tdR, ...hookR } = HOOK.reel;
   const daDung = new Set(ssh(`${ENV}; psql "$DATABASE_URL" -tAc "select dang->>'title' from xv_may_video where dang->>'title' is not null"`).split('\n').map((x) => x.trim()));
   const tieuDe = (mau) => { const t0 = mau.replace('{H}', H).replace('{A}', A); if (!daDung.has(t0)) return t0; const t1 = `${t0} (${ko.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })})`; return daDung.has(t1) ? `${t1} #${seed}` : t1; };
-  if (gR > 180) console.warn(`⚠ reel ${gR.toFixed(0)} s > 180 s: YouTube không xếp vào Shorts, lên như video thường`);
+  if (!(gR > 10 && gR <= 59.5)) throw new Error(`reel ${gR.toFixed(1)} s ngoài 10–59,5 s: YouTube không xếp vào Shorts (lam.mjs phải cắt highlight)`);
   const han = { dang_tu: ngayDang, dang_den: vnNgay(t.ko - 3 * 3600_000) };
   const de = (mp4, g, k, bia, chu, duoi) => ({ loai: 'video-ngoai', video_url: url[mp4], giay: +g.toFixed(2), khung: [0, 1, 2].map((i) => url[`k${k}${i}.jpg`]), soat: [],
     thumb: { url: url[bia], chu: `${chu.d1} ${chu.vs} ${chu.d2} ?`, nguon: anh.trang }, tom_tat: `${H} ${a}-${b} ${A}, marble physics simulation, seed ${seed}${duoi}` });
@@ -223,7 +245,7 @@ async function dungTran(t, ngayDang) {
     { slug, chu_de: chuDe, mau: 'video-ngoai', nen_url: anh.nen, de: de(`tran-${seed}.mp4`, gN, 'n', 'bia-n.jpg', chuN, ''),
       dang: { title: tieuDe(tdN), description: moTa, link: null, loai: 'thuong', playlist_ten: 'Marble Football', goc: HOOK.goc, hook: hookN, ...han } },
     { slug: `${slug}-reel`, chu_de: `${chuDe} (reel dọc)`, mau: 'video-ngoai', nen_url: anh.nen, de: de(`tran-${seed}-reel.mp4`, gR, 'r', 'bia-r.jpg', chuR, ', vertical 1080x1920'),
-      dang: { title: tieuDe(tdR), description: moTa.replace('\n\nMatch facts', ' Vertical cut for phones.\n\nMatch facts'), link: null, loai: 'thuong', playlist_ten: 'Marble Football', goc: HOOK.goc, hook: hookR, ...han } },
+      dang: { title: tieuDe(tdR), description: moTa.replace('\n\nMatch facts', ' Short: every goal of the simulated 90 minutes, then the final whistle.\n\nMatch facts'), link: null, loai: 'thuong', playlist_ten: 'Marble Football', goc: HOOK.goc, hook: hookR, ...han } },
   ];
   writeFileSync(join(dir, 'nap.json'), JSON.stringify(nap, null, 1));
   const T = `${TSX} scripts/may-dung.mts --may ${MAY}`;

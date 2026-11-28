@@ -234,7 +234,7 @@ export async function docTraoDoi(duAn: string | string[], me: Nguoi | null, task
   return Array.isArray(td) ? (td as TinTraoDoi[]) : [];
 }
 
-/** Trả lời trong luồng: rework → card về Chờ xử (hẹn lại hôm nay) · duyet → Xong (admin) · còn lại chỉ thêm tin. */
+/** Trả lời trong luồng: rework → card về Chờ xử (hẹn lại hôm nay) · duyet → Xong (admin hoặc người gửi card) · còn lại chỉ thêm tin. */
 export async function guiTraoDoi(duAn: string | string[], me: Nguoi | null, input: { taskId: number; noiDung: string; anhUrls: string[]; xuLy: string }, o?: TuyChon): Promise<Kq> {
   const db = getDb();
   if (!me || !db) return { ok: false, error: 'chưa đăng nhập' };
@@ -242,7 +242,8 @@ export async function guiTraoDoi(duAn: string | string[], me: Nguoi | null, inpu
   // Đọc xong là duyệt được, không bắt gõ chữ (#1234); trả lời / làm lại vẫn phải có nội dung.
   const noiDung = input.noiDung.trim() || (xuLy === 'duyet' ? 'Đã duyệt.' : '');
   if (!noiDung) return { ok: false, error: xuLy === 'rework' ? 'Ghi chỗ chưa đạt để làm lại.' : 'Chưa gõ nội dung.' };
-  if (xuLy === 'duyet' && me.role !== 'admin') return { ok: false, error: 'Duyệt xong là quyền admin.' };
+  // Duyệt xong: admin, hoặc CHÍNH NGƯỜI GỬI card (anh 28/11/2026 "người gửi họ phải tự duyệt được") — người khác không chạm được card
+  // của người ta vì câu UPDATE dưới lọc cuaMinh (ngoài admin chỉ khớp card mình gửi), nên không cần chặn theo vai trò ở đây.
   const tin: TinTraoDoi = { nguoi: me.displayName || me.email, noiDung: noiDung.slice(0, 4000), xuLy, luc: new Date().toISOString(),
     anh: (Array.isArray(input.anhUrls) ? input.anhUrls : []).filter((u) => /^https?:\/\//.test(u)).slice(0, 6) };
   const up = await db.execute(sql`UPDATE human_tasks SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{trao_doi}',

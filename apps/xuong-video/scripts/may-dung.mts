@@ -35,7 +35,7 @@ import { sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import { bucAnh, dsMay, dsVideoDang, ghiDang, ghiNguon, ghiNhatKy, mayTheoMa, napVideo, xuatVideo } from '../src/lib/xuong-video/may';
 import { BO_DUNG } from '../src/lib/xuong-video/mau-dung';
-import { CHU_VIET } from '../src/lib/xuong-video/may-de';
+import { CHU_VIET, tachTieuDe } from '../src/lib/xuong-video/may-de';
 import { sachHook, cauHook, TRAN_HOOK } from '../src/lib/xuong-video/hook-qc.mjs';
 import { ctyTep, nhapCty } from '../src/lib/xuong-video/cty.mjs';
 
@@ -477,13 +477,19 @@ if (a.includes('--nap')) {
   const spy = (await import('postgres')).default(url!, { max: 1, prepare: false });
   const gocs = (await spy`select sp_id as sp, id, loai, ten from goc where sp_id = any(${nhom}) order by id`) as unknown as { sp: number; id: number; loai: string; ten: string }[]; await spy.end();
   const daCo = (await db.execute(sql`SELECT dang->'goc'->>'id' AS goc FROM xv_may_video WHERE may_id = ${m.id} AND NOT coalesce(luu_tru, false)`)) as unknown as { goc: string | null }[];
+  // TIÊU ĐỀ CŨ của máy, MỚI→CŨ như phòng chấm soát khung (cham-dang soatKhuonDaDuyet: id desc limit 80). Dạng game chỉ đổi TỪ trên một khung
+  // "Only ONE says ___" → kênh nào chạy dạng này vài chục bài là khung bão hoà, phòng chấm chặn cả loạt (front-porch 28/11/2026: 38 tên cùng khung,
+  // 1 bài kẹt SỬA LẠI quá 1 giờ). Khung đã dùng → đổi câu mở bằng mã (tachTieuDe), vẫn giữ ≥35% chữ hook.
+  const { khuonTrung } = await import('../src/lib/xuong-video/hook-qc.mjs');
+  const tenCu = ((await db.execute(sql`SELECT dang->>'title' AS t FROM xv_may_video WHERE may_id = ${m.id} AND NOT coalesce(luu_tru, false) AND dang->>'title' IS NOT NULL ORDER BY id DESC LIMIT 80`)) as unknown as { t: string }[]).map((x) => x.t);
+  const tieuDeMoi = (hook: string, cu: string) => { const t = cu.replace(/^Only ONE says [A-Z]+\./, `Only ONE says ${hook}.`); return khuonTrung(t, tenCu) ? (tachTieuDe(cu, tenCu) ?? t) : t; };
   const dem = new Map<number, number>(); for (const x of daCo) if (x.goc) dem.set(Number(x.goc), (dem.get(Number(x.goc)) ?? 0) + 1);
   const thuTu = [...gocs].sort((g1, g2) => (dem.get(g1.id) ?? 0) - (dem.get(g2.id) ?? 0));
   if (!thuTu.length) { console.error(`máy ${ma} chưa có góc spy (goc_sp)`); process.exit(1); }
   const ra: string[] = [];
   for (const [k, x] of tu.entries()) {
     const h = thang[k % thang.length]!, g = thuTu[k % thuTu.length]!, dich = x.de.dich;
-    const title = h.title.replace(/^Only ONE says [A-Z]+\./, `Only ONE says ${dich}.`);   // khung video thắng, chỉ đổi từ
+    const title = tieuDeMoi(dich, h.title);   // khung video thắng chỉ đổi từ; khung đã bão hoà thì đổi câu mở (tachTieuDe)
     const description = (x.dang.description ?? '').replace(/^35 of these are misspelled by one letter\. Only one says [A-Z]+\./, `35 of these are misspelled by one letter. Only one says ${dich}.`);
     const slug = `game-${g.id}-${dich.toLowerCase()}`;
     await napVideo(db, ma, [{ slug, chu_de: x.de.goi, de: { dich, o: x.de.o, cho: x.de.cho, goi: x.de.goi, mau: x.de.mau }, dang: { title, description, link: x.dang.link, book: x.dang.book, words: [dich], nhom: 'Góc spy', dang_bai: 'only-one',
@@ -509,7 +515,7 @@ if (a.includes('--nap')) {
     for (const [k, dich] of tuMoi.entries()) {
       const h = thang[k % thang.length]!, g = thuTu[k % thuTu.length]!, d = deGame(dich);
       const slug = `game-${g.id}-${cd}-${dich.toLowerCase()}`;
-      await napVideo(db, ma, [{ slug, chu_de: C.goi, de: { ...d, goi: C.goi, mau: mauCu }, dang: { title: h.title.replace(/^Only ONE says [A-Z]+\./, `Only ONE says ${dich}.`),
+      await napVideo(db, ma, [{ slug, chu_de: C.goi, de: { ...d, goi: C.goi, mau: mauCu }, dang: { title: tieuDeMoi(dich, h.title),
         description: `35 of these are misspelled by one letter. Only one says ${dich}.\n${C.mo_ta}`, link: C.link, book: 'nostalgia', words: [dich], nhom: 'Góc spy', dang_bai: 'only-one', chu_de_page: cd,
         goc: { sp: g.sp, id: g.id, loai: g.loai, ten: g.ten }, hook: { qc: `kenh:${h.id}`, goc: h.title, page: 'video thắng của kênh', ngay: 0, nguon: 'kenh', luot_xem: h.luot_xem } } } as never]);
       const v = ((await db.execute(sql`SELECT id FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${slug}`)) as unknown as { id: number }[])[0];

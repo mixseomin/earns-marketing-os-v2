@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-de.test.mts — phần thuần của máy sinh đề (không gọi mô hình)
 import assert from 'node:assert';
-import { kiemDe, kiemBaiViet, rapDe, slugDe, MAU_CUA_DANG, vanHeThong, vanNguoiDung, giuHook, GIU_HOOK_TOI_THIEU, timHook, maHookKhop, ghepHook, ghepTieuDe } from './may-de';
+import { kiemDe, kiemBaiViet, rapDe, slugDe, MAU_CUA_DANG, vanHeThong, vanNguoiDung, giuHook, GIU_HOOK_TOI_THIEU, timHook, maHookKhop, ghepHook, ghepTieuDe, tachTieuDe } from './may-de';
 import { khuonTrung } from './hook-qc.mjs';
 
 // BẢN VÁ LỖ 28/11/2026: Phòng Nội dung chặn "cùng khung tên" với 80 tên trước (hook-qc khuonTrung); máy sinh phải so cùng một bộ luật.
@@ -112,4 +112,14 @@ assert.ok(vanNguoiDung(goc, 'top-n', [], 'en', hk).includes('3496181930676276') 
   assert.ok(g!.length >= 25 && g!.length <= 110 && !cu.includes(g!), 'đúng trần ký tự, không trùng tiêu đề cũ');
   assert.equal(ghepTieuDe(hook, [], cu), null, 'không có chữ mô hình thì không bịa tiêu đề');
   assert.equal(ghepTieuDe(hook, [hook], cu), null, 'chỉ có nguyên câu cũ thì không trả lại chính nó'); }
+// TIÊU ĐỀ KHÁC KHUÔN bằng mã (front-porch 28/11/2026: 38 tiêu đề "Only ONE says ___" cùng khuôn, mô hình rẻ 4 lượt vẫn đổi vài chữ)
+{ const cu = Array.from({ length: 38 }, (_, i) => `Only ONE says ${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[i % 26]!.repeat(2)}. Can you spot it in 7 seconds?`),
+    hook = 'Only ONE says OVERLOOK. Can you spot it in 7 seconds?';
+  assert.ok(khuonTrung('Only ONE says LARGE PRINT. Can you spot it in 7 seconds?', cu), 'đổi từ trên khuôn = cùng khung (ca gốc)');
+  const t = tachTieuDe(hook, cu);
+  assert.ok(t, 'khuôn bão hoà: vẫn ra được tiêu đề khác khuôn bằng mã');
+  assert.strictEqual(khuonTrung(t!, cu), null, 'bản mã không còn cùng khung với 80 tên trước');
+  assert.ok(giuHook(t!, hook) >= GIU_HOOK_TOI_THIEU, 'giữ đủ ≥35% chữ hook (Phòng Nội dung)');
+  assert.ok(t!.length >= 25 && t!.length <= 110 && !/[—–]/.test(t!), 'đúng trần ký tự, không gạch dài');
+  assert.ok(tachTieuDe(hook, []), 'kênh sạch cũng dùng được (hook lạ, chưa có tiêu đề cũ)'); }
 console.log('may-de: phần thuần đạt');

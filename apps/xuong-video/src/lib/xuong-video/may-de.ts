@@ -6,7 +6,7 @@ import { z } from 'zod/v4';
 import type { MauMayDung } from './may-dung-mau';
 import type { DeNapMay } from './may';
 import { giaChuCents } from './kieu';
-import { loiHook, giuHook, dongHookBai, bangChungHook, khuonTrung, CHU_VIET, chuManHinh } from './hook-qc.mjs';
+import { loiHook, giuHook, dongHookBai, bangChungHook, khuonTrung, CHU_VIET, chuManHinh, sachHook, tuNoiDung } from './hook-qc.mjs';
 
 /** Dạng trong kho (scripts/ke-hoach-goc/dang-bai.json) → mẫu studio dựng được. Dạng chưa có mẫu → null (ô để máy đăng dùng bài kho như cũ). */
 export const MAU_CUA_DANG: Record<string, MauMayDung | null> = {
@@ -161,6 +161,21 @@ export function ghepTieuDe(hook: string, chuMoHinh: string[], daDung: string[]):
     for (let k = 2; k <= Math.min(6, tu.length - 1, t.length - 2); k++) ung.push(`${tu.slice(0, k).join(' ')} ${t.slice(k).join(' ')}`); }
   // 3. cuối: nguyên câu hook + vế mô hình thành câu thứ hai (giữ 100% chữ hook), chỉ dùng khi còn chỗ dưới 110 ký tự
   for (const v of ve) { const m = (/^(.+?[.?!])(?:\s|$)/u.exec(v)?.[1] ?? v).replace(/[.?!]+$/, '').trim(); if (m) ung.push(`${hook} ${m[0]!.toUpperCase()}${m.slice(1)}`); }
+  return ung.find(dat) ?? null;
+}
+/** TIÊU ĐỀ KHÁC KHUÔN, viết bằng mã (không gọi mô hình): khi hook QC gốc mang khuôn mà cả kênh đã dùng hàng chục lần
+ *  ("Only ONE says ___. Can you spot it in 7 seconds?" — front-porch 28/11/2026: 38 tiêu đề cùng khuôn), mô hình rẻ chỉ đổi từ
+ *  trên khuôn → lượt nào cũng cùng khung, bài kẹt sửa lại. Ở đây ĐỔI CÂU MỞ + GIỮ NGUYÊN phần lời hứa của hook
+ *  → vẫn giữ đủ ≥35% chữ hook (luật Phòng Nội dung), nhưng câu không còn đọc như bài cũ đổi 2 chữ. Thuần. */
+export function tachTieuDe(hook: string, daDung: string[]): string | null {
+  const sach = sachHook(hook); if (tuNoiDung(sach).length < 3) return null;
+  const chuan = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim(), co = new Set(daDung.map(chuan));
+  const cau = sach.split(/(?<=[.?!…])\s+/u).filter(Boolean), duoi = cau.slice(1).join(' ');
+  const moCau = ['Which one did you get right? ', 'Can you tell which one it is? ', 'How fast can you spot it? ', 'Most people guess wrong on this one. ',
+    'One of these is not like the others. ', 'Only 1 in 10 gets this right. ', 'Look closely before you answer. ', 'Think you can find it before the timer? '];
+  const ung = [...moCau.map((m) => `${m}${sach}`)]; if (duoi) ung.push(...moCau.map((m) => `${m}${duoi}`));
+  const dat = (t: string) => t.length >= 25 && t.length <= 110 && !co.has(chuan(t)) && !loiHook([t], sach).length
+    && !CHU_VIET.test(t) && !/[—–]/.test(t) && !khuonTrung(t, daDung.slice(0, 80));
   return ung.find(dat) ?? null;
 }
 /** Mã hook THẬT của tiêu đề: mô hình hay viết tiêu đề bám hook này mà khai mã hook khác (esimfares 10/11/2026: 4/4 đề làm lại trượt "sửa quá xa"
@@ -415,8 +430,16 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     // (examweight 28/11/2026, 15 bài cùng lỗi). Chặn ngay trước khi dựng, bắt viết lại tiêu đề KHÁC KHUÔN, không đốt tiền dựng một bài chắc SỬA LẠI.
     // 80 tên GẦN NHẤT như phòng chấm (cham-dang.mjs soatKhuonDaDuyet: id < v.id desc limit 80) → daDung xếp mới→cũ.
     const khungCu = khuonTrung(de.dang.title ?? '', (o.daDung ?? []).slice(0, 80));
-    if (khungCu) { loiCu.push(`tiêu đề cùng khung với một bài cũ của máy: "${khungCu}" — KHÔNG chỉ đổi vài chữ, hãy đổi tình huống / đối tượng / câu cú cho khác hẳn mà vẫn bám hook QC`); const hd = timHook(hooksLuot, maHook) ?? hookCu;
-      // đổi hook khác (nếu còn) để mô hình không lại bám đúng câu cũ; hết hook thì giữ hook hiện tại, lượt sau khoá + dặn đổi chủ thể.
+    if (khungCu) {
+      // Mô hình rẻ không đổi được cấu trúc câu khi hook + 38 tiêu đề cũ cùng một khuôn → viết bằng CODE, không đốt thêm lượt AI.
+      const hd = timHook(hooksLuot, maHook) ?? hookCu;
+      const tdMoi = hd ? tachTieuDe(hd.chu, o.daDung ?? []) : null;
+      if (tdMoi) {
+        de.dang.title = tdMoi;
+        loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title, description: de.dang.description ?? '', nhan: o.sp.nhan, ngon_ngu: o.sp.ngon_ngu, hooks: hooksLuot, hook_qc: hd!.id });
+        if (!loiCu.length) return { ok: true, de, vnd, model: r.model, tokens: { ...tk, vnd } };
+      }
+      loiCu.push(`tiêu đề cùng khung với một bài cũ của máy: "${khungCu}" — KHÔNG chỉ đổi vài chữ, hãy đổi tình huống / đối tượng / câu cú cho khác hẳn mà vẫn bám hook QC`);
       if (hd && (o.hooks ?? []).some((h) => h.id !== hd.id && !boHook.has(h.id) && !tuMayDe(h.chu).length)) { boHook.add(hd.id); hookCu = null; khoaTruoc = false; }
       continue;
     }

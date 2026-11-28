@@ -9,7 +9,7 @@ Mỗi lượt:
   5–6. mở lại dòng dừng khi cổng đổi · thử lại dòng lỗi kỹ thuật
   7. lỗi MÃ ở máy luật / lên camp (etp.nhat_ky) → báo Telegram ngay, mỗi kiểu một lần / 6 giờ
 Dùng: manh.py [--thu] (--thu: chỉ in, không ghi / không báo)"""
-import hashlib, importlib.util, json, os, subprocess, sys
+import hashlib, importlib.util, json, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cong as CG   # cong.sql_trang_hong: dấu cổng trang phim (09/11/2026)
 THU = "--thu" in sys.argv
 # .rstrip("\n"), KHÔNG .strip(): strip cắt luôn tab cuối → cột rỗng cuối hàng mất, "dòng vừa kết thúc" (camp rỗng) chết ValueError mỗi lượt — 180 lần / 3 giờ,
@@ -22,6 +22,17 @@ hang = lambda s: [r.split("\x1f") for r in subprocess.run(["psql", os.environ["D
 TEN = {"nhan": "Nhận phim", "ws": "Trang phim", "poster": "Soát poster", "cat": "Cắt đoạn", "soat": "Soát đoạn", "creative": "Tải + chấm", "camp": "Lên camp", "chay": "Camp chạy"}
 IM_BUOC, IM_MAY = 600, 180   # giây
 HAN_KT = 24 * 3600            # dòng KT chờ hàng máy sinh kể chuyện tối đa (xem mục 1)
+HAN_CHAM = 6 * 3600           # bước Tải + chấm đứng chờ HÀNG MÁY CHẤM (etp.cham_hang) tối đa — chờ hàng không phải treo (26/11/2026: 116766 chờ hàng 63 phút)
+CHO_ANH = re.compile(r"chờ anh (✓ )?duyệt", re.I)
+def han_buoc(loai, buoc, gc, han):
+    """hàm thuần: hạn thật (giây) của bước đang chạy theo câu ghi mới nhất; None = không hạn.
+    CHỜ ANH DUYỆT (etp2 › Chờ lên / Chờ duyệt / phiếu chờ ✓ Duyệt) không phải máy treo: máy hỏi lại mỗi nhịp, nhịp nào cũng xong ngay — không bao giờ quá hạn
+    (anh 28/11/2026 "nhiều camp đang sx mà ko thấy phản hồi gì ? lại còn thấy lỗi" + "set lệnh rồi không muốn động tay": 9 dòng 26–27/11 thành 'lỗi quá hạn 61 phút'
+    chỉ vì bản đang nằm chờ anh duyệt; FIX 6 lần rồi chết hẳn). Còn canh im (nhip) như cũ: máy dòng chết vẫn bị bắt."""
+    if CHO_ANH.search(gc or ""): return None
+    if loai == "KT" and buoc == "creative" and ("chờ máy nhận" in gc or gc.startswith("máy sinh kể chuyện:")): return HAN_KT
+    if buoc == "creative" and "chờ máy chấm" in (gc or ""): return max(han, HAN_CHAM)
+    return han
 # MÃ LUẬT CỦA TỪNG BƯỚC (04/11/2026: nới luật máu poster + miễn trùng đội cho camp tay mà 11 + 2 dòng dừng cũ vẫn đứng — dấu cổng không thấy luật đổi):
 # bước dừng ở đâu thì băm tệp làm luật bước đó; sửa tệp → dấu đổi → dòng tự chạy lại bước dừng một lần. Bước Lên camp thêm NGÀY: cổng camp
 # (bão hoà, ngân sách, trùng đội) đổi theo số mỗi ngày → mỗi ngày thử lại một lần.
@@ -79,9 +90,10 @@ def main():
             # trần 24 phim / ngày) — máy dòng vẫn báo sống mỗi nhịp. Trước: hạn 4 giờ → Mạnh huỷ, FIX lại từ cuối hàng, 6 lần là chết hẳn (dòng #52 #54 #55 #60 #61 đứng
             # 'lỗi' từ 04–05/11 trong khi máy sinh vẫn làm 18 phim / ngày). Nay chờ hàng được tới HAN_KT; quá thì lỗi kèm lý do thật "máy sinh không nhận phim".
             cho_hang = loai == "KT" and buoc == "creative" and ("chờ máy nhận" in gc or gc.startswith("máy sinh kể chuyện:"))
-            if (tuoi <= (HAN_KT if cho_hang else han)) and im <= IM_BUOC: continue
+            ht = han_buoc(loai, buoc, gc, han)
+            if (ht is None or tuoi <= ht) and im <= IM_BUOC: continue
             ly = (f"máy sinh kể chuyện không nhận phim sau {tuoi // 3600} giờ chờ hàng" if cho_hang and im <= IM_BUOC
-                  else f"quá hạn {tuoi // 60} phút (hạn {han // 60})" if tuoi > han else f"im {im // 60} phút (máy chạy dòng không còn báo sống)")
+                  else f"quá hạn {tuoi // 60} phút (hạn {ht // 60})" if ht is not None and tuoi > ht else f"im {im // 60} phút (máy chạy dòng không còn báo sống)")
             tu_fix = lan < 2
             ghi(f"""update etp.dong_buoc set huy = true, trang_thai = 'loi', ket_thuc = now(), ghi = $G$Mạnh: {ly} — {gc[:200].replace('$G$', '')}$G$, fix = {str(tu_fix).lower()}
                     where dong_id = {dong} and buoc = '{buoc}' and trang_thai = 'dang';
@@ -205,4 +217,13 @@ def main():
     print("Mạnh:", " · ".join(lam) if lam else "không có gì kẹt")
     if hong: sys.exit(1)
 
-if __name__ == "__main__": main()
+def tu_kiem():
+    assert han_buoc("AD", "creative", "mẫu dt_anh_dong_logo: 4 bản chờ anh duyệt trước khi lên Ethopex (etp2 › Camp › Chờ lên) — không dựng thêm", 3600) is None
+    assert han_buoc("CC2", "creative", "1/2 creative chờ anh duyệt (etp2 › Chờ duyệt)", 3600) is None
+    assert han_buoc("KT", "camp", "chờ anh ✓ Duyệt bản ở etp2 › Camp › Chờ lên — camp lên đúng phiếu #43", 600) is None
+    assert han_buoc("AD", "creative", "creative mẫu dt_anh_dong_logo #116558 — chờ máy chấm", 3600) == HAN_CHAM
+    assert han_buoc("CC2", "cat", "đang cắt", 4200) == 4200 and han_buoc("AD", "creative", "", 3600) == 3600, "bước đang làm thật vẫn giữ hạn"
+    assert han_buoc("KT", "creative", "máy sinh kể chuyện: chờ máy nhận", 3600) == HAN_KT
+    print("✓ manh.py tự kiểm (chờ anh duyệt không quá hạn · chờ máy chấm hạn dài · bước thật giữ hạn)")
+
+if __name__ == "__main__": tu_kiem() if "--tu-kiem" in sys.argv else main()

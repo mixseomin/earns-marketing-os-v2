@@ -5,7 +5,7 @@ Hai loại, xử khác nhau — mọi bước (cat-cuoi-lo, len-creative, phim-m
 Lỗi không nhận ra loại nào → coi là KỸ THUẬT (thử lại tốn ít; bỏ oan một phim thì mất cả phim)."""
 import re, time
 THU_LAI, NGHI = 2, 20
-NOI_DUNG = re.compile(r"THOAI CHAN: \d+s|THOAI CHAN: \d+ khung|PHIM18|18\+|khung cuối sạch|từ chối|rejected|Adult Sexual|STUDIO SAI|CTA không đạt|ngắn hơn khung", re.I)   # "ngắn hơn khung" = phim không còn khung sạch đủ dài (cắt bỏ giây cấm) — NỘI DUNG, không cắt lại (03/11/2026: coi là kỹ thuật → sua-cta cắt lại 5 phim mỗi 10 phút, ~3 giờ/lượt, treo box3)
+NOI_DUNG = re.compile(r"THOAI CHAN: \d+s|THOAI CHAN: \d+ khung|PHIM18|18\+|khung cuối sạch|từ chối|rejected|Adult Sexual|STUDIO SAI|anh bỏ ở etp2|CTA không đạt|ngắn hơn khung", re.I)   # "ngắn hơn khung" = phim không còn khung sạch đủ dài (cắt bỏ giây cấm) — NỘI DUNG, không cắt lại (03/11/2026: coi là kỹ thuật → sua-cta cắt lại 5 phim mỗi 10 phút, ~3 giờ/lượt, treo box3)
 
 def ky_thuat(loi):
     """True = lỗi kỹ thuật (thử lại được); False = bị loại vì nội dung; None = không lỗi"""
@@ -37,6 +37,7 @@ if __name__ == "__main__":
     assert ky_thuat("THOAI CHAN: 1 khung — đoạn 0.0–88.9s không cắt (Meta: Adult Sexual Exploitation)") is False
     assert ky_thuat("không có khung cuối sạch (giây cấm [56.0])") is False
     assert ky_thuat("PHIM18 CHAN: phim 78433 dính từ khoá 18+ 'steamy'") is False
+    assert ky_thuat("anh bỏ ở etp2 › Chờ lên (#17) anh bỏ ở etp2 › Chờ lên (#18)") is False, "anh bỏ bản ở Chờ lên = quyết định của anh, không phải lỗi máy (dừng, không thử lại)"
     assert ky_thuat("lỗi lạ chưa gặp") is True and ky_thuat(None) is None
     n = [0]; assert thu(lambda: (n.__setitem__(0, n[0] + 1), {"loi": "Timeout"} if n[0] < 2 else {"ok": 1})[1], nghi=0) == {"ok": 1} and n[0] == 2
     assert de_hieu("cat: không ra đoạn nào: TimeoutExpired: Command ['nice', '/Users/htuan/x/cat-cuoi-lo.py'") == "cat: không ra đoạn nào: máy chạy quá giờ"

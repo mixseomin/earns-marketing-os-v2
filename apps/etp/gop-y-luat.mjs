@@ -104,6 +104,7 @@ export const LUAT = [
   { card: 'cam-1-0811', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: 'ns_ab', vi: 'A/B không còn đặt ngân sách theo nhánh (AB01 từng đặt $3)' },
   { card: 'bo-phim-0811', tep: 'apps/etp/cong.py', co: "\" (select gia_tri#>>'{{}}' from etp.cau_hinh where khoa = 'bo_phim_moi'))\")", vi: 'camp mới lên bộ etp.cau_hinh.bo_phim_moi — một phim nhiều bộ (anh 08/11/2026)' },
   { card: 'bo-phim-0811', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: 'def chan_bo(', vi: 'bỏ luật mỗi phim một bộ (anh 08/11/2026 "1 phim ở nhiều bộ thoải mái")' },
+  { card: 've-phieu-2811', tep: 'apps/etp/len-phieu.py', co: 'if not camp and cr: camp = camp_san(cr, p["content_id"])', vi: 'nhan-ban lỗi / hết giờ sau khi đã tạo camp → camp vẫn ghi vào thẻ' },
   { card: 've-phieu-2811', tep: 'apps/etp/len-phieu.py', co: 'san = camp_san(cr, p["content_id"])', vi: 'anh 28/11/2026: creative đã có camp phiếu → ghi vào thẻ, không báo lỗi "đã có camp"' },
   { card: 've-phieu-2811', tep: 'apps/etp/len-phieu.py', co: '+ ("" if camp else " and camp_id is null"))', vi: 'lỗi không đè camp đã ghi trên thẻ' },
   { card: 've-phieu-2811', tep: 'apps/etp/len-phieu.py', cam: 'if time.time() - t0 > CHO_GIAY: ghi_kq(', vi: 'anh 28/11/2026 "Lỗi ngu fix ngay": creative tải lâu hơn vé thì thoát êm, KHÔNG ghi lỗi bắt anh bấm Lên camp lại' },

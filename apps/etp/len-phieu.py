@@ -65,7 +65,9 @@ def chay_lenh(cl, p, a, cr):
         kq = json.loads(next((l for l in reversed(r.stdout.strip().splitlines()) if l.startswith("{")), "{}") or "{}")
     except Exception as e: kq = {"ok": False, "loi": str(e)[:300]}
     if not kq and r is not None and r.returncode: kq = {"ok": False, "loi": (r.stderr.strip().splitlines() or ["nhan-ban lỗi"])[-1]}
-    ghi_kq(cl, p["id"], kq.get("moi") if kq.get("ok") else None, None if kq.get("ok") else (kq.get("loi") or "nhan-ban không trả kết quả"))
+    camp = kq.get("moi") if kq.get("ok") else None
+    if not camp and cr: camp = camp_san(cr, p["content_id"])   # nhan-ban hết giờ / lỗi SAU khi đã tạo camp (chờ Meta đồng bộ 20 phút) → camp vẫn của thẻ
+    ghi_kq(cl, p["id"], camp, None if camp else (kq.get("loi") or "nhan-ban không trả kết quả"))
     print(json.dumps({"ok": bool(kq.get("ok")), "camp": kq.get("moi"), "cr": cr, "bai": p.get("bai"), "loi": kq.get("loi")}, ensure_ascii=False))
 
 def ghi_kq(cl, pid, camp, loi):
@@ -136,7 +138,7 @@ def tha(cl): q(f"update etp.cho_len set muc = muc - 'len_camp' where id = {int(c
 # THẺ CẦN LÊN (Huy gọi, manh.py): phiếu anh đã ✓ Duyệt bằng tài khoản admin, creative đã tải, chưa camp, không lỗi thật (lỗi nhan-ban giữ nguyên chờ anh), không ai đang giữ
 SQL_CAN_LEN = f"""select c.id from etp.cho_len c where c.phieu_id is not null and c.trang_thai = 'da_len' and c.creative_id is not null and c.camp_id is null
   and (c.camp_loi is null or c.camp_loi like '{HET_VE[:30]}%'
-       or (c.camp_loi like '%đã có camp (#%' and exists (select 1 from etp.camp k where k.creative_id = c.creative_id and k.ten like '%cr moi #' || c.creative_id || '%'))) and c.muc ->> 'bai' is null and c.duyet_luc > now() - interval '3 days'
+       or exists (select 1 from etp.camp k where k.creative_id = c.creative_id and k.content_id = (select f.content_id from etp.phieu_len f where f.id = c.phieu_id) and k.ten like '%cr moi #' || c.creative_id || '%')) and c.muc ->> 'bai' is null and c.duyet_luc > now() - interval '3 days'
   and c.duyet_ai in (select x.email from users x join members m on m.user_id = x.id and m.role = 'admin')
   and (c.muc ->> 'len_camp' is null or (c.muc ->> 'len_camp')::timestamptz < now() - interval '{GIU_PHUT} minutes') order by c.id"""
 

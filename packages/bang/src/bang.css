@@ -35,5 +35,6 @@
 .dt-keo{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:6;touch-action:none}
 th:last-child>.dt-keo{right:0;width:4px}
 /* màn cảm ứng: tay nắm 7px không chạm trúng bằng ngón — nới vùng bắt 24px (anh 28/11/2026 "kéo cột cũng ko đc" trên mobile) */
-@media (pointer:coarse){.dt-keo{right:-12px;width:24px}th:last-child>.dt-keo{right:0;width:14px}}
+/* ngón tay: tay kéo nằm TRỌN trong th — th overflow:hidden cắt mất nửa thò ra ngoài, chạm trúng th bên cạnh thì trình duyệt giành cử chỉ để cuộn (pointercancel) */
+@media (pointer:coarse){.dt-keo{right:0;width:22px}}
 .dt-keo:hover,.dt-keo:active{background:color-mix(in srgb,var(--accent) 45%,transparent)}

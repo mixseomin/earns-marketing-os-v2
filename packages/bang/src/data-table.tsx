@@ -205,6 +205,9 @@ const baseHead: CSSProperties = { ...baseCell, padding: '3px 10px', color: 'var(
 // vw = theo bề rộng MÀN, không theo bảng (bảng có thể rộng gấp mấy lần màn) → đúng cái user cần.
 const STICKY_MAX = '33vw';
 const TRAN_GHIM = 0.4;   // tổng bề ngang vùng cột ghim ≤ 40% khung cuộn
+// màn hẹp (điện thoại): 33vw chỉ ~129px — tên phim cụt, kéo không rộng ra được (anh 28/11/2026 "Mobile bị mất tên phim, kéo cột cũng ko đc")
+const STICKY_MAX_HEP = '55vw';
+const TRAN_GHIM_HEP = 0.6;
 
 // hex + alpha (8-digit) — matches the SEO table's per-group band shades (header ~0.22, body ~0.06).
 const band = (hex: string | undefined) => (hex ? `${hex}38` : undefined);
@@ -632,7 +635,7 @@ export function DataTable<T>({
     const rongKhungCuon = thanRef.current?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 0);
     if (soGhim <= 1 || cotDo.w.length < soGhim || !rongKhungCuon) return soGhim;
     let n = 1, tong = cotDo.w[0]!;
-    while (n < soGhim && tong + cotDo.w[n]! <= rongKhungCuon * TRAN_GHIM) { tong += cotDo.w[n]!; n++; }
+    while (n < soGhim && tong + cotDo.w[n]! <= rongKhungCuon * (hep ? TRAN_GHIM_HEP : TRAN_GHIM)) { tong += cotDo.w[n]!; n++; }
     return n;
   };
   const ghim = (i: number): { left: number; cuoi: boolean } | null => {
@@ -647,7 +650,7 @@ export function DataTable<T>({
     const g = ghim(i);
     // ô ghim thân bảng: nền đặc lấy từ biến --dt-row-bg nếu rowStyle của dòng đặt (dòng đang được tô), không thì nền thường
     return g ? { position: 'sticky', left: g.left, zIndex: head ? 3 : 2, background: head ? 'var(--bg-2)' : 'var(--dt-row-bg, var(--bg-1))',
-        boxShadow: g.cuoi ? '1px 0 0 var(--line)' : undefined, ...(i === 0 ? { maxWidth: STICKY_MAX } : {}), overflow: 'hidden', textOverflow: 'ellipsis' } : {};
+        boxShadow: g.cuoi ? '1px 0 0 var(--line)' : undefined, ...(i === 0 ? { maxWidth: hep ? STICKY_MAX_HEP : STICKY_MAX } : {}), overflow: 'hidden', textOverflow: 'ellipsis' } : {};
   };
   // bảng bề rộng cố định (table-layout:fixed — đã kéo cột / fixedLayout): ô nào cũng cắt phần tràn, không thì chữ dài đè sang cột bên cạnh (anh 26/10/2026)
   // TRONG Ô WIDGET (chưa bấm "+n cột", bảng không giuCot): bỏ bề ngang đã lưu / tự chốt, chia cột theo nội dung (table-layout:auto, ô nowrap) → bảng
@@ -690,7 +693,7 @@ export function DataTable<T>({
       backgroundImage: g?.color ? `linear-gradient(${band(g.color)}, ${band(g.color)})` : undefined,
       borderLeft: i ? '1px solid var(--line)' : undefined,
       position: 'sticky', top: 0, zIndex: ghim(i) ? 4 : 3,
-      ...(ghim(i) ? { left: ghim(i)!.left, ...(i === 0 ? { maxWidth: STICKY_MAX } : {}), overflow: 'hidden', boxShadow: ghim(i)!.cuoi ? '1px 0 0 var(--line), 0 1px 0 var(--line)' : '0 1px 0 var(--line)' } : { boxShadow: '0 1px 0 var(--line)' }) };
+      ...(ghim(i) ? { left: ghim(i)!.left, ...(i === 0 ? { maxWidth: hep ? STICKY_MAX_HEP : STICKY_MAX } : {}), overflow: 'hidden', boxShadow: ghim(i)!.cuoi ? '1px 0 0 var(--line), 0 1px 0 var(--line)' : '0 1px 0 var(--line)' } : { boxShadow: '0 1px 0 var(--line)' }) };
   };
 
   const pager = pageSize ? (

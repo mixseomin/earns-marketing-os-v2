@@ -4,13 +4,15 @@
 // Mỗi bình luận viết riêng cho đúng video: AI đọc tiêu đề + mô tả + 15 bình luận top đang có, viết một câu như người xem thật (nhắc chi tiết của video,
 // không link, không mời xem kênh, không khen chung chung). Ghi trang_thai='nhap' → chưa đăng gì; Phòng Nội dung chấm trước khi máy đăng.
 //   node sinh-bl.mjs --may orbiball [--so 1] [--kenh <channel id>] [--xem]
+//   node sinh-bl.mjs --may orbiball --tra-loi [--xem]   <- viết trả lời cho các dòng can_viet do do-bl.mjs xếp (người xem trả lời bình luận của máy)
 import { execFile, execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 
 const a = process.argv.slice(2), co = (k) => a.includes(k), gt = (k, m) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : m; };
-const MAY = gt('--may'), SO = Number(gt('--so', 1)), KENH = gt('--kenh'), XEM = co('--xem');
+const MAY = gt('--may'), KENH = gt('--kenh'), XEM = co('--xem');
 if (!MAY) { console.error('✗ thiếu --may'); process.exit(1); }
+let SO = Number(gt('--so', 1));
 const MODEL = 'claude-haiku-5-5';
 const CHU_DE = { orbiball: 'Orbiball FC: marble/physics-simulation football — every real fixture (Premier League, Champions League, LaLiga…) is played out as a marble match to predict the result.' };
 
@@ -22,6 +24,42 @@ const URL_CONG = process.env.CONG_AI_URL || (existsSync('/root/.secrets/spy.env'
 const sql = (q, j = '[]') => execFileSync('ssh', ['-o', 'BatchMode=yes', 'root@167.233.241.16',
   `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; J=$(cat); echo ${Buffer.from(q).toString('base64')} | base64 -d | psql "$DATABASE_URL" -tA -v ON_ERROR_STOP=1 -v j="$J" -f -`],
   { input: j, encoding: 'utf8' }).trim();
+
+// 0. TRẢ LỜI người xem (anh 28/11/2026 "tương tác thật"): đọc bình luận gốc của máy + câu họ trả lời → một câu đáp như người thật, rồi về nhap.
+if (co('--tra-loi')) {
+  const ds = JSON.parse(sql(`SELECT coalesce(json_agg(x),'[]') FROM (SELECT r.id, r.video_ten, r.goc_chu, r.goc_tac_gia, g.chu goc_cua_may
+    FROM xv_seeding_bl r JOIN xv_seeding_bl g ON g.may=r.may AND g.video_id=r.video_id AND g.tra_loi_cho IS NULL
+    WHERE r.may='${MAY.replace(/'/g, '')}' AND r.trang_thai='can_viet' ORDER BY r.id LIMIT 10) x`));
+  if (!ds.length) { console.log('· không có trả lời nào cần viết'); process.exit(0); }
+  let tong = 0; const ghi = [];
+  for (const r of ds) {
+    const system = `You reply ONCE, as the same genuine fan who wrote the original comment, to someone who answered you under a YouTube video. Your channel is about ${CHU_DE[MAY]} but never mention it, never link, never ask anyone to subscribe or visit a channel.
+Rules: English, 1 short sentence (max 150 characters), answer what THEY said (agree, push back playfully, or ask a follow-up), friendly and natural, max 1 emoji, no hashtags. If their reply is hostile or spam, return chu "" (skip).
+Facts: never invent scores, minutes or results not stated below.
+Return JSON {"chu": "<reply or empty>", "ly": "<why, Vietnamese, short>"}`;
+    const user = `Video title: ${r.video_ten}\nYour original comment: ${r.goc_cua_may}\nTheir reply (${r.goc_tac_gia}): ${r.goc_chu}`;
+    try {
+      const res = await fetch(URL_CONG, { method: 'POST', headers: { authorization: `Bearer ${KHOA}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ viec: `${MAY}-seeding-tl`, model: MODEL, max_tokens: 200, system, messages: [{ role: 'user', content: user }],
+          schema: { type: 'object', additionalProperties: false, required: ['chu', 'ly'], properties: { chu: { type: 'string' }, ly: { type: 'string' } } } }) });
+      const j = await res.json().catch(() => ({})); if (!res.ok) throw new Error(`cổng AI ${res.status}: ${JSON.stringify(j).slice(0, 200)}`);
+      tong += Number(j.chi_usd) || 0;
+      const kq = typeof j.kq === 'string' ? JSON.parse(j.kq) : j.kq, chu = String(kq?.chu ?? '').trim();
+      const hong = chu && ((chu.match(/\d+(?::\d+)?/g) ?? []).some((n) => !user.includes(n)) || /https?:|www\.|subscribe|my channel|orbiball/i.test(chu) || chu.length > 200);
+      console.log(`\n↩ #${r.id} ${r.goc_tac_gia}: ${r.goc_chu.replace(/\s+/g, ' ').slice(0, 120)}\n  💬 ${chu || '(bỏ qua)'}${hong ? ' ✗ hỏng, bỏ' : ''} · ${kq?.ly ?? ''}`);
+      ghi.push({ id: r.id, chu: hong ? '' : chu });
+    } catch (e) { console.log(`⚠ #${r.id}: ${e.message.slice(0, 200)}`); }
+  }
+  console.log(`\nchi AI: $${tong.toFixed(5)} ≈ ${Math.round(tong * 3250)}₫`);
+  if (XEM || !ghi.length) process.exit(0);
+  console.log(sql(`UPDATE xv_seeding_bl b SET chu=x.chu, trang_thai=CASE WHEN x.chu='' THEN 'bo' ELSE 'nhap' END FROM jsonb_to_recordset(:'j'::jsonb) AS x(id int, chu text)
+    WHERE b.id=x.id RETURNING b.id || ' → ' || b.trang_thai`, JSON.stringify(ghi)));
+  process.exit(0);
+}
+
+// --bu N: bù hàng chờ — chỉ viết thêm cho đủ N bình luận gốc chưa đăng (nhap). dang-lien-tuc gọi mỗi 6 giờ; trần đăng 3/ngày nên N=3 là đủ một ngày.
+if (gt('--bu')) { SO = Math.max(0, Number(gt('--bu')) - Number(sql(`SELECT count(*) FROM xv_seeding_bl WHERE may='${MAY.replace(/'/g, '')}' AND trang_thai='nhap' AND tra_loi_cho IS NULL`)));
+  if (!SO) { console.log('· hàng chờ bình luận đủ'); process.exit(0); } }
 
 // 1. chọn video: mỗi kênh chưa có bình luận nào của máy, lấy video nhiều view nhất chưa bình luận; kênh to trước.
 const ds = JSON.parse(sql(`SELECT coalesce(json_agg(x),'[]') FROM (
@@ -68,4 +106,4 @@ console.log(`\nchi AI: $${tong.toFixed(5)} ≈ ${Math.round(tong * 3250)}₫`);
 if (XEM || !ghi.length) process.exit(0);
 console.log(sql(`INSERT INTO xv_seeding_bl (may,kenh_id,video_id,video_ten,chu,trang_thai)
   SELECT may,kenh_id,video_id,video_ten,chu,'nhap' FROM jsonb_to_recordset(:'j'::jsonb) AS x(may text,kenh_id text,video_id text,video_ten text,chu text)
-  ON CONFLICT (may,video_id) DO NOTHING`, JSON.stringify(ghi)) || `✓ ${ghi.length} bình luận nháp → xv_seeding_bl (trang_thai nhap)`);
+  ON CONFLICT DO NOTHING`, JSON.stringify(ghi)) || `✓ ${ghi.length} bình luận nháp → xv_seeding_bl (trang_thai nhap)`);

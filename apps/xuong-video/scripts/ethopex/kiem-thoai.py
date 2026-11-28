@@ -53,10 +53,22 @@ _MAU_CHO = re.compile(r"\s*\|?\s*(" + "|".join(re.escape(x) for x in CHO_FREE) +
 # chỉ ở NHÃN, không ở nút: mũi tên cạnh nút "Watch For Free" vẫn là mũi tên chỉ trỏ, vẫn chặn.
 _NHAN_FREE = sorted({v[0] for v in CQ.LOP_FREE.values()}, key=len, reverse=True)
 _MAU_NHAN = re.compile(r"\s*\|?\s*(?:[^\w\s|]{1,3}\s*)?(" + "|".join(re.escape(x) for x in _NHAN_FREE) + r")(?:\s*[^\w\s|]{1,3}|\s+[Il1](?=\s*(?:\||$)))?\s*\|?", re.I)
+# OCR ĐỌC SAI MỘT HAI CHỮ của chính câu Free nhà vẽ ("NATCH FREE" — cho_len 123 "Step Back", 28/11/2026: 24 khung đúng, 1 khung sai → cả bản kẹt).
+# Đoạn chữ (tách theo "|") dài lệch ≤ 1 chữ VÀ giống câu Free nhà ≥ 85% (so chữ + số, bỏ cách / dấu) thì coi là câu đó. Đoạn có mũi tên KHÔNG gỡ (mũi tên cạnh nút vẫn chặn);
+# đoạn dài hơn / có thêm chữ ("WATCH FREE · TAP LEARN MORE", "FREE", "Watch for free for a limited time") giống thấp → vẫn chặn.
+import difflib as _dl
+_MUI_TEN = re.compile(r"[▼▲►◄▶◀↓↑→←⬇⬆➡⬅👇👆👉👈⏬🔽]")
+_CHUAN = lambda x: re.sub(r"[\W_]+", "", x).upper()
+_FREE_CHUAN = [_CHUAN(x) for x in CHO_FREE]
+def _bo_gan_free(cau):
+    giu = [d for d in cau.split("|") if not (d.strip() and not _MUI_TEN.search(d)
+           and any(abs(len(_CHUAN(d)) - len(f)) <= 1 and _dl.SequenceMatcher(None, _CHUAN(d), f).ratio() >= 0.85 for f in _FREE_CHUAN))]
+    return "|".join(giu)
+
 def soat(cau, cho_free=False):
     """→ từ khớp đầu tiên hoặc None (thoại cấm · CTA dụ nhấp · lớp phủ CTA kích thích của QC app gốc — cta_qc.phu_kich_thich).
     cho_free: video có lớp Free của nhà (anh-tinh.py --free) → gỡ đúng câu nhãn / nút đó trước khi soát"""
-    if cho_free: cau = _MAU_CHO.sub(" | ", _MAU_NHAN.sub(" | ", cau or ""))
+    if cho_free: cau = _bo_gan_free(_MAU_CHO.sub(" | ", _MAU_NHAN.sub(" | ", cau or "")))
     m = MAU.search(cau or "")
     return m.group(0) if m else CQ.phu_kich_thich(cau)
 
@@ -143,6 +155,11 @@ def tu_kiem():
         assert not soat(c, True), "hoa văn nhãn Free nhà phải qua: %s (khớp %s)" % (c, soat(c, True))
     for c in ("→ ALL EPISODES RELEASED I | X | → WATCH FREE", "ALL EPISODES RELEASED | WATCH MORE →", "→ X | ALL EPISODES RELEASED"): assert soat(c, True), "mũi tên ngoài nhãn vẫn chặn: " + c
     assert soat("→ ALL EPISODES RELEASED I | X"), "không cờ --free thì hoa văn vẫn chặn"
+    # OCR sai một hai chữ của câu Free nhà (cho_len 123, 28/11/2026): qua khi có cờ; thêm chữ / mũi tên / không cờ vẫn chặn
+    for c in ("ALL EPISODES RELEASED | Step Back! | That Homeless | Man Is Not to be Messed with | NATCH FREE", "ALL EPISODES RELEASFD | X | WATCH FRFE", "X | VER GRATlS"):
+        assert not soat(c, True), "câu Free nhà OCR lệch phải qua: %s (khớp %s)" % (c, soat(c, True))
+    for c in ("X | NATCH FREE →", "X | → NATCH FREE", "X | NATCH FREE · TAP LEARN MORE", "X | FREE", "X | STREAM FREE", "X | FREE TODAY"): assert soat(c, True), "lệch xa / có mũi tên vẫn chặn: " + c
+    assert soat("X | NATCH FREE"), "không cờ --free thì vẫn chặn"
     # mọi chữ nút Free trong thư viện mẫu (etp2 etp-mau-cr.json thu_vien.nut.chu — dung-mau.cta chọn từ đây) phải qua cổng khi có cờ --free
     sys.path.insert(0, os.path.join(D, "..", "..", "..", "etp")); from goc_etp2 import tep as _t
     nut = [y.strip() for v in json.load(open(_t("src", "lib", "etp-mau-cr.json"), encoding="utf-8"))["thu_vien"]["nut"]["chu"].values() for y in v]   # nguyên chữ nút (nút đôi "· LEARN MORE" gỡ bằng NUT_CHUAN)

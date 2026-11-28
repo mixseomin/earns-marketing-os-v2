@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { LichNho, type LoaiLichNho } from '@/components/ui/lich-nho';
 import { cotSocial, nhomSocial } from './tai-san-social';
 import { SiteFavicon } from '@/components/ui/site-favicon';
+import { extLinkProps } from '@/lib/external-url';
 import { pkCua } from '@/lib/ho-nen';
 
 const so = (n: number | null | undefined) => (n == null ? '–' : n.toLocaleString('vi-VN'));
@@ -143,12 +144,16 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
         if (d.loai === 'ke') return <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: d.nhom ? THUT_NHOM : THUT_MUC, fontFamily: 'var(--font-sans)', minWidth: 0, whiteSpace: 'nowrap' }}>
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, ...(d.o ? { width: O_CHU - (d.nhom ? THUT_NHOM : THUT_MUC), flex: 'none', overflow: 'hidden' } : { flex: 1 }) }}>
           {!d.nhom && <span style={{ color: 'var(--fg-4)' }}>└</span>}
-          {d.icon && <span style={{ alignSelf: 'center', flex: 'none', display: 'inline-flex' }}><SiteFavicon platformKey={d.icon} size={14} title={d.icon} /></span>}
+          {d.ra ? <a {...extLinkProps(d.ra)} onClick={(e) => e.stopPropagation()} title={`mở trang ${d.chu} trên nền (tab mới)`}
+              style={{ display: 'inline-flex', alignItems: 'baseline', gap: 8, color: d.mau ?? 'inherit', textDecoration: 'underline dotted var(--fg-4)', flex: 'none' }}>
+              {d.icon && <span style={{ alignSelf: 'center', flex: 'none', display: 'inline-flex' }}><SiteFavicon platformKey={d.icon} size={14} title={d.icon} /></span>}
+              {d.chu} ↗</a>
+          : d.icon && <span style={{ alignSelf: 'center', flex: 'none', display: 'inline-flex' }}><SiteFavicon platformKey={d.icon} size={14} title={d.icon} /></span>}
           {d.dongHo && <span style={{ alignSelf: 'center', flex: 'none' }} title={d.phu}><DongHo nut={nutTuanTu(d.dongHo.tong, d.dongHo.so, d.dongHo.loi)} so={d.dongHo.so || '?'} ket={d.dongHo.loi ? 'loi' : undefined} co={22} /></span>}
           {d.nhom && (() => { const kh = `${d.k.ma}:${d.id}`, dong_ = gap.has(kh);
             return <button type="button" onClick={(e) => { e.stopPropagation(); doiGap(kh); }} title={dong_ ? 'mở khối' : 'gập khối'}
               style={{ width: 14, border: 'none', background: 'none', color: 'var(--fg-2)', cursor: 'pointer', padding: 0 }}>{dong_ ? '▸' : '▾'}</button>; })()}
-          <span style={{ fontWeight: d.nhom ? 700 : 400, color: d.mau ?? (d.nhom ? 'var(--fg-1)' : undefined) }}>{d.chu}</span>
+          {!d.ra && <span style={{ fontWeight: d.nhom ? 700 : 400, color: d.mau ?? (d.nhom ? 'var(--fg-1)' : undefined) }}>{d.chu}</span>}
           {d.ngan && <button type="button" onClick={(e) => { e.stopPropagation(); ngan.mo(d.ngan!.loai, d.k.ma, d.ngan!.id); }}
             style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontSize: 11, whiteSpace: 'nowrap', flex: 'none' }}>{d.nganChu ?? 'mở'}</button>}
           {d.xemTruoc && <button type="button" onClick={(e) => { e.stopPropagation(); ngan.moVideo(d.k.ma, d.xemTruoc!); }} title="xem trước một bài mẫu của dạng này"

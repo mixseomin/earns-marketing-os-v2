@@ -83,7 +83,7 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
       count(v.id) FILTER (WHERE v.da_dang ? 'youtube')::int AS da_dang,
       max(v.da_dang->'youtube'->>'ngay') AS dang_cuoi
     FROM xv_may m LEFT JOIN xv_may_video v ON v.may_id = m.id AND ${loaiVid} WHERE ${chon} GROUP BY m.id ORDER BY m.id`)) as unknown as
-    { ma: string; ten: string; site_dich: string | null; chay: boolean; dang_lam: DangLam | null; dang_lam_ds: Record<string, DangLam> | null; tap_cho: TapCho[] | null; dang: { nen: string; ten?: string; tk?: string; kem?: string; gio_tu?: string; br?: { handle?: string; graph_id?: string } }[]; tap: number; cho_dang: number; da_dang: number; dang_cuoi: string | null }[];
+    { ma: string; ten: string; site_dich: string | null; chay: boolean; dang_lam: DangLam | null; dang_lam_ds: Record<string, DangLam> | null; tap_cho: TapCho[] | null; dang: { nen: string; ten?: string; tk?: string; kem?: string; gio_tu?: string; br?: { handle?: string; graph_id?: string; [k: string]: unknown } }[]; tap: number; cho_dang: number; da_dang: number; dang_cuoi: string | null }[];
   if (!may.length) return [];
   const so = (await d.execute(sql`SELECT san_pham, ngay::text AS ngay, hien, so_muc, chi_tiet->>'nguoi_dk' AS nguoi_dk FROM kenh_so_ngay
     WHERE kenh = ${loai === 'social' ? 'social' : 'youtube'} AND san_pham IN ${may.map((m) => `may:${m.ma}`)} AND ngay >= current_date - 30`)) as unknown as

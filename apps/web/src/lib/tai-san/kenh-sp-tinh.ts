@@ -113,6 +113,7 @@ export type DongKe = { id: string; nhom?: boolean; chu: string; phu?: string; ma
   /** ĐỒNG HỒ của tập đang sản xuất (anh 05/11/2026: "đồng hồ nằm ở dòng của video đang sx"): bước so / tong, hỏng thì đỏ */ dongHo?: { so: number; tong: number; loi: boolean };
   /** ô số thẳng cột (bảng thống kê mẫu) + tên cột ở dòng nhóm; oTen = tên cột cho tooltip dòng mục (thiếu = COT_MAU) */ o?: (number | null)[]; oTieuDe?: string[]; oTen?: string[];
   /** khoá nền tảng (platform_key) → icon nền đầu dòng (khối 📡 Nền đăng) */ icon?: string;
+  /** trang kênh thật trên nền (góp ý #1938): icon + tên dòng thành link mở tab mới */ ra?: string;
   /** XEM TRƯỚC (góp ý #1596 "mẫu thì cần có preview"): slug một bài mẫu của dòng → nút ▶ mở ngăn video */ xemTruoc?: string };
 const gioVn = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
 const thuNgay = (ymd: string) => `${THU[new Date(`${ymd}T00:00:00Z`).getUTCDay() || 7]} ${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
@@ -340,13 +341,28 @@ export function cayPlaylistThat(ds: PlaylistKenh[], so?: SoKenh | null): DongKe[
 
 /** NỀN ĐĂNG của một kênh social (anh 14/11/2026: chuyển kênh social sang kiểu trình bày Kênh nội dung) — một máy đổ ra nhiều nền / tài khoản:
  *  mỗi nơi đăng (xv_may.dang[]) một dòng: số bài đã lên, bài hẹn giờ chưa tới, lần cuối, lượt xem cộng dồn (luot_xem_nen; null = nền chưa có máy đọc số). */
-export type NenKenh = { nen: string; ten: string; tk: string; kem: string | null; bai: number; hen: number; cuoi: string | null; xem: number | null; /** bài lên trong 7 ngày gần nhất (tính cả hôm nay) */ bai7?: number; /** nền trong sổ chung mà kênh chưa gắn tài khoản */ chua?: boolean };
+export type NenKenh = { nen: string; ten: string; tk: string; kem: string | null; bai: number; hen: number; cuoi: string | null; xem: number | null; /** bài lên trong 7 ngày gần nhất (tính cả hôm nay) */ bai7?: number; /** nền trong sổ chung mà kênh chưa gắn tài khoản */ chua?: boolean; /** trang kênh công khai trên nền */ url?: string };
 /** sổ nền chung (apps/xuong-video/nen-dang.json › nen): mã nền → tên + loại bài — để khối Nền đăng hiện ĐỦ mọi nền, nền kênh chưa gắn hiện mờ "chưa gắn". */
 export type NenSo = { ma: string; ten: string; loai: string };
 const LOAI_BAI: Record<string, string> = { video: 'video', anh: 'ảnh', link: 'link', poll: 'bình chọn', bai: 'bài viết' };
 /** Thuần — gộp nơi đăng của máy với đã-đăng từng video. `so` (sổ nền) có thì nối thêm mỗi nền CHƯA GẮN một dòng (anh 16/11/2026 "show full Nền đăng") —
  *  nền của máy dạng 'facebook:632' tính là đã gắn 'facebook'. dd = xv_may_video.da_dang (nền → { ngay, hen? }), lx = luot_xem_nen. Bài ngày > hôm nay = hẹn. */
-export function tomNenDang(dang: { nen: string; ten?: string; tk?: string; kem?: string }[], vids: { dd: Record<string, unknown> | null; lx: Record<string, unknown> | null }[], hom: string, so: NenSo[] = []): NenKenh[] {
+/** LINK TRANG KÊNH trên nền (góp ý #1938 "bấm được thì phải cho bấm mở ra xem chính nó"): từ br của nơi đăng (kenh_id / page_id / graph_id / handle) → URL công khai. Thuần; không suy được → undefined. */
+export function urlNen(nen: string, br: Record<string, unknown> | null | undefined): string | undefined {
+  if (!br) return undefined;
+  const s = (k: string) => (typeof br[k] === 'string' && (br[k] as string).trim() ? (br[k] as string).trim() : ''), h = s('handle').replace(/^@/, ''), g = nen.split(':')[0]!;
+  if (g === 'youtube') return s('kenh_id') ? `https://www.youtube.com/channel/${s('kenh_id')}` : h ? `https://www.youtube.com/@${h}` : undefined;
+  if (g === 'facebook' || g.startsWith('fb_')) { const id = s('page_id') || s('graph_id'); return id ? `https://www.facebook.com/${id}` : undefined; }
+  if (!h) return undefined;
+  if (g === 'x' || g.startsWith('x_')) return `https://x.com/${h}`;
+  if (g === 'instagram' || g.startsWith('ig_')) return `https://www.instagram.com/${h}`;
+  if (g === 'tiktok') return `https://www.tiktok.com/@${h}`;
+  if (g === 'substack') return `https://${h}.substack.com`;
+  if (g === 'medium') return `https://medium.com/@${h}`;
+  if (g === 'pinterest') return `https://www.pinterest.com/${h}`;
+  return undefined;
+}
+export function tomNenDang(dang: { nen: string; ten?: string; tk?: string; kem?: string; br?: Record<string, unknown> }[], vids: { dd: Record<string, unknown> | null; lx: Record<string, unknown> | null }[], hom: string, so: NenSo[] = []): NenKenh[] {
   const gan = new Set(dang.map((n) => n.nen.split(':')[0]));
   const chua = so.filter((x) => !gan.has(x.ma)).map((x): NenKenh => ({ nen: x.ma, ten: x.ten, tk: '', kem: `chưa gắn tài khoản · ${LOAI_BAI[x.loai] ?? x.loai}`, bai: 0, hen: 0, cuoi: null, xem: null, bai7: 0, chua: true }));
   return [...dang.map((n) => {
@@ -359,7 +375,7 @@ export function tomNenDang(dang: { nen: string; ten?: string; tk?: string; kem?:
       bai++; if (ngay && ngay >= moc7) bai7++; if (ngay && (!cuoi || ngay > cuoi)) cuoi = ngay;
       const x = Number(v.lx?.[n.nen]); if (v.lx?.[n.nen] != null && Number.isFinite(x)) xem = (xem ?? 0) + x;
     }
-    return { nen: n.nen, ten: n.ten || n.nen, tk: n.tk ?? '', kem: n.kem ?? null, bai, hen, cuoi, xem, bai7 };
+    return { nen: n.nen, ten: n.ten || n.nen, tk: n.tk ?? '', kem: n.kem ?? null, bai, hen, cuoi, xem, bai7, url: urlNen(n.nen, n.br) };
   }).sort((a, b) => b.bai - a.bai), ...chua];
 }
 /** Khối 📡 Nền đăng trong cây kênh social: dòng nhóm (tổng bài, số nền có số đo) + mỗi nơi đăng một dòng. Thuần. */
@@ -372,7 +388,7 @@ export function cayNenDang(ds: NenKenh[]): DongKe[] {
   if (!ds.length) return [];
   const ngay = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : 'chưa đăng'), gan = ds.filter((n) => !n.chua), coSo = gan.filter((n) => n.xem != null).length;
   return [{ id: 'nen', nhom: true, chu: `📡 Nền đăng (${gan.length}/${ds.length})`, phu: `${gan.length}/${ds.length} nền đã gắn · ${ds.reduce((t, n) => t + n.bai, 0)} bài đã lên · ${coSo}/${gan.length} nền có số lượt xem · "–" = chưa đo`, o: oNen(gan), oTieuDe: COT_NEN },
-    ...ds.map((n): DongKe => ({ id: `nen/${n.nen}`, icon: pkCua(n.nen), chu: `${n.ten}${n.tk && n.tk !== n.ten ? ` · ${n.tk}` : ''}`, mau: n.bai ? undefined : 'var(--fg-3)', o: oNen([n]), oTen: COT_NEN,
+    ...ds.map((n): DongKe => ({ id: `nen/${n.nen}`, icon: pkCua(n.nen), ...(n.url ? { ra: n.url } : {}),chu: `${n.ten}${n.tk && n.tk !== n.ten ? ` · ${n.tk}` : ''}`, mau: n.bai ? undefined : 'var(--fg-3)', o: oNen([n]), oTen: COT_NEN,
       phu: n.chua ? n.kem ?? 'chưa gắn tài khoản' : [`${n.bai} bài`, n.hen ? `${n.hen} hẹn giờ` : '', `lần cuối ${ngay(n.cuoi)}`, `xem ${n.xem == null ? '–' : n.xem.toLocaleString('vi-VN')}`, n.kem ?? ''].filter(Boolean).join(' · '),
       ...(n.chua ? { o: [null, null, null, null, null] } : {}) }))];
 }

@@ -16,9 +16,37 @@ MB = "https://api-multi-be.ethopex.dev"
 CHI_TIET, LINK, KIEM_LAI = 80, 60, 24
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130 Safari/537.36"
 
-def _doc(T, duong):
+# CẦU DAO CỔNG PHIM (28/11/2026 21:09 VN): api-multi-be trả 500 / 502 / treo → mỗi lần gọi chờ tới hết timeout, 80 bản × 3 lần gọi chi tiết ăn 9 phút,
+# cả lượt dong-bo bị systemd cắt ở mốc 15 phút (TimeoutStartSec) → các bước sau không chạy + báo "kho không đồng bộ 30 phút". Cổng lỗi máy chủ / mạng
+# LOI_NGAT lần trong một lượt → mọi lần gọi sau (trang phim, thư viện, chính sách — thu_vien_phim dùng chung _doc) bỏ ngay; lỗi 4xx của một bản không tính
+LOI_NGAT, _loi, _hong = 3, [0], [None]
+def _doc(T, duong, timeout=30):
+    if _hong[0]: raise RuntimeError(f"bỏ qua — cổng phim Ethopex đang lỗi ({_hong[0]})")
     r = urllib.request.Request(MB + duong, headers={"authorization": "Bearer " + T, "user-agent": "mos2-etp"})
-    return json.load(urllib.request.urlopen(r, timeout=60))
+    try: return json.load(urllib.request.urlopen(r, timeout=timeout))
+    except urllib.error.HTTPError as e:
+        if e.code >= 500: _loi[0] += 1; _hong[0] = f"HTTP {e.code}" if _loi[0] >= LOI_NGAT else None
+        raise
+    except (urllib.error.URLError, OSError) as e:
+        _loi[0] += 1; _hong[0] = type(e).__name__ if _loi[0] >= LOI_NGAT else None
+        raise
+
+def _tu_kiem():
+    import http.server, threading
+    class H(http.server.BaseHTTPRequestHandler):
+        def do_GET(s): s.send_response(502); s.end_headers()
+        def log_message(s, *a): pass
+    sv = http.server.HTTPServer(("127.0.0.1", 0), H); threading.Thread(target=sv.serve_forever, daemon=True).start()
+    global MB; goc, MB = MB, f"http://127.0.0.1:{sv.server_port}"
+    try:
+        for i in range(LOI_NGAT):
+            try: _doc("x", "/a"); assert False
+            except urllib.error.HTTPError: pass
+        assert _hong[0] == "HTTP 502", _hong
+        try: _doc("x", "/a"); assert False
+        except RuntimeError as e: assert "bỏ qua" in str(e)
+    finally: MB = goc; _loi[0], _hong[0] = 0, None; sv.shutdown()
+    print("trang_phim tự kiểm: cầu dao cổng phim OK")
 
 def _link(url):
     """→ (ok, lỗi): True 2xx/3xx · False 404/410 · None kiểm không được. Không phải http (vd 'movie' = bước Movie có sẵn của Ethopex, phát ngay trên
@@ -93,6 +121,7 @@ def chay(q, T, het=False):
     return {"trang_phim": len(rows), "trang_phim_chi_tiet": len(doi), "trang_phim_link": len(kq), "trang_phim_link_chet": sum(1 for _, ok, _ in kq if ok is False)}
 
 if __name__ == "__main__":
+    if "--tu-kiem" in sys.argv: _tu_kiem(); sys.exit(0)
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import subprocess, ethopex_api as EA
     def q(s):

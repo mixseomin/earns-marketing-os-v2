@@ -387,6 +387,10 @@ export const LUAT = [
   { card: 'trang-phim-0211', tep: "packages/db/migrations/0403_etp_trang_phim.sql", co: "create or replace view etp.trang_phim_v", vi: "view trang phim + cột thiếu" },
   { card: 'trang-phim-0211', tep: "apps/etp/dong-bo.py", co: "import trang_phim; kq.update(trang_phim.chay(q, EA.T_NHA))", vi: "đồng bộ trang phim workspace mỗi lượt" },
   { card: 'trang-phim-0211', tep: "apps/etp/trang_phim.py", co: "return (False, f\"HTTP {e.code}\") if e.code in (404, 410) else (None, f\"HTTP {e.code}\")", vi: "chỉ 404/410 là link chết; 403/429/mạng không chặn" },
+  // 28/11/2026 21:09 VN api-multi-be sập 500/502 → trang phim treo 9 phút, lượt dong-bo bị systemd cắt 15 phút, "kho không đồng bộ 30 phút": cầu dao cổng phim
+  { card: 'cau-dao-cong-phim-2811', tep: "apps/etp/trang_phim.py", co: "if _hong[0]: raise RuntimeError(f\"bỏ qua — cổng phim Ethopex đang lỗi ({_hong[0]})\")", vi: "cổng phim lỗi 3 lần → bỏ ngay, không treo cả lượt đồng bộ" },
+  { card: 'cau-dao-cong-phim-2811', tep: "apps/etp/thu_vien_phim.py", co: "d = TP._doc(T, f\"/api/v2/contents?page={p}&page_size=100&content_type_id=1&is_ref=0&hl={hl}\", 90)", vi: "thư viện phim dùng chung cầu dao" },
+  { card: 'cau-dao-cong-phim-2811', tep: "apps/etp/thu_vien_phim.py", co: "d = TP._doc(T, f\"/api/v2/contents?page={p}&page_size=100&content_type_id=1&is_ref=0&hl={hl}&policy={m}\", 90)", vi: "quét chính sách dùng chung cầu dao" },
   { card: 'trang-phim-0211', tep: "apps/xuong-video/scripts/ethopex/nhan-ban.py", co: "if not ep and (ly_ := trang_chua_san(cid, pl.get(\"ad_account_id\"))", vi: "cổng trang phim trước khi lên camp thường" },
   { card: 'trang-phim-0211', tep: "apps/xuong-video/scripts/ethopex/nhan-ban.py", co: "interval '2 hours' from etp.trang_phim\") != \"t\": return None", vi: "kho trang phim cũ thì cổng không chặn" },
   { card: 'trang-phim-0211', tep: "apps/etp/canh-bao.py", co: "bao(\"trang_phim_thieu\", \"vang\"", vi: "cảnh báo trang phim thiếu" },

@@ -16,6 +16,8 @@ MUC_CS = ("risk", "medium", "safe")   # not_yet không quét: phim chưa chấm 
 SPY = subprocess.run(["bash", "-c", ". /root/.secrets/spy.env; echo $DATABASE_URL"], capture_output=True, text=True).stdout.strip()
 
 import re
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import trang_phim as TP   # dùng chung _doc + CẦU DAO cổng phim (28/11/2026): trang phim đã thấy api-multi-be sập thì thư viện / chính sách bỏ ngay, không chờ timeout 90s mỗi bước
 # LINK TRANG PHIM (28/11/2026, 85250 Deny Me, Dragon King): Ethopex có phim trả redirect_url là TỆP ẢNH poster (thwztchapter.dramaboxdb.com/…/<book>/<book>.jpg)
 # → máy KT curl ra ảnh, không có tóm tắt, hỏng 3 lần. Ảnh DramaBox mang mã sách → đổi về trang https://www.dramaboxdb.com/movie/<book> (trang tự chuyển đúng slug);
 # ảnh nguồn khác không đổi được → None (hàng KT ghi "thiếu link"), không ghi link ảnh vào kho.
@@ -52,8 +54,7 @@ def quet_chinh_sach(T, so_trang=25, het=False):
     bat = (i, p)
     while het or doc < so_trang:
         hl, m = vong[i]
-        r = urllib.request.Request(f"{MB}/api/v2/contents?page={p}&page_size=100&content_type_id=1&is_ref=0&hl={hl}&policy={m}", headers={"authorization": "Bearer " + T, "user-agent": "mos2-etp"})
-        d = json.load(urllib.request.urlopen(r, timeout=90)).get("data") or []; doc += 1
+        d = TP._doc(T, f"/api/v2/contents?page={p}&page_size=100&content_type_id=1&is_ref=0&hl={hl}&policy={m}", 90).get("data") or []; doc += 1
         tv += [{"content_id": int(x["content_id"]), "nhom_id": x.get("group_id"), "ten": x.get("title"), "locale": hl, "anh": x.get("thumbnail"), "url": url_trang(x.get("redirect_url")),
                 "tao": x.get("created_at"), "chinh_sach": x.get("policy_rate") or m} for x in d if not x.get("ref_id") and not x.get("user_id")]
         if len(d) < 100: i, p = (i + 1) % len(vong), 1
@@ -71,8 +72,7 @@ def chay(T, het=False):
     for hl in TIENG:
         p = 1
         while p <= TRANG_MAX:
-            r = urllib.request.Request(f"{MB}/api/v2/contents?page={p}&page_size=100&content_type_id=1&is_ref=0&hl={hl}", headers={"authorization": "Bearer " + T, "user-agent": "mos2-etp"})
-            d = json.load(urllib.request.urlopen(r, timeout=90)).get("data") or []; trang += 1
+            d = TP._doc(T, f"/api/v2/contents?page={p}&page_size=100&content_type_id=1&is_ref=0&hl={hl}", 90).get("data") or []; trang += 1
             # bỏ BẢN WORKSPACE (có ref_id / user_id): danh sách is_ref=0 trả lẫn bản người trong đội vừa "thêm content" — đó là bản trỏ về phim gốc, không phải phim thư viện
             moi = [x for x in d if int(x["content_id"]) not in co and (x.get("locale") or "").lower() == hl and not x.get("ref_id") and not x.get("user_id")]
             tv += [{"content_id": int(x["content_id"]), "nhom_id": x.get("group_id"), "ten": x.get("title"), "locale": hl, "anh": x.get("thumbnail"), "url": url_trang(x.get("redirect_url")), "tao": x.get("created_at"), "chinh_sach": x.get("policy_rate")}

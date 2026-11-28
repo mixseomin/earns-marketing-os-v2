@@ -822,6 +822,7 @@ def dung_imac():
         subprocess.run(["mv", tm, os.path.expanduser(f"~/.Trash/dung-imac-{v['id']}")], capture_output=True)   # không xoá thẳng (luật nhà) — vào Thùng rác
 
 # ---------------- vòng chính ----------------
+BUOC_DEN_CAMP = {b for b, _ in BUOC[:[x for x, _ in BUOC].index('camp') + 1]}   # các bước tới (gồm) camp — FIX ở đây thì camp_id dòng đặt lại
 def doc_dong():
     j = sql("""select coalesce(json_agg(x), '[]') from (select p.id, p.content_id, p.ten, p.trang_thai, p.camp_id, p.loai, p.so_camp, p.ai, p.bo, p.khoi_id, p.phieu_id,
                (select row_to_json(k) from etp.khoi k where k.id = p.khoi_id) khoi,
@@ -1042,6 +1043,7 @@ def vong():
                 f"({d['id']}, '{b}', {i}, {HAN_RIENG.get((d.get('loai'), b), h)}, '{'bo_qua' if b in bq else 'cho'}')" for i, (b, h) in enumerate(BUOC, 1)) + " on conflict do nothing")
             print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} phim {d['content_id']} ({d.get('loai')}) — dựng bước", flush=True); continue
         # FIX (nút / Mạnh): giết tiến trình bước nếu còn, đưa bước về chờ, mở lại dòng
+        # FIX từ bước camp trở về trước thì camp_id cũ bỏ đi, bước camp ghi lại (28/11/2026: dòng 7121 FIX camp vẫn giữ camp #1 của lần đọc lệch cột)
         for b, v in bs.items():
             if v.get("fix"):
                 with KHOA: pr = DANG.get((d["id"], b))
@@ -1057,7 +1059,7 @@ def vong():
                 sql(f"""update etp.dong_buoc set trang_thai = 'cho', fix = false, huy = false, bat_dau = null, ket_thuc = null, pid = null, ghi = 'FIX — chạy lại', ket_qua = case when '{b}' = 'creative' and not exists (select 1 from etp.cham_cong g where g.duoc_len is not false and g.creative_id in (select (ket_qua->>'creative_id')::int union select (e->>'creative_id')::int from jsonb_array_elements(coalesce(ket_qua->'ds', '[]'::jsonb)) e)) then null else ket_qua end
                         where dong_id = {d['id']} and buoc = '{b}';
                         update etp.dong_buoc set trang_thai = 'cho', bat_dau = null, ket_thuc = null, ghi = null, ket_qua = null, lan = 0 where dong_id = {d['id']} and thu_tu > (select thu_tu from etp.dong_buoc where dong_id = {d['id']} and buoc = '{b}');
-                        update etp.dong_phim set trang_thai = 'chay', ly_do = null, xong_luc = null, bao_luc = null where id = {d['id']} and trang_thai <> 'huy'""")
+                        update etp.dong_phim set trang_thai = 'chay', ly_do = null, xong_luc = null, bao_luc = null{", camp_id = null" if b in BUOC_DEN_CAMP else ""} where id = {d['id']} and trang_thai <> 'huy'""")
                 print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} FIX bước {b}", flush=True); bs = None; break
         if bs is None or d["trang_thai"] != "chay": continue
         # Mạnh / nút Dừng đặt huy cho bước đang chạy → giết tiến trình

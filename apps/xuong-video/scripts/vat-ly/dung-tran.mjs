@@ -192,8 +192,22 @@ async function dungTran(t, ngayDang) {
   const NG = join(dir, `tran-${seed}.mp4`), RL = join(dir, `tran-${seed}-reel.mp4`), gN = giayCua(NG), gR = giayCua(RL);
   const tep = [`tran-${seed}.mp4`, `tran-${seed}-reel.mp4`];
   for (const [mp4, g, k] of [[NG, gN, 'n'], [RL, gR, 'r']]) [0.1, 0.45, 0.97].forEach((x, i) => { chup(mp4, +(g * x).toFixed(2), join(dir, `k${k}${i}.jpg`)); tep.push(`k${k}${i}.jpg`); });
-  execFileSync('magick', [join(dir, 'kn1.jpg'), '-crop', '800x500+560+290', '+repage', '-resize', '1120x700', join(dir, 'cat-n.jpg')]);
-  execFileSync('magick', [join(dir, 'kr1.jpg'), '-crop', '800x500+140+710', '+repage', '-resize', '1120x700', join(dir, 'cat-r.jpg')]);
+  // Khung bìa = CẬN cảnh pha bóng: mốc 45% từng rơi đúng màn thống kê nghỉ giữa hiệp, cắt cả sân thì bi nhỏ vụn → Phòng Nội dung trả bìa new-mun hai lần (28/11/2026);
+  // cắt sát 400x250 quanh cụm bi dày nhất trên sân thì duyệt 10 điểm. Thử nhiều mốc, mỗi mốc tìm ô 400x250 trong vùng sân nhiều bi nhất (điểm = số ô không xanh, ô đen/chữ phủ bị trừ).
+  const catSan = (mp4, g, [sx, sy, sw, sh], ra) => { let tot = null; const f = join(dir, '_thu.jpg'), N = 10, W = 40, H = 25;
+    for (const x of [0.2, 0.3, 0.38, 0.62, 0.72, 0.82]) { chup(mp4, +(g * x).toFixed(2), f);
+      const cw = Math.floor(sw / N), ch = Math.floor(sh / N);
+      const px = execFileSync('magick', [f, '-crop', `${sw}x${sh}+${sx}+${sy}`, '+repage', '-resize', `${cw}x${ch}!`, '-depth', '8', 'rgb:-'], { maxBuffer: 1 << 26 });
+      const o = new Float32Array(cw * ch); for (let i = 0; i < cw * ch; i++) { const r = px[3 * i], gr = px[3 * i + 1], bl = px[3 * i + 2];
+        o[i] = Math.max(r, gr, bl) < 40 ? -1 : gr - Math.max(r, bl) > 25 ? 0 : 1; }   // tối = nền/lớp phủ (trừ), xanh = cỏ, còn lại = bi / bóng
+      for (let y = 0; y + H <= ch; y += 2) for (let xx = 0; xx + W <= cw; xx += 2) { let d = 0, co = 0; for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const v = o[(y + j) * cw + xx + i]; d += v; co += v === 0; }
+        if (co < 0.75 * W * H) continue;
+        const mep = (j0) => { let c = 0; for (let j = j0; j < j0 + 3; j++) for (let i = 0; i < W; i++) c += o[(y + j) * cw + xx + i] === 0; return c / (3 * W); };
+        if (mep(0) < 0.4 || mep(H - 3) < 0.4) continue;   // mép trên/dưới chạm băng chữ   // ít cỏ = băng chữ GOAL / bảng phủ đang che, không phải pha bóng
+        if (!tot || d > tot.d) tot = { d, t: x, x: sx + xx * N, y: sy + y * N }; } }
+    chup(mp4, +(g * tot.t).toFixed(2), f); execFileSync('magick', [f, '-crop', `400x250+${tot.x}+${tot.y}`, '+repage', '-resize', '1120x700', ra]); };
+  catSan(NG, gN, [520, 140, 880, 820], join(dir, 'cat-n.jpg'));   // vùng sân trong khung ngang 1920x1080
+  catSan(RL, gR, [100, 560, 880, 820], join(dir, 'cat-r.jpg'));   // vùng sân trong khung dọc 1080x1920 (ước theo vùng cắt cũ)
   const anh = await pexels(slug, dir), mau1 = sangLen(nha.mau[0]);
   // Bìa reel dùng chung chữ ngắn của bản ngang: 'WHO WINS AT <SÂN>' quá 5 từ → Phòng Nội dung chặn reel eve-liv 28/11/2026.
   const chuN = { d1: bH, vs: 'OR', d2: bA }, chuR = chuN;

@@ -140,7 +140,7 @@ async function pexels(slug, dir) {
     if (kPx) try {
       const ds = (await (await lay(`https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=15&orientation=landscape`, { headers: { Authorization: kPx, ...UA } })).json()).photos ?? [];
       if (ds.length) {
-        const p = ds[(h >> 3) % ds.length];
+        const p = ds[(h >>> 3) % ds.length];
         writeFileSync(join(dir, 'nen.jpg'), Buffer.from(await (await lay(p.src.large2x, { headers: UA })).arrayBuffer()));
         return { trang: p.url, nen: p.src.original + '?auto=compress&cs=tinysrgb&w=1920' };
       }
@@ -149,7 +149,7 @@ async function pexels(slug, dir) {
     if (kPb) try {
       const ds = (await (await lay(`https://pixabay.com/api/?key=${kPb}&q=${encodeURIComponent(q)}&image_type=photo&orientation=horizontal&per_page=20&safesearch=true`, { headers: UA })).json()).hits ?? [];
       if (ds.length) {
-        const p = ds[(h >> 3) % ds.length];
+        const p = ds[(h >>> 3) % ds.length];
         writeFileSync(join(dir, 'nen.jpg'), Buffer.from(await (await lay(p.largeImageURL, { headers: UA })).arrayBuffer()));
         return { trang: p.pageURL, nen: p.largeImageURL };
       }

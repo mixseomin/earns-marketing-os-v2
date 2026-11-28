@@ -854,6 +854,8 @@ export const LUAT = [
   { card: 'ws-0311', tep: 'apps/xuong-video/scripts/ethopex/phim-moi.py', co: '/ensure-clone", method="POST"', vi: 'lô phim mới thêm vào workspace Nhà ngay lúc nhận' },
   { card: 'ws-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'ws = them_ws(content_id)', vi: 'cổng trang phim tự thêm phim vào workspace Nhà (ensure-clone) thay vì đẩy việc cho anh (03/11/2026)' },
   { card: 'cham-0311', tep: 'apps/xuong-video/scripts/ethopex/kiem-phim-18.py', co: 'ghi("ethopex_phim_cam_go", cid,', vi: 'soát lại đạt gỡ cấm do soát cũ, cất bản cũ' },
+  { card: '1932', tep: 'apps/xuong-video/scripts/ethopex/kiem-phim-18.py', co: 'if kq != "ok" and (doc("ethopex_soat_18").get(cid) or {}).get("vuot"):', vi: 'anh đã vượt cấm (etp2) thì máy soát không cấm lại' },
+  { card: '1932', tep: 'apps/xuong-video/scripts/ethopex/kiem-phim-18.py', co: 'if (doc("ethopex_soat_18").get(cid) or {}).get("vuot"): return None', vi: 'phim anh vượt cấm qua cổng 18+ (bỏ từ khoá + soát hình)' },
   { card: 'cham-0311', tep: 'apps/etp/soat_18_ai.py', co: 'NOT a weapon (do not fail for it): robots, mecha', vi: 'soát poster AI không coi robot là vũ khí' },
   { card: 'cham-0311', tep: 'packages/db/migrations/0412_etp_tieu_chi_kien_robot.sql', co: 'robots, mecha, armor or sci-fi machines fighting each other', vi: 'robot/mecha đánh nhau không máu không phải bạo lực (Mech King)' },
   { card: 'cham-0311', tep: 'packages/db/migrations/0412_etp_tieu_chi_kien_robot.sql', co: 'only in the LAST ~5 seconds a dark box near the bottom shows the drama title', vi: 'tiêu chí CTA chấm mẫu Kiên = 10 (anh 03/11/2026)' },

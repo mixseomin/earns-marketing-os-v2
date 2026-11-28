@@ -61,6 +61,7 @@ def kiem(cid, soat_hinh=True):
     cid = str(int(cid))
     cam = doc("ethopex_phim_cam")
     if cid in cam: return f"phim {cid} trong danh sách cấm 18+ ({cam[cid].get('ly_do')}, {cam[cid].get('luc')})"
+    if (doc("ethopex_soat_18").get(cid) or {}).get("vuot"): return None   # anh vượt cấm trên etp2 (#1932): bỏ cả từ khoá + soát hình
     ten, chu = chu_phim(cid)
     for t in [ten or ""] + chu:
         m = TU.search(t)
@@ -87,6 +88,10 @@ if __name__ == "__main__":
     if a[:1] == ["--tu-kiem"]: sys.exit(0 if tu_kiem() else 1)
     if a[:1] == ["--soat"]:
         cid, kq, gc = str(int(a[1])), a[2], (a[3] if len(a) > 3 else "")
+        # ANH ĐÃ VƯỢT CẤM (góp ý etp2 #1932, anh 28/11/2026 "Phải cho ta option vượt quyền này"): nút Vượt cấm trên etp2 ghi ethopex_soat_18[cid].vuot=true —
+        # máy soát (AI poster / NudeNet) KHÔNG ghi đè, KHÔNG cấm lại. Chỉ --cam (cấm tay) còn cấm được phim này.
+        if kq != "ok" and (doc("ethopex_soat_18").get(cid) or {}).get("vuot"):
+            print(f"anh đã vượt cấm phim {cid} — không cấm lại (máy soát nói: {gc[:120]})"); sys.exit(0)
         ghi("ethopex_soat_18", cid, {"ok": kq == "ok", "luc": now(), "ghi": gc})
         if kq != "ok":
             ghi("ethopex_phim_cam", cid, {"ly_do": gc or "soát hình 18+ không đạt", "luc": now()}); nha_phim_cam(cid)

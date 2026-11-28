@@ -3,7 +3,8 @@
 //   node lam.mjs --seed 80,90,73 --ra <thư-mục> [--song 6]
 //   node lam.mjs --luat tran --doi tran-doi.json --seed 168 --ra <thư-mục>   (trận bóng hai đội)
 //   (không --seed: tự chọn 3 hạt điểm cao nhất trong --do 1-200)
-//   --reel: dựng THÊM bản dọc 1080×1920 (<ten>-<seed>-reel.mp4 + to-<seed>-reel.jpg, cùng tiếng); --chi-reel: chỉ bản dọc
+//   trận bóng (--luat tran) MẶC ĐỊNH dựng cả bản dọc 1080×1920 (<ten>-<seed>-reel.mp4 + to-<seed>-reel.jpg, cùng tiếng) — anh 28/11/2026 "luôn đăng 2 loại cùng lúc";
+//   nạp bản dọc với dang.cap = slug bản ngang → máy đăng (puzzle-books nhip-an-toan › capCua) lên hai bản cùng lượt. --chi-ngang: bỏ bản dọc · --chi-reel: chỉ bản dọc · --reel: ép bản dọc
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -22,7 +23,7 @@ const TRAN = arg('luat') === 'tran', DOI = TRAN ? JSON.parse(readFileSync(arg('d
 const ghiLai = (s) => (TRAN ? tran(s, DOI, LUAT_TRAN) : moPhong(s, LUAT));
 const diem = (g) => (TRAN ? chamTran(g) : cham(g));
 const TRANG = TRAN ? 'tran.html' : 'vat-ly.html', TEN = TRAN ? 'tran' : 'vat-ly';
-const CHI_REEL = process.argv.includes('--chi-reel'), REEL = CHI_REEL || process.argv.includes('--reel');
+const CHI_REEL = process.argv.includes('--chi-reel'), REEL = CHI_REEL || process.argv.includes('--reel') || (TRAN && !process.argv.includes('--chi-ngang'));
 if (REEL && !TRAN) { console.error('--reel hiện chỉ có khuôn cho --luat tran (vat-ly.html chưa có bố cục dọc)'); process.exit(1); }
 // khuôn: [đuôi tên, rộng, cao]
 const KHUON = [...(CHI_REEL ? [] : [['', 1920, 1080]]), ...(REEL ? [['-reel', 1080, 1920]] : [])];

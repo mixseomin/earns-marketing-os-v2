@@ -243,6 +243,8 @@ async function xetHookNhuCham(ma: string) {
 if (a.includes('--nap')) {
   const ds = await docStdin();
   if (!Array.isArray(ds) || !ds.length) { console.error('stdin phải là mảng đề'); process.exit(1); }
+  // CẶP NGANG + REEL (anh 28/11/2026 "luôn đăng 2 loại cùng lúc"): bản dọc '<slug>-reel' tự mang dang.cap = '<slug>' → máy đăng lên hai bản cùng lượt (puzzle-books nhip-an-toan › capCua)
+  for (const d of ds as { slug?: string; dang?: { cap?: string } }[]) if (d?.slug?.endsWith('-reel') && d.dang && !d.dang.cap) d.dang.cap = d.slug.slice(0, -5);
   console.log(JSON.stringify(await napVideo(db, ma, ds)));
 } else if (lay('--nap-nguon') != null) {
   const m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }

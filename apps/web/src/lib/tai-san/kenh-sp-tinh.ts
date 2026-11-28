@@ -116,6 +116,7 @@ export type DongKe = { id: string; nhom?: boolean; chu: string; phu?: string; ma
   /** ô số thẳng cột (bảng thống kê mẫu) + tên cột ở dòng nhóm; oTen = tên cột cho tooltip dòng mục (thiếu = COT_MAU) */ o?: (number | null)[]; oTieuDe?: string[]; oTen?: string[];
   /** khoá nền tảng (platform_key) → icon nền đầu dòng (khối 📡 Nền đăng) */ icon?: string;
   /** trang kênh thật trên nền (góp ý #1938): icon + tên dòng thành link mở tab mới */ ra?: string;
+  /** TƯƠNG TÁC (anh 29/11/2026 "bấm vào các con số thì show tiếp bên dưới ds 5 tương tác link gần nhất có phân trang"): bấm ô số → bung danh sách này ngay dưới dòng, 5 / trang */ tt?: TuongTac[];
   /** XEM TRƯỚC (góp ý #1596 "mẫu thì cần có preview"): slug một bài mẫu của dòng → nút ▶ mở ngăn video */ xemTruoc?: string };
 const gioVn = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
 const thuNgay = (ymd: string) => `${THU[new Date(`${ymd}T00:00:00Z`).getUTCDay() || 7]} ${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
@@ -445,7 +446,9 @@ export function cayNguonTien(nguon: NguonTien[] | undefined, tien: KenhSp['tien'
 
 /** 🌱 SEEDING — một kênh mục tiêu + số bình luận của kênh nhà dưới video của họ (bảng xv_seeding_kenh / xv_seeding_bl) */
 export type SeedKenh = { kenhId: string; ten: string; handle: string | null; nguoiDk: number | null; chuDe: string | null; video: number;
-  dat: number; hien: number; doHien: number; like24: number | null; like72: number | null; traLoi: number | null; nhap: number };
+  dat: number; hien: number; doHien: number; like24: number | null; like72: number | null; traLoi: number | null; nhap: number; tt?: TuongTac[] };
+/** một tương tác seeding: bình luận gốc / trả lời người xem của kênh nhà dưới video kênh mục tiêu, mới nhất trước */
+export type TuongTac = { link: string | null; chu: string; ngay: string | null; trangThai: string; traLoi: boolean; like: number | null };
 export const COT_SEED = ['BL đã đặt', '% còn hiện', 'Like 24h', 'Like 72h', 'Trả lời'];
 const tong = (xs: (number | null)[]) => (xs.some((x) => x != null) ? xs.reduce<number>((a, x) => a + (x ?? 0), 0) : null);
 const oSeed = (ds: SeedKenh[]): (number | null)[] => { const dat = ds.reduce((a, k) => a + k.dat, 0), doH = ds.reduce((a, k) => a + k.doHien, 0);
@@ -459,6 +462,6 @@ export function caySeeding(s: KenhSp['seeding']): DongKe[] {
   const so = (n: number | null) => (n == null ? '–' : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n));
   return [{ id: 'seed', nhom: true, chu: `🌱 Seeding (${ds.length} kênh mục tiêu)`, o: oSeed(ds), oTieuDe: COT_SEED,
     phu: [`sub mới ${s.subMoi ?? '–'}`, `sub / 100 BL ${dat && s.subMoi != null ? ((100 * s.subMoi) / dat).toFixed(1) : '–'}`, `tốt nhất: ${tot ? tot.ten : 'chưa đủ số'}`, nhap ? `${nhap} BL chờ Phòng Nội dung` : ''].filter(Boolean).join(' · ') },
-    ...ds.map((k): DongKe => ({ id: `seed/${k.kenhId}`, icon: 'youtube', ra: k.handle ? `https://www.youtube.com/@${k.handle.replace(/^@/, '')}` : `https://www.youtube.com/channel/${k.kenhId}`, chu: `${k.ten}${k.handle ? ` · ${k.handle}` : ''}`, o: oSeed([k]), oTen: COT_SEED, mau: k.dat ? undefined : 'var(--fg-3)',
+    ...ds.map((k): DongKe => ({ id: `seed/${k.kenhId}`, icon: 'youtube', ra: k.handle ? `https://www.youtube.com/@${k.handle.replace(/^@/, '')}` : `https://www.youtube.com/channel/${k.kenhId}`, chu: `${k.ten}${k.handle ? ` · ${k.handle}` : ''}`, o: oSeed([k]), oTen: COT_SEED, tt: k.tt?.length ? k.tt : undefined, mau: k.dat ? undefined : 'var(--fg-3)',
       phu: [`${so(k.nguoiDk)} sub`, k.chuDe ?? '', `${k.video} video top`, k.dat ? '' : 'chưa bình luận', k.nhap ? `${k.nhap} chờ duyệt` : ''].filter(Boolean).join(' · ') }))];
 }

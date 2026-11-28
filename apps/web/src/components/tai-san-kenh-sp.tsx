@@ -8,7 +8,7 @@ import { useShallowParam } from '@/lib/url-shallow';
 import { DataTable, Pager, Panel, type DataColumn } from '@/components/ui';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { DongHo, nutTuanTu } from '@/components/ui/dong-ho';
-import { cayHangCho, cayKeHoach, cayMauSocial, cayNenDang, caySeeding, cayNguonTien, laDemo, cayLoTrinh, cayMau, cayNguoi, caySoKenh, cayPlaylist, cayPlaylistThat, lichKenh, locGap, phanTrangNhom, thongKeMau, tomLoTrinh, COT_MAU, type DongKe, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
+import { cayHangCho, cayKeHoach, cayMauSocial, cayNenDang, caySeeding, cayNguonTien, laDemo, cayLoTrinh, cayMau, cayNguoi, caySoKenh, cayPlaylist, cayPlaylistThat, lichKenh, locGap, phanTrangNhom, thongKeMau, tomLoTrinh, COT_MAU, type DongKe, type KenhSp, type TuongTac, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
 import { CHANG_VIDEO as CHANG, KenhNgan, useNganKenh } from './kenh-ngan';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -32,13 +32,15 @@ const REPO = 'https://github.com/mixseomin/earns-marketing-os-v2/blob/main';
 
 type Dong = { loai: 'kenh'; k: KenhSp } | { loai: 'video'; k: KenhSp; v: VideoKenh }
   /** thanh trang của một khối dài (phanTrangNhom) — khoa = <mã kênh>:<khối> */
-  | { loai: 'trang'; k: KenhSp; khoa: string; trang: number; soTrang: number; tong: number }
+  | { loai: 'trang'; k: KenhSp; khoa: string; trang: number; soTrang: number; tong: number; co?: number }
+  /** một tương tác bung dưới dòng có ô số (bấm số → 5 tương tác gần nhất, phân trang) */
+  | { loai: 'tt'; k: KenhSp; t: TuongTac }
   /** dòng KẾ HOẠCH trong cây: nhóm (tiêu đề nhóm) hoặc một mục lịch (sản xuất / đăng) */
   | ({ loai: 'ke'; k: KenhSp; ngay?: string | null } & DongKe);
 /** ô số của bảng thống kê mẫu: cột cố định, thẳng hàng giữa dòng nhóm (tên cột) và từng mẫu */
 const O_RONG = 74, O_CHU = 760;
 /** số dòng con mỗi trang của một khối trong cây (Hàng chờ ý tưởng 408 mục, Đã làm, Lá số…) */
-const CO_TRANG = 10;
+const CO_TRANG = 10, CO_TT = 5;
 // tên kênh một ô rộng cố định (dài thì "…", rê chuột xem đủ) → nút ⋯ và trạng thái kênh thẳng một cột, không thò thụt theo độ dài tên (góp ý #1568)
 const O_TEN_KENH = 180;
 /** CÂY của một kênh: 📘 Sổ kênh + 🧩 Mẫu + 💡 Hàng chờ + 🧭 Lộ trình + 📂 Playlist (so-kenh.json, nếu kênh có khai) + ▶ Đang sản xuất + 🗓 Lịch (cayKeHoach — thuần, tự kiểm) rồi 🎬 Đã làm (chặng từng video).
@@ -131,7 +133,10 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   const doi = (ma: string) => { const n = new Set(moCay); if (n.has(ma)) n.delete(ma); else n.add(ma); datMoUrl([...n].join(',')); };
   const dong: Dong[] = kenh.flatMap((k) => [{ loai: 'kenh' as const, k },
     ...(moCay.has(k.ma) ? (() => { const nhom = (d: Dong) => (d.loai === 'ke' && d.nhom ? `${k.ma}:${d.id}` : null);
-      return phanTrangNhom(locGap(cayKenh(k), nhom, gap), nhom, (kh) => trangCua.get(kh) ?? 0, CO_TRANG, (khoa, trang, soTrang, tong): Dong => ({ loai: 'trang', k, khoa, trang, soTrang, tong })); })() : [])]);
+      return phanTrangNhom(locGap(cayKenh(k), nhom, gap), nhom, (kh) => trangCua.get(kh) ?? 0, CO_TRANG, (khoa, trang, soTrang, tong): Dong => ({ loai: 'trang', k, khoa, trang, soTrang, tong }))
+        .flatMap((d): Dong[] => { if (d.loai !== 'ke' || !d.tt?.length) return [d]; const kh = `tt|${k.ma}|${d.id}`; if (!gap.has(kh)) return [d];
+          const soTrang = Math.ceil(d.tt.length / CO_TT), t = Math.min(trangCua.get(kh) ?? 0, soTrang - 1);
+          return [d, ...d.tt.slice(t * CO_TT, t * CO_TT + CO_TT).map((x): Dong => ({ loai: 'tt', k, t: x })), ...(soTrang > 1 ? [{ loai: 'trang' as const, k, khoa: kh, trang: t, soTrang, tong: d.tt.length, co: CO_TT }] : [])]; }); })() : [])]);
   const laK = (d: Dong): d is Extract<Dong, { loai: 'kenh' }> => d.loai === 'kenh';
   const vd = (d: Dong): VideoKenh | null => (d.loai === 'video' ? d.v : null);
   const chiKenh = <R,>(f: (k: KenhSp) => R) => (d: Dong) => (laK(d) ? f(d.k) : null);
@@ -140,7 +145,15 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
       cell: (d) => {
         // Pager chung tự canh phải + lề trên 12 — bọc khung co theo nội dung, kéo lên lại để thanh trang nằm gọn trong dòng, canh dưới chữ của khối
         if (d.loai === 'trang') return <span style={{ display: 'inline-block', marginLeft: THUT_MUC, marginTop: -12 }}>
-          <Pager page={d.trang} pageCount={d.soTrang} total={d.tong} pageSize={CO_TRANG} onPage={(t) => datTrang(d.khoa, t)} /></span>;
+          <Pager page={d.trang} pageCount={d.soTrang} total={d.tong} pageSize={d.co ?? CO_TRANG} onPage={(t) => datTrang(d.khoa, t)} /></span>;
+        if (d.loai === 'tt') { const t = d.t;
+          return <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: THUT_MUC + 18, fontFamily: 'var(--font-sans)', minWidth: 0, whiteSpace: 'nowrap', fontSize: 11 }}>
+            <span style={{ color: 'var(--fg-4)' }}>└</span>
+            <span style={{ color: 'var(--fg-3)', flex: 'none' }}>{t.ngay ? new Date(t.ngay).toLocaleString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '–'}</span>
+            <span style={{ flex: 'none', color: t.traLoi ? 'var(--accent)' : 'var(--fg-2)' }}>{t.traLoi ? '↩ trả lời' : '💬 bình luận'}</span>
+            {t.link ? <a {...extLinkProps(t.link)} onClick={(e) => e.stopPropagation()} title={t.chu} style={{ color: 'inherit', textDecoration: 'underline dotted var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis', flex: '1 1 0', minWidth: 0 }}>{t.chu} ↗</a>
+              : <span title={t.chu} style={{ color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', flex: '1 1 0', minWidth: 0 }}>{t.chu}</span>}
+            <span style={{ flex: 'none', color: 'var(--fg-3)' }}>{({ da_dang: 'đã đăng', nhap: 'nháp', cho_cham: 'chờ duyệt', duyet: 'đã duyệt', sua_lai: 'sửa lại' } as Record<string, string>)[t.trangThai] ?? t.trangThai}{t.like != null ? ` · ${t.like} like` : ''}</span></span>; }
         if (d.loai === 'ke') return <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: d.nhom ? THUT_NHOM : THUT_MUC, fontFamily: 'var(--font-sans)', minWidth: 0, whiteSpace: 'nowrap' }}>
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, ...(d.o ? { width: O_CHU - (d.nhom ? THUT_NHOM : THUT_MUC), flex: 'none', overflow: 'hidden' } : { flex: 1 }) }}>
           {!d.nhom && <span style={{ color: 'var(--fg-4)' }}>└</span>}
@@ -159,7 +172,9 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
           {d.xemTruoc && <button type="button" onClick={(e) => { e.stopPropagation(); ngan.moVideo(d.k.ma, d.xemTruoc!); }} title="xem trước một bài mẫu của dạng này"
             style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontSize: 11, whiteSpace: 'nowrap', flex: 'none' }}>▶ xem mẫu</button>}
           {d.phu && <span style={{ color: 'var(--fg-3)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', flex: '1 1 0', minWidth: 0 }} title={d.phu}>{d.phu}</span>}</span>
-          {d.o && <span style={{ display: 'flex', flex: 'none' }}>{d.o.map((x, i) => <span key={i} data-cot={`mau-${i}`} data-cot-can="phai"
+          {d.o && <span style={{ display: 'flex', flex: 'none', ...(d.tt?.length ? { cursor: 'pointer' } : {}) }}
+            title={d.tt?.length ? `bấm xem ${d.tt.length} tương tác (bình luận / trả lời), 5 gần nhất mỗi trang` : undefined}
+            onClick={d.tt?.length ? (e) => { e.stopPropagation(); doiGap(`tt|${d.k.ma}|${d.id}`); } : undefined}>{d.o.map((x, i) => <span key={i} data-cot={`mau-${i}`} data-cot-can="phai"
             title={d.oTieuDe ? undefined : (d.oTen ?? COT_MAU)[i]} style={{ width: O_RONG, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 11,
               color: d.oTieuDe ? 'var(--fg-3)' : x ? 'var(--fg-1)' : 'var(--fg-4)', fontWeight: d.oTieuDe ? 400 : x ? 600 : 400 }}>
             {d.oTieuDe ? <span title={`tổng: ${so(x)}`}>{d.oTieuDe[i]}</span> : so(x)}</span>)}</span>}</span>;
@@ -231,7 +246,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   return (
     <Panel title="📺 Kênh nội dung" subtitle={'kênh video trọn chuyện + kênh social đã chuyển (một máy đăng ra nhiều nền — khối 📡 Nền đăng) · ▸ mở: sổ kênh · lộ trình · đang sản xuất · lịch · đã làm · "–" = chưa đo (khác 0)'}>
       <style>{'.kenh-sp-bang th.dt-th{vertical-align:bottom}.kenh-sp-bang th.dt-th:has([data-kenh-tieu-de]),.kenh-sp-bang th.dt-th :has(> [data-kenh-tieu-de]){overflow:visible!important;z-index:6!important}'}</style>
-      <div className="kenh-sp-bang"><DataTable rows={dong} columns={cot} groups={[nhomSocial(kySocial)]} getRowKey={(d) => (laK(d) ? d.k.ma : d.loai === 'ke' ? `${d.k.ma}/ke/${d.id}` : d.loai === 'trang' ? `${d.khoa}/trang` : `${d.k.ma}/${d.v.slug}`)} persistKey="tai-san-kenh-sp" fixedLayout
+      <div className="kenh-sp-bang"><DataTable rows={dong} columns={cot} groups={[nhomSocial(kySocial)]} getRowKey={(d) => (laK(d) ? d.k.ma : d.loai === 'ke' ? `${d.k.ma}/ke/${d.id}` : d.loai === 'trang' ? `${d.khoa}/trang` : d.loai === 'tt' ? `${d.k.ma}/tt/${d.t.link ?? d.t.chu}` : `${d.k.ma}/${d.v.slug}`)} persistKey="tai-san-kenh-sp" fixedLayout
         rowData={(d) => ({ 'kenh-ma': d.k.ma, 'kenh-dau': laK(d) ? 1 : 0, ...(d.loai === 'ke' && d.nhom ? { 'kenh-khoi': d.id } : {}) })}
         fullRow={(d) => d.loai === 'ke' || d.loai === 'trang'}
         minWidth={320 + 260 + 104 + 64 + 84 + 76 + 116 + 88 + 96 + 96 + 84 + 72} card /></div>

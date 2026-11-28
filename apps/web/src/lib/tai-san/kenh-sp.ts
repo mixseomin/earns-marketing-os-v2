@@ -101,6 +101,10 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
       sum(b.like_24h)::int AS l24, sum(b.like_72h)::int AS l72, sum(b.tra_loi)::int AS tl, count(b.id) FILTER (WHERE b.trang_thai IN ('nhap', 'cho_cham'))::int AS nhap, min(b.dang_luc)::date::text AS dau
     FROM xv_seeding_kenh k LEFT JOIN xv_seeding_bl b ON b.may = k.may AND b.kenh_id = k.kenh_id WHERE k.bat AND k.may IN ${may.map((m) => m.ma)} GROUP BY k.id`)) as unknown as
     { may: string; kenh_id: string; ten: string; handle: string | null; nguoi_dk: number | null; chu_de: string | null; video: number; dat: number; hien: number; do_hien: number; l24: number | null; l72: number | null; tl: number | null; nhap: number; dau: string | null }[];
+  // tương tác từng kênh mục tiêu (bấm ô số trên dòng seeding): mọi bình luận / trả lời đã qua bước nháp, mới nhất trước — link &lc= dựng từ video + bl_id
+  const seedBl = seedK.length ? (await d.execute(sql`SELECT may, kenh_id, video_id, bl_id, chu, trang_thai, tra_loi_cho IS NOT NULL AS tl, coalesce(like_nay, like_72h, like_24h) AS lk,
+      coalesce(dang_luc, created_at)::text AS luc FROM xv_seeding_bl WHERE may IN ${may.map((m) => m.ma)} AND trang_thai NOT IN ('bo') ORDER BY coalesce(dang_luc, created_at) DESC`)) as unknown as
+    { may: string; kenh_id: string; video_id: string; bl_id: string | null; chu: string; trang_thai: string; tl: boolean; lk: number | null; luc: string | null }[] : [];
   const lich = ((await d.execute(sql`SELECT ds FROM xv_lich_du_kien`)) as unknown as { ds: { may: string; ngay: string; gio?: string; nen: string; title?: string; slug?: string | null }[] }[]).flatMap((r) => r.ds ?? []);
   // góp ý #1951: EMAIL quản lý từng nền — acct của nơi đăng → platform_accounts.email; Page không có email thì lấy tài khoản đại diện / liên kết đầu tiên có email
   const accts = [...new Set(may.flatMap((m) => (m.dang ?? []).map((x) => Number(x.br?.acct)).filter((n) => Number.isInteger(n) && n > 0)))];
@@ -148,7 +152,8 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
       seeding: (() => { const r = seedK.filter((x) => x.may === m.ma); if (!r.length) return null;
         const dau = r.map((x) => x.dau).filter((x): x is string => !!x).sort()[0], truoc = dau ? ds.filter((x) => x.ngay < dau && x.nguoiDk != null).at(-1) : undefined, nay = ds.filter((x) => x.nguoiDk != null).at(-1);
         return { subMoi: truoc && nay ? nay.nguoiDk! - truoc.nguoiDk! : null, kenh: r.map((x) => ({ kenhId: x.kenh_id, ten: x.ten, handle: x.handle, nguoiDk: x.nguoi_dk, chuDe: x.chu_de, video: Number(x.video),
-          dat: x.dat, hien: x.hien, doHien: x.do_hien, like24: x.l24, like72: x.l72, traLoi: x.tl, nhap: x.nhap })) }; })(),
+          dat: x.dat, hien: x.hien, doHien: x.do_hien, like24: x.l24, like72: x.l72, traLoi: x.tl, nhap: x.nhap,
+          tt: seedBl.filter((b) => b.may === m.ma && b.kenh_id === x.kenh_id).map((b) => ({ link: b.bl_id ? `https://www.youtube.com/watch?v=${b.video_id}&lc=${b.bl_id}` : null, chu: b.chu, ngay: b.luc, trangThai: b.trang_thai, traLoi: b.tl, like: b.lk })) })) }; })(),
       videos, nen: tomNenDang(m.dang ?? [], cua, hom, SO_NEN), ...xa };
   });
 }

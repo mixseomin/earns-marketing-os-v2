@@ -423,18 +423,20 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
       // Gán SAU khi ghép: ghepHook tách tiêu đề ở dấu câu đầu, mã hook đứng trước không ảnh hưởng — nhưng giữ thứ tự cũ để lỗi cũ không đổi nghĩa.
       if (!timHook(hooksLuot, r.data.hook_qc)) r.data.hook_qc = hc.id;
     }
-    // TIÊU ĐỀ MÔ HÌNH VIẾT LỆCH HOOK / RƠI VÀO KHUÔN CŨ → thay bằng bản dựng bằng mã TRƯỚC khi ráp bài, để dang.hook và dang.title cùng trỏ một hook.
-    // Bản dựng giữ NGUYÊN câu hook làm phần lời hứa (≥35% chữ hook) và chỉ đổi câu mở → không "sửa quá xa", không cùng khuôn với tên cũ.
-    // militarycalc so-sanh-43006 (28/11/2026): 3 lượt mô hình đều viết xa hook rồi cả chuỗi kẹt; nay thay tại chỗ, không đốt thêm lượt gọi.
-    if (hookCu) {
-      // quá ngắn / quá trần câu móc cũng phải thay: bản dựng bằng mã luôn nằm trong 25–110 ký tự (so-sanh-43006 lượt 2: "câu móc dài 132").
-      const lech = r.data.chu.title.length > 110 || r.data.chu.title.length < 25 || loiHook([r.data.chu.title], hookCu.chu).length > 0 || !!khuonTrung(r.data.chu.title, (o.daDung ?? []).slice(0, 80));
-      if (cuuKhoa && lech && !daCo.has(tdChuan(cuuKhoa))) { r.data.chu.title = cuuKhoa; r.data.hook_qc = hookCu.id; }
-    }
-    const maHook = maHookKhop(hooksLuot, r.data.hook_qc, r.data.chu.title); hookCu = timHook(hooksLuot, maHook) ?? hookCu;
+    let maHook = maHookKhop(hooksLuot, r.data.hook_qc, r.data.chu.title); hookCu = timHook(hooksLuot, maHook) ?? hookCu;
     // mô hình không khai mã hook nào trong kho (bỏ trống / tự viết hook) → lượt sau KHOÁ vào hook gần tiêu đề nhất, đưa nguyên câu làm khuôn
     // (militarycalc 12/11/2026: kho còn 1 hook, 3 lượt đều "chưa chọn hook QC gốc", bài lam-tuong-42929 kẹt SỬA LẠI)
     if (!hookCu && hooksLuot.length) hookCu = [...hooksLuot].sort((a, b) => giuHook(r.data.chu.title, b.chu) - giuHook(r.data.chu.title, a.chu))[0]!;
+    // TIÊU ĐỀ MÔ HÌNH VIẾT LỆCH HOOK / RƠI VÀO KHUÔN CŨ / QUÁ NGẮN QUÁ TRẦN → dựng lại bằng mã TRƯỚC khi ráp bài, để dang.hook và dang.title cùng trỏ MỘT hook.
+    // Bản dựng giữ NGUYÊN câu hook làm phần lời hứa (≥35% chữ hook) và chỉ đổi câu mở → không "sửa quá xa", không cùng khuôn với tên cũ.
+    // Phải chạy SAU khi biết hook thật của lượt (maHookKhop + suy theo tiêu đề): bản cũ chạy trước, khoá vào hook của LƯỢT TRƯỚC — lượt này mô hình đổi hook khác
+    // thì bản dựng cũ vô hiệu, tiêu đề lệch hook mới rồi kẹt cả chuỗi (militarycalc so-sanh-43006, 28/11/2026: 4 lượt, "Every month you reuse an old pay result…"
+    // giữ 22% chữ so với hook "More is more. 💰 Every month a claim goes unfiled…").
+    if (hookCu) {
+      const khoaCuoi = tachTieuDe(hookCu.chu, o.daDung ?? []) ?? (cauHook(hookCu.chu) || null);
+      const lechCuoi = r.data.chu.title.length > 110 || r.data.chu.title.length < 25 || loiHook([r.data.chu.title], hookCu.chu).length > 0 || !!khuonTrung(r.data.chu.title, (o.daDung ?? []).slice(0, 80));
+      if (khoaCuoi && lechCuoi && !daCo.has(tdChuan(khoaCuoi))) { r.data.chu.title = khoaCuoi; r.data.hook_qc = hookCu.id; maHook = maHookKhop(hooksLuot, r.data.hook_qc, r.data.chu.title); }
+    }
     const de = rapDe({ sp: o.sp, goc: o.goc, dang_bai: o.dang_bai, mau, de: r.data.de, chu: r.data.chu, dich: o.dich, hook: timHook(hooksLuot, maHook) });
     // lượt KHOÁ ở trên gán tiêu đề / moc = NGUYÊN câu hook QC, mà câu QC gốc hay có gạch dài (lượt sau 0be6a7dd7 vẫn 2/6 đề chết "gạch ngang dài") → thay lần nữa trên bài đã ráp
     de.dang.title = boGachDai(de.dang.title); de.dang.description = boGachDai(de.dang.description); de.de = boGachDai(de.de);

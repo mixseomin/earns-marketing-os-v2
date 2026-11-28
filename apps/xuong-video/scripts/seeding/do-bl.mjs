@@ -9,6 +9,14 @@ const MAY = String(gt('--may', '')).replace(/'/g, ''); if (!MAY) { console.error
 const sql = (q, j = '[]') => execFileSync('ssh', ['-o', 'BatchMode=yes', 'root@167.233.241.16',
   `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; J=$(cat); echo ${Buffer.from(q).toString('base64')} | base64 -d | psql "$DATABASE_URL" -tA -v ON_ERROR_STOP=1 -v j="$J" -f -`],
   { input: j, encoding: 'utf8' }).trim();
+// 0. máy đăng (dang-may yt_binh_luan) ghi link vào xv_may_video.da_dang.yt_binh_luan.url (…watch?v=VID&lc=CID) → chép sang xv_seeding_bl
+//    (trang_thai da_dang, bl_id = lc, dang_luc). Nối qua dang.seeding_id do nap-bai --binh-luan ghi. Chạy cả khi --xem: chỉ đồng bộ sổ, không đo.
+const dongBo = sql(`WITH x AS (SELECT (v.dang->>'seeding_id')::int id, substring(v.da_dang->'yt_binh_luan'->>'url' from '[?&]lc=([A-Za-z0-9_.-]+)') lc,
+    coalesce((v.da_dang->'yt_binh_luan'->>'luc')::timestamptz, now()) luc FROM xv_may_video v JOIN xv_may m ON m.id=v.may_id
+    WHERE m.ma='${MAY}' AND v.dang->>'dang_bai'='binh-luan' AND v.da_dang ? 'yt_binh_luan')
+  UPDATE xv_seeding_bl b SET trang_thai='da_dang', bl_id=x.lc, dang_luc=x.luc FROM x WHERE b.id=x.id AND x.lc IS NOT NULL AND b.bl_id IS DISTINCT FROM x.lc RETURNING b.id`);
+const soDb = dongBo.split("\n").filter((x) => /^\d+$/.test(x));
+if (soDb.length) console.log(`✓ đồng bộ bình luận đã đăng → sổ seeding: #${soDb.join(', #')}`);
 const ds = JSON.parse(sql(`SELECT coalesce(json_agg(x),'[]') FROM (SELECT id, video_id, bl_id, extract(epoch FROM now()-dang_luc)/3600 gio, like_24h, like_72h
   FROM xv_seeding_bl WHERE may='${MAY}' AND trang_thai='da_dang' AND bl_id IS NOT NULL AND dang_luc > now()-interval '30 days') x`));
 if (!ds.length) { console.log('· chưa có bình luận đã đăng để đo'); process.exit(0); }

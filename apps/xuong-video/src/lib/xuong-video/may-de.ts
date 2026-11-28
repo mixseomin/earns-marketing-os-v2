@@ -365,7 +365,10 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
   for (let lan = 0; lan < 4; lan++) {
     // đã KHOÁ vào một hook mà vẫn trượt "sửa quá xa" → hook đó không hợp góc (ratesbyroom 12/11/2026: "Is PayLater Travel a scam?" khoá vẫn giữ 33%,
     // top-n-40712 kẹt) → bỏ hook đó, lượt sau mở lại phần kho còn lại (trượt nữa thì khoá hook kế), không khoá mãi một câu không bám được.
-    if (khoaTruoc && hookCu && loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l))) { boHook.add(hookCu.id); hookCu = null; loiCu = loiCu.filter((l) => !/sửa quá xa|chưa chọn hook/.test(l)); }
+    // KHÔNG bỏ khóa sau MỘT lượt "sửa quá xa / chưa chọn hook": mã đã có bản dựng riêng (tachTieuDe) thì giữ hook đó, lượt sau ép dùng bản dựng.
+    // Bản cũ bỏ hook ngay → mô hình chọn hook khác, lại sửa xa, 4 lượt cạn mà không đưa nổi một tiêu đề bám hook (militarycalc so-sanh-43006, 28/11/2026).
+    const cuuKhoa = hookCu ? tachTieuDe(hookCu.chu, o.daDung ?? []) : null;
+    if (khoaTruoc && hookCu && loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l)) && !cuuKhoa) { boHook.add(hookCu.id); hookCu = null; loiCu = loiCu.filter((l) => !/sửa quá xa|chưa chọn hook/.test(l)); }
     // trượt "sửa quá xa": mô hình rẻ cầm cả kho thì không bám (esimfares 10/11/2026: hook kênh "Landing in Italy? Do this before your plane touches down"
     // → viết "Set this up before takeoff", giữ 17%, 2/3 bài kẹt cả 2 lượt) → lượt sau khoá vào ĐÚNG hook đã chọn + đưa nguyên câu làm khuôn, thêm một lượt.
     // TIÊU ĐỀ TRÙNG với chính câu hook (hook "kenh:" = tiêu đề video thắng của kênh, LUÔN trùng) cũng phải KHOÁ vào hook đó như "sửa quá xa":
@@ -399,7 +402,11 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     // cả 4 lượt "chưa chọn hook QC gốc") → máy tự gắn mã hook đã khoá; tiêu đề lệch hook thì dùng NGUYÊN VĂN câu hook (trừ khi trùng tiêu đề đã có).
     if (xa && hookCu) {
       const hc = hookCu;
-      if (loiHook([r.data.chu.title], hc.chu).length && !daCo.has(tdChuan(hc.chu))) r.data.chu.title = hc.chu;
+      if (loiHook([r.data.chu.title], hc.chu).length && !daCo.has(tdChuan(hc.chu))) {
+        // Trước khi chép nguyên câu hook: bản dựng bằng mã (đổi câu mở, giữ nguyên phần lời hứa) vừa giữ ≥35% chữ hook vừa KHÔNG cùng khung với tên cũ —
+        // chép nguyên câu thì rơi vào "tiêu đề cùng khung" của chính khuôn hook đó (militarycalc so-sanh-43006: hook "How Should You Factor In a Pension…" trùng khuôn 5 từ liền với tên cũ).
+        r.data.chu.title = (cuuKhoa && !daCo.has(tdChuan(cuuKhoa))) ? cuuKhoa : hc.chu;
+      }
       // MÁY GHÉP TIÊU ĐỀ khi hook (đã là tiêu đề một bài cũ nên không chép được) bị mô hình viết lệch — chạy cho CẢ hai lỗi: "sửa quá xa" (giữ <35% chữ hook)
       // và "tiêu đề trùng" (chép đúng câu cũ). Câu hook nhiều vế → ghép vế (ghepHook, esimfares 19/11/2026); hook MỘT câu (không có vế sau) → ghepHook trả rỗng,
       // nên lấy đoạn đầu hook dài DẦN + vế đầu câu MÔ TẢ (hoặc tiêu đề) mô hình vừa viết, dừng ở bản ĐẦU TIÊN giữ ≥35% chữ hook, 25–110 ký tự, chưa từng dùng.
@@ -413,6 +420,13 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
       // Không gán thì kiemDe báo "chưa chọn hook QC gốc" và lượt sau BỎ hook này (astrolas 27/11/2026: ghép được tiêu đề vẫn 0/2 đề vì lỗi này).
       // Gán SAU khi ghép: ghepHook tách tiêu đề ở dấu câu đầu, mã hook đứng trước không ảnh hưởng — nhưng giữ thứ tự cũ để lỗi cũ không đổi nghĩa.
       if (!timHook(hooksLuot, r.data.hook_qc)) r.data.hook_qc = hc.id;
+    }
+    // TIÊU ĐỀ MÔ HÌNH VIẾT LỆCH HOOK / RƠI VÀO KHUÔN CŨ → thay bằng bản dựng bằng mã TRƯỚC khi ráp bài, để dang.hook và dang.title cùng trỏ một hook.
+    // Bản dựng giữ NGUYÊN câu hook làm phần lời hứa (≥35% chữ hook) và chỉ đổi câu mở → không "sửa quá xa", không cùng khuôn với tên cũ.
+    // militarycalc so-sanh-43006 (28/11/2026): 3 lượt mô hình đều viết xa hook rồi cả chuỗi kẹt; nay thay tại chỗ, không đốt thêm lượt gọi.
+    if (hookCu) {
+      const tdCuu = cuuKhoa, lech = loiHook([r.data.chu.title], hookCu.chu).length > 0 || !!khuonTrung(r.data.chu.title, (o.daDung ?? []).slice(0, 80));
+      if (tdCuu && lech && !daCo.has(tdChuan(tdCuu))) { r.data.chu.title = tdCuu; r.data.hook_qc = hookCu.id; }
     }
     const maHook = maHookKhop(hooksLuot, r.data.hook_qc, r.data.chu.title); hookCu = timHook(hooksLuot, maHook) ?? hookCu;
     // mô hình không khai mã hook nào trong kho (bỏ trống / tự viết hook) → lượt sau KHOÁ vào hook gần tiêu đề nhất, đưa nguyên câu làm khuôn
@@ -459,7 +473,7 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
       const chan = await o.xetHook(de);
       // "nhạt" mà hook GỐC đã qua Ngọc lúc lọc kho = mô hình viết lại thành câu hướng dẫn chung chung, không phải hook xấu (saidly 13/11/2026: kho 4 hook,
       // mỗi đề cấm cả 4 vì tiêu đề viết lại "nhạt" → --sinh-kho 0/5) → lần đầu KHOÁ vào chính hook đó, chép gần nguyên câu; nguyên câu vẫn nhạt mới bỏ hook.
-      const hn = timHook(hooksLuot, maHook) ?? hookCu;
+      const hn: HookQc | null = timHook(hooksLuot, maHook) ?? hookCu;
       if (chan && hn && /nhạt/.test(chan) && !daEpNguyen.has(hn.id)) { daEpNguyen.add(hn.id); hookCu = hn; epNguyen = true; khoaTruoc = false;
         loiCu = [`Phòng Nội dung chấm tiêu đề vừa viết là hook nhạt: ${chan} — tiêu đề phải gần NGUYÊN VĂN câu hook QC gốc đã chọn`]; continue; }
       if (chan) { const h = hn; if (h) boHook.add(h.id); hookCu = null; khoaTruoc = false;

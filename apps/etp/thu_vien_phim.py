@@ -15,6 +15,15 @@ MB, TIENG, TRANG_MAX = "https://api-multi-be.ethopex.dev", ("en", "es"), 400
 MUC_CS = ("risk", "medium", "safe")   # not_yet không quét: phim chưa chấm giữ nguyên, Ethopex chấm xong sẽ vào một trong ba danh sách này
 SPY = subprocess.run(["bash", "-c", ". /root/.secrets/spy.env; echo $DATABASE_URL"], capture_output=True, text=True).stdout.strip()
 
+import re
+# LINK TRANG PHIM (28/11/2026, 85250 Deny Me, Dragon King): Ethopex có phim trả redirect_url là TỆP ẢNH poster (thwztchapter.dramaboxdb.com/…/<book>/<book>.jpg)
+# → máy KT curl ra ảnh, không có tóm tắt, hỏng 3 lần. Ảnh DramaBox mang mã sách → đổi về trang https://www.dramaboxdb.com/movie/<book> (trang tự chuyển đúng slug);
+# ảnh nguồn khác không đổi được → None (hàng KT ghi "thiếu link"), không ghi link ảnh vào kho.
+def url_trang(u):
+    if not u or not re.search(r"\.(jpe?g|png|webp|gif)(@|\?|$)", u, re.I): return u or None
+    m = re.search(r"dramabox[a-z]*\.com/.*/(\d{8,})/\1\.", u)
+    return f"https://www.dramaboxdb.com/movie/{m.group(1)}" if m else None
+
 def qs(s):
     r = subprocess.run(["psql", SPY, "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], input=s, capture_output=True, text=True, timeout=300)
     if r.returncode: raise RuntimeError(r.stderr.strip()[-300:])
@@ -45,7 +54,7 @@ def quet_chinh_sach(T, so_trang=25, het=False):
         hl, m = vong[i]
         r = urllib.request.Request(f"{MB}/api/v2/contents?page={p}&page_size=100&content_type_id=1&is_ref=0&hl={hl}&policy={m}", headers={"authorization": "Bearer " + T, "user-agent": "mos2-etp"})
         d = json.load(urllib.request.urlopen(r, timeout=90)).get("data") or []; doc += 1
-        tv += [{"content_id": int(x["content_id"]), "nhom_id": x.get("group_id"), "ten": x.get("title"), "locale": hl, "anh": x.get("thumbnail"), "url": x.get("redirect_url"),
+        tv += [{"content_id": int(x["content_id"]), "nhom_id": x.get("group_id"), "ten": x.get("title"), "locale": hl, "anh": x.get("thumbnail"), "url": url_trang(x.get("redirect_url")),
                 "tao": x.get("created_at"), "chinh_sach": x.get("policy_rate") or m} for x in d if not x.get("ref_id") and not x.get("user_id")]
         if len(d) < 100: i, p = (i + 1) % len(vong), 1
         else: p += 1
@@ -66,10 +75,10 @@ def chay(T, het=False):
             d = json.load(urllib.request.urlopen(r, timeout=90)).get("data") or []; trang += 1
             # bỏ BẢN WORKSPACE (có ref_id / user_id): danh sách is_ref=0 trả lẫn bản người trong đội vừa "thêm content" — đó là bản trỏ về phim gốc, không phải phim thư viện
             moi = [x for x in d if int(x["content_id"]) not in co and (x.get("locale") or "").lower() == hl and not x.get("ref_id") and not x.get("user_id")]
-            tv += [{"content_id": int(x["content_id"]), "nhom_id": x.get("group_id"), "ten": x.get("title"), "locale": hl, "anh": x.get("thumbnail"), "url": x.get("redirect_url"), "tao": x.get("created_at"), "chinh_sach": x.get("policy_rate")}
+            tv += [{"content_id": int(x["content_id"]), "nhom_id": x.get("group_id"), "ten": x.get("title"), "locale": hl, "anh": x.get("thumbnail"), "url": url_trang(x.get("redirect_url")), "tao": x.get("created_at"), "chinh_sach": x.get("policy_rate")}
                    for x in d if (het or int(x["content_id"]) not in co or x in moi) and (x.get("locale") or "").lower() == hl and not x.get("ref_id") and not x.get("user_id")]
             for x in moi:
-                rows.append({"id": int(x["content_id"]), "locale": hl, "ten": x.get("title"), "url": x.get("redirect_url") or None, "tao": x.get("created_at"), "anh": x.get("thumbnail")})
+                rows.append({"id": int(x["content_id"]), "locale": hl, "ten": x.get("title"), "url": url_trang(url_trang(x.get("redirect_url"))), "tao": x.get("created_at"), "anh": x.get("thumbnail")})
                 co.add(int(x["content_id"]))
             if len(d) < 100 or (not het and not moi): break
             p += 1

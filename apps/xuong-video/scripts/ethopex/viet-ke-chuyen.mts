@@ -18,7 +18,9 @@ const giaiMa = (s: string) => s.replace(/\\u003c/g, '<').replace(/\\u003e/g, '>'
   .replace(/&amp;/g, '&').replace(/&([a-z])(acute|tilde|grave|uml);/gi, '$1').replace(/&ntilde;/g, 'ñ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
 const html = execFileSync('curl', ['-sL', '-A', 'Mozilla/5.0', '--max-time', '30', p.url], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
 const meta = (k: string) => new RegExp(`<meta[^>]+(?:property|name)="${k}"[^>]+content="([^"]*)"`, 'i').exec(html)?.[1] ?? '';
-const tomTat = [...new Set([meta('og:description'), meta('description'), ...[...html.matchAll(/"(?:special_desc|introduce|shortPlayIntroduce|synopsis)"\s*:\s*"((?:[^"\\]|\\.){40,2000})"/g)].map((m) => m[1]!)]
+const tomTat = [...new Set([meta('og:description'), meta('description'), ...[...html.matchAll(/"(?:special_desc|introduce|shortPlayIntroduce|synopsis)"\s*:\s*"((?:[^"\\]|\\.){40,2000})"/g)].map((m) => m[1]!),
+  // DramaBox: tóm tắt nằm ở "introduction" — chỉ lấy CÁI ĐẦU (phim của trang); các "introduction" sau là phim gợi ý khác (85250 hỏng 3 lần vì og:description chỉ 'DramaBox <tên> full movie')
+  /"introduction"\s*:\s*"((?:[^"\\]|\\.){40,2000})"/.exec(html)?.[1] ?? '']
   .map(giaiMa).filter((x) => x.length > 30))].join('\n').slice(0, 3000);
 // POSTER: kho Ethopex trước (ethopex_content.anh → acdn.dofez.com, CDN mở) — og:image của app gốc có CDN chặn bot bằng trang JavaScript (ReelShort crazymaplestudios:
 // curl nhận về HTML thay ảnh, lần chạy đầu máy sinh 29/10 hỏng ở bước sinh). og:image chỉ là dự phòng khi kho chưa có.

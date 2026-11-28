@@ -242,6 +242,20 @@
       "co": false,
       "dieu_phoi": null,
       "ham": "tạm bỏ (anh 28/10/2026)"
+    },
+    "yt_binh_luan": {
+      "loai": "bai",
+      "tran": [
+        1,
+        2,
+        3
+      ],
+      "duong": "br",
+      "dieu_phoi": "dang-may",
+      "ham": "dangYTBinhLuan",
+      "ho": "yt_binh_luan",
+      "ten": "YouTube bình luận seeding",
+      "co": true
     }
   }
 }

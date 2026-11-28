@@ -153,7 +153,7 @@ def b_nhan(d):
     doi = "" if not nhan_bb else sql(f"select coalesce(max(nguoi), '') from etp.phim_nhan_v where content_id = {cid} and trang_thai in ('giu', 'da_len') and nguoi_id not in (select nguoi_id from etp.tai_khoan where nha)")
     if doi: return "dung", f"{doi} (đội) đang giữ phim này", None
     co = sql(f"select string_agg(camp_id::text, ' ') from etp.camp where content_id = {cid} and (trang_thai = 'ACTIVE' or coalesce(dong_bo, '') not in ('done', 'synced', 'error'))")
-    if co: return "dung", f"phim đã có camp đang chạy: #{co} — mỗi lần chỉ lên một camp cho một phim (luật anh 03/11/2026)", None
+    if co and not d.get("phieu_id"): return "dung", f"phim đã có camp đang chạy: #{co} — mỗi lần chỉ lên một camp cho một phim (luật anh 03/11/2026)", None   # phiếu = anh bấm Gửi cho phim đang chạy (thêm camp có chủ ý) — anh 28/11/2026
     nhan_lai(cid)
     return "xong", ("Nhà nhận phim (giữ 24 giờ), " if nhan_bb else "") + "nhóm gốc Âu-Mỹ, không trong sổ cấm", None
 

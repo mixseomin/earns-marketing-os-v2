@@ -43,6 +43,13 @@ assert.ok(vanHeThong(sp, 'ai-con-nho').includes('no em dashes') && vanNguoiDung(
   assert.ok(vanNguoiDung(goc, 'dung-sai', [h[0]!.chu], 'en', h).includes("[ALREADY USED as this machine"), 'hook trùng tiêu đề cũ: dặn đổi chủ thể ngay trên dòng hook');
   assert.ok(!vanNguoiDung(goc, 'dung-sai', [], 'en', h).includes("[ALREADY USED as this machine"), 'hook chưa dùng: không dấu');
 }
+// hook CÙNG KHUNG với tiêu đề cũ (front-porch 28/11/2026: mọi hook "Only ONE says ___" của kênh) → đánh dấu ĐỔI CẤU TRÚC nhưng VẪN cho chọn mã hook
+{ const h = [{ id: 'kenh:270', chu: 'Only ONE says OVERLOOK. Can you spot it in 7 seconds?', ngay: 1439, page: 'video thắng' }];
+  const p = vanNguoiDung(goc, 'dung-sai', ['Only ONE says SPRING. Can you spot it in 7 seconds?'], 'en', h, new Set(['kenh:270']));
+  assert.ok(p.includes('[SAME FRAME AS AN EARLIER POST'), 'cùng khung: dặn đổi câu trúc ngay trên dòng hook');
+  assert.ok(p.includes('kenh:270') && p.includes('SENTENCE SHAPE'), 'vẫn đưa hook + dặn mở đầu khác khung "Only ONE says"');
+  assert.ok(!vanNguoiDung(goc, 'dung-sai', [], 'en', h).includes('[SAME FRAME AS AN EARLIER POST'), 'không cùng khung: không dấu');
+}
 // câu nói: tiếng Việt / Anh bị chặn (khán giả nói tiếng Anh, tên góc tiếng Việt chỉ là nhãn nội bộ)
 const cn = { mau: 'cau-noi' as const, dang_bai: 'cau-noi-theo-nuoc', de: { tinh_huong: 'At hotel check-in', ngon_ngu: 'Japanese', truy: 'tokyo hotel desk', cau: [{ ban_ngu: 'チェックイン', doc: 'chekku-in', nghia: 'check in' }, { ban_ngu: '予約', doc: 'yoyaku', nghia: 'reservation' }, { ban_ngu: 'ありがとう', doc: 'arigatou', nghia: 'thanks' }] }, title: 'Say these 3 lines at a Tokyo hotel desk?', description: 'Three short lines for check-in in Japan, with how to say them. https://esimfares.com/', nhan: 'esimfares.com' };
 assert.deepStrictEqual(kiemDe(cn), []); assert.ok(kiemDe({ ...cn, de: { ...cn.de, ngon_ngu: 'Vietnamese', cau: [{ ban_ngu: 'Xin chào', doc: 'sin chao', nghia: 'hello' }, { ban_ngu: 'Cảm ơn', doc: 'cam on', nghia: 'thanks' }, { ban_ngu: 'Đặt phòng', doc: 'dat phong', nghia: 'booking' }] } }).some((l) => /tiếng điểm đến/.test(l)));

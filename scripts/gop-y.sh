@@ -170,7 +170,7 @@ submit)
     # Link commit có thể nằm trong LỜI NỘP thay vì tham số url (#1943: url = trang ?p=… của card, link #commit= ghi trong lời → bị chặn oan).
     curl_kiem="$url"
     if ! [[ "$url" =~ /commit/[0-9a-f]{7,40}$ || "$url" =~ [?\&#]commit=[0-9a-f]{7,40}$ ]]; then
-      tu_loi=$(printf '%s\n%s' "$loi" "$tra_cuoi" | grep -oE 'https://(github\.com/mixseomin/[A-Za-z0-9._-]+/commit/[0-9a-f]{7,40}|dantranh\.on\.tc(/[^[:space:]?#)]*)?[?&#]commit=[0-9a-f]{7,40})' | head -1)
+      tu_loi=$(printf '%s\n%s' "$loi" "$tra_cuoi" | grep -oE 'https://(github\.com/mixseomin/[A-Za-z0-9._-]+/commit/[0-9a-f]{7,40}|dantranh\.on\.tc(/[^[:space:]?#)]*)?[?&#]commit=[0-9a-f]{7,40})' | head -1 || true)
       [ -n "$tu_loi" ] && curl_kiem="$tu_loi"
     fi
     if [[ "$curl_kiem" =~ ^https://github\.com/mixseomin/([A-Za-z0-9._-]+)/commit/([0-9a-f]{7,40})$ ]]; then

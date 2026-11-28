@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DANG_BAI } from '@/lib/dang-bai';
 import type { CoHoi, KhoDangKenh } from '../../../../xuong-video/src/lib/xuong-video/prompt-opus';
-import { changVideo, khoVideo, suaLaiGiaiDoan,lichKenhHs, yTuongTuSinh, soTheoPlaylist, tinhSoKenh, tomNenDang, type NenSo, type DangLam, type HoSoKenhLich, type KenhSp, type NguoiLaSo, type SoKenh, type SoNgayKenh, type TapCho } from './kenh-sp-tinh';
+import { changVideo, suaLaiGiaiDoan,lichKenhHs, yTuongTuSinh, soTheoPlaylist, tinhSoKenh, tomNenDang, type NenSo, type DangLam, type HoSoKenhLich, type KenhSp, type NguoiLaSo, type SoKenh, type SoNgayKenh, type TapCho } from './kenh-sp-tinh';
 
 /** Đọc một tệp JSON trong apps/xuong-video (đường tương đối từ gốc app) — cwd của web có thể là gốc repo hoặc apps/web. */
 function docTepXv<T>(tep: string): T | null {
@@ -83,7 +83,7 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
       count(v.id) FILTER (WHERE v.da_dang ? 'youtube')::int AS da_dang,
       max(v.da_dang->'youtube'->>'ngay') AS dang_cuoi
     FROM xv_may m LEFT JOIN xv_may_video v ON v.may_id = m.id AND ${loaiVid} WHERE ${chon} GROUP BY m.id ORDER BY m.id`)) as unknown as
-    { ma: string; ten: string; site_dich: string | null; chay: boolean; dang_lam: DangLam | null; dang_lam_ds: Record<string, DangLam> | null; tap_cho: TapCho[] | null; dang: { nen: string; ten?: string; tk?: string; kem?: string; gio_tu?: string; br?: { handle?: string; graph_id?: string; [k: string]: unknown } }[]; tap: number; cho_dang: number; da_dang: number; dang_cuoi: string | null }[];
+    { ma: string; ten: string; site_dich: string | null; chay: boolean; dang_lam: DangLam | null; dang_lam_ds: Record<string, DangLam> | null; tap_cho: TapCho[] | null; dang: { nen: string; ten?: string; tk?: string; kem?: string; gio_tu?: string; br?: { handle?: string; graph_id?: string } }[]; tap: number; cho_dang: number; da_dang: number; dang_cuoi: string | null }[];
   if (!may.length) return [];
   const so = (await d.execute(sql`SELECT san_pham, ngay::text AS ngay, hien, so_muc, chi_tiet->>'nguoi_dk' AS nguoi_dk FROM kenh_so_ngay
     WHERE kenh = ${loai === 'social' ? 'social' : 'youtube'} AND san_pham IN ${may.map((m) => `may:${m.ma}`)} AND ngay >= current_date - 30`)) as unknown as
@@ -102,23 +102,21 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
     FROM xv_seeding_kenh k LEFT JOIN xv_seeding_bl b ON b.may = k.may AND b.kenh_id = k.kenh_id WHERE k.bat AND k.may IN ${may.map((m) => m.ma)} GROUP BY k.id`)) as unknown as
     { may: string; kenh_id: string; ten: string; handle: string | null; nguoi_dk: number | null; chu_de: string | null; video: number; dat: number; hien: number; do_hien: number; l24: number | null; l72: number | null; tl: number | null; nhap: number; dau: string | null }[];
   const lich = ((await d.execute(sql`SELECT ds FROM xv_lich_du_kien`)) as unknown as { ds: { may: string; ngay: string; gio?: string; nen: string; title?: string; slug?: string | null }[] }[]).flatMap((r) => r.ds ?? []);
-  // góp ý #1951: EMAIL quản lý từng nền — acct của nơi đăng → platform_accounts.email; Page không có email thì lấy tài khoản đại diện / liên kết đầu tiên có email
-  const accts = [...new Set(may.flatMap((m) => (m.dang ?? []).map((x) => Number(x.br?.acct)).filter((n) => Number.isInteger(n) && n > 0)))];
-  const mailRows = accts.length ? (await d.execute(sql`SELECT p.id, coalesce(nullif(p.email, ''), nullif(r.email, ''),
-      (SELECT nullif(l.email, '') FROM platform_accounts l WHERE jsonb_typeof(p.linked_accounts) = 'array' AND p.linked_accounts @> to_jsonb(l.id) AND coalesce(l.email, '') <> '' ORDER BY l.id LIMIT 1)) AS email
-    FROM platform_accounts p LEFT JOIN platform_accounts r ON r.id = p.represents_account_id WHERE p.id IN ${accts}`)) as unknown as { id: number; email: string | null }[] : [];
-  const mailAcct = new Map(mailRows.map((r) => [String(r.id), r.email]));
-  for (const m of may) for (const x of m.dang ?? []) { const a = x.br?.acct; if (a != null) (x as { email?: string | null }).email = mailAcct.get(String(a)) ?? null; }
   const hs = hoSoKenh(), nguonY = docNguonYTuong(lt), gioNay = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
   return may.map((m) => {
     const ds: SoNgayKenh[] = so.filter((r) => r.san_pham === `may:${m.ma}`).map((r) => ({ ngay: r.ngay.slice(0, 10), xem: Number(r.hien), daDang: Number(r.so_muc), nguoiDk: r.nguoi_dk == null ? null : Number(r.nguoi_dk) }));
     const handle = (m.dang ?? []).find((x) => x.nen === 'youtube')?.br?.handle, l = lichKenhHs(hs[m.ma], hom, gioNay);
     const cua = vids.filter((v) => v.ma === m.ma).map((v) => (loai === 'social' ? baiSocial(v, hom) : { ...v, nen: undefined as string[] | undefined, nenSp: baiSocial(v, hom).nen }));   // góp ý #1625: kênh sản phẩm cũng mang nền đã lên (YouTube + Facebook…) cho icon dòng bài
     const videos = cua.map((v) => ({ slug: v.slug, ten: v.ten.replace(/\s*#shorts\s*/i, ''), ngayLam: v.ngay_lam, trangThai: changVideo({ daDang: v.da_dang, xuat: v.xuat, cham: v.cham }),
-      ngayDang: v.ngay?.slice(0, 10) ?? null, url: v.url, tep: v.tep, xem: v.xem, giay: v.giay == null ? null : Number(v.giay), kho: khoVideo(v.slug, cua.map((x) => x.slug)),
+      ngayDang: v.ngay?.slice(0, 10) ?? null, url: v.url, tep: v.tep, xem: v.xem, giay: v.giay == null ? null : Number(v.giay),
       // tập không ghi playlist (làm trước G1) của kênh chỉ MỘT playlist → playlist đó (cùng luật playlist.mjs › playlistCuaTap)
       mau: v.mau, yTuong: v.y_tuong, suaLai: v.cham === 'SUA_LAI' && !v.da_dang && v.xuat ? suaLaiGiaiDoan(v.slug, v.chan, v.cham_luc) : null,
       playlist: v.playlist ?? (hs[m.ma]?.playlist?.length === 1 ? hs[m.ma]!.playlist![0]!.ma : null), ...(v.nen ? { nen: v.nen, dangBai: v.dang_bai ?? (v.de_loai && DANG_TEN[v.de_loai] ? v.de_loai : null) ?? lt[m.ma]?.dang_mac_dinh ?? null } : 'nenSp' in v && v.nenSp.length ? { nen: v.nenSp, dangBai: null as string | null } : {}) }));
+    // ĐÃ ĐĂNG MỌI NỀN cho MỌI kênh (anh 28/11/2026 "cần có số log là đã đăng ở mọi nơi"): đếm bài đã lên ít nhất một nền + số bài theo từng nền
+    const bs = vids.filter((v) => v.ma === m.ma).map((v) => baiSocial(v, hom)), daDangNen: Record<string, number> = {};
+    for (const b of bs) for (const n of b.nen) daDangNen[n] = (daDangNen[n] ?? 0) + 1;
+    const moiNen = { choDang: bs.filter((v) => v.tep && !v.da_dang).length, daDang: bs.filter((v) => v.da_dang).length, daDangNen,
+      dangCuoi: bs.flatMap((v) => Object.values(v.dd ?? {}).map((o) => String((o as DaLen | null)?.ngay ?? '').slice(0, 10))).filter((x) => x && x <= hom).sort().at(-1) ?? null };
     // kênh social: chờ đăng / đã đăng / đăng cuối tính trên MỌI nền (cột SQL ở trên chỉ đếm YouTube — đúng cho kênh sản phẩm)
     const xa = loai === 'social' ? { ten: lt[m.ma]?.ten ?? m.ten, choDang: cua.filter((v) => v.tep && !v.da_dang).length, daDang: cua.filter((v) => v.da_dang).length,
       dangCuoi: cua.map((v) => v.nen?.length ? v.ngay : null).filter((x): x is string => !!x).sort().at(-1) ?? null, siteDich: m.site_dich,
@@ -129,7 +127,7 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
       ...(ds.length ? {} : { xem: cua.some((v) => v.xem != null) ? cua.reduce((t, v) => t + (v.xem ?? 0), 0) : null }),
       dangTen: Object.fromEntries([...new Set(videos.map((v) => v.dangBai).filter((x): x is string => !!x && !!DANG_TEN[x]))].map((x) => [x, DANG_TEN[x]!])) } : null;
     return { ma: m.ma, ten: m.ten.split('·').pop()!.trim(), chay: m.chay, kenhUrl: handle ? `https://www.youtube.com/${handle}` : null,
-      tap: m.tap, choDang: m.cho_dang, daDang: m.da_dang, dangCuoi: m.dang_cuoi, ...tinhSoKenh(ds, hom),
+      tap: m.tap, ...moiNen, ...tinhSoKenh(ds, hom),
       phimId: phim.find((p) => p.may === m.ma)?.id ?? null, so: lt[m.ma] ?? null, nguoi: (() => { const t = lt[m.ma]?.nguoi_tep; const x = t ? docTepLichSu<{ nguoi: NguoiLaSo[]; rodden_dung_nha?: string[] }>(t) : null; return x ? { ds: x.nguoi, dungNha: x.rodden_dung_nha ?? ['AA'] } : null; })(), yTuongTuSinh: lt[m.ma] ? yTuongTuSinh(lt[m.ma]!, nguonY, hom) : [], anh: anh.find((a) => a.san_pham === `may:${m.ma}`)?.anh ?? null,
       playlist: soTheoPlaylist(hs[m.ma]?.playlist ?? [], l.theo, videos),
       // ke.dangLam: nguon.dang_lam (một dấu / máy) = dạng cũ trước 05/11/2026, đọc tới khi lượt cuối viết dạng cũ xong; dang_lam_ds = mỗi tập một dấu

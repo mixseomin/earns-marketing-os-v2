@@ -15,7 +15,6 @@ import { useRouter } from 'next/navigation';
 import { LichNho, type LoaiLichNho } from '@/components/ui/lich-nho';
 import { cotSocial, nhomSocial } from './tai-san-social';
 import { SiteFavicon } from '@/components/ui/site-favicon';
-import { extLinkProps } from '@/lib/external-url';
 import { pkCua } from '@/lib/ho-nen';
 
 const so = (n: number | null | undefined) => (n == null ? '–' : n.toLocaleString('vi-VN'));
@@ -144,16 +143,12 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
         if (d.loai === 'ke') return <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: d.nhom ? THUT_NHOM : THUT_MUC, fontFamily: 'var(--font-sans)', minWidth: 0, whiteSpace: 'nowrap' }}>
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, ...(d.o ? { width: O_CHU - (d.nhom ? THUT_NHOM : THUT_MUC), flex: 'none', overflow: 'hidden' } : { flex: 1 }) }}>
           {!d.nhom && <span style={{ color: 'var(--fg-4)' }}>└</span>}
-          {d.ra ? <a {...extLinkProps(d.ra)} onClick={(e) => e.stopPropagation()} title={`mở trang ${d.chu} trên nền (tab mới)`}
-              style={{ display: 'inline-flex', alignItems: 'baseline', gap: 8, color: d.mau ?? 'inherit', textDecoration: 'underline dotted var(--fg-4)', flex: 'none' }}>
-              {d.icon && <span style={{ alignSelf: 'center', flex: 'none', display: 'inline-flex' }}><SiteFavicon platformKey={d.icon} size={14} title={d.icon} /></span>}
-              {d.chu} ↗</a>
-          : d.icon && <span style={{ alignSelf: 'center', flex: 'none', display: 'inline-flex' }}><SiteFavicon platformKey={d.icon} size={14} title={d.icon} /></span>}
+          {d.icon && <span style={{ alignSelf: 'center', flex: 'none', display: 'inline-flex' }}><SiteFavicon platformKey={d.icon} size={14} title={d.icon} /></span>}
           {d.dongHo && <span style={{ alignSelf: 'center', flex: 'none' }} title={d.phu}><DongHo nut={nutTuanTu(d.dongHo.tong, d.dongHo.so, d.dongHo.loi)} so={d.dongHo.so || '?'} ket={d.dongHo.loi ? 'loi' : undefined} co={22} /></span>}
           {d.nhom && (() => { const kh = `${d.k.ma}:${d.id}`, dong_ = gap.has(kh);
             return <button type="button" onClick={(e) => { e.stopPropagation(); doiGap(kh); }} title={dong_ ? 'mở khối' : 'gập khối'}
               style={{ width: 14, border: 'none', background: 'none', color: 'var(--fg-2)', cursor: 'pointer', padding: 0 }}>{dong_ ? '▸' : '▾'}</button>; })()}
-          {!d.ra && <span style={{ fontWeight: d.nhom ? 700 : 400, color: d.mau ?? (d.nhom ? 'var(--fg-1)' : undefined) }}>{d.chu}</span>}
+          <span style={{ fontWeight: d.nhom ? 700 : 400, color: d.mau ?? (d.nhom ? 'var(--fg-1)' : undefined) }}>{d.chu}</span>
           {d.ngan && <button type="button" onClick={(e) => { e.stopPropagation(); ngan.mo(d.ngan!.loai, d.k.ma, d.ngan!.id); }}
             style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontSize: 11, whiteSpace: 'nowrap', flex: 'none' }}>{d.nganChu ?? 'mở'}</button>}
           {d.xemTruoc && <button type="button" onClick={(e) => { e.stopPropagation(); ngan.moVideo(d.k.ma, d.xemTruoc!); }} title="xem trước một bài mẫu của dạng này"
@@ -166,9 +161,6 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
         if (!laK(d)) { const v = d.v, c = CHANG[v.trangThai];
           return <span style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: THUT_MUC, fontFamily: 'var(--font-sans)', minWidth: 0, width: '100%', overflow: 'hidden' }}>
             <span style={{ color: 'var(--fg-4)' }}>└</span>
-            {/* góp ý #1937: icon khung dọc / ngang — nhìn là biết khổ video (chữ vào rê chuột) */}
-            {v.kho && <span data-cot="kho" title={v.kho === 'doc' ? 'video dọc 9:16 (Shorts / Reels)' : 'video ngang 16:9'} style={{ flex: 'none', width: 16, display: 'inline-flex', justifyContent: 'center', alignItems: 'center', cursor: 'help' }}>
-              <span style={{ display: 'block', width: v.kho === 'doc' ? 8 : 14, height: v.kho === 'doc' ? 13 : 8, border: '1.5px solid var(--fg-2)', borderRadius: 2 }} /></span>}
             <button type="button" onClick={(e) => { e.stopPropagation(); ngan.moVideo(d.k.ma, v.slug); }} title={`${v.ten} — bấm mở video`}
               style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'inherit', font: 'inherit', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'underline dotted var(--fg-4)', flex: '1 1 0', minWidth: 0, textAlign: 'left' }}>{v.ten}</button>
             {/* góp ý #1622 + #1625: icon nền đã đăng đứng NGAY SAU TÊN, ô rộng cố định để cột trạng thái vẫn thẳng hàng
@@ -213,7 +205,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
     { key: 'tap', header: 'Tập', width: 64, sortValue: (d) => d.k.tap, cellTitle: (d) => (laK(d) ? `${d.k.tap} tập đã làm (không tính bản cất)` : undefined),
       cell: (d) => (laK(d) ? so(d.k.tap) : <span style={mo}>{vd(d)?.giay ? `${Math.round(vd(d)!.giay!)}s` : ''}</span>) },
     { key: 'cho', header: 'Chờ đăng', width: 84, sortValue: (d) => d.k.choDang, cell: (d) => (!laK(d) ? null : d.k.choDang ? <b style={{ color: 'var(--warn)' }}>{d.k.choDang}</b> : <span style={mo}>0</span>) },
-    { key: 'da', header: 'Đã đăng', width: 76, sortValue: (d) => d.k.daDang, cell: (d) => (laK(d) ? so(d.k.daDang) : null) },
+    { key: 'da', header: 'Đã đăng', width: 76, sortValue: (d) => d.k.daDang, cellTitle: (d) => (laK(d) ? `bài đã lên ít nhất một nền: ${d.k.daDang}\n${Object.entries(d.k.daDangNen ?? {}).sort((a, b) => b[1] - a[1]).map(([n, c]) => `${n}: ${c} bài`).join('\n') || 'chưa nền nào'}` : undefined), cell: (d) => (laK(d) ? so(d.k.daDang) : null) },
     { key: 'dk', header: 'Người đăng ký', width: 116, sortValue: (d) => d.k.nguoiDk, cell: (d) => (laK(d) ? <b style={{ fontVariantNumeric: 'tabular-nums' }}>{so(d.k.nguoiDk)}</b> : null) },
     { key: 'dk7', header: 'ĐK 7 ngày', width: 88, sortValue: (d) => d.k.nguoiDk7, cell: (d) => (laK(d) ? tang(d.k.nguoiDk7) : null) },
     { key: 'xem', header: 'Lượt xem', width: 96, sortValue: (d) => (laK(d) ? d.k.xem : vd(d)?.xem ?? null), cellTitle: (d) => (laK(d) ? 'cộng dồn mọi video đã đăng' : 'lượt xem video này'),

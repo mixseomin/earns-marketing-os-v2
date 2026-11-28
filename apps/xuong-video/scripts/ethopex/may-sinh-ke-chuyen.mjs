@@ -113,8 +113,11 @@ try {
   if (!so.dang) {
     const n = so.ngay[ngay()] ?? 0;
     if (n >= TRAN) { ghi(`đủ trần ${TRAN} phim hôm nay — nghỉ`); dong(); process.exit(0); }
-    const bo = new Set(so.bo.map((x) => x.content_id));
-    const hang = JSON.parse(ssh('scripts/ethopex/hang-ke-chuyen.mts --so=8').split('\n').pop()).filter((x) => !bo.has(x.content_id) && x.nhom_goc === 'au_my');   // chặn lần hai phía iMac: chỉ phim Âu-Mỹ (bản hàng đợi cũ trên box3 không in nhom_goc → hàng trống, không lọt)
+    // SỔ BỎ ≠ CHẶN LỆNH LÀM LẠI (28/11/2026, 88090 / dòng 7125): dòng phim FIX bước creative SAU lúc máy bỏ phim = người xin làm lại → mục bỏ cũ hơn mốc
+    // dong_tu (lúc bước creative của dòng bắt đầu) không chặn. Hỏng tiếp thì thư viện ghi 'loai' sau mốc đó → dòng phim tự dừng 'loi', không quay vòng.
+    const boLuc = new Map(); for (const x of so.bo) boLuc.set(x.content_id, x.luc ?? '');
+    const chan = (x) => boLuc.has(x.content_id) && !(x.dong_tu && boLuc.get(x.content_id) < x.dong_tu);
+    const hang = JSON.parse(ssh('scripts/ethopex/hang-ke-chuyen.mts --so=8').split('\n').pop()).filter((x) => !chan(x) && x.nhom_goc === 'au_my');   // chặn lần hai phía iMac: chỉ phim Âu-Mỹ (bản hàng đợi cũ trên box3 không in nhom_goc → hàng trống, không lọt)
     if (!hang.length) { ghi('hàng đợi trống'); dong(); process.exit(0); }
     const p = hang[0];
     ghi(`chọn ${p.ten} (${p.lang}, điểm ${p.diem}, lãi 14 ngày $${p.lai14}) → viết kịch bản`);

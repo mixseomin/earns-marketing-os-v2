@@ -365,8 +365,13 @@ if (a.includes('--nap')) {
     .filter((v) => [...(v.chan ?? []), ...(v.canh ?? [])].filter((c) => !LOI_BAO_NGOAI.test(c)).length > 0 && [...(v.chan ?? []), ...(v.canh ?? [])].filter((c) => !LOI_BAO_NGOAI.test(c)).every((c) => SUA_DUOC.test(c)));
   // Bài dài / câu trả lời đi đường puzzle-books, không có mẫu social để sinh lại ở đây.
   const { MAU_CUA_DANG, LAP_LINK } = await import('../src/lib/xuong-video/may-de');
-  const ds = ds0.filter((v) => { const dang = String(v.dang?.dang_bai ?? ''); return dang === LAP_LINK || Boolean(MAU_CUA_DANG[dang]); });
-  if (!ds.length) { console.log(`làm lại ${ma}: không có bài SỬA LẠI sửa được bằng đề mới`); process.exit(0); }
+  // DẠNG suy từ slug khi bài cũ THIẾU dang.dang_bai (bài nạp từ lô cũ / đề rút gọn): lọc chỉ đọc dang_bai thì bài đó bị bỏ IM LẶNG —
+  // "làm lại 0/N" mà không nói vì sao (militarycalc top-n-43011-3-ways-veterans, 28/11/2026: bài kẹt cùng khung tên, máy không bao giờ nhận).
+  // Cùng cách suy với đoạn dưới (dangCu) để hai chỗ không lệch nhau.
+  const dangCua = (v: { slug: string; mau: string | null; dang: Record<string, unknown> | null }) => String(v.dang?.dang_bai ?? '')
+    || Object.keys(MAU_CUA_DANG).find((k) => v.slug.startsWith(`${k}-`)) || (v.mau && v.mau in MAU_CUA_DANG ? v.mau : '');
+  const ds = ds0.filter((v) => { const dang = dangCua(v); return dang === LAP_LINK || Boolean(MAU_CUA_DANG[dang]); });
+  if (!ds.length) { console.log(`làm lại ${ma}: không có bài SỬA LẠI sửa được bằng đề mới${ds0.length ? ` — ${ds0.length} bài là dạng dài / trả lời, đi đường puzzle-books: ${ds0.map((v) => `${v.slug} (${String(v.dang?.dang_bai ?? v.mau ?? '?')})`).join(', ')}` : ''}`); process.exit(0); }
   const { sinhDe } = await import('../src/lib/xuong-video/may-de');
   const sp = await spCua(ma), { tt, gocs, hooksCho, hookDaDung, hookCho } = await khoGocHook(ma, Number(m.id), sp), xetHook = await xetHookNhuCham(ma);
   if (tt.length && tt.every((t) => /^VN/i.test(t))) (sp as { ngon_ngu?: 'vi' }).ngon_ngu = 'vi';
@@ -381,7 +386,7 @@ if (a.includes('--nap')) {
     const hk = hooksCho(g, n); if (!hk.length) { ra.push(`· hết hook QC chưa dùng — dừng lượt (${ds.length - n} bài còn chờ)`); break; }
     // dang_bai = DẠNG (lam-tuong, vat-lac-loai…), KHÔNG phải MẪU (lat-dap-an, lac-loai…): v.mau là mẫu dựng nên sinhDe báo "chưa có mẫu sinh đề" (10/11/2026, 10/11 bài esimfares kẹt).
     const { MAU_CUA_DANG } = await import('../src/lib/xuong-video/may-de');
-    const dangCu = String((v.dang as { dang_bai?: string } | null)?.dang_bai ?? '') || Object.keys(MAU_CUA_DANG).find((k) => v.slug.startsWith(`${k}-`)) || (v.mau && v.mau in MAU_CUA_DANG ? v.mau : '') || 'so-sanh';
+    const dangCu = dangCua(v) || 'so-sanh';
     const kq = await sinhDe({ sp, goc: g, dang_bai: dangCu, daDung, hooks: hk, xetHook }); vnd += kq.vnd;
     if (!kq.ok) { ra.push(`✗ ${v.slug}: ${kq.loi}`); if (/TỐN TIỀN/.test(kq.loi)) break; continue; }
     (kq.de.dang as Record<string, unknown>).lam_lai = lan + 1;

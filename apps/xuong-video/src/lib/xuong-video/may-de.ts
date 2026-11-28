@@ -171,8 +171,16 @@ export function tachTieuDe(hook: string, daDung: string[]): string | null {
   const sach = sachHook(hook); if (tuNoiDung(sach).length < 3) return null;
   const chuan = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim(), co = new Set(daDung.map(chuan));
   const cau = sach.split(/(?<=[.?!…])\s+/u).filter(Boolean), duoi = cau.slice(1).join(' ');
-  const moCau = ['Which one did you get right? ', 'Can you tell which one it is? ', 'How fast can you spot it? ', 'Most people guess wrong on this one. ',
-    'One of these is not like the others. ', 'Only 1 in 10 gets this right. ', 'Look closely before you answer. ', 'Think you can find it before the timer? '];
+  // CÂU MỞ phải đọc được với MỌI NGÁCH. Bản cũ chỉ có câu kiểu đố vui ("Which one did you get right?") — ghép vào bài quyền lợi / tài chính
+  // thì thành câu rời rạc, Phòng Nội dung chấm "hook nhạt (câu ghép … rời rạc)" và bài làm lại vẫn kẹt (militarycalc so-sanh-43006, 28/11/2026).
+  // Hai bộ: nội dung ĐỐ (hook có spot / find / guess / which / timer…) dùng câu đố vui; còn lại dùng câu nối trung tính,
+  // đứng trước mệnh đề nào cũng đọc được ("Most people get this wrong: How Should You Factor In a Pension…").
+  const doVui = /\b(spot|find|guess|which|timer|seconds?)\b/i.test(sach);
+  const moCau = doVui
+    ? ['Which one did you get right? ', 'Can you tell which one it is? ', 'How fast can you spot it? ', 'Most people guess wrong on this one. ',
+      'One of these is not like the others. ', 'Only 1 in 10 gets this right. ', 'Look closely before you answer. ', 'Think you can find it before the timer? ']
+    : ['Most people get this wrong: ', 'Here is the part most people miss: ', 'Nobody explains this part: ', 'The part nobody mentions: ',
+      'Here is what nobody tells you: ', 'This is the part that catches people out: '];
   const ung = [...moCau.map((m) => `${m}${sach}`)]; if (duoi) ung.push(...moCau.map((m) => `${m}${duoi}`));
   const dat = (t: string) => t.length >= 25 && t.length <= 110 && !co.has(chuan(t)) && !loiHook([t], sach).length
     && !CHU_VIET.test(t) && !/[—–]/.test(t) && !khuonTrung(t, daDung.slice(0, 80));

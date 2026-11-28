@@ -124,4 +124,12 @@ assert.ok(vanNguoiDung(goc, 'top-n', [], 'en', hk).includes('3496181930676276') 
   assert.ok(tachTieuDe(hook, []), 'kênh sạch cũng dùng được (hook lạ, chưa có tiêu đề cũ)');
   assert.ok(/^(Which one|Can you tell|How fast|Most people|One of these|Only 1 in 10|Look closely|Think you)/.test(t!), 'phải đổi CÂU MỞ, không được chỉ đổi từ trên khuôn');
   assert.ok(t!.endsWith(hook) || t!.endsWith(hook.split(/(?<=[.?!…])\s+/u).slice(1).join(' ')), 'câu mở mới chỉ được ghép THÊM phía trước, hook gốc phải còn nguyên'); }
+// CÂU MỞ trung tính cho nội dung KHÔNG phải đố (militarycalc so-sanh-43006, 28/11/2026: ghép "Which one did you get right?" vào bài quyền lợi → "hook nhạt, rời rạc")
+{ const hook = 'How Should You Factor In a Pension Into Your Net Worth Statement?',
+    cu = Array.from({ length: 30 }, (_, i) => `How Should You Factor In a ${'ABCDEFGHIJ'[i % 10]} Into Your Net Worth Statement?`);
+  const t = tachTieuDe(hook, cu);
+  assert.ok(t, 'bài tài chính cùng khuôn: vẫn ra tiêu đề khác khuôn bằng mã');
+  assert.ok(!/Which one|spot it|guess wrong|1 in 10/.test(t!), 'không ghép câu đố vui vào bài không phải đố');
+  assert.ok(/^(Most people get this wrong|Here is the part most people miss|Nobody explains this part|The part nobody mentions|Here is what nobody tells you|This is the part that catches people out)/.test(t!), 'câu mở trung tính đọc được với mọi ngách');
+  assert.ok(giuHook(t!, hook) >= GIU_HOOK_TOI_THIEU, 'vẫn giữ đủ ≥35% chữ hook'); }
 console.log('may-de: phần thuần đạt');

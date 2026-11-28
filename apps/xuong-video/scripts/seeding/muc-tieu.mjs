@@ -6,7 +6,7 @@
 import { execFile, execFileSync } from 'node:child_process';
 const BO = {
   orbiball: { tim: ['marble race football', 'beat the keeper algodoo', 'marble football prediction', 'marble race champions league', 'premier league marble race', 'algodoo football tournament', 'physics simulation football match'],
-    hop: /marble|algodoo|beat the keeper|simulat|prediction/i, bong: /football|soccer|league|cup|uefa|laliga|fifa|premier/i, chuDe: (t) => (/predict/i.test(t) ? 'dự đoán' : /beat the keeper/i.test(t) ? 'beat the keeper' : 'marble race') },
+    hop: /marble|algodoo|beat the keeper/i /* 28/11: 'simulat|prediction' kéo vào kênh game bóng bầu dục Mỹ (Not The Expert, Football Simulator) */, bong: /football|soccer|league|cup|uefa|laliga|fifa|premier/i, chuDe: (t) => (/predict/i.test(t) ? 'dự đoán' : /beat the keeper/i.test(t) ? 'beat the keeper' : 'marble race') },
 };
 const a = process.argv.slice(2), co = (k) => a.includes(k), gt = (k, m) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : m; };
 const MAY = gt('--may'), TOI = Number(gt('--toi', 30)), bo = BO[MAY]; if (!bo) { console.error(`✗ chưa có bộ từ khoá cho máy "${MAY}" — thêm vào BO trong ${import.meta.url}`); process.exit(1); }
@@ -36,5 +36,5 @@ if (co('--xem')) process.exit(0);
 // 3. ghi box3 (upsert, KHÔNG xoá kênh cũ — kênh rớt khỏi lượt tìm vẫn giữ số bình luận)
 const json = JSON.stringify(ra.map((k) => ({ may: MAY, kenh_id: k.id, ten: k.ten, handle: k.handle, nguoi_dk: k.sub, chu_de: bo.chuDe(k.tieu.join(' ')), video_top: k.video })));
 const q = `INSERT INTO xv_seeding_kenh (may, kenh_id, ten, handle, nguoi_dk, chu_de, video_top, do_luc) SELECT x.may, x.kenh_id, x.ten, x.handle, x.nguoi_dk, x.chu_de, x.video_top, now() FROM jsonb_to_recordset(:'j'::jsonb) AS x(may text, kenh_id text, ten text, handle text, nguoi_dk int, chu_de text, video_top jsonb) ON CONFLICT (may, kenh_id) DO UPDATE SET ten = EXCLUDED.ten, handle = EXCLUDED.handle, nguoi_dk = EXCLUDED.nguoi_dk, chu_de = EXCLUDED.chu_de, video_top = EXCLUDED.video_top, do_luc = now()`;
-const out = execFileSync('ssh', ['-o', 'BatchMode=yes', 'root@167.233.241.16', `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; J=$(cat); psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v j="$J" -c "${q.replace(/"/g, '\\"')}"`], { input: json, encoding: 'utf8' });
+const out = execFileSync('ssh', ['-o', 'BatchMode=yes', 'root@167.233.241.16', `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; J=$(cat); echo ${Buffer.from(q).toString('base64')} | base64 -d | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v j="$J" -f -`], { input: json, encoding: 'utf8' });
 console.log(`✓ ${ra.length} kênh mục tiêu → xv_seeding_kenh (${out.trim()})`);

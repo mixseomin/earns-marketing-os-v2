@@ -331,6 +331,11 @@ def main():
     try:
         import gia_adsense as GA; kq["gia_adsense"] = GA.chay(q)
     except Exception as e: loi.append(f"gia_adsense: {e}")
+    moc('HÀNG ĐỢI PHIẾU LÊN CAMP')
+    # ── HÀNG ĐỢI PHIẾU (apps/etp/hang_phieu.py, card #1931 anh 28/11/2026 "Phải tự cho vào hàng đợi"): phiếu 'xep' tự khởi dựng khi phiếu trước cùng phim + dạng xong
+    try:
+        import hang_phieu as HP; kq["hang_phieu"] = HP.chay(q)
+    except Exception as e: loi.append(f"hang_phieu: {e}")
     moc('TRẦN CAMP MỚI THEO LÃI + 3 CHỐT CHẶN')
     # ── TRẦN CAMP MỚI THEO LÃI + 3 CHỐT CHẶN (apps/etp/tran_len.py, anh 11/11/2026 "tăng theo lãi trước đó … đi từ dưới lên"): TRƯỚC mùa lễ — mua_le lấy số này làm trần gốc
     try:

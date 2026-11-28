@@ -237,7 +237,13 @@ export function DataTable<T>({
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
   // KÉO GIÃN CỘT (keo-rong.ts — 17/10/2026, anh: "dùng DataTable mà không resize được"): mép phải mỗi tiêu đề có tay nắm; bề ngang nhớ theo
   // persistKey (localStorage, đọc sau khi gắn để không lệch SSR); có cột đã kéo → bảng chuyển table-layout fixed để bề ngang được tôn trọng.
-  const khoaRong = persistKey ? `tbl-rong.${persistKey}` : null;
+  // MÀN HẸP (điện thoại ≤ 768px — anh 28/11/2026 etp2 Phim đội "Mobile bị mất tên phim, kéo cột cũng ko đc"): KHÔNG co cột theo tỉ lệ cho vừa khung
+  // (13 cột ép còn ~76px, tên phim còn 3 chữ; kéo một cột thì các cột khác co bù nên kéo như không) — giữ đúng `width` / bề ngang đã kéo, phần dư CUỘN NGANG
+  // như cuonNgang. Bề ngang kéo trên màn hẹp lưu khoá riêng (tbl-rong-hep.*): bản bị co dồn đã lưu trước đây không đè lên, máy tính không lẫn với điện thoại.
+  // Đọc ngay lúc khởi tạo (không lệch SSR: rong chỉ nạp trong effect, lần vẽ đầu luôn {}).
+  const [hep, setHep] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches);
+  useEffect(() => { const m = window.matchMedia('(max-width: 768px)'); const f = () => setHep(m.matches); f(); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
+  const khoaRong = persistKey ? `tbl-rong${hep ? '-hep' : ''}.${persistKey}` : null;
   const [rong, setRong] = useState<Record<string, number>>({});
   const [dangKeo, setDangKeo] = useState<string | null>(null);   // khoá cột đang kéo
   const tuChotRef = useRef<string | null>(null);   // chuỗi khoá cột lúc tự chốt (KHOÁ BỀ RỘNG LÀM MẶC ĐỊNH, dưới); null = chưa tự chốt / người đã kéo tay
@@ -657,7 +663,7 @@ export function DataTable<T>({
     const tongKhac = visible.reduce((s, c) => s + (r[c.key] != null ? 0 : typeof c.width === 'number' ? c.width : RONG_MAC_DINH), 0);
     const v = keo != null && r[keo] != null ? r[keo] : 0;
     const coDuoc = tongLuu - v;
-    const heSo = !cuonNgang && khung > 0 && coDuoc > 0 && tongLuu + tongKhac > khung ? Math.max(0.1, (khung - tongKhac - v) / coDuoc) : 1;
+    const heSo = !cuonNgang && !hep && khung > 0 && coDuoc > 0 && tongLuu + tongKhac > khung ? Math.max(0.1, (khung - tongKhac - v) / coDuoc) : 1;
     const out: Record<string, number> = {};
     for (const c of visible) { const x = r[c.key]; if (x != null) out[c.key] = c.key === keo ? x : Math.max(Math.floor(x * heSo * 100) / 100, Math.min(x, SAN_CO)); }
     return out;

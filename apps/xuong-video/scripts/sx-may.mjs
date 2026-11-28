@@ -107,6 +107,18 @@ function keHoachKho(rows, k = KHO, may = null) {
 }
 const giaMot = (x, k = KHO) => (x.loai === 'bai' ? k.vnd_bai : x.loai === 'o' ? k.vnd_de : rieng(x.may, k).vnd_de);
 const giaKho = (x, k = KHO) => x.n * giaMot(x, k);
+/** Máy đi đường riêng (sổ _kho.duong_rieng) KHÔNG lấp được bằng --sinh-kho — nhưng Phòng Nội dung vẫn đếm thiếu từng nền.
+ *  Trước 28/11/2026 keHoachKho lặng lẽ bỏ qua chúng nên `--may mia-calloway --xem` in "kho: mọi nền đủ bài 2 ngày đăng"
+ *  trong khi cham-dang.mjs --thieu báo mia-calloway facebook thiếu 1: người trực đọc thấy đủ, không ai thêm đề, hôm sau thiếu bài.
+ *  Nay đếm riêng và IN RA kèm lệnh lấp của sổ (_kho.rieng.<máy>.lenh) — cùng một nguồn thiếu, chỉ khác cách lấp. */
+function khoRieng(rows, k = KHO, may = null) {
+  const g = new Map();
+  for (const r of rows) {
+    if ((may && r.ma !== may) || !(k.duong_rieng ?? []).includes(r.ma) || !(Number(r.thieu) > 0) || !/^[a-z0-9-]+$/.test(r.ma)) continue;
+    const x = g.get(r.ma) ?? { may: r.ma, n: 0, nen: [], lenh: rieng(r.ma, k).lenh }; x.n = Math.max(x.n, Number(r.thieu)); x.nen.push(r.nen); g.set(r.ma, x);
+  }
+  return [...g.values()].sort((a, b) => b.n - a.n);
+}
 /** Số thiếu từng nền — của Phòng Nội dung trên box3 (cty /opt/cty), không tự đếm lại ở đây. */
 function thieuKho() {
   return JSON.parse(execFileSync('ssh', [BOX, 'cd /opt/cty && set -a; . /opt/earns-marketing-os-v2/.env.production; set +a; CTY_DATA_DIR=/var/lib/cty node worker/cham-dang.mjs --thieu'], { encoding: 'utf8', timeout: 120_000 }).trim().split('\n').pop());
@@ -226,6 +238,10 @@ const main = async () => {
     a.deepEqual(kh2.filter((x) => x.may === 'b').map((x) => [x.loai, x.n, x.dang ?? '']), [['video', 2, ''], ['link', 2, 'bai-link'], ['bai', 1, '']], 'máy trong sổ: video + link (--dang bai-link) + bài viết');
     a.deepEqual(kh2.filter((x) => x.may === 'z').map((x) => [x.loai, x.nen.join(','), x.n]), [['link', 'fb_link', 2], ['o', 'fb_anh', 1]], 'máy ngoài sổ: link qua --sinh-kho --dang, ảnh qua ô kế hoạch, bài viết bỏ');
     a.ok(!kh2.some((x) => x.may === 'y'), 'máy đi đường riêng (kênh lịch sử, Mia) không sinh');
+    // ...nhưng KHÔNG được lặng im: thiếu của máy đường riêng vẫn hiện ra kèm lệnh lấp của sổ (28/11/2026: Mia thiếu 1 bài mà --xem in "mọi nền đủ bài")
+    a.deepEqual(khoRieng(R, K).map((x) => [x.may, x.n, x.lenh]), [['y', 2, '--sinh-kho']], 'máy đường riêng: đếm thiếu + in lệnh lấp, không ẩn');
+    a.deepEqual(khoRieng([{ ma: 'y', nen: 'youtube', thieu: 0 }], K), [], 'máy đường riêng đủ bài thì không hiện');
+    a.deepEqual(khoRieng([{ ma: 'y', nen: 'youtube', thieu: 1 }], K, 'a'), [], 'lọc đúng máy khi --may');
     a.equal(keHoachKho([], K).length, 0, 'không thiếu thì không làm gì');
     a.deepEqual(docTongBai('✓ quora-1 (m, 33₫) → x\n✗ viết bài góc #2: lỗi (0₫)\n✓ quora-3 (m, 30₫) → y'), { so: 2, vnd: 63 });
     a.ok(docTongBai('✗ viết bài góc #2: hết câu hỏi (0₫)').loi.includes('hết câu hỏi'), '0 bài phải kèm lý do');
@@ -259,13 +275,17 @@ const main = async () => {
   if (slug) ds = ds.filter((x) => x.slug === slug);
   if (!ds.length) console.log(`không có bài nào thiếu tệp tới hạn trong ${ngay} ngày`);
   // kho chỉ lấp ở lượt máy (--het / --may), không ở --slug (dựng đúng một bài)
-  const kho = KHO && !slug ? keHoachKho(thieuKho(), KHO, may) : [];
+  const thieu = KHO && !slug ? thieuKho() : [];
+  const kho = thieu.length ? keHoachKho(thieu, KHO, may) : [];
+  const rieng2 = thieu.length ? khoRieng(thieu, KHO, may) : [];
 
   if (co('--xem')) {
     for (const b of ds) console.log(`→ ${b.dangTu} ${b.slug.padEnd(34)} ${b.nen.padEnd(9)} ${b.kieu ?? '(KHÔNG BIẾT DẠNG)'} · ${SO[b.kieu]?.vnd ?? '?'}₫ · ${b.huong || '(chưa có hướng)'}`);
     if (ds.length) console.log(`tổng ước: ${ds.reduce((t, b) => t + (SO[b.kieu]?.vnd ?? 0), 0)}₫ cho ${ds.length} bài`);
     for (const k of kho) console.log(`→ kho ${k.may.padEnd(28)} thiếu ${k.n} ở ${k.nen.join(', ')} → ${k.loai === 'bai' ? 'sinh-bai.mjs' : k.loai === 'o' ? `--sinh-de ${ngayVN()}…${ngayVN(ngay - 1)} (ô kế hoạch)` : `${rieng(k.may).lenh} ${k.n}${k.dang ? ` --dang ${k.dang}` : ''}`} · ước ${giaKho(k)}₫`);
-    if (KHO && !slug) console.log(kho.length ? `kho: ước ${kho.reduce((t, k) => t + giaKho(k), 0)}₫ (trần lượt ${KHO.tran_vnd_luot}₫)` : 'kho: mọi nền đủ bài 2 ngày đăng');
+    // máy đường riêng: máy KHÔNG lấp tự động (thêm đề vào tệp nguồn của máy rồi --slug) — in để người trực biết mà làm, không lặng im "đủ"
+    for (const k of rieng2) console.log(`→ kho ${k.may.padEnd(28)} thiếu ${k.n} ở ${k.nen.join(', ')} · đường riêng, máy không tự lấp → ${k.lenh}`);
+    if (KHO && !slug) console.log(kho.length || rieng2.length ? `kho: ước ${kho.reduce((t, k) => t + giaKho(k), 0)}₫ (trần lượt ${KHO.tran_vnd_luot}₫)${rieng2.length ? ` · ${rieng2.length} máy đường riêng phải thêm đề tay` : ''}` : 'kho: mọi nền đủ bài 2 ngày đăng');
     return;
   }
   if (!ds.length && !kho.length) return;

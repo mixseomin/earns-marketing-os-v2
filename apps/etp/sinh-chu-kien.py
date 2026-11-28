@@ -22,6 +22,8 @@ def phim(cid):
     """→ (tên, ngôn ngữ, mô tả Ethopex) — chỉ đọc"""
     r = q(f"select coalesce(ten, '') || E'\\t' || coalesce(locale, substring(url from 'dramaboxdb[.]com/([a-z][a-z])/(?:ep|movie)/'), '') from etp.phim where content_id = {int(cid)}")
     ten, lang = (r.split("\t") + [""])[:2] if r else ("", "")
+    tay = cot_tay(cid)   # anh dán ở phiếu lên camp (#1952) = nguồn sự thật, đứng trước Ethopex / trang nguồn
+    if len(tay) >= 80: return ten, ("es" if lang.lower().startswith("es") else "en"), tay
     mo = ""
     try:
         T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
@@ -39,26 +41,33 @@ def tu_ten(ten):
     """từ khoá của tên phim (bỏ từ nối, ≥ 3 chữ cái)"""
     return {w for w in re.findall(r"[^\W\d_]{3,}", ten.lower()) if w not in _BO}
 
-def chon_truyen(ds, ten):
+def chon_truyen(ds, ten, meta=()):
     """trang nguồn chứa cả đoạn giới thiệu của PHIM GỢI Ý (DramaBox 27/11/2026: phim 157026 'Claimed by the Prince' bốc nhầm truyện
     'billionaire professor Colton' của phim khác vì lấy đoạn DÀI NHẤT) → chỉ nhận đoạn nhắc tên phim, rồi đoạn trùng nhiều từ khoá tên nhất (≥ 1);
-    không đoạn nào khớp → '' (từ chối sinh, không đoán)"""
+    không đoạn nào khớp → mô tả <meta> của CHÍNH trang (meta chỉ tả phim của trang, không chứa phim gợi ý — ReelShort 61412 'Falling for the
+    Cowboy Dad' tóm tắt không nhắc chữ nào trong tên, #1952); không có cả meta → '' (từ chối sinh, không đoán)"""
     tt, kt = re.sub(r"\W+", " ", ten.lower()).strip(), tu_ten(ten)
     co_ten = [d for d in ds if tt and tt in re.sub(r"\W+", " ", d.lower())]
     if co_ten: return max(co_ten, key=len)
     diem = [(len(kt & tu_ten(d)), len(d), d) for d in ds]
     diem = [x for x in diem if x[0] >= 1]
-    return max(diem)[2] if diem else ""
+    if diem: return max(diem)[2]
+    return max(meta, key=len) if meta else ""
 
 def truyen(url, ten=""):
     """cốt truyện trên trang nguồn của phim (ReelShort meta description · DramaBox "introduction" trong dữ liệu trang) — chỉ đọc; không có / không khớp tên phim → ''"""
     if not url.startswith("http"): return ""
     try: t = urllib.request.urlopen(urllib.request.Request(url, headers={"user-agent": "Mozilla/5.0"}), timeout=30).read().decode("utf8", "ignore")
     except Exception as e: print(f"trang nguồn {url[:80]}: lỗi {str(e)[:80]}", file=sys.stderr); return ""
-    ds = [html.unescape(m) for m in re.findall(r'<meta[^>]+(?:name|property)="(?:og:)?description"[^>]+content="([^"]+)"', t)]
-    ds += [json.loads('"' + m + '"') for m in re.findall(r'"(?:introduction|intro|synopsis|description)"\s*:\s*"((?:[^"\\]|\\.){80,3000})"', t)]
-    ds = [d.strip() for d in ds if len(d.strip()) >= 80 and not re.search(r"watch online\s*$", d, re.I)]
-    return chon_truyen(ds, ten) if ten else ""
+    me = [html.unescape(m) for m in re.findall(r'<meta[^>]+(?:name|property)="(?:og:)?description"[^>]+content="([^"]+)"', t)]
+    ds = me + [json.loads('"' + m + '"') for m in re.findall(r'"(?:introduction|intro|synopsis|description)"\s*:\s*"((?:[^"\\]|\\.){80,3000})"', t)]
+    sach = lambda xs: [d.strip() for d in xs if len(d.strip()) >= 80 and not re.search(r"watch online\s*$", d, re.I)]
+    return chon_truyen(sach(ds), ten, sach(me)) if ten else ""
+
+def cot_tay(cid):
+    """cốt truyện anh bổ sung trên phiếu lên camp etp2 (etp.cot_truyen_tay, 0498) — chưa có → ''"""
+    try: return (q(f"select chu from etp.cot_truyen_tay where content_id = {int(cid)}") or "").strip()
+    except Exception as e: print(f"phim {cid}: đọc cốt truyện tay lỗi ({str(e)[:80]})", file=sys.stderr); return ""
 
 def mau(lang, n=3):
     """bộ chữ tay cùng ngôn ngữ (sổ chu-kieu.json) làm mẫu giọng"""
@@ -166,6 +175,12 @@ if __name__ == "__main__":
         assert chon_truyen([_khac, _dung], "Claimed by the Prince:The Forbidden Wet Nurse") == _dung
         assert chon_truyen([_khac, "Claimed by the Prince The Forbidden Wet Nurse Episode 1 " + _dung], "Claimed by the Prince:The Forbidden Wet Nurse").startswith("Claimed")
         assert chon_truyen([_khac], "Claimed by the Prince:The Forbidden Wet Nurse") == ""
+        # #1952: ReelShort 61412 tả phim không nhắc chữ nào của tên → meta của chính trang vẫn nhận; đoạn JSON phim gợi ý thì không
+        _meta = "Forced into marriage by her scheming grandmother and sister, Natalia becomes the wife of Leonardo, a rugged rural rancher and devoted single father."
+        assert chon_truyen([_meta, _khac], "Falling for the Cowboy Dad", [_meta]) == _meta
+        assert chon_truyen([_khac], "Falling for the Cowboy Dad", []) == ""
+        assert chon_truyen([_meta, _dung], "Claimed by the Prince:The Forbidden Wet Nurse", [_meta]) == _dung
+        assert callable(cot_tay)
         assert truyen("https://x", "") == "" and truyen("khong-phai-link", "Ten") == ""
         print("sinh-chu-kien tự kiểm ok"); sys.exit(0)
     ids = cho() if "--cho" in sys.argv else [x for x in sys.argv[1:] if x.isdigit()]

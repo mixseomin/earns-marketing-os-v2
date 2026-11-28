@@ -1988,4 +1988,7 @@ export const LUAT = [
   { card: 'sx-ket-2811', tep: 'apps/xuong-video/scripts/ethopex/vx-ke-chuyen.mts', co: "[khung, ...duPhong].join(',')", vi: 'vx-ke-chuyen đưa khung dự phòng các cảnh trước cho cta-logo' },
   { card: 'sx-ket-2811', tep: 'apps/xuong-video/scripts/ethopex/cta-logo.py', co: 'TT.tai_poster(TT.mo_rong(p["url"]), tm)', cam: 'AT.sh("curl", "-sSfL", "-A", "Mozilla/5.0", "-o", pj, link)', vi: 'cta-logo tải poster bằng đường chung (Referer + kiểm ảnh), không curl trơn' },
   { card: 1931, tep: 'apps/etp/dong-bo.py', co: 'import hang_phieu as HP; kq["hang_phieu"] = HP.chay(q)', vi: 'nhịp đồng bộ 10 phút thử lại phiếu xếp hàng khi máy dựng còn bận (#1931)' },
+  { card: 1952, tep: 'apps/etp/sinh-chu-kien.py', co: 'tay = cot_tay(cid)', vi: 'sinh chữ K đọc cốt truyện anh bổ sung trên phiếu (etp.cot_truyen_tay) trước Ethopex / trang nguồn (#1952)' },
+  { card: 1952, tep: 'apps/etp/sinh-chu-kien.py', co: 'return max(meta, key=len) if meta else ""', vi: 'trang nguồn tả phim không nhắc tên (ReelShort 61412) → vẫn nhận mô tả meta của chính trang (#1952)' },
+  { card: 1952, tep: 'packages/db/migrations/0498_etp_cot_truyen_tay.sql', co: 'create table if not exists etp.cot_truyen_tay', vi: 'bảng cốt truyện anh bổ sung (#1952)' },
 ];

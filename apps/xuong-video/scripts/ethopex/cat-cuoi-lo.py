@@ -21,7 +21,7 @@ DAI_SAN = 30   # đoạn ra (sau khi cắt bỏ giây cấm) ngắn nhất còn 
 KIEU = os.environ.get("ETP_KIEU", "")
 TAP_MIN, TAP_MAX = 45, 160
 CAM_PHIM = {}   # phim → giây cấm đã đọc (chon) — kiểu tập nguyên truyền sang cat-canh để bỏ
-sys.path.insert(0, D); import loi_ky_thuat as LK; import cat_drive as CD
+sys.path.insert(0, D); import loi_ky_thuat as LK; import cat_drive as CD; import tieng_goc as TG
 
 def ghep_mo(tm):
     """ghép các tập còn mở (tập ≤ 20s là bản cụt của tập khoá — DramaBox trả 15s)"""
@@ -100,20 +100,17 @@ def ghi_lo(ra_dir, ds):
         _LO[id(ds)] = ds; tat = [k for v in _LO.values() for k in v]
         tam = os.path.join(ra_dir, "lo.json.tam"); json.dump(tat, open(tam, "w"), ensure_ascii=False, indent=1); os.replace(tam, os.path.join(ra_dir, "lo.json"))
 
-LOGO_CC2 = {}   # cid → (ảnh lớp logo CC2, ₫ AI tách logo chưa tính)
 def lam(p, goc, ra_dir, so_ban=1):
     cid, loc, ten = p[0], p[1], p[3]; tm = os.path.join(goc, cid)
     try:
         pst = os.path.join(tm, "poster-1080.png"); DL.poster(os.path.join(tm, "poster.jpg"), pst)
-        src, moc = ghep_mo(tm); khung, cam = chon(src, moc, so_ban)
+        src, moc = ghep_mo(tm)
+        sai = TG.kiem(src, loc)   # phim ES mà tập nói tiếng Anh (134241, anh 28/11/2026) → bỏ trước khi đọc chữ / cắt / giọng
+        if sai: return [{"content_id": int(cid), "ten": ten, "loi": sai}]
+        khung, cam = chon(src, moc, so_ban)
         # giây người duyệt bảo cắt bỏ (anh 07/11/2026 topic 🔍 Duyệt creative, nút ✂️) — cat-canh bỏ như giây cấm của cổng thoại
         CAM_PHIM[cid] = sorted(set(cam) | {int(float(g)) for g in os.environ.get("ETP_CAM_THEM", "").split(",") if g.strip()})
         if not khung: return [{"content_id": int(cid), "ten": ten, "loi": f"không có khung cuối sạch (giây cấm {cam[:12]})"}]
-        if os.environ.get("ETP_LOGO_CC2") == "1":   # CC2 (anh 26/11/2026): logo gốc + nút thay ô chữ tên phim — MỘT lớp / phim; không tách được logo → bỏ phim, không lùi về chữ
-            lop = os.path.join(tm, f"lop-cc2-{loc}.png")
-            r = subprocess.run([os.path.expanduser("~/.venvs/poster-mau/bin/python"), os.path.join(D, "lop-logo-cc2.py"), tm, cid, ten, loc, p[4] if len(p) > 4 else "", lop], capture_output=True, text=True, timeout=900)
-            if r.returncode != 0: return [{"content_id": int(cid), "ten": ten, "loi": ("logo CC2: " + (r.stderr or r.stdout).strip())[-300:]}]
-            j = json.loads(r.stdout.strip().splitlines()[-1]); LOGO_CC2[cid] = (lop, j.get("vnd") or 0)
         ra = []
         for tu, den in khung:   # lỗi kỹ thuật → cắt lại tại chỗ (loi_ky_thuat.py)
             ra.append(LK.thu(cat1, cid, loc, ten, src, moc, pst, tu, den, ra_dir)); ghi_lo(ra_dir, ra)
@@ -125,14 +122,13 @@ def cat1(cid, loc, ten, src, moc, pst, tu, den, ra_dir):
     try:
         ra = os.path.join(ra_dir, f"{'t' if KIEU == 'tap' else 'c'}-{cid}-{int(tu)}.mp4")
         c = CQ.CTA["es" if loc == "es" else "en"]; args = [c["nut"], ra, c["giong"], c["hoi"]]   # CTA chung (cta_qc.py)
-        r = subprocess.run(["python3", os.path.join(D, "cat-canh.py"), src, str(tu), str(den), pst, "-"] + args, capture_output=True, text=True, env={**os.environ, **({"ETP_LOGO": LOGO_CC2[cid][0]} if cid in LOGO_CC2 else {}), "ETP_TEN": ten, "ETP_CAM": ",".join(str(g) for g in CAM_PHIM.get(cid, []) if tu <= g <= den)})
+        r = subprocess.run(["python3", os.path.join(D, "cat-canh.py"), src, str(tu), str(den), pst, "-"] + args, capture_output=True, text=True, env={**os.environ, "ETP_TEN": ten, "ETP_CAM": ",".join(str(g) for g in CAM_PHIM.get(cid, []) if tu <= g <= den)})
         if r.returncode != 0: return {"content_id": int(cid), "ten": ten, "loi": (r.stdout + r.stderr)[-300:]}
         g = DL.giay(ra)
         # ĐOẠN NGẮN VẪN DÙNG (anh 07/11/2026 "thử khung ngắn 55… ảnh tĩnh 9s vẫn ok, cấm bỏ cuộc"): cắt bỏ giây cấm làm khung 65s còn 51–61s → trước bỏ cả phim.
         # Giờ chỉ bỏ khi còn dưới DAI_SAN giây.
         if g < ((den - tu) * 0.5 - 1 if KIEU == "tap" else DAI_SAN): return {"content_id": int(cid), "ten": ten, "loi": f"đoạn ra {g:.1f}s ngắn hơn khung {den - tu:.0f}s"}   # tập nguyên: không thẻ cuối + có thể đã bỏ giây cấm
         bien = {"nut_mau": os.environ.get("ETP_NUT_MAU", "do"), "the_cuoi": os.environ.get("ETP_THE_CUOI", "poster")}   # biến thể đo điểm chạm (cat-canh.py) → sổ diem_cham
-        if cid in LOGO_CC2: bien["logo"] = "cc2"; bien["vnd_logo"] = LOGO_CC2[cid][1]; LOGO_CC2[cid] = (LOGO_CC2[cid][0], 0)   # tiền tách logo tính một lần / phim
         return {"content_id": int(cid), "lang": loc, "ten": ten, "tu": tu, "den": den, "het_tap": len(moc), "moc_tap": moc, "file": ra, "giay": round(DL.giay(ra), 1), "bien": bien}
     except Exception as e:
         return {"content_id": int(cid), "ten": ten, "loi": str(e)[-300:]}

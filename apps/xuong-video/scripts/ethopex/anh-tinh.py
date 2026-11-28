@@ -11,17 +11,16 @@ MỘT lệnh lo trọn, mỗi phim:
   4. cổng chữ trên video (kiem-thoai.py) → thư viện etp (thu-vien-them.mts, dạng "ảnh tĩnh", nguồn anh_tinh) → creative (thu-vien-len.py)
 Từ đó nhịp ethopex (apps/cty/worker/ethopex.mjs) thấy creative ảnh tĩnh chấm Sạch của phim đang chạy → lên camp $1, giờ chạy theo lịch chung (nhan-ban.lich_len).
 Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--ban N bản / phim] [--xem] [--giong ky_di|gao|cam_xuc|hao_hung|thuong|theo-phim|xoay]
-  giọng mặc định = sổ luật giong_at.mac_dinh = thuong / George (anh 27/11/2026, ky_di KHÔNG ƯU TIÊN — vẫn dùng được, xếp cuối; trước đó ky_di mặc định 18/11/2026) cho MỌI bản; --giong xoay = xoay 5 kiểu như 05/11/2026;
+  giọng mặc định = giọng tốt nhất đã đo (sổ luật giong_at.mac_dinh = ky_di / Brian, anh 18/11/2026) cho MỌI bản; --giong xoay = xoay 5 kiểu như 05/11/2026;
   dấu kiểu ghi vào etp.diem_cham.cham.voice.giong để đo
   lớp Free (nhãn tím "All Episodes Released" + tên phim + nút xanh "Watch For Free") LUÔN vẽ — anh chốt 19/11/2026 (at_chi_dang_free): AT chỉ một dạng, không tắt được
   --anh <tệp ảnh> (lặp được) = KHUNG CHỈ ĐỊNH (anh 22/11/2026 "trên spy … cắt theo 1 cảnh tương tự … ảnh dùng chung cho cả EN/ES thay nội dung"): bỏ bước tải tập + AI xếp hạng,
     dựng đúng ảnh đưa vào (một ảnh dùng cho mọi phim trong lệnh — bản EN và ES cùng cảnh, chỉ đổi tên phim / lớp Free / giọng theo ngôn ngữ từng phim)
   không id = tự chọn N phim (mặc định 10) · --xem = chỉ dựng + tờ khung (~/.cache/ethopex/anh-tinh/to-<giờ>.jpg), không nạp thư viện / tạo creative"""
-import difflib, hashlib, json, os, random, re, subprocess, sys, time
+import hashlib, json, os, random, re, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); from goc_etp2 import tep as _tep_etp2   # repo etp2 riêng (27/11/2026)   # CẤM dựng video trên box3 (anh 03/11/2026)
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps, ImageStat
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageStat
 
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex/anh-tinh")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
@@ -29,8 +28,8 @@ XV = f"{ENV}; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../.
 DANG, NGUON, NGAY_MOI, GIAY_MIN, W, H = "ảnh tĩnh", "anh_tinh", 14, 9.0, 1080, 1920
 # MẪU CÂU GIỌNG — mỗi mẫu 3 vế (vế nào cũng được chứa {t} = tên phim · c = câu chốt, thẻ hét đặt trước nó) để KIEU_GIONG chèn thẻ cách đọc. Mỗi creative BỐC NGẪU NHIÊN một mẫu của ngôn ngữ
 # (anh 06/11/2026 "Thêm các mẫu voice này vào AT !!! Khi lên camp dạng AT, switch random giữa chúng"), số mẫu ghi vào etp.diem_cham.cham.voice.mau để đo. Chữ giữ nguyên văn anh đưa.
-# Câu nằm trong SỔ MẪU <repo etp2>/src/lib/etp-mau-cr.json › thu_vien.giong.cau (23/11/2026: ngăn soạn creative etp2 cho ghim câu đọc vào ô Giọng — một nguồn cho cả trang lẫn máy).
-CAU = {k: [tuple(m) for m in v] for k, v in json.load(open(_tep_etp2("src", "lib", "etp-mau-cr.json"), encoding="utf-8"))["thu_vien"]["giong"]["cau"].items()}
+# Câu nằm trong SỔ MẪU apps/etp2/src/lib/etp-mau-cr.json › thu_vien.giong.cau (23/11/2026: ngăn soạn creative etp2 cho ghim câu đọc vào ô Giọng — một nguồn cho cả trang lẫn máy).
+CAU = {k: [tuple(m) for m in v] for k, v in json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp2", "src", "lib", "etp-mau-cr.json"), encoding="utf-8"))["thu_vien"]["giong"]["cau"].items()}
 assert len(CAU.get("en", [])) >= 1 and all(len(m) == 3 for l in CAU.values() for m in l), "sổ mẫu thiếu câu giọng (thu_vien.giong.cau) hoặc câu không đủ 3 vế"
 assert not [m for l in CAU.values() for m in l if re.match(r"\W*(for\s+free|free|gratis)\b", m[0], re.I)], "mẫu giọng mở bằng Free/gratis — câu đầu phải là tên phim (anh 21/11/2026)"
 # GIỌNG THEO PHIM (anh 05/11/2026: "giọng kỳ dị, gào thét, ấn tượng … tuỳ theo film"): kiểu đọc chọn theo thể loại phim (etp.phim.the_loai);
@@ -44,18 +43,14 @@ KIEU_GIONG = {
     "tinh_nghich": ("Charlotte", "[mischievously] {a}... [laughs] {b} [excited] {c}"),   # phép thuật / hài / tình cảm vui (anh 25/11/2026 giọng theo chủ đề phim)
 }
 # MÔ TẢ KIỂU GIỌNG cho mô hình chọn theo chủ đề phim (xep-khung.py, cùng lượt xếp khung) — thêm kiểu mới vào KIEU_GIONG thì thêm mô tả ở đây
-MO_TA_GIONG = {"ky_di": "LOW PRIORITY, pick only when no other style fits — male, whispering then sinister laugh then shouting — supernatural, dark fantasy, system / cultivation, mystery",
+MO_TA_GIONG = {"ky_di": "male, whispering then sinister laugh then shouting — supernatural, dark fantasy, system / cultivation, mystery",
                "gao": "male, shouting and screaming — revenge, hidden billionaire / underdog, mafia, power reversal, action",
                "cam_xuc": "female, crying then shouting — regret, betrayal, mother and child, tragic family drama",
                "hao_hung": "female, excited and screaming — passionate romance, school love, period drama",
                "thuong": "male, plain calm narration — serious drama, biography, war, when no strong mood fits",
                "tinh_nghich": "female, mischievous with laughs then excited — magic / wishes, comedy, light-hearted or sweet romance"}
 assert set(MO_TA_GIONG) == set(KIEU_GIONG), "MO_TA_GIONG phải mô tả đủ mọi kiểu trong KIEU_GIONG"
-# GIỌNG KHÔNG ƯU TIÊN (anh 27/11/2026 "Đổi hết các giọng AD về dạng thường là mặc định" + "ko phải cấm ky_di mà là ko ưu tiên nó"): KHÔNG cấm —
-# --giong ky_di / anh ghim / AI chọn vẫn ra ky_di; chỉ không bao giờ là mặc định, không gắn sẵn cho thể loại nào, xếp CUỐI trong vòng xoay và AI được dặn chỉ chọn khi không kiểu nào khác hợp.
-GIONG_SAU = {"ky_di"}
-KIEU_CHON = [k for k in KIEU_GIONG if k not in GIONG_SAU] + [k for k in KIEU_GIONG if k in GIONG_SAU]   # thứ tự ưu tiên: giọng không ưu tiên xếp cuối
-THE_LOAI_GIONG = {"fantasy": "thuong", "soi": "thuong", "vien_tuong": "thuong", "he_thong": "thuong",   # từng là ky_di — 27/11/2026 ky_di không ưu tiên nên không gắn sẵn cho thể loại
+THE_LOAI_GIONG = {"fantasy": "ky_di", "soi": "ky_di", "vien_tuong": "ky_di", "he_thong": "ky_di",
                   "vo_danh": "gao", "ty_phu": "gao", "mafia": "gao", "doi_thuong": "gao",
                   "hoi_han": "cam_xuc", "me_con": "cam_xuc", "tinh_cam": "hao_hung", "hoc_duong": "hao_hung", "co_trang": "hao_hung"}
 UNG_VIEN = 20   # số khung ứng viên gửi AI xếp hạng
@@ -68,7 +63,7 @@ FONT = "/System/Library/Fonts/Supplemental/Georgia Bold Italic.ttf"
 # nhãn tím trên cùng "All Episodes Released" + nút xanh "Watch For Free" ngay dưới tên phim. LUÔN BẬT (anh chốt 19/11/2026 theo mẫu team Dol: "Phải luôn có text ở trên,
 # FREE + mô tả tên phim!") — cờ --khong-free đã bỏ; bản không Free mang nhãn cta khong_nut và cổng apps/etp/cong.at_sai_dang chặn lên camp.
 # Tên phim đẩy lên (đáy ≤ TEN_DAY_FREE) để nút xanh vẫn nằm trên vùng khung ứng dụng (~15% đáy: tên trang, nút của Meta).
-import cta_qc as _CQ; FREE = _CQ.LOP_FREE   # nguồn chung: cta_qc.LOP_FREE (cổng kiem-thoai đọc cùng chỗ)
+FREE = {"en": ("All Episodes Released", "Watch For Free"), "es": ("Todos los episodios ya disponibles", "Míralo gratis")}
 FONT_FREE, TIM, XANH, TEN_DAY_FREE = "/System/Library/Fonts/Supplemental/Arial Bold.ttf", (124, 58, 237, 255), (34, 197, 94, 255), 0.72
 if "--khong-free" in sys.argv: sys.exit("--khong-free đã bỏ: AT chỉ còn MỘT dạng có Free (anh chốt 19/11/2026, sổ luật at_chi_dang_free)")
 CO_FREE = True
@@ -79,7 +74,7 @@ CO_FREE = True
 #   kinh — nhãn chữ trắng không hộp, hai vạch vàng hai bên · nút trắng chữ tối kèm nút phát đỏ (mẫu khung trình phát)
 #   tim  — kiểu cũ: nhãn tím, nút xanh lá (giữ để so, không nằm trong vòng xoay)
 # KIỂU LẤY TỪ THƯ VIỆN MẪU (anh 20/11/2026 "mọi mẫu creative đều phải lưu vào thư viện và việc sx đều phải dựa vào đó"): danh sách kiểu = các mục của sổ
-# <repo etp2>/src/lib/etp-mau-cr.json có trường lop_free và đang dùng được (trang_thai may / thu) — tắt / thêm một kiểu là sửa SỔ (tab Mẫu Creative), không sửa mã.
+# apps/etp2/src/lib/etp-mau-cr.json có trường lop_free và đang dùng được (trang_thai may / thu) — tắt / thêm một kiểu là sửa SỔ (tab Mẫu Creative), không sửa mã.
 # Sổ không còn kiểu nào → dừng kêu rõ (không tự vẽ kiểu ngoài thư viện). FREE_MAU: kiểu → mã mẫu trong sổ (ghi vào ghi chú bản dựng để đo từng kiểu).
 def _free_tu_so():
     import importlib.util
@@ -88,7 +83,7 @@ def _free_tu_so():
 FREE_MAU = _free_tu_so(); FREE_KIEU = list(FREE_MAU); FREE_BAN = [0]   # FREE_BAN[0] = số bản đang vẽ (anh() / tinh-ba-kieu đặt trước khi vẽ)
 def free_mau(ban=None):
     """mã mẫu thư viện của kiểu nhãn + nút dùng cho bản `ban` (mặc định bản đang vẽ)"""
-    if not FREE_KIEU: raise RuntimeError("thư viện mẫu (<repo etp2>/src/lib/etp-mau-cr.json) không còn kiểu nhãn + nút Free nào đang dùng được (trường lop_free) — thêm / bật lại ở tab Mẫu Creative")
+    if not FREE_KIEU: raise RuntimeError("thư viện mẫu (apps/etp2/src/lib/etp-mau-cr.json) không còn kiểu nhãn + nút Free nào đang dùng được (trường lop_free) — thêm / bật lại ở tab Mẫu Creative")
     return FREE_MAU[FREE_KIEU[(FREE_BAN[0] if ban is None else ban) % len(FREE_KIEU)]]
 VANG_F, DO_F = (240, 200, 112, 255), (225, 29, 46, 255)
 def lop_free(lop, lang, day_ten=None, kieu=None, chi_nhan=False):
@@ -149,11 +144,6 @@ MA_HOA = ["-c:v", "h264_videotoolbox", "-b:v", "8M" if MOI else "3M", "-maxrate"
 def sql(q):
     return subprocess.run(["ssh", B, f"{ENV}; psql \"$DATABASE_URL\" -tAq"], input=q, capture_output=True, text=True, check=True).stdout.strip()
 def sh(*a, han=900): return subprocess.run(list(a), capture_output=True, text=True, timeout=han)
-# CÂU ĐỌC SINH THÊM (anh 27/11/2026 "phải cho tao sinh thêm kiểu khác"): nút ✨ ở phiếu lên camp (etp2 sinhCauDoc) ghi etp.cau_hinh 'cau_doc_them' {lc: [[a, b, c]…]}
-# → nối SAU các mẫu của sổ etp-mau-cr.json, giữ thứ tự (id 'es:1' = mẫu thứ hai của danh sách nối — etp2 dựng id cùng cách)
-try: _CAU_THEM = json.loads(sql("select gia_tri::text from etp.cau_hinh where khoa = 'cau_doc_them'") or "{}")
-except Exception as e: print(f"⚠ không đọc được câu đọc sinh thêm (etp.cau_hinh cau_doc_them): {str(e)[:120]} — chỉ dùng mẫu của sổ", file=sys.stderr); _CAU_THEM = {}
-for _k, _v in _CAU_THEM.items(): CAU.setdefault(_k, []).extend(tuple(m) for m in _v if isinstance(m, list) and len(m) == 3 and all(isinstance(x, str) and x for x in m) and not re.match(r"\W*(for\s+free|free|gratis)\b", m[0], re.I))   # câu mở bằng Free/gratis không nạp (etp2 sinhCauDoc cũng chặn)
 def ten_sach(t): return re.sub(r"\s*[（(](?:DUBBED|Doblado)[)）]\s*", " ", t or "").strip()
 
 def chon(so):
@@ -286,7 +276,12 @@ def khung_chi(tm):
                    "so_khung": 1, "dat": 1, "xoa": [], "goc_tep": os.path.abspath(f)})
     return uv
 
-from hook_phim import _mo_ta   # tóm tắt thật của phim (tai-tap.mo_ta) — một bản cho xếp khung lẫn hook
+def _mo_ta(url):
+    """tóm tắt thật của phim (tai-tap.mo_ta) — lỗi thì rỗng, AI xếp theo luật chung"""
+    try:
+        import importlib.util
+        s = importlib.util.spec_from_file_location("tt_mo_ta", os.path.join(D, "tai-tap.py")); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m.mo_ta(url)
+    except Exception as e: print("không đọc được tóm tắt phim:", e, file=sys.stderr); return ""
 def xep_ai(ten, uv, mo_ta="", the_loai="", poster=None, chon_giong=None):
     """AI xếp hạng ứng viên theo độ ấn tượng / đẹp (box3 xep-khung.py, ckey) → (danh sách theo thứ tự, lý do, ₫). Lỗi → giữ thứ tự điểm máy.
     poster: POSTER GỐC của phim làm ảnh đối chiếu (anh 20/11/2026 "Sao nó ko liên quan gì đến poster gốc?" — Undercover Prison King ra khung người lính quân phục trong khi
@@ -300,11 +295,11 @@ def xep_ai(ten, uv, mo_ta="", the_loai="", poster=None, chon_giong=None):
     anh = [du(u["nho"]) for u in uv]
     poster = poster or (os.path.join(os.path.dirname(os.path.dirname(uv[0]["nho"])), "poster.jpg") if uv else None)
     pa = du(poster, 82, 640) if poster and os.path.exists(poster) else None
-    r = subprocess.run(["ssh", B, f"{ENV}; python3 apps/xuong-video/scripts/ethopex/xep-khung.py"], input=json.dumps({"ten": ten, "anh": anh, "mo_ta": mo_ta, "the_loai": the_loai, **({"poster": pa} if pa else {}), **({"giong_chon": {k: v for k, v in MO_TA_GIONG.items() if k in KIEU_CHON}} if chon_giong is not None else {})}), capture_output=True, text=True, timeout=300)
+    r = subprocess.run(["ssh", B, f"{ENV}; python3 apps/xuong-video/scripts/ethopex/xep-khung.py"], input=json.dumps({"ten": ten, "anh": anh, "mo_ta": mo_ta, "the_loai": the_loai, **({"poster": pa} if pa else {}), **({"giong_chon": MO_TA_GIONG} if chon_giong is not None else {})}), capture_output=True, text=True, timeout=300)
     try: j = json.loads(r.stdout.strip().splitlines()[-1])
     except Exception: j = {"thu_tu": [], "ly_do": (r.stderr or r.stdout)[-200:], "vnd": 0}
     tt = j.get("thu_tu") or list(range(len(uv)))
-    if chon_giong is not None and j.get("giong") in KIEU_CHON: chon_giong.update(giong=j["giong"], giong_ly_do=j.get("giong_ly_do") or "")
+    if chon_giong is not None and j.get("giong") in KIEU_GIONG: chon_giong.update(giong=j["giong"], giong_ly_do=j.get("giong_ly_do") or "")
     for x in j.get("khung") or []:   # nhãn cảm xúc + nhân vật từng khung (có khi gửi tóm tắt phim) — bản dựng lần sau cho cùng phim chọn khung khác cảm xúc
         if 0 <= x.get("i", -1) < len(uv): uv[x["i"]]["cam_xuc"] = x.get("cam_xuc") or ""; uv[x["i"]]["nhan_vat"] = x.get("nhan_vat") or ""
     return [uv[i] for i in tt], j.get("ly_do", ""), int(j.get("vnd") or 0)
@@ -312,46 +307,26 @@ def xep_ai(ten, uv, mo_ta="", the_loai="", poster=None, chon_giong=None):
 def giong_tu(a, b):
     """hai từ coi là MỘT khi máy đọc chữ đọc lệch một ký tự (21/11/2026: chữ viết tay "Bugatti" đọc thành "Bugattis" → không khớp tên, logo bị coi là chữ khác và cắt mất)"""
     if a == b: return True
-    # từ 4 ký tự đọc RỤNG một ký tự ra 3 ký tự cũng tính (27/11/2026 The Lion God 203055: chữ I kiểu cách đọc thành "LON" → máy tưởng tên thiếu "lion", bỏ ảnh khoá màu sạch,
-    # logo lốm đốm). Chỉ rụng, không đổi ký tự: từ 3 ký tự đổi một ký tự khớp nhầm quá dễ
-    if min(len(a), len(b)) < (3 if len(a) != len(b) else 4) or abs(len(a) - len(b)) > 1: return False
+    if min(len(a), len(b)) < 4 or abs(len(a) - len(b)) > 1: return False
     if len(a) > len(b): a, b = b, a
     i = 0
     while i < len(a) and a[i] == b[i]: i += 1
     return a[i + (len(a) == len(b)):] == b[i + 1:]
 
-def khop_tu(doc, can, ten=None):
+def khop_tu(doc, can):
     """các từ của tên phim (can) có trong tập từ máy đọc (doc), cho phép lệch một ký tự"""
-    # máy đọc chữ hay DÍNH từ (25/11/2026 Deny Me, Dragon King: đọc "DenyMe," "Dragonkus") → từ đọc được chứa trọn từ của tên (≥ 2 ký tự) cũng tính là khớp
-    # nhưng PHẦN CÒN LẠI của từ dính cũng phải là từ của tên (27/11/2026 92980: "te" nằm trong "GENERATE" của dấu Ai trên poster → hộp tên kéo cả dấu Ai, logo co bé xíu)
-    def dinh(d, c):
-        if not len(d) > len(c) >= 2: return False
-        r = d[len(c):] if d.startswith(c) else d[:-len(c)] if d.endswith(c) else None
-        r = re.sub(r"[^a-z0-9áéíóúñü]", "", r or "")
-        return bool(r) and any(giong_tu(r, c2) or (len(r) >= 2 and (c2.startswith(r) or c2.endswith(r))) for c2 in can if c2 != c)
-    co = {c for c in can if any(giong_tu(d, c) or dinh(d, c) for d in doc)}
-    if ten:   # cụm 2–3 từ liền nhau của tên bị đọc dính + lệch đuôi ("Dragonkus" ≈ "dragonking") → cả cụm tính là khớp
-        tt = [w for w in re.findall(r"[a-z0-9áéíóúñü]+", re.sub(r"['’`]", "", ten.lower()))]
-        for n in (2, 3):
-            for i in range(len(tt) - n + 1):
-                cum = "".join(tt[i:i + n])
-                if any(len(d) >= 6 and difflib.SequenceMatcher(None, d, cum).ratio() >= 0.73 for d in doc): co |= set(tt[i:i + n]) & can
-    return co
-
-def tu_chu(x):
-    """tách từ một dòng chữ để so với tên phim — bỏ dấu nháy trước (25/11/2026 "WHAT IF I'M": "i'm" bị tách "i" + "m", không khớp tên) — dùng chung anh-tinh + logo-goc"""
-    return set(re.findall(r"[a-z0-9áéíóúñü]+", re.sub(r"['’`]", "", x.lower())))
+    return {c for c in can if any(giong_tu(d, c) for d in doc)}
 
 def thieu_tu(ten, j, hop):
     """từ của tên phim mà các hộp tên KHÔNG đọc ra (đã khớp được một phần tên) — 21/11/2026 Get Out of My Bugatti: chữ "Bugatti" viết tay máy đọc chữ bỏ sót,
     cắt theo hộp chữ thì logo chỉ còn "Get Out of My". Hộp lấy theo khối chữ to nhất (không khớp từ nào) → set() (không đo được)."""
-    tu = tu_chu; can = tu(ten)
-    doc = khop_tu(set().union(*[tu(k[0]) for k in j.get("khung") or [] if k[1:] in hop]), can, ten)
+    tu = lambda x: set(re.findall(r"[a-z0-9áéíóúñü]+", x.lower())); can = tu(ten)
+    doc = khop_tu(set().union(*[tu(k[0]) for k in j.get("khung") or [] if k[1:] in hop]), can)
     return can - doc if doc else set()
 
 def hop_ten(ten, j):
     """các hộp chữ (x, y, rộng, cao — tỉ lệ ảnh) là TÊN PHIM trong kết quả máy đọc chữ một poster; không thấy → [] (dùng chung: ten_poster + logo-goc.py)"""
-    tu = tu_chu
+    tu = lambda x: set(re.findall(r"[a-z0-9áéíóúñü]+", x.lower()))
     can = tu(ten); hop = [k[1:] for k in j.get("khung") or [] if tu(k[0]) and sum(1 for d in tu(k[0]) if khop_tu({d}, can)) / len(tu(k[0])) >= 0.6]
     if not hop:
         # CHỮ HOA VĂN (08/11/2026 The Dragon's Silly Captive: chữ gothic, Vision đọc lệch → không khớp tên): tên phim gần như luôn là KHỐI CHỮ TO NHẤT nửa dưới poster
@@ -371,7 +346,7 @@ def ten_poster(ten, poster, ra):
     if os.path.exists(ra): os.remove(ra)   # tệp tên của lượt trước (bản 2, 3 dùng lại tệp này) — lượt này không tách được thì không được để bản cũ sót lại
     if not os.path.exists(poster): return None
     from collections import Counter
-    j = json.loads(subprocess.run([may_doc(), poster], capture_output=True, text=True, timeout=300).stdout.strip() or "{}")
+    j = json.loads(subprocess.run([may_doc(), poster], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")
     hop = hop_ten(ten, j)
     if not hop or thieu_tu(ten, j, hop): return None   # tên thiếu từ → cắt theo hộp chữ sẽ mất phần đó; chữ vàng gõ đủ tên
     im = Image.open(poster).convert("RGB"); X, Y = im.size
@@ -452,8 +427,7 @@ def anh(cid, ten, k, tm, ban=0):
     if k.get("goc_tep"): Image.open(k["goc_tep"]).convert("RGB").save(goc)   # khung chỉ định (--anh)
     else: sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k["tap"] + ".mp4"), "-vf", f"{LOC},select=eq(n\\,{k['so'] - 1})", "-frames:v", "1", goc)
     if not os.path.exists(goc): raise RuntimeError(f"không lấy được khung gốc {k['tap']} #{k['so']}")
-    if k.get("lat"): ImageOps.mirror(Image.open(goc).convert("RGB")).save(goc)   # khung lật trái ↔ phải (dung-mau --lat): mat / xoa của k đã lật sẵn
-    j = json.loads(subprocess.run([may_doc(), goc], capture_output=True, text=True, timeout=300).stdout.strip() or "{}")   # đọc chữ lại trên khung gốc: chữ nhỏ ("R") ảnh 540px bỏ sót
+    j = json.loads(subprocess.run([may_doc(), goc], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")   # đọc chữ lại trên khung gốc: chữ nhỏ ("R") ảnh 540px bỏ sót
     k["xoa"] += [[x - w / 2, y - h / 2, w * 2, h * 2] if goc_nho([t, x, y, w, h]) else [x, y, w, h] for t, x, y, w, h in j.get("khung") or []]
     im = xoa(Image.open(goc).convert("RGB"), k["xoa"]); s = max(W / im.width, H / im.height)
     im = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
@@ -494,105 +468,72 @@ def anh(cid, ten, k, tm, ban=0):
     lop.save(os.path.join(tm, f"chu-{ban}.png"))
     return nen, os.path.join(tm, f"chu-{ban}.png")
 
-# GIỌNG MẶC ĐỊNH sổ luật (giong_at.mac_dinh) = CHỖ LÙI CUỐI khi không có giọng anh ghim, AI chưa chọn theo chủ đề, thể loại không có trong sổ (giong_phim).
-# Không phải giọng cố định cho mọi bản (anh 27/11/2026 "Giọng thì phải theo phim và nội dung. Tao đéo chọn giọng nào cố định hết").
+# GIỌNG MẶC ĐỊNH = GIỌNG TỐT NHẤT ĐÃ ĐO (anh 18/11/2026, sổ luật chung giong_at — thay luật xoay 5 giọng 05/11/2026): Brian / ky_di ROI −24% tốt nhất cả trước lẫn sau 12/11,
+# George / thuong −39% tệ nhất. Mọi bản AT (kể cả bản 2, 3… của một phim) đọc giọng này; --giong <kiểu> ép kiểu khác, --giong xoay = cách xoay cũ (đo lại khi cần).
 GIONG_MAC_DINH = json.load(open(os.path.join(D, "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))["giong_at"]["mac_dinh"]
-assert GIONG_MAC_DINH not in GIONG_SAU, f"sổ luật giong_at.mac_dinh '{GIONG_MAC_DINH}' là giọng không ưu tiên (anh 27/11/2026: mặc định giọng thường)"
-assert not GIONG_SAU & set(THE_LOAI_GIONG.values()), "THE_LOAI_GIONG trỏ vào giọng không ưu tiên"
 assert GIONG_MAC_DINH in KIEU_GIONG, f"sổ luật giong_at.mac_dinh '{GIONG_MAC_DINH}' không có trong KIEU_GIONG"
 def kieu_ban(kieu, b, xoay):
     """kiểu giọng của bản thứ b (0 = bản đầu): xoay → lần lượt các kiểu kế (luật 08/11/2026), không xoay → mọi bản cùng một kiểu"""
-    ks = KIEU_CHON; return ks[(ks.index(kieu) + b) % len(ks)] if xoay else kieu
-assert kieu_ban("gao", 2, False) == "gao" and kieu_ban("gao", 1, True) == "cam_xuc" and kieu_ban("ky_di", 0, False) == "ky_di" and KIEU_CHON[-1] in GIONG_SAU
+    ks = list(KIEU_GIONG); return ks[(ks.index(kieu) + b) % len(ks)] if xoay else kieu
+assert kieu_ban("ky_di", 2, False) == "ky_di" and kieu_ban("ky_di", 1, True) == "gao"
 XOAY = False   # --giong xoay (main đặt lại)
 
 def xoay_giong(ds, yeu_cau):
-    """kiểu giọng cho từng phim → {content_id: kiểu}. MẶC ĐỊNH = giong_phim từng phim (AI đã chọn theo chủ đề, lưu ở xem-uv.json của phim → thể loại → mặc định sổ luật;
-    anh 27/11/2026 giọng theo phim, không cố định). --giong <kiểu> ép một kiểu, --giong theo-phim chọn theo thể loại (THE_LOAI_GIONG), --giong xoay = cách 05/11/2026: kiểu ít creative ảnh tĩnh nhất (đếm trong sổ điểm chạm) lên trước,
+    """kiểu giọng cho từng phim → {content_id: kiểu}. MẶC ĐỊNH (anh 18/11/2026) = GIONG_MAC_DINH cho mọi phim. --giong <kiểu> ép một kiểu,
+    --giong theo-phim chọn theo thể loại (THE_LOAI_GIONG), --giong xoay = cách 05/11/2026: kiểu ít creative ảnh tĩnh nhất (đếm trong sổ điểm chạm) lên trước,
     không lặp kiểu phim đó đã có."""
     if yeu_cau == "theo-phim": return {int(p["content_id"]): THE_LOAI_GIONG.get(p.get("the_loai") or "", "thuong") for p in ds}
-    if yeu_cau: return {int(p["content_id"]): yeu_cau for p in ds} if yeu_cau != "xoay" else _xoay(ds)
-    return {int(p["content_id"]): giong_phim(p, giong_ai_luu(p["content_id"]))[0] for p in ds}
-
-def giong_ai_luu(cid):
-    """kiểu giọng AI đã chọn theo chủ đề phim ở lượt xếp khung trước (dung-mau ghi xem-uv.json) — không gọi AI lại. Không có → None"""
-    try: return json.load(open(os.path.join(C, str(int(cid)), "xem-uv.json"))).get("giong")
-    except (OSError, ValueError): return None
-
-assert giong_ai_luu(-1) is None, "phim chưa có xem-uv.json → không có giọng AI, lùi theo thể loại / mặc định"
-
-def _xoay(ds):
+    if yeu_cau != "xoay": return {int(p["content_id"]): yeu_cau or GIONG_MAC_DINH for p in ds}
     # đếm trong CHÍNH sổ điểm chạm (hook.dang + noi_dung.content_id do len-creative ghi) — etp.creative chỉ có creative mới sau lượt đồng bộ 10 phút
     da = json.loads(sql(f"select coalesce(json_agg(x), '[]') from (select (cham->'noi_dung'->>'content_id')::int content_id, cham->'voice'->>'giong' giong from etp.diem_cham "
                         f"where cham->'hook'->>'dang' = '{DANG}' and cham->'voice'->>'giong' is not null) x") or "[]")
-    dem = {k: sum(1 for x in da if x["giong"] == k) for k in KIEU_CHON}; ra = {}
+    dem = {k: sum(1 for x in da if x["giong"] == k) for k in KIEU_GIONG}; ra = {}
     for p in ds:
         cid = int(p["content_id"]); co = {x["giong"] for x in da if x["content_id"] == cid}
-        k = min(KIEU_CHON, key=lambda k: (k in co, dem[k], KIEU_CHON.index(k))); ra[cid] = k; dem[k] += 1
+        k = min(KIEU_GIONG, key=lambda k: (k in co, dem[k], list(KIEU_GIONG).index(k))); ra[cid] = k; dem[k] += 1
     return ra
 
 def giong_phim(p, ai=None, ghim=None):
     """KIỂU GIỌNG CỦA MỘT PHIM (anh 25/11/2026 "giọng cần phiên bản theo film và theme film") — thứ tự: anh ghim (ô Giọng) → AI chọn theo chủ đề câu chuyện
     (xep_ai chon_giong) → thể loại trong sổ (THE_LOAI_GIONG) → giọng mặc định sổ luật. → (kiểu, nguồn)"""
     if ghim in KIEU_GIONG: return ghim, "anh ghim"
-    if ai in KIEU_CHON: return ai, "AI theo chủ đề phim"
+    if ai in KIEU_GIONG: return ai, "AI theo chủ đề phim"
     tl = THE_LOAI_GIONG.get(p.get("the_loai") or "")
     return (tl, f"thể loại {p.get('the_loai')}") if tl else (GIONG_MAC_DINH, "mặc định sổ luật")
-assert giong_phim({}, "ky_di")[0] == "ky_di" and giong_phim({}, None, "ky_di")[0] == "ky_di" and giong_phim({"the_loai": "fantasy"})[0] == "thuong" and giong_phim({})[0] not in GIONG_SAU, "ky_di phải dùng được khi chọn rõ, nhưng không là mặc định (anh 27/11/2026 không ưu tiên, không cấm)"
 assert giong_phim({"the_loai": "mafia"}) == ("gao", "thể loại mafia") and giong_phim({}, "tinh_nghich")[0] == "tinh_nghich" and giong_phim({}, "x", "cam_xuc")[0] == "cam_xuc" and giong_phim({})[0] == GIONG_MAC_DINH
 
-def giong_ban(kg, ng, thu=0):
-    """GIỌNG của MỘT khung hình — đúng MỘT giọng, là giọng của phim (anh ghim → AI theo chủ đề → thể loại → mặc định). thu giữ cho chỗ gọi cũ. → [(kiểu, nguồn)]"""
-    # GIỌNG LUÔN THEO PHIM (anh 27/11/2026 "Giọng thì phải theo phim và nội dung. Tao đéo chọn giọng nào cố định hết"): bỏ xoay bản chẵn về giọng mặc định —
-    # cách đó làm tv5793 (phim mẹ bị ép vào viện, AI chọn cam_xuc) và tv5794 (AI chọn gao) ra George đọc phẳng. Mặc định sổ luật chỉ còn là chỗ lùi khi AI không chọn được.
-    return [(kg, ng)]
-assert all(giong_ban(k, "AI theo chủ đề phim", t) == [(k, "AI theo chủ đề phim")] for k in ("hao_hung", "gao", "cam_xuc") for t in range(4)), "mọi bản đọc đúng giọng theo phim, không xoay về giọng cố định"
-assert giong_ban("gao", "anh ghim", 1) == [("gao", "anh ghim")]
+def giong_ban(kg, ng):
+    """CÁC BẢN GIỌNG của một bản dựng (anh 25/11/2026 "có 2 phiên bản chứ ko phải bỏ"): giọng mặc định sổ luật (tốt nhất theo số) LUÔN giữ,
+    thêm bản giọng theo chủ đề phim nếu khác; anh ghim giọng thì chỉ bản đó. → [(kiểu, nguồn)]"""
+    if ng == "anh ghim": return [(kg, ng)]
+    return [(GIONG_MAC_DINH, "mặc định sổ luật")] + ([(kg, ng)] if kg != GIONG_MAC_DINH else [])
+assert [k for k, _ in giong_ban("hao_hung", "AI theo chủ đề phim")] == [GIONG_MAC_DINH, "hao_hung"] or GIONG_MAC_DINH == "hao_hung"
+assert len(giong_ban(GIONG_MAC_DINH, "x")) == 1 and giong_ban("gao", "anh ghim") == [("gao", "anh ghim")]
 
-def cau_doc(lang, so_mau, kieu, ten, hook=None):
-    """câu đọc của một mẫu — MỘT chỗ cho giọng đọc lẫn dấu sổ. Gộp mạo từ lặp khi tên phim đã mở bằng nó ("Watch the The Great…" — Genie 21/11/2026).
-    hook = CÂU HOOK CỐT TRUYỆN (anh 27/11/2026 "Nội dung câu đọc phải là hook giữ chân"; hook_phim): đọc ĐẦU TIÊN, rồi mới tới mời xem —
-    "<hook> Watch X for Free Now. Watch More Now!" (anh 27/11/2026 "cái nào cũng Watch now ngay từ đầu": 3 giây đầu là câu chuyện, không phải lời mời;
-    luật 21/11 chỉ cấm mở bằng Free/gratis — hook không bao giờ chứa Free, hook_dat chặn)."""
+def cau_doc(lang, so_mau, kieu, ten):
+    """câu đọc của một mẫu — MỘT chỗ cho giọng đọc lẫn dấu sổ. Gộp mạo từ lặp khi tên phim đã mở bằng nó ("Watch the The Great…" — Genie 21/11/2026)"""
     a_, b_, c_ = CAU[lang][so_mau]
-    ten = re.sub(r"^[¡¿\s]+|[!?¡¿.\s]+$", "", ten or "")   # tên phim nằm GIỮA câu: bỏ ¡…! / ¿…? của chính tên ("¡Mira ¡Lárgate de mi Bugatti! gratis" — anh 27/11/2026)
-    h = (hook or "").strip()
-    if h and not re.search(r"[.!?…]$", h): h += "."
-    cau = KIEU_GIONG[kieu][1].format(a=(h + " " if h else "") + a_.format(t=ten), b=b_.format(t=ten), c=c_.format(t=ten))
+    # mạo từ đứng NGAY trước tên phim ("Watch the {t}") ra câu sai ngữ pháp với mọi tên phim: "Watch the When Wife Won't Forgive" (soát lô 28/11/2026,
+    # 5 bản bị loại) → bỏ mạo từ đó; "Watch the series {t}" / "the entire series: {t}" giữ nguyên vì mạo từ đi với danh từ, không với tên phim
+    a_ = re.sub(r"\b(the|el|la)\s+(?=\{t\})", "", a_, flags=re.I)
+    cau =KIEU_GIONG[kieu][1].format(a=a_.format(t=ten), b=b_.format(t=ten), c=c_.format(t=ten))
     return re.sub(r"\b(the|el|la)\s+(?=\1\b)", "", cau, flags=re.I)
-assert all("¡Mira ¡" not in cau_doc("es", i, "thuong", "¡Lárgate de mi Bugatti!") and "!!" not in cau_doc("es", i, "thuong", "¡Lárgate de mi Bugatti!") for i in range(len(CAU["es"]))), "cau_doc để lọt dấu ¡…! của tên phim"
 assert all("the The" not in cau_doc("en", i, "thuong", "The X") for i in range(len(CAU["en"]))), "cau_doc không gộp được mạo từ lặp"
+assert not [i for i in range(len(CAU["en"])) if re.search(r"\bthe When\b", cau_doc("en", i, "thuong", "When Wife Won't Forgive"), re.I)], "cau_doc còn mạo từ đứng ngay trước tên phim"
 
-assert all(cau_doc("en", i, k, "X", "They mocked him. He owns it all.").split("]")[-1 if k == "thuong" else 1].strip().startswith("They mocked him") for i in range(len(CAU["en"])) for k in KIEU_GIONG), "hook phải mở câu đọc, không phải Watch"
-assert "They mocked him. He owns it all." in cau_doc("en", 0, "thuong", "X", "They mocked him. He owns it all.") and cau_doc("en", 0, "thuong", "X", "") == cau_doc("en", 0, "thuong", "X"), "cau_doc không chèn / bỏ hook đúng"
-
-# HOOK GIỮ CHÂN CỦA CÂU ĐỌC — lõi nằm ở hook_phim.py (27/11/2026: tách ra để nút ✨ Sinh hook của ngăn Lên camp etp2 chạy trên box3 cùng một luật với máy dựng)
-from hook_phim import HOOK_GIU, HOOK_CHU, HOOK_CTA, _chu, hook_dat, hook_khac, _spy, _cong_ai, _ds_hook, hook_phim, cau_an, mau_hien
-
-def danh_dau(tv, kieu, lang, ten, so_mau=0, them=None, hook=None):
+def danh_dau(tv, kieu, lang, ten, so_mau=0, them=None):
     """DẤU KIỂU GIỌNG vào sổ điểm chạm của creative (etp.diem_cham.cham) để đo kiểu nào tốt / xấu — anh 05/11/2026. len-creative ghi khuôn
     cảnh cắt (thoại gốc, nút CTA mẫu Kiên); ảnh tĩnh không có những thứ đó → ghi đúng cái creative này có."""
     v, mau = KIEU_GIONG[kieu]
-    j = json.dumps({"voice": {"thoai": "khong", "giong": kieu, "nguoi_doc": v, "mau": so_mau, "cau": cau_doc(lang, so_mau, kieu, ten, (hook or {}).get("cau")), **({"hook": hook} if hook else {})},
+    j = json.dumps({"voice": {"thoai": "khong", "giong": kieu, "nguoi_doc": v, "mau": so_mau, "cau": cau_doc(lang, so_mau, kieu, ten)},
                     "chu_video": {"bo_cuc": "anh_tinh_ten_phim", "phu_de": "xoa", **({"ten": "poster" if them.get("ten_poster") else "chu_vang"} if them else {})},
                     "cta": {"mau": "watch_for_free" if (them or {}).get("free") else "khong_nut"}, **({"anh_tinh": {"ban": them.get("ban"), "khung": f"{them.get('tap')}#{them.get('khung_so')}", "chon": "ai" if MOI else "may", "hd": MOI}} if them else {})}, ensure_ascii=False).replace("$J$", "")
     return sql(f"update etp.diem_cham d set cham = d.cham || $J${j}$J$::jsonb, luc = now() from etp.thu_vien v where v.id = {int(tv)} and d.creative_id = v.creative_id returning d.creative_id")
 
 # GIỌNG = CỔNG GIỌNG CHUNG scripts/lich-su/giong-ckey.mjs trên box3 (anh 08/11/2026 "chuyển vào cơ chế chung. Mọi AI API đều phải qua fallback"):
 # ckey ElevenLabs v3 theo MÃ giọng (156₫ / câu) → fal eleven-v3 khi ckey hỏng. Không gọi API giọng riêng ở đây.
-# CÂU ĐỌC HOOK ĐI THEO BẢN DỰNG (anh 27/11/2026 #1911 "Tại sao ko có HOok"): bản AD / AT / PO có đọc giọng thật nhưng câu đọc chỉ nằm trong mp3 →
-# etp2 › Chờ lên (cho_len.muc.vo) ghi "không có giọng đọc hook". MỘT chỗ ghi: mọi giọng đọc đi qua doc_giong → VO[cid] = câu vừa đọc (giong() thêm kiểu / mẫu / hook);
-# MỘT chỗ gắn: hai cửa nạp thư viện (anh-tinh main + tinh-ba-kieu.nap, dùng chung bởi dung-mau / dung-lai-logo) gọi gan_vo → thu_vien.chu_qc.vo
-# → thu-vien-len đưa vào muc.vo của Chờ lên. gan_vo LẤY RA (pop) nên bản sau không mang nhầm câu bản trước.
-VO = {}
-def gan_vo(tv, cid):
-    vo = VO.pop(int(cid), None)
-    if tv and vo: sql(f"update etp.thu_vien set chu_qc = coalesce(chu_qc, '{{}}'::jsonb) || jsonb_build_object('vo', $Q${json.dumps(vo, ensure_ascii=False).replace('$Q$', '')}$Q$::jsonb) where id = {int(tv)}")
-    return vo
-
 def doc_giong(cid, lang, v, cau, tm):
     """một câu → mp3 trong tm (dùng lại khi cùng giọng + câu) → (tệp, ₫ thật theo dòng cuối của cổng)"""
-    VO[int(cid)] = {"cau": cau, "giong": None}   # câu thật vừa đọc — gan_vo gắn vào bản nạp kế tiếp của phim
     h = hashlib.sha1(f"{v}|{cau}".encode()).hexdigest()[:10]; f = os.path.join(tm, f"giong-{h}.mp3")
     if os.path.exists(f) and os.path.getsize(f) > 3000: return f, 0
     xa = f"/var/tmp/anh-tinh/{cid}"; job = os.path.join(tm, "giong.json")
@@ -604,15 +545,10 @@ def doc_giong(cid, lang, v, cau, tm):
     sh("scp", "-q", f"{B}:{xa}/{h}.mp3", f)
     m = re.search(r"tiền (\d+)₫", r.stdout); return f, int(m.group(1)) if m else 156
 
-def giong(cid, lang, ten, kieu, tm, so_mau=0, hook=None):
-    """giọng đọc mẫu câu CAU theo kiểu (+ hook cốt truyện của hook_phim) → (giong.mp3, ₫ đã chi, kiểu). Bên gọi không đưa hook → tự lấy hook của phim
-    (dung-mau / dung-lai-logo / tinh-ba-kieu từng gọi không hook → câu chỉ còn "Watch… Watch more", anh 27/11/2026). hook=False = cố ý không hook."""
-    v0 = 0
-    if hook is None: hook, v0 = hook_phim(cid, lang, ten, thu=so_mau)   # bản khác (mẫu câu khác) → hook khác, không đọc trùng câu (anh 27/11/2026)
-    hook = hook or None
-    f, vnd = doc_giong(cid, lang, KIEU_GIONG[kieu][0], cau_doc(lang, so_mau, kieu, ten, (hook or {}).get("cau")), tm)
-    VO[int(cid)].update({"giong": kieu, "mau": so_mau, **({"hook": hook} if hook else {})})
-    return f, vnd + v0, kieu
+def giong(cid, lang, ten, kieu, tm, so_mau=0):
+    """giọng đọc mẫu câu CAU theo kiểu → (giong.mp3, ₫ đã chi, kiểu)"""
+    f, vnd = doc_giong(cid, lang, KIEU_GIONG[kieu][0], cau_doc(lang, so_mau, kieu, ten), tm)
+    return f, vnd, kieu
 
 def dung(nen, chu, mp3, ra):
     L = max(GIAY_MIN, float(sh("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", mp3).stdout) + 1.4); n = int(L * 30)
@@ -664,19 +600,18 @@ def mot(p, xem, kieu, ban=1):
         else: uv = khung(cid, p["url"], tm); uv, ly_ai, vnd_ai = xep_ai(ten, uv, _mo_ta(p["url"])) if MOI and len(uv) > 1 else (uv, "", 0)   # + tóm tắt phim: khung đúng móc câu chuyện (20/11/2026)
     except Exception as e:
         return [{"content_id": cid, "ten": ten, "loi": str(e)[-300:]}]
-    hien = mau_hien(lang, len(CAU[lang])); mau0 = random.randrange(len(hien)); ra = []   # câu anh đã xoá ở ngăn Lên camp (cau_doc_an) không xoay vào
-    vnd_hook = 0   # hook giữ chân của câu đọc — MỖI BẢN MỘT HOOK (anh 27/11/2026 "Ko cho chạy đồng thời như vậy"), lấy trong vòng bản
+    mau0 = random.randrange(len(CAU[lang])); ra = []
     uv = xoay_khung(tm, DANG, uv); con = list(uv)
     for b in range(min(ban, len(uv))):
         try:
-            so_mau = hien[(mau0 + b) % len(hien)]   # bốc ngẫu nhiên mẫu đầu, các bản sau xoay vòng (anh 06/11/2026)
+            so_mau = (mau0 + b) % len(CAU[lang])   # bốc ngẫu nhiên mẫu đầu, các bản sau xoay vòng (anh 06/11/2026)
             # MỖI BẢN MỘT KIỂU GIỌNG chỉ khi --giong xoay (anh 08/11/2026 đo kiểu voice; 18/11/2026 đã có số → mặc định mọi bản cùng giọng tốt nhất)
-            kieu_b = kieu_ban(kieu, b, XOAY); hook, vh = hook_phim(cid, lang, ten, thu=so_mau); vnd_ai += vh   # hook[i] đi với câu i — một câu liền (anh 27/11/2026)
-            k, nen, chu = khung_sach_mat(con, lambda k_: (k_.__setitem__("lang", lang), anh(cid, ten, k_, tm, b))[1], uv); mp3, vnd, kieu_ = giong(cid, lang, ten, kieu_b, tm, so_mau, hook)
+            kieu_b = kieu_ban(kieu, b, XOAY)
+            k, nen, chu = khung_sach_mat(con, lambda k_: (k_.__setitem__("lang", lang), anh(cid, ten, k_, tm, b))[1], uv); mp3, vnd, kieu_ = giong(cid, lang, ten, kieu_b, tm, so_mau)
             out = os.path.join(tm, f"anh-tinh-{cid}-{b + 1}.mp4"); giay = dung(nen, chu, mp3, out)
             r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay)) if not k.get("free") else sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay), "--free")   # cổng chữ trên video (tên phim) — cùng cổng mọi creative; --free: gỡ đúng câu lớp Free nhà vẽ
             if r.returncode != 0: raise RuntimeError(r.stdout.strip()[-200:])
-            kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "ban": b + 1, "giay": giay, "vnd": vnd + (vnd_ai if b == 0 else 0), "giong": kieu_, "mau": so_mau, **({"hook": hook} if hook else {}),
+            kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "ban": b + 1, "giay": giay, "vnd": vnd + (vnd_ai if b == 0 else 0), "giong": kieu_, "mau": so_mau,
                   "ten_poster": bool(k.get("ten_poster")), "free": bool(k.get("free")), **({"free_mau": free_mau(b)} if k.get("free") else {}), "ai": ly_ai[:200] if b == 0 else "", **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "khung_so": k["so"]}
             if not xem:
                 xa = f"/var/tmp/anh-tinh/{cid}"; sh("ssh", B, f"mkdir -p {xa}"); sh("rsync", "-a", out, f"{B}:{xa}/", han=900)
@@ -685,9 +620,7 @@ def mot(p, xem, kieu, ban=1):
                 r = sh("ssh", B, f"{XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(out)} --content={cid} --dang='{DANG}' --nguon={NGUON} --lang={lang} --chi-vnd={kq['vnd']} --ghi='{ghi}' --them{' --lop-free' if k.get('free') else ''}", han=600)   # --them: mỗi bản một dòng thư viện
                 if r.returncode != 0: raise RuntimeError(f"thư viện: {(r.stderr or r.stdout)[-200:]}")
                 kq["tv"] = int(sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{DANG}' and nguon = '{NGUON}' and creative_id is null order by id desc limit 1") or 0)
-                gan_vo(kq["tv"], cid)   # câu đọc hook của bản này → Chờ lên hiện đúng câu (#1911)
-                # MỌI bản ảnh tĩnh chờ anh duyệt trên etp2 › Camp (0460) — anh 22/11/2026 cho khung chỉ định --anh; 26/11/2026 "SX Creative nào cần để tao duyệt" → mọi bản
-                if kq["tv"]: sql(f"insert into etp.cho_anh_duyet (tv_id, ghi) values ({kq['tv']}, '{'khung chỉ định --anh' if KHUNG_CHI else 'ảnh tĩnh máy dựng'}') on conflict do nothing")
+                if KHUNG_CHI and kq["tv"]: sql(f"insert into etp.cho_anh_duyet (tv_id, ghi) values ({kq['tv']}, 'khung chỉ định --anh') on conflict do nothing")   # anh 22/11/2026: creative khung chỉ định chờ anh duyệt trên etp2 › Camp (0460)
                 ghi_khung(tm, DANG, k)
             ra.append(kq)
         except Exception as e:
@@ -724,5 +657,5 @@ if __name__ == "__main__":
     tv = [str(x["tv"]) for x in kq if x.get("tv")]
     if tv: subprocess.run(["python3", os.path.join(D, "thu-vien-len.py"), *tv])   # thư viện → creative; chấm Sạch thì nhịp ethopex lên camp theo lịch chung
     for x in kq:
-        if x.get("tv"): print(f"dấu giọng tv{x['tv']} {x['giong']} → creative", danh_dau(x["tv"], x["giong"], x["lang"], x["ten"], x.get("mau", 0), x, x.get("hook")) or "(chưa thành creative)")
+        if x.get("tv"): print(f"dấu giọng tv{x['tv']} {x['giong']} → creative", danh_dau(x["tv"], x["giong"], x["lang"], x["ten"], x.get("mau", 0), x) or "(chưa thành creative)")
     subprocess.run(["python3", os.path.join(D, "don-kho.py")])   # dọn tập tải về để chọn khung (anh 15/11/2026: iMac cấm đầy ổ)

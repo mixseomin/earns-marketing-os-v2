@@ -57,8 +57,8 @@ export const DeLatSchema = z.object({
 });
 export const DeSoSanhSchema = z.object({
   tieu_de: z.string().describe('"X vs Y" title, under 45 characters, naming both sides'),
-  trai: z.object({ ten: z.string().describe('side X name, under 20 characters'), dong: z.array(z.string()).min(2).max(4).describe('2-4 short concrete points for X, each under 45 characters, same order/topic as side Y'), truy: z.string().describe('Pexels PHOTO query for side X, English, 2-4 words') }),
-  phai: z.object({ ten: z.string().describe('side Y name, under 20 characters'), dong: z.array(z.string()).min(2).max(4).describe('2-4 points for Y, SAME COUNT as X, each answering the matching X point, under 45 characters'), truy: z.string().describe('Pexels PHOTO query for side Y, English, 2-4 words, a different scene from X') }),
+  trai: z.object({ ten: z.string().describe('side X name, under 20 characters'), dong: z.array(z.string()).min(2).max(4).describe('2-4 short concrete points for X, each under 45 characters, same order/topic as side Y'), truy: z.string().describe('Pexels PHOTO query for side X, English, 2-4 words, a real scene (people, objects, place) — never a phone / laptop / app screen or any UI, stock shots of screens carry third-party logos') }),
+  phai: z.object({ ten: z.string().describe('side Y name, under 20 characters'), dong: z.array(z.string()).min(2).max(4).describe('2-4 points for Y, SAME COUNT as X, each answering the matching X point, under 45 characters'), truy: z.string().describe('Pexels PHOTO query for side Y, English, 2-4 words, a real scene different from X — never a phone / laptop / app screen or UI') }),
   ket_luan: z.string().describe('one-line takeaway, under 50 characters, or empty'),
   ket: z.array(z.string()).max(2).describe('0-2 closing lines: brand and site, each under 40 characters'),
   am: z.enum(['mua', 'song', 'gio', 'rung', 'dem', 'pho', 'lua', 'im']).describe('ambient sound fitting the scenes'),
@@ -117,7 +117,7 @@ export const DeCarouselSchema = z.object({
 /** BÀI LINK (nền fb_link / x_link, 18/11/2026): không video — chữ đăng + MỘT ảnh thật Pexels riêng của bài, thẻ xem trước trỏ về trang đích.
  *  Trước đây bài link nạp tay từ tệp mau/may/bai-link-hotel.json (hook tự viết) → bị cất cả lô 31/10 vì "thiếu dang.hook", không máy nào làm lại → fb_link cạn kho. */
 export const DeLinkSchema = z.object({
-  truy: z.string().describe('Pexels PHOTO query for the one image of the post, English, 2-4 words, a real scene from the angle (hands with phone, hotel lobby, traveler at check-in…)'),
+  truy: z.string().describe('Pexels PHOTO query for the one image of the post, English, 2-4 words, a real scene from the angle (hands holding a coffee mug, hotel lobby, traveler at check-in…) — never a phone / laptop / app screen or UI: stock shots of screens carry third-party logos the Content Room blocks'),
 });
 export const LAP_LINK = 'bai-link';
 export const ChuDangSchema = z.object({
@@ -192,9 +192,15 @@ export function tachTieuDe(hook: string, daDung: string[]): string | null {
   const ung = [...moCau.map((m) => `${m}${sach}`)];
   for (const m of moCau) for (const c of banCot.slice().reverse()) ung.push(`${m}${c}`);
   if (duoi) ung.push(...moCau.map((m) => `${m}${duoi}`));
+  // CÂU MÓC KHÔNG CÓ CÂU HỎI (28/11/2026 militarycalc so-sanh-43006): hook QC gốc không mang ? ! hay con số, câu mở trung tính lại kết bằng dấu hai chấm
+  // → tiêu đề chỉ có ':' , Phòng Nội dung chấm "câu móc không có câu hỏi / con số / tình huống". Thêm '?' ở cuối (không chèn con số bịa — luật hook).
+  // Chỉ thêm '?' khi toàn bộ câu gốc KHÔNG có dấu hỏi / chấm than / chấm (đang đứng giữa cột chữ thì không vá đuôi).
+  const coDauCau = /[.?!…]/.test(sach);
+  const themHoi = (t: string) => `${t.replace(/[.\s]+$/, '')}?`;
+  const ung2 = coDauCau ? ung : ung.flatMap((t) => /[?!]|\d/.test(t) ? [t] : [themHoi(t), t]);
   const dat = (t: string) => t.length >= 25 && t.length <= 110 && !co.has(chuan(t)) && !loiHook([t], sach).length
     && !CHU_VIET.test(t) && !/[—–]/.test(t) && !khuonTrung(t, daDung.slice(0, 80));
-  return ung.find(dat) ?? null;
+  return ung2.find(dat) ?? null;
 }
 /** Mã hook THẬT của tiêu đề: mô hình hay viết tiêu đề bám hook này mà khai mã hook khác (esimfares 10/11/2026: 4/4 đề làm lại trượt "sửa quá xa"
  *  so với cùng một hook "Landing in Italy…" dù chữ là hook khác). Hook đã khai mà tiêu đề trượt → lấy hook trong kho tiêu đề bám đạt (giữ nhiều chữ nhất). Thuần. */
@@ -203,6 +209,14 @@ export const maHookKhop = (ds: HookQc[] | undefined, ma: string | undefined, tit
   const dat = ds.filter((k) => !loiHook([title], k.chu).length).sort((a, b) => giuHook(title, b.chu) - giuHook(title, a.chu));
   return dat[0]?.id ?? ma;
 };
+/** TỪ KHOÁ ẢNH xin MÀN HÌNH / THIẾT BỊ → ảnh kho trả về giao diện app có logo bên thứ ba. 28/11/2026 militarycalc so-sanh-43006: "service member phone app"
+ *  ra ảnh điện thoại có logo Deezer + LG, Phòng Nội dung chặn cứng "hình: logo / watermark lạ". Mọi mẫu: tả cảnh thật (người, đồ vật, nơi chốn). */
+const MAN_HINH = /\b(screens?|smartphones?|tablets?|laptops?|apps?|ui|dashboards?|websites?|webpages?|screenshots?|interface)\b/i;
+export function loiTruyHinh(de: unknown): string[] {
+  const loi: string[] = [];
+  const soi = (v: unknown, k: string): void => { if (typeof v === 'string') { if (k === 'truy' && MAN_HINH.test(v)) loi.push(`từ khoá ảnh xin màn hình / thiết bị ("${v}") — ảnh kho hay dính logo bên thứ ba; tả cảnh thật không có màn hình`); } else if (Array.isArray(v)) v.forEach((x) => soi(x, k)); else if (v && typeof v === 'object') for (const [kk, vv] of Object.entries(v)) soi(vv, kk); };
+  soi(de, ''); return [...new Set(loi)];
+}
 export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string, unknown>; title: string; description: string; nhan: string; ngon_ngu?: 'en' | 'vi'; hooks?: HookQc[]; hook_qc?: string }): string[] {
   const loi: string[] = [], chu = `${x.title}\n${x.description}`, thuong = chu.toLowerCase();
   if (x.title.length < 25) loi.push(`câu móc quá ngắn (${x.title.length})`); if (x.title.length > 110) loi.push(`câu móc dài ${x.title.length}`);
@@ -243,6 +257,8 @@ export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string
   if (x.mau === 'cai-nao-gia') { const t = x.de as { gia?: 'a' | 'b'; a?: { dong?: { co?: number }[] }; b?: { dong?: { co?: number }[] }; ly_do?: string[] }; const giaThe = t.gia === 'a' ? t.a : t.b, thatThe = t.gia === 'a' ? t.b : t.a; const co = new Set((giaThe?.dong ?? []).map((d) => d.co ?? 0).filter((c) => c > 0)); if (!co.size) loi.push('thẻ giả chưa đánh số dấu hiệu nào'); if ([...co].some((c) => c > (t.ly_do?.length ?? 0))) loi.push('số dấu hiệu vượt số lý do'); if ((thatThe?.dong ?? []).some((d) => (d.co ?? 0) > 0)) loi.push('thẻ thật không được có dấu hiệu'); }
   if (x.mau === 'cau-noi') { const t = x.de as { ngon_ngu?: string; cau?: { ban_ngu?: string; doc?: string; nghia?: string }[] }; const n = t.cau?.length ?? 0; if (n < 3 || n > 5) loi.push('câu nói cần 3–5 câu'); if (t.cau?.some((c) => !c.ban_ngu || !c.doc || !c.nghia)) loi.push('mỗi câu cần bản ngữ + cách đọc + nghĩa'); if (t.cau?.some((c) => /^[\x00-\x7F]*$/.test(c.ban_ngu ?? '') && !/^(spanish|french|german|italian|portuguese|indonesian|turkish|dutch)$/i.test(t.ngon_ngu ?? ''))) loi.push('bản ngữ chưa phải chữ của ngôn ngữ đó'); if (/^(vietnamese|english)$/i.test(t.ngon_ngu ?? '')) loi.push('ngôn ngữ phải là tiếng điểm đến, không phải tiếng Việt / Anh (khán giả nói tiếng Anh; 27/10 đề ratesbyroom ra tiếng Việt vì tên góc tiếng Việt)'); }
   if (x.mau === 'so-sanh') { const t = x.de as { trai?: { dong?: string[]; truy?: string }; phai?: { dong?: string[]; truy?: string } }; const a = t.trai?.dong?.length ?? 0, b = t.phai?.dong?.length ?? 0; if (a < 2 || a !== b) loi.push('so sánh cần 2–4 cặp dòng, hai bên bằng nhau'); if (!t.trai?.truy || !t.phai?.truy || t.trai.truy === t.phai.truy) loi.push('hai bên cần hai từ khoá ảnh khác nhau'); }
+  if (x.mau === 'so-sanh' && (x.de as { tieu_de?: string }).tieu_de === undefined) loi.push('so sánh thiếu tiêu đề');
+  loi.push(...loiTruyHinh(x.de));
   if (x.mau === 'lat-dap-an') { const t = x.de as { cau?: { khang_dinh?: string; ly_do?: string; truy?: string }[] }; const n = t.cau?.length ?? 0; if (x.dang_bai === 'dung-sai' ? n !== 3 : n !== 1) loi.push(x.dang_bai === 'dung-sai' ? 'đúng/sai cần đúng 3 câu' : `${x.dang_bai} cần đúng 1 câu`); if (t.cau?.some((c) => !c.khang_dinh || !c.ly_do || !c.truy)) loi.push('mỗi câu cần khẳng định + lý do + từ khoá ảnh'); if (t.cau?.some((c) => (c.khang_dinh?.length ?? 0) > 80)) loi.push('khẳng định quá 80 ký tự (khung 4 dòng)'); if (t.cau?.some((c) => (c.ly_do?.length ?? 0) > 100)) loi.push('lý do quá 100 ký tự'); }
   if (x.mau === 'top-n') { const t = x.de as { tieu_de?: string; muc?: { ten?: string; truy?: string }[] }; if (!t.tieu_de || !/\d/.test(t.tieu_de)) loi.push('tiêu đề top cần con số'); if (!t.muc || t.muc.length < 3 || t.muc.length > 5 || t.muc.some((m) => !m.ten || !m.truy)) loi.push('top cần 3–5 mục, mỗi mục có tên + từ khoá ảnh'); }
   if (x.mau === 'bai-anh') {

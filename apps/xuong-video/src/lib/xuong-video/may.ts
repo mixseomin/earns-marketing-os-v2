@@ -165,6 +165,9 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
     await db.execute(sql`UPDATE xv_may_video SET video_url = NULL, khung = '[]'::jsonb, anh = ${JSON.stringify(r.nen_url ? [r.nen_url] : [])}::jsonb, giay = NULL, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
     return { ok: true, url: `bai:${String(r.slug)}` };
   }
+  // 29/11/2026 militarycalc so-sanh-43006: đề mới vẫn dựng lại ảnh cũ dính logo Deezer + LG vì không rơi vào nhánh bài viết ở trên.
+  // Áp dụng cho MỌI dạng video / link / so sánh: lần chấm trước chặn ảnh → bỏ ảnh đó, lấy ảnh thật khác theo từ khoá của đề mới.
+  if (r.nen_url && hinhBiChan(r.cham)) r.nen_url = null;
   const nenVideo = !!BO_DUNG[r.mau as MauMayDung]?.nenVideo;   // mẫu nền video (canh-dong): tìm VIDEO Pexels, so trùng theo id video
   // chưa có ảnh nền → tự lấy ảnh thật Pexels theo chủ đề, không trùng trong máy (luật anh 18/10/2026: mọi bài đăng có ảnh minh hoạ thật; anh-nen.ts)
   if (!r.nen_url) {

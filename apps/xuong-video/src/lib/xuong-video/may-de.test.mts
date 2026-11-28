@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-de.test.mts — phần thuần của máy sinh đề (không gọi mô hình)
 import assert from 'node:assert';
-import { kiemDe, kiemBaiViet, rapDe, slugDe, MAU_CUA_DANG, vanHeThong, vanNguoiDung, giuHook, GIU_HOOK_TOI_THIEU, timHook, maHookKhop, ghepHook, ghepTieuDe, tachTieuDe } from './may-de';
+import { kiemDe, kiemBaiViet, rapDe, slugDe, MAU_CUA_DANG, vanHeThong, vanNguoiDung, giuHook, GIU_HOOK_TOI_THIEU, timHook, maHookKhop, ghepHook, ghepTieuDe, tachTieuDe, loiTruyHinh } from './may-de';
 import { khuonTrung } from './hook-qc.mjs';
 
 // BẢN VÁ LỖ 28/11/2026: Phòng Nội dung chặn "cùng khung tên" với 80 tên trước (hook-qc khuonTrung); máy sinh phải so cùng một bộ luật.
@@ -138,4 +138,9 @@ assert.ok(vanNguoiDung(goc, 'top-n', [], 'en', hk).includes('3496181930676276') 
 { const dong = 'More is more. 💰 Every month a claim goes unfiled, that money stays with the government — and that claim can still be filed later.';
   const t = tachTieuDe(dong, []);
   assert.ok(t === null || /[a-z]$/i.test(t), `không ra tiêu đề cắt giữa cột chữ: ${t}`); }
+assert.ok(loiTruyHinh({ trai: { truy: 'service member phone app' } }).some((l) => /màn hình/.test(l)), 'từ khoá ảnh xin màn hình bị chặn (logo bên thứ ba)');
+assert.deepStrictEqual(loiTruyHinh({ trai: { truy: 'military family paperwork' }, phai: { truy: 'veteran at desk' } }), [], 'tả cảnh thật qua');
+{ const t = tachTieuDe('MOST MILITARY SPOUSES DON\'T REALIZE THIS', []);
+  assert.ok(t, 'hook không ? / số vẫn ra tiêu đề');
+  assert.ok(/[?!]|\d/.test(t!), `tiêu đề phải có câu hỏi / con số (Phòng Nội dung): ${t}`); }
 console.log('may-de: phần thuần đạt');

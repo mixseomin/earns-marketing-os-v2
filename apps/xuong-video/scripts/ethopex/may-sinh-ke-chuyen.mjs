@@ -66,7 +66,7 @@ insert into etp.thu_vien (content_id, dang, lang, ten, tap_id, nguon, trang_thai
   where not exists (select 1 from etp.thu_vien where tap_id = ${Number(d.tap)});`); }
   catch (e) { ghi(`  không ghi được dòng thư viện: ${String(e).slice(0, 120)}`); }
 }
-const buocChu = (d) => { const t = tienDo(d); return d.buoc === 'sinh' ? `giọng ${t.am}/6 · ảnh ${t.anh}/6 · clip ${t.vid}/6` : d.buoc === 'nap' ? 'xuất thân phim' : d.buoc === 'cta' ? 'gắn thẻ cuối kiểu AD (logo + nút)' : d.buoc; };
+const buocChu = (d) => { const t = tienDo(d); return d.buoc === 'sinh' ? `giọng ${t.am}/6 · ảnh ${t.anh}/6 · clip ${t.vid}/6` : d.buoc === 'nap' ? 'xuất thân phim' : d.buoc === 'cta' ? 'gắn thẻ cuối kiểu AD (logo + nút)' : d.buoc === 'tai_len' ? 'tải bản cuối lên box3' : d.buoc; };
 
 function hong(loi) {
   const d = so.dang; d.lan = (d.lan ?? 0) + 1; d.loi = String(loi).slice(0, 400);
@@ -148,7 +148,7 @@ try {
   }
   if (d.buoc === 'nap') {
     execFileSync('ssh', [B, `mkdir -p /var/tmp/vx-kc/${d.tap}`]);
-    execFileSync('rsync', ['-a', '--exclude', 'lan1-*', `${C}/${d.tap}/`, `${B}:/var/tmp/vx-kc/${d.tap}/`], { timeout: 900e3 });
+    execFileSync('rsync', ['-a', '--partial', '--timeout=180', '--exclude', 'lan1-*', `${C}/${d.tap}/`, `${B}:/var/tmp/vx-kc/${d.tap}/`], { timeout: 1800e3 });
     const ra = ssh(`scripts/ethopex/vx-nap-tap.mts ${d.tap} /var/tmp/vx-kc/${d.tap} 2>&1`, 1500);
     const url = /✓ MP4 [\d.]+s → (\S+)/.exec(ra)?.[1];
     if (!url) throw new Error(`xuất không ra MP4: ${ra.slice(-300)}`);
@@ -157,8 +157,20 @@ try {
   if (d.buoc === 'cta') {
     const r = tsx(['scripts/ethopex/vx-ke-chuyen.mts', `--tap=${d.tap}`, `--cta=${d.url}`, `--cid=${d.content_id}`], 20 * 60, d.env ?? {});
     if (r.status !== 0) throw new Error((r.stderr || r.stdout || 'CTA lỗi').slice(-400));
+    d.buoc = 'tai_len'; d.lan = 0; luu();
+  }
+  // TẢI LÊN LÀ BƯỚC RIÊNG (28/11/2026, 212128: bản cuối 26 MB, đường lên iMac → box3 ~200 kbit/s, rsync hết 10 phút bị giết → nhịp sau DỰNG LẠI thẻ cuối rồi tải lại từ 0,
+  // lỗi mạng còn đếm là phim hỏng — 3 lần là bỏ phim): --partial giữ phần đã tải, nhịp sau tải tiếp; lỗi mạng / hết giờ ở bước này không đếm lần hỏng.
+  if (d.buoc === 'tai_len') {
     const tep = `${C}/${d.tap}/${d.tap}-kt.mp4`;
-    execFileSync('rsync', ['-a', tep, `${B}:/var/tmp/vx-kc/${d.tap}/`], { timeout: 600e3 });
+    if (!existsSync(tep)) { d.buoc = 'cta'; luu(); ghi(`  ${tep} không còn (dọn ổ?) — nhịp sau dựng lại thẻ cuối`); dong(); process.exit(0); }
+    try { execFileSync('rsync', ['-a', '--partial', '--timeout=180', tep, `${B}:/var/tmp/vx-kc/${d.tap}/`], { timeout: 1800e3 }); }
+    catch (e) {
+      const m = String(e?.message ?? e);
+      // mã thoát rsync 10/11/12 = vỡ luồng / lỗi I/O, 30/35 = hết giờ chờ dữ liệu, 255 = ssh rớt; e.code ETIMEDOUT / e.signal = hết 30 phút bị giết
+      if (e?.code === 'ETIMEDOUT' || e?.signal || [10, 11, 12, 30, 35, 255].includes(e?.status) || /ECONN|Connection (reset|closed)|timed out/i.test(m)) { ghi(`  tải bản cuối lên box3 chưa xong (${m.slice(0, 120)}) — nhịp sau tải tiếp phần còn lại`); dongTv(d, 'dang_sinh', 'tải bản cuối lên box3 · đường lên chậm, nhịp sau tải tiếp'); luu(); dong(); process.exit(0); }
+      throw e;
+    }
     // --lop-free: thẻ cuối kiểu AD (cta-logo.py) vẽ nhãn All Episodes Released + nút WATCH FREE của nhà → cổng chữ gỡ đúng lớp đó (28/11/2026 Chờ lên #94)
     const ra = ssh(`scripts/ethopex/thu-vien-them.mts ${d.tap} /var/tmp/vx-kc/${d.tap}/${d.tap}-kt.mp4 --lop-free --chi-vnd=${d.chi_vnd ?? 0} --ghi=${q(`máy sinh ${d.bat_dau} → ${gio()}`)}`, 600);
     ghi(`  ${ra.split('\n').pop()}`);

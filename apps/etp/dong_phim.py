@@ -340,13 +340,21 @@ def b_creative(d, truoc):
         cr = x["creative_id"]; tr = {"ket_qua": x}
     c = sql(f"select duoc_len::text || chr(9) || coalesce(chan_boi, '') || chr(9) || coalesce(cho_duyet, '') from etp.cham_cong where creative_id = {int(cr)}").split("\t")
     c += [""] * (3 - len(c))   # psql .strip() cắt tab cuối khi chan_boi / cho_duyet rỗng — đừng đọc thành "chưa chấm" (03/11/2026: dòng #1 chờ oan 30 phút)
-    if c[0] == "": return "cho", f"creative #{cr} đã tải — chờ máy chấm (etp.cham_hang)", tr["ket_qua"]
+    if c[0] == "":
+        if h := cham_hong(cr): return "loi", f"creative #{cr} — máy chấm lỗi hẳn: {h[:200]}", tr["ket_qua"]
+        return "cho", f"creative #{cr} đã tải — chờ máy chấm (etp.cham_hang)", tr["ket_qua"]
     if c[0] == "true": return "xong", f"creative #{cr} chấm sạch", tr["ket_qua"]
     if len(c) > 2 and c[2]: return "cho", f"creative #{cr} chờ anh duyệt (etp2 › Chờ duyệt)", tr["ket_qua"]
     return "dung", f"creative #{cr} bị cổng chấm chặn: {c[1][:200]}", tr["ket_qua"]
 
 # CHỜ ANH DUYỆT ≠ BỊ CHẶN (26/11/2026): creative cổng chấm giữ ở tab Chờ duyệt etp2 (cham_cong.cho_duyet) trước đây trả 'dung' "bị cổng chấm chặn / giữ" →
 # dòng dừng hẳn + câu khớp HET_NL → máy coi phim hết nguyên liệu, chuyển dạng khác. Nay: còn creative chờ anh duyệt thì bước đứng 'cho', anh ✅ là chạy tiếp.
+def cham_hong(cr):
+    """creative chưa có bản chấm mà hàng chấm đã 'loi' quá 2 giờ (cham-nhe.py hết đường cứu) → chữ lỗi; còn chờ được → None.
+    Trước 28/11/2026 dòng phim chỉ đọc duoc_len: hàng chấm lỗi hẳn thì dòng đứng 'chờ máy chấm' mãi (7086)."""
+    g = sql(f"select coalesce(loi, '?') from etp.cham_hang where creative_id = {int(cr)} and trang_thai = 'loi' and xong < now() - interval '2 hours'")
+    return g or None
+
 def cho_anh(ids):
     """creative trong ids đang chờ anh duyệt (cho_duyet có, chưa được lên)"""
     ids = [int(x) for x in ids]
@@ -474,7 +482,9 @@ def b_creative_khoi(d):
             from etp.creative r left join etp.cham_cong g using (creative_id) where r.creative_id in ({','.join(map(str, ids))})""").splitlines() if chr(9) in l}
     ten = ", ".join(f"#{c}" for c in ids)
     if len(r) < len(ids): return "cho", f"creative mẫu {ma} {ten} đã tạo — chờ đồng bộ kho etp", kq
-    if any(v[1] == "" for v in r.values()): return "cho", f"creative mẫu {ma} {ten} — chờ máy chấm", kq
+    if any(v[1] == "" for v in r.values()):
+        if h := [f"#{c}: {g[:120]}" for c in ids if r[c][1] == "" and (g := cham_hong(c))]: return "loi", f"creative mẫu {ma} — máy chấm lỗi hẳn: {'; '.join(h)}", kq
+        return "cho", f"creative mẫu {ma} {ten} — chờ máy chấm", kq
     bi = [c for c in ids if r[c][1] != "true"]
     if bi and set(bi) <= cho_anh(bi): return "cho", f"creative mẫu {ma} {', '.join(f'#{c}' for c in bi)} chờ anh duyệt (etp2 › Chờ duyệt)", kq
     if bi: return "dung", f"creative mẫu {ma} {', '.join(f'#{c}' for c in bi)} bị cổng chấm chặn — mỗi mức ★ ROAS cần một creative sạch riêng", kq

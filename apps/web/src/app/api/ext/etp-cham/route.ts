@@ -23,8 +23,18 @@ export async function GET(req: Request) {
   if (!(await quyen(req))) return NextResponse.json({ loi: 'cấm' }, { status: 403 });
   const db = getDb()!;
   const so = Math.min(Math.max(Number(new URL(req.url).searchParams.get('so') ?? 2) || 2, 1), 10);
-  // 'dang' quá 30 phút = lượt trước chết giữa chừng → trả về hàng; creative chưa vào kho sau 2 giờ (đồng bộ 10 phút) → lỗi
-  await db.execute(sql`update etp.cham_hang set trang_thai = 'cho', bat_dau = null where trang_thai = 'dang' and bat_dau < now() - interval '30 minutes'`);
+  // 'dang' quá 30 phút = lượt trước chết giữa chừng → TÍNH MỘT LẦN THỬ (lùi 5·3^n phút); chết lần thứ 3 → 'loi'.
+  // Trước 28/11/2026 trả về hàng không đếm: creative làm máy chấm chết (116488, cắt 20 khung) quay vòng từ 26/11, dòng phim 7086 đứng 'chờ máy chấm' mãi.
+  // Chết ở bước cắt khung → chữ lỗi 'chỉ cắt được 0/20 khung' để cham-nhe.py (LOI_VIDEO) dựng bản xem nhẹ rồi xếp lại.
+  await db.execute(sql`update etp.cham_hang set bat_dau = null, lan_thu = lan_thu + 1,
+      trang_thai = case when lan_thu >= 2 then 'loi' else 'cho' end,
+      xong = case when lan_thu >= 2 then now() end,
+      thu_lai_luc = case when lan_thu >= 2 then thu_lai_luc else now() + make_interval(mins => (5 * power(3, lan_thu))::int) end,
+      loi = case when lan_thu < 2 then loi when coalesce(buoc, '') like 'cắt%' then 'Error: chỉ cắt được 0/20 khung — máy chấm chết giữa chừng 3 lần (' || buoc || ')'
+        else 'máy chấm chết giữa chừng 3 lần (bước ' || coalesce(buoc, '?') || ')' end,
+      nhat_ky = nhat_ky || jsonb_build_array(jsonb_build_object('b', 'máy chấm chết giữa chừng lần ' || (lan_thu + 1) || ' (bước ' || coalesce(buoc, '?') || ')'
+        || case when lan_thu >= 2 then ' → dừng, ghi lỗi' else ' → thử lại' end, 'luc', now()))
+    where trang_thai = 'dang' and bat_dau < now() - interval '30 minutes'`);
   await db.execute(sql`update etp.cham_hang h set trang_thai = 'loi', xong = now(), loi = 'creative không có trong kho / không có video sau 2 giờ'
     where trang_thai = 'cho' and luc < now() - interval '2 hours'
       and not exists (select 1 from etp.creative c where c.creative_id = h.creative_id and c.video is not null)`);

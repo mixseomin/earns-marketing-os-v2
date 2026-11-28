@@ -1976,6 +1976,8 @@ export const LUAT = [
   { card: 'sx-ket-2811', tep: 'apps/etp/trang_phim.py', co: 'if (r.headers.get_content_maintype() or "") == "image": return (False,', vi: 'máy kiểm link tập 1: link trả về tệp ảnh = link hỏng, không tính sống' },
   { card: 'sx-ket-2811', tep: 'apps/xuong-video/scripts/ethopex/tai-tap.py', co: 'def la_anh(b):', vi: 'poster kiểm chữ ký ảnh, không kiểm cỡ — trang chặn HTML 7 KB qua cổng > 2000 byte (88090)' },
   { card: 'sx-ket-2811', tep: 'apps/xuong-video/scripts/ethopex/tai-tap.py', co: 'return k > 0 and poster_tot(os.path.join(ra, "poster.jpg"))', vi: 'da_het đọc poster qua cổng chung poster_tot (tệp hỏng → .hong, tải lại)' },
+  { card: 'sx-ket-2811', tep: 'apps/web/src/app/api/ext/etp-cham/route.ts', co: "trang_thai = case when lan_thu >= 2 then 'loi' else 'cho' end", cam: "update etp.cham_hang set trang_thai = 'cho', bat_dau = null where trang_thai = 'dang'", vi: "anh 28/11/2026 'sx mấy tiếng không xong': hàng chấm 'dang' chết giữa chừng phải đếm lần thử, 3 lần → lỗi (116488 quay vòng từ 26/11)" },
+  { card: 'sx-ket-2811', tep: 'apps/etp/dong_phim.py', co: 'if h := cham_hong(cr): return "loi"', vi: 'dòng phim đọc cả hàng chấm lỗi hẳn, không đứng chờ máy chấm mãi (7086)' },
   { card: 'sx-ket-2811', tep: 'apps/xuong-video/scripts/ethopex/cta-logo.py', co: 'TT.tai_poster(TT.mo_rong(p["url"]), tm)', cam: 'AT.sh("curl", "-sSfL", "-A", "Mozilla/5.0", "-o", pj, link)', vi: 'cta-logo tải poster bằng đường chung (Referer + kiểm ảnh), không curl trơn' },
   { card: 1931, tep: 'apps/etp/dong-bo.py', co: 'import hang_phieu as HP; kq["hang_phieu"] = HP.chay(q)', vi: 'nhịp đồng bộ 10 phút thử lại phiếu xếp hàng khi máy dựng còn bận (#1931)' },
 ];

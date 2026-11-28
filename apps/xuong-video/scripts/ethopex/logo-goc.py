@@ -195,6 +195,8 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
     # gỡ ám hồng ở mép). Cổng: đủ nét như các tầng khác + nét đặc phải KHỚP poster gốc (AI vẽ lại chữ thì bỏ, lùi về tầng nền sạch). khoa(poster) → đường dẫn ảnh nền hồng.
     # KHOÁ MÀU ĐI TRƯỚC (21/11/2026 Get Out of My Bugatti: tầng cắt 0₫ qua cổng mà vẫn dính mảng áo + đốm nền quanh logo): có khoa thì luôn thử khoá màu trước,
     # trượt cổng mới giữ kết quả tầng cắt 0₫ (ly của nó không đổi)
+    if khoa:   # sai chữ ký khoa(poster, chat) = lỗi mã → kêu to ngay; để except dưới nuốt thì mọi phim lặng lẽ rơi xuống tầng AI ra logo vỡ chữ (212128 Twin, 28/11/2026)
+        import inspect; inspect.signature(khoa).bind(poster, True)
     for chat in ((False, True) if khoa else ()):   # lần 2 = ảnh khoá lệnh chặt, chỉ khi lần 1 giữ phần không phải logo (nền hồng ít / nét phủ quá dày)
         lai = False
         try:

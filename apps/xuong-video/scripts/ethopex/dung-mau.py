@@ -244,12 +244,12 @@ def nen_sach_ai(c):
     return lam
 def logo_khoa_ai(c):
     """ảnh khoá màu của phim (chuẩn tách nền logo — logo-goc.anh_khoa, một hàm cho mọi máy); nhớ logo-khoa.png, MỘT lần / phim"""
-    def lam(poster):
+    def lam(poster, chat=False):   # chat: lần 2 lệnh chặt — logo-goc.tach gọi khoa(poster, chat) (347f6114e); thiếu tham số này thì tầng khoá màu sập ở mọi phim (Twin 212128 logo vỡ, 28/11/2026)
         TT = _nap("tai_tap", "tai-tap.py"); link = TT.og_anh(TT.mo_rong(c["p"]["url"])) if c.get("p", {}).get("url") else None
-        ra, v = _nap("logo_goc", "logo-goc.py").anh_khoa(link, os.path.join(c["tm"], "logo-khoa.png"), c.get("cid") or ""); _CHI_LOGO[0] += v; return ra
+        ra, v = _nap("logo_goc", "logo-goc.py").anh_khoa(link, os.path.join(c["tm"], "logo-khoa.png"), c.get("cid") or "", chat); _CHI_LOGO[0] += v; return ra
     return lam
 SQL_GAN_PHIEU = _nap("cho_len", "cho_len.py").SQL_GAN_PHIEU   # gắn thẻ Chờ lên vào phiếu + mức ROAS của thẻ — một câu cho AD (đây) và CC2 (cho_len.ghi_cho)
-LOGO_BAN = 7   # 7: mác nền tảng (DramaBox Exclusive/Exclusivo) thắng hộp tên + từ dính phải ghép đủ từ của tên (27/11/2026 Deny Me, ¡Atrás!) · đổi cách tách thì tăng số này → logo đã nhớ của mọi phim tách lại (6: vùng cắt nới theo nét + cổng "logo bị cụt", 26/11/2026 #116378 mất chữ KING)
+LOGO_BAN = 8   # 8: tầng khoá màu sập vì sai số tham số khoa(poster, chat) từ 27/11 20:54 — tách lại (28/11/2026 Twin 212128) · 7: mác nền tảng (DramaBox Exclusive/Exclusivo) thắng hộp tên + từ dính phải ghép đủ từ của tên (27/11/2026 Deny Me, ¡Atrás!) · đổi cách tách thì tăng số này → logo đã nhớ của mọi phim tách lại (6: vùng cắt nới theo nét + cổng "logo bị cụt", 26/11/2026 #116378 mất chữ KING)
 def day_logo(cid, tep, kieu, ep=False):
     """logo gốc của phim → kho R2 (box3 kho phat ethopex logo-goc) + etp.logo_goc (migration 0489) → etp2 phiếu lên camp hiện logo.
     Đã có đúng LOGO_BAN thì thôi (một câu SQL); đẩy lỗi KHÔNG chặn bản dựng — kêu to ra stderr."""

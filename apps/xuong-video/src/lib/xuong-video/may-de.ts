@@ -6,7 +6,7 @@ import { z } from 'zod/v4';
 import type { MauMayDung } from './may-dung-mau';
 import type { DeNapMay } from './may';
 import { giaChuCents } from './kieu';
-import { loiHook, giuHook, dongHookBai, bangChungHook, khuonTrung, CHU_VIET, chuManHinh, sachHook, tuNoiDung } from './hook-qc.mjs';
+import { loiHook, giuHook, dongHookBai, bangChungHook, khuonTrung, CHU_VIET, chuManHinh, sachHook, tuNoiDung, cauHook } from './hook-qc.mjs';
 
 /** Dạng trong kho (scripts/ke-hoach-goc/dang-bai.json) → mẫu studio dựng được. Dạng chưa có mẫu → null (ô để máy đăng dùng bài kho như cũ). */
 export const MAU_CUA_DANG: Record<string, MauMayDung | null> = {
@@ -367,7 +367,9 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     // top-n-40712 kẹt) → bỏ hook đó, lượt sau mở lại phần kho còn lại (trượt nữa thì khoá hook kế), không khoá mãi một câu không bám được.
     // KHÔNG bỏ khóa sau MỘT lượt "sửa quá xa / chưa chọn hook": mã đã có bản dựng riêng (tachTieuDe) thì giữ hook đó, lượt sau ép dùng bản dựng.
     // Bản cũ bỏ hook ngay → mô hình chọn hook khác, lại sửa xa, 4 lượt cạn mà không đưa nổi một tiêu đề bám hook (militarycalc so-sanh-43006, 28/11/2026).
-    const cuuKhoa = hookCu ? tachTieuDe(hookCu.chu, o.daDung ?? []) : null;
+    // cuuKhoa = bản dựng bằng mã (tachTieuDe) hoặc nguyên câu hook đã cắt về câu móc hợp trần (cauHook) — luôn nằm trong 25–110 ký tự.
+    const tachKhoa = hookCu ? tachTieuDe(hookCu.chu, o.daDung ?? []) : null;
+    const cuuKhoa = tachKhoa ?? (hookCu ? cauHook(hookCu.chu) || null : null);
     if (khoaTruoc && hookCu && loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l)) && !cuuKhoa) { boHook.add(hookCu.id); hookCu = null; loiCu = loiCu.filter((l) => !/sửa quá xa|chưa chọn hook/.test(l)); }
     // trượt "sửa quá xa": mô hình rẻ cầm cả kho thì không bám (esimfares 10/11/2026: hook kênh "Landing in Italy? Do this before your plane touches down"
     // → viết "Set this up before takeoff", giữ 17%, 2/3 bài kẹt cả 2 lượt) → lượt sau khoá vào ĐÚNG hook đã chọn + đưa nguyên câu làm khuôn, thêm một lượt.
@@ -425,8 +427,9 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     // Bản dựng giữ NGUYÊN câu hook làm phần lời hứa (≥35% chữ hook) và chỉ đổi câu mở → không "sửa quá xa", không cùng khuôn với tên cũ.
     // militarycalc so-sanh-43006 (28/11/2026): 3 lượt mô hình đều viết xa hook rồi cả chuỗi kẹt; nay thay tại chỗ, không đốt thêm lượt gọi.
     if (hookCu) {
-      const tdCuu = cuuKhoa, lech = loiHook([r.data.chu.title], hookCu.chu).length > 0 || !!khuonTrung(r.data.chu.title, (o.daDung ?? []).slice(0, 80));
-      if (tdCuu && lech && !daCo.has(tdChuan(tdCuu))) { r.data.chu.title = tdCuu; r.data.hook_qc = hookCu.id; }
+      // quá ngắn / quá trần câu móc cũng phải thay: bản dựng bằng mã luôn nằm trong 25–110 ký tự (so-sanh-43006 lượt 2: "câu móc dài 132").
+      const lech = r.data.chu.title.length > 110 || r.data.chu.title.length < 25 || loiHook([r.data.chu.title], hookCu.chu).length > 0 || !!khuonTrung(r.data.chu.title, (o.daDung ?? []).slice(0, 80));
+      if (cuuKhoa && lech && !daCo.has(tdChuan(cuuKhoa))) { r.data.chu.title = cuuKhoa; r.data.hook_qc = hookCu.id; }
     }
     const maHook = maHookKhop(hooksLuot, r.data.hook_qc, r.data.chu.title); hookCu = timHook(hooksLuot, maHook) ?? hookCu;
     // mô hình không khai mã hook nào trong kho (bỏ trống / tự viết hook) → lượt sau KHOÁ vào hook gần tiêu đề nhất, đưa nguyên câu làm khuôn

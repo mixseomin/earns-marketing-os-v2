@@ -184,8 +184,11 @@ export function tachTieuDe(hook: string, daDung: string[]): string | null {
   // CỘT CHỮ không được cắt giữa từ: hook dài hơn trần 110 thì bản cũ cắt theo KÝ TỰ → "Most people get this wrong: How Should You Factor a Pension Into Your"
   // (rơi giữa cột chữ, tiêu đề đọc cụt; so-sanh-43006 lượt sau 28/11/2026). Ở đây cắt ở RANH GIỚI TỪ, dừng trước từ mang dấu ngăn (— – , ; :) để không
   // dính gạch dài / vế lửng; bản dài nhất đứng trước, `dat` vẫn kiểm trần 110 và giữ ≥35% chữ hook nên cắt quá tay thì tự bị loại.
+  // … và không được DỪNG ở từ nối (to, of, the, and…): "Veterans, you deserve to" đọc cụt giữa câu, Phòng Nội dung chấm "hook nhạt (câu cụt)"
+  // dù đúng trần ký tự và đủ 35% chữ (so-sanh-43006 lượt sau, 28/11/2026).
+  const TU_CUT = new Set('a an the to of in on at and or for but with by from as is are was were be been your their our its his her this that these those it you we they what how why if when so than about into over under per not no my me us them him'.split(' '));
   const cot = duoi || sach, banCot: string[] = []; let cs = '';
-  for (const w of cot.split(/\s+/).filter(Boolean)) { cs = cs ? `${cs} ${w}` : w; if (!/[—–,;:]$/.test(w)) banCot.push(cs); }
+  for (const w of cot.split(/\s+/).filter(Boolean)) { cs = cs ? `${cs} ${w}` : w; if (!/[—–,;:]$/.test(w) && !TU_CUT.has(w.toLowerCase())) banCot.push(cs); }
   const ung = [...moCau.map((m) => `${m}${sach}`)];
   for (const m of moCau) for (const c of banCot.slice().reverse()) ung.push(`${m}${c}`);
   if (duoi) ung.push(...moCau.map((m) => `${m}${duoi}`));

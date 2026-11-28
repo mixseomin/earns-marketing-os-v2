@@ -167,9 +167,15 @@ submit)
   van_hanh=f; case "$loi" in "["*" · vận hành, không sửa mã]"*) van_hanh=t ;; esac
   if [ "$la_hoi" != "t" ] && [ "$van_hanh" != "t" ] && [ "$P" != "spy" ]; then
     repo=""; sha=""
-    if [[ "$url" =~ ^https://github\.com/mixseomin/([A-Za-z0-9._-]+)/commit/([0-9a-f]{7,40})$ ]]; then
+    # Link commit có thể nằm trong LỜI NỘP thay vì tham số url (#1943: url = trang ?p=… của card, link #commit= ghi trong lời → bị chặn oan).
+    curl_kiem="$url"
+    if ! [[ "$url" =~ /commit/[0-9a-f]{7,40}$ || "$url" =~ [?\&#]commit=[0-9a-f]{7,40}$ ]]; then
+      tu_loi=$(printf '%s\n%s' "$loi" "$tra_cuoi" | grep -oE 'https://(github\.com/mixseomin/[A-Za-z0-9._-]+/commit/[0-9a-f]{7,40}|dantranh\.on\.tc(/[^[:space:]?#)]*)?[?&#]commit=[0-9a-f]{7,40})' | head -1)
+      [ -n "$tu_loi" ] && curl_kiem="$tu_loi"
+    fi
+    if [[ "$curl_kiem" =~ ^https://github\.com/mixseomin/([A-Za-z0-9._-]+)/commit/([0-9a-f]{7,40})$ ]]; then
       repo="${BASH_REMATCH[1]}"; sha="${BASH_REMATCH[2]}"
-    elif [[ "$url" =~ ^https://dantranh\.on\.tc(/[^[:space:]]*)?[?\&#]commit=([0-9a-f]{7,40})$ ]]; then
+    elif [[ "$curl_kiem" =~ ^https://dantranh\.on\.tc(/[^[:space:]]*)?[?\&#]commit=([0-9a-f]{7,40})$ ]]; then
       # dantranh không có trên GitHub (repo chỉ ở iMac) → link trang thật kèm mã commit: https://dantranh.on.tc/<trang>#commit=<sha> (hoặc ?commit=<sha>)
       repo=dantranh; sha="${BASH_REMATCH[2]}"
     fi

@@ -69,8 +69,16 @@ if (urlXuat) {
   tai(urlXuat, nguon);
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', nguon, '-t', than.toFixed(2), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-c:a', 'aac', '-b:a', '160k', tepThan]);
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-sseof', '-0.2', '-i', g(cuoi).vid!, '-frames:v', '1', '-update', '1', khung]);   // khung cuối clip cảnh cuối = khung sạch (không chữ studio)
+  // KHUNG DỰ PHÒNG (28/11/2026, 212128): một khung duy nhất mà mặt nằm thấp → "không đủ chỗ dưới mặt cho logo", 3 lần thử ra cùng lỗi rồi bỏ phim.
+  // Thêm vài mốc trong clip cuối rồi lùi về các cảnh trước; cta-logo.py thử lần lượt, lấy khung đầu tiên đủ chỗ.
+  const duPhong: string[] = [];
+  for (const [i, c] of [...canhSinh].reverse().slice(0, 4).entries()) for (const s of i ? ['-0.2', '-2.0'] : ['-1.0', '-2.5']) {
+    if (!g(c).vid || !existsSync(g(c).vid!)) continue;
+    const f = `${D}/khung-du-phong-${c.so}${s}.png`;
+    try { execFileSync('ffmpeg', ['-v', 'error', '-y', '-sseof', s, '-i', g(c).vid!, '-frames:v', '1', '-update', '1', f]); if (existsSync(f)) duPhong.push(f); } catch { /* clip ngắn hơn mốc: bỏ mốc này */ }
+  }
   const py = `${process.env.HOME}/.venvs/poster-mau/bin/python`;
-  console.log(execFileSync(existsSync(py) ? py : 'python3', [`${E}cta-logo.py`, tepThan, String(cid), khung, ra], { encoding: 'utf8', timeout: 18 * 60e3, maxBuffer: 64 << 20 }).trim().split('\n').slice(-4).join('\n'));
+  console.log(execFileSync(existsSync(py) ? py : 'python3', [`${E}cta-logo.py`, tepThan, String(cid), [khung, ...duPhong].join(','), ra], { encoding: 'utf8', timeout: 18 * 60e3, maxBuffer: 64 << 20 }).trim().split('\n').slice(-4).join('\n'));
   // CỔNG KẾT QUẢ (anh 29/10/2026 "lần sau kiểu đéo gì mày cũng lặp lại lỗi này?") — đo bản ra, sai thì ĐỎ, không đưa tệp đi lên creative:
   // (1) không câm: mọi giây của thân phim phải có tiếng (giọng kể / nhạc) — lần đầu bộ xuất bỏ giọng, cả MP4 −91 dB mà không ai đo
   // (2) giọng CTA không đè câu kể cuối: câu cuối dứt trước cú cắt (giọng cảnh cuối ngắn hơn giây phát) — đoạn cuối mang giọng CTA nối SAU thân

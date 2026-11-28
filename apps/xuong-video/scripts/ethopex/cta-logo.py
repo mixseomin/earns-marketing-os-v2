@@ -34,17 +34,26 @@ def main(than, cid, khung, ra, so_cau=0):
         try: TT.tai_poster(TT.mo_rong(p["url"]), tm)
         except Exception as e: print(f"poster phim #{cid}: {e}", file=sys.stderr)
     if not TT.poster_tot(pj): raise SystemExit(f"thiếu {pj} — không lấy được poster công khai của phim (logo gốc tách từ đó)")
-    goc = os.path.join(tm, "kt-goc.png")
-    im = Image.open(khung).convert("RGB"); k = max(W / im.width, H / im.height); im = im.resize((round(im.width * k), round(im.height * k)), Image.LANCZOS)
-    im.crop(((im.width - W) // 2, (im.height - H) // 2, (im.width - W) // 2 + W, (im.height - H) // 2 + H)).save(goc)
-    jm = (AT.doc_mat([goc], 300) or [{}])[-1]
-    mats = [(m[1] * H, (m[1] + m[3]) * H) for m in jm.get("mat") or [] if m[4] >= 0.45 and m[3] >= 0.05]
-    c = {"ma": "dt_anh_dong_logo", "cid": cid, "p": p, "lang": lang, "ten": ten, "tm": tm, "nen": goc, "goc": goc, "goc_khac": [], "mats": mats,
-         "mat_day": max([b for _, b in mats] or [H * 0.45]), "mat_tam": 0.3, "cau": "", "nhan": "", "cta": ""}
-    vnd = 0
-    _, lop = DM.dt_anh_dong_logo(c); vnd += DM._CHI_LOGO[0]; DM._CHI_LOGO[0] = 0
-    cm = DM.che_mat(lop, DM.mat_tren(goc))
-    if cm > DM.CHE_MAT_TOI_DA: raise SystemExit(f"chữ phủ {cm:.0%} hộp mặt (chuẩn ≤ {DM.CHE_MAT_TOI_DA:.0%}) — chọn khung cuối khác")
+    # KHUNG: danh sách ngăn bằng dấu phẩy (vx-ke-chuyen.mts: khung cuối + khung dự phòng các cảnh trước) — thử lần lượt, lấy khung đầu tiên logo + nút
+    # nằm trọn dưới mặt và chữ không che mặt (28/11/2026, 212128: một khung duy nhất mặt thấp → hỏng 3 lần như nhau → bỏ phim)
+    goc = os.path.join(tm, "kt-goc.png"); vnd = 0; ly = []
+    for kh in [x for x in khung.split(",") if x]:
+        im = Image.open(kh).convert("RGB"); k = max(W / im.width, H / im.height); im = im.resize((round(im.width * k), round(im.height * k)), Image.LANCZOS)
+        im.crop(((im.width - W) // 2, (im.height - H) // 2, (im.width - W) // 2 + W, (im.height - H) // 2 + H)).save(goc)
+        jm = (AT.doc_mat([goc], 300) or [{}])[-1]
+        mats = [(m[1] * H, (m[1] + m[3]) * H) for m in jm.get("mat") or [] if m[4] >= 0.45 and m[3] >= 0.05]
+        c = {"ma": "dt_anh_dong_logo", "cid": cid, "p": p, "lang": lang, "ten": ten, "tm": tm, "nen": goc, "goc": goc, "goc_khac": [], "mats": mats,
+             "mat_day": max([b for _, b in mats] or [H * 0.45]), "mat_tam": 0.3, "cau": "", "nhan": "", "cta": ""}
+        try: _, lop = DM.dt_anh_dong_logo(c)
+        except RuntimeError as e:
+            if "không đủ chỗ" not in str(e): raise
+            ly.append(f"{os.path.basename(kh)}: không đủ chỗ dưới mặt"); continue
+        finally: vnd += DM._CHI_LOGO[0]; DM._CHI_LOGO[0] = 0
+        cm = DM.che_mat(lop, DM.mat_tren(goc))
+        if cm > DM.CHE_MAT_TOI_DA: ly.append(f"{os.path.basename(kh)}: chữ phủ {cm:.0%} hộp mặt"); continue
+        if ly: print(f"khung thẻ cuối: {os.path.basename(kh)} (bỏ {len(ly)} khung trước: {'; '.join(ly)})", flush=True)
+        break
+    else: raise SystemExit(f"{len(ly)} khung ứng viên đều không đặt được logo dưới mặt (chữ không che mặt): {'; '.join(ly)[:300]}")
     chu = os.path.join(tm, "kt-chu.png"); lop.save(chu)
     Image.alpha_composite(Image.open(goc).convert("RGBA"), lop).convert("RGB").save(os.path.join(tm, "kt-xem.jpg"), quality=88)
     kg, ng = AT.giong_phim(p)

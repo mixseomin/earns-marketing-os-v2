@@ -208,7 +208,7 @@ export const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', cam: 'Image.open(poster).convert("RGBA").resize((W, H))', vi: 'thẻ cuối không kéo méo poster khác 9:16 (mất tên phim)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', co: 'abs(goc.width / goc.height - W / H)', vi: 'thẻ cuối giữ tỉ lệ poster' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', co: 'os.environ.get("ETP_LOI_DAN")', vi: 'phim có lời kể: giọng CTA vào sau câu kể cuối' },
-  { card: 'kt-the-cuoi-ad-2811', tep: 'apps/xuong-video/scripts/ethopex/vx-ke-chuyen.mts', co: '`${E}cta-logo.py`, tepThan, String(cid), khung, ra', vi: 'KT thẻ cuối kiểu AD làm chuẩn: logo gốc + nút màu logo nảy theo giọng, chuyển động VideoExpress 0₫ qua cta-logo.py (anh 28/11/2026 "Kiểu KT vừa nãy là ok rồi")' },
+  { card: 'kt-the-cuoi-ad-2811', tep: 'apps/xuong-video/scripts/ethopex/vx-ke-chuyen.mts', co: "`${E}cta-logo.py`, tepThan, String(cid), [khung, ...duPhong].join(','), ra", vi: '(28/11/2026 thêm khung dự phòng, vẫn qua cta-logo.py) KT thẻ cuối kiểu AD làm chuẩn: logo gốc + nút màu logo nảy theo giọng, chuyển động VideoExpress 0₫ qua cta-logo.py (anh 28/11/2026 "Kiểu KT vừa nãy là ok rồi")' },
   { card: 'kt-the-cuoi-ad-2811', tep: 'apps/xuong-video/scripts/ethopex/vx-ke-chuyen.mts', cam: 'cat-canh.py', vi: 'KT không quay về CTA v2 cat-canh' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/vx-ke-chuyen.mts', co: 'CỔNG BẢN KT', vi: 'bản KT tự đo câm / giọng đè trước khi trả tệp' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/vx-ke-chuyen.mts', cam: "option_speed: '0'", vi: 'tốc độ đọc TTS không gửi 0 (bị kẹp 0,5 = đọc chậm gấp đôi)' },
@@ -1978,6 +1978,8 @@ export const LUAT = [
   { card: 'sx-ket-2811', tep: 'apps/xuong-video/scripts/ethopex/tai-tap.py', co: 'return k > 0 and poster_tot(os.path.join(ra, "poster.jpg"))', vi: 'da_het đọc poster qua cổng chung poster_tot (tệp hỏng → .hong, tải lại)' },
   { card: 'sx-ket-2811', tep: 'apps/web/src/app/api/ext/etp-cham/route.ts', co: "trang_thai = case when lan_thu >= 2 then 'loi' else 'cho' end", cam: "update etp.cham_hang set trang_thai = 'cho', bat_dau = null where trang_thai = 'dang'", vi: "anh 28/11/2026 'sx mấy tiếng không xong': hàng chấm 'dang' chết giữa chừng phải đếm lần thử, 3 lần → lỗi (116488 quay vòng từ 26/11)" },
   { card: 'sx-ket-2811', tep: 'apps/etp/dong_phim.py', co: 'if h := cham_hong(cr): return "loi"', vi: 'dòng phim đọc cả hàng chấm lỗi hẳn, không đứng chờ máy chấm mãi (7086)' },
+  { card: 'sx-ket-2811', tep: 'apps/xuong-video/scripts/ethopex/cta-logo.py', co: 'for kh in [x for x in khung.split(",") if x]:', vi: "anh 28/11/2026 'sx mấy tiếng không xong': thẻ cuối KT thử nhiều khung, không chết vì một khung mặt thấp (212128)" },
+  { card: 'sx-ket-2811', tep: 'apps/xuong-video/scripts/ethopex/vx-ke-chuyen.mts', co: "[khung, ...duPhong].join(',')", vi: 'vx-ke-chuyen đưa khung dự phòng các cảnh trước cho cta-logo' },
   { card: 'sx-ket-2811', tep: 'apps/xuong-video/scripts/ethopex/cta-logo.py', co: 'TT.tai_poster(TT.mo_rong(p["url"]), tm)', cam: 'AT.sh("curl", "-sSfL", "-A", "Mozilla/5.0", "-o", pj, link)', vi: 'cta-logo tải poster bằng đường chung (Referer + kiểm ảnh), không curl trơn' },
   { card: 1931, tep: 'apps/etp/dong-bo.py', co: 'import hang_phieu as HP; kq["hang_phieu"] = HP.chay(q)', vi: 'nhịp đồng bộ 10 phút thử lại phiếu xếp hàng khi máy dựng còn bận (#1931)' },
 ];

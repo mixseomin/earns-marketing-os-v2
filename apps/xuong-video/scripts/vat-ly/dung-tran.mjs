@@ -101,6 +101,8 @@ function laySo() {
 const hex = (x) => (x ? '#' + String(x).replace('#', '').padStart(6, '0') : null);
 const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const sang = (h) => { const [r, g, b] = rgb(h); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
+// Chữ bìa trên nền sân đêm: màu đội tối (Everton #0606fa sáng 0,13) chìm hẳn — Phòng Nội dung chặn 28/11/2026. Pha trắng dần tới độ sáng ≥ 0,4, giữ sắc đội.
+const sangLen = (h, nguong = 0.4) => { let c = rgb(h); for (let i = 0; i < 20 && (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255 < nguong; i++) c = c.map((x) => Math.round(x + (255 - x) * 0.15)); return '#' + c.map((x) => x.toString(16).padStart(2, '0')).join(''); };
 const xa = (a, b) => Math.hypot(...rgb(a).map((x, i) => x - rgb(b)[i]));
 async function timWiki(ten) {
   const j = await json(`https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&srlimit=1&srsearch=${encodeURIComponent(ten + ' football club')}`);
@@ -139,12 +141,14 @@ async function pexels(slug, dir) {
     const q = CUM[(h + i) % CUM.length];
     if (kPx) try {
       const ds = (await (await lay(`https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=15&orientation=landscape`, { headers: { Authorization: kPx, ...UA } })).json()).photos ?? [];
-      if (ds.length) {
-        const p = ds[(h >>> 3) % ds.length];
+      // Ảnh của một sân CÓ TÊN khác (Kigali, Rwanda) bị Phòng Nội dung chặn "lệch chuyện" (eve-liv 28/11/2026): bỏ ảnh mà alt có danh từ riêng (chữ hoa giữa câu) hoặc không nói tới sân / bóng.
+      const chung = ds.filter((p) => !/\s[A-Z][a-z]/.test(p.alt ?? '') && /\b(?:soccer|football|stadium|pitch)\b/i.test(p.alt ?? ''));   // và phải đúng chủ đề: "aerial view of a vast city" lọt vào cụm stadium night
+      if (chung.length) {
+        const p = chung[(h >>> 3) % chung.length];
         writeFileSync(join(dir, 'nen.jpg'), Buffer.from(await (await lay(p.src.large2x, { headers: UA })).arrayBuffer()));
         return { trang: p.url, nen: p.src.original + '?auto=compress&cs=tinysrgb&w=1920' };
       }
-      loi.push(`Pexels "${q}": rỗng`);
+      loi.push(`Pexels "${q}": ${ds.length ? 'toàn ảnh sân có tên' : 'rỗng'}`);
     } catch (e) { loi.push(`Pexels "${q}": ${e.message}`); }
     if (kPb) try {
       const ds = (await (await lay(`https://pixabay.com/api/?key=${kPb}&q=${encodeURIComponent(q)}&image_type=photo&orientation=horizontal&per_page=20&safesearch=true`, { headers: UA })).json()).hits ?? [];
@@ -161,7 +165,7 @@ async function pexels(slug, dir) {
 const giayCua = (f) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim());
 const chup = (mp4, t, ra) => execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(t), '-i', mp4, '-frames:v', '1', '-q:v', '3', ra]);
 function veBia(dir, ten, { d1, vs, d2, mau1, khung }) {
-  const co = (s) => (s.length <= 9 ? 96 : s.length <= 13 ? 78 : 60);
+  const co = (s) => (s.length <= 9 ? 96 : s.length <= 13 ? 78 : s.length <= 17 ? 60 : 46);   // tên sân dài (HILL DICKINSON STADIUM 22 ký tự) ở 60px đè lên khung trận bên phải
   const html = readFileSync(join(KENH, 'thumb.html'), 'utf8').replace('{{NEN}}', 'nen.jpg').replace('{{KHUNG}}', khung).replace('{{D1}}', d1).replace('{{VS}}', vs).replace('{{D2}}', d2)
     .replace('{{MAU1}}', mau1).replace('{{CO1}}', co(d1)).replace('{{CO2}}', co(d2));
   writeFileSync(join(dir, `${ten}.html`), html);
@@ -189,9 +193,9 @@ async function dungTran(t, ngayDang) {
   for (const [mp4, g, k] of [[NG, gN, 'n'], [RL, gR, 'r']]) [0.1, 0.45, 0.97].forEach((x, i) => { chup(mp4, +(g * x).toFixed(2), join(dir, `k${k}${i}.jpg`)); tep.push(`k${k}${i}.jpg`); });
   execFileSync('magick', [join(dir, 'kn1.jpg'), '-crop', '800x500+560+290', '+repage', '-resize', '1120x700', join(dir, 'cat-n.jpg')]);
   execFileSync('magick', [join(dir, 'kr1.jpg'), '-crop', '800x500+140+710', '+repage', '-resize', '1120x700', join(dir, 'cat-r.jpg')]);
-  const anh = await pexels(slug, dir), mau1 = sang(nha.mau[0]) < 0.12 ? '#ffffff' : nha.mau[0];
-  const san = (t.san ?? 'THE STADIUM').toUpperCase();
-  const chuN = { d1: bH, vs: 'OR', d2: bA }, chuR = { d1: 'WHO WINS', vs: 'AT', d2: san };
+  const anh = await pexels(slug, dir), mau1 = sangLen(nha.mau[0]);
+  // Bìa reel dùng chung chữ ngắn của bản ngang: 'WHO WINS AT <SÂN>' quá 5 từ → Phòng Nội dung chặn reel eve-liv 28/11/2026.
+  const chuN = { d1: bH, vs: 'OR', d2: bA }, chuR = chuN;
   tep.push(veBia(dir, 'bia-n', { ...chuN, mau1, khung: 'cat-n.jpg' }), veBia(dir, 'bia-r', { ...chuR, mau1, khung: 'cat-r.jpg' }));
 
   // tải lên img.on.tc (box3)
@@ -250,7 +254,11 @@ async function dungTran(t, ngayDang) {
   writeFileSync(join(dir, 'nap.json'), JSON.stringify(nap, null, 1));
   const T = `${TSX} scripts/may-dung.mts --may ${MAY}`;
   console.log(ssh(`${ENV}; ${T} --nap`, JSON.stringify(nap)).trim().split('\n').pop());
-  ssh(`${ENV}; ${T} --xuat ${slug} >/dev/null && ${T} --xuat ${slug}-reel >/dev/null; cd /opt/cty && node worker/cham-dang.mjs --chay >/dev/null 2>&1; true`);
+  // Xuất từng bản riêng rồi soát xuat_luc: chuỗi `--xuat A && --xuat B` cũ để reel eve-liv-2026-11-29-s6607 không xuất mà không ai biết (28/11/2026) → reel không bao giờ được chấm.
+  for (const s_ of [slug, `${slug}-reel`]) { const r = ssh(`${ENV}; ${T} --xuat ${s_} 2>&1 | tail -3; true`); if (!r.includes(`✓ ${s_}`)) { console.log(`  ! xuất ${s_} lần 1: ${r.trim().slice(-200)} — thử lại`); ssh(`${ENV}; ${T} --xuat ${s_} >/dev/null 2>&1; true`); } }
+  const chuaXuat = ssh(`${ENV}; psql "$DATABASE_URL" -tAc "select slug from xv_may_video where slug in ('${slug}','${slug}-reel') and xuat_luc is null"`).trim();
+  if (chuaXuat) throw new Error(`may-dung --xuat không ghi xuat_luc cho: ${chuaXuat.replace(/\n/g, ', ')}`);
+  ssh(`cd /opt/cty && node worker/cham-dang.mjs --chay >/dev/null 2>&1; true`);
   const kq = ssh(`${ENV}; psql "$DATABASE_URL" -tAc "select slug, cham->>'ket', cham->>'diem', coalesce(cham->>'chan_cung','') from xv_may_video where slug in ('${slug}','${slug}-reel') order by slug"`).trim();
   const ket = Object.fromEntries(kq.split('\n').map((l) => l.split('|')).map(([s_, k, d, c]) => [s_, { k, d, c }]));
   console.log(`  ${H} ${a}-${b} ${A} · đăng ${han.dang_tu} → ${han.dang_den} · chấm: ${kq.replace(/\n/g, ' ; ')}`);

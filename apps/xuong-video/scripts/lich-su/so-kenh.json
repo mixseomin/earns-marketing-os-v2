@@ -2006,12 +2006,12 @@
     ]
   },
   "orbiball": {
-    "ten": "Orbiball · YouTube @orbiball (chưa tạo kênh)",
+    "ten": "Orbiball · YouTube @orbiballfc",
     "cap_nhat": "2026-11-28",
     "muc_tieu": "kênh mô phỏng vật lý không lời, một tên riêng (kiểu MIKAN) đăng nhiều dạng: bóng thoát vòng, đua bi, trận bóng hai đội trong sân tròn ăn từ khoá trận thật + tên cầu thủ thật; máy tự dựng 0₫ trên iMac, đăng YouTube dài + Shorts",
     "dinh_vi": {
       "cho_ai": "người xem toàn cầu thích video vật lý / đua bi / bóng đá, không cần biết tiếng",
-      "dich": "lượt xem + người đăng ký kênh YouTube @orbiball (handle còn trống, dò 28/11/2026); tên miền orbiball.net còn trống, orbiball.com đã có người đăng ký",
+      "dich": "lượt xem + người đăng ký kênh YouTube @orbiballfc (kênh UC-Optna7QtvASbXG-B68B5Q, tạo 28/11/2026 trên Gmail militarycalc, vault #727; @orbiball đã có người giữ); tên miền orbiball.net còn trống",
       "ngon_ngu": "không lời (chữ EN tối thiểu: tên đội, tên cầu thủ, GOAL)",
       "giong": "âm thanh va chạm tổng hợp + tiếng đám đông, không giọng đọc"
     },
@@ -2027,7 +2027,7 @@
         "ma": "tran-dau",
         "ten": "Marble Football",
         "trang_thai": "de_xuat",
-        "ngay": "chưa xếp lịch, chờ tạo kênh",
+        "ngay": "chưa xếp lịch, kênh đã có, chờ video đầu",
         "noi_dung": "trận hai đội 11 đấu 11 trong sân tròn, đội hình thật, ghi tên người ghi bàn (El Clásico, derby, trận đang hot theo lịch thi đấu)",
         "vi_du": []
       },
@@ -2051,16 +2051,16 @@
       {
         "ma": "G1",
         "ten": "Tên + thương hiệu",
-        "viec": "tên Orbiball (con chọn 28/11/2026 theo lệnh anh), handle @orbiball; còn logo, ảnh đại diện, ảnh bìa",
+        "viec": "tên Orbiball (con chọn 28/11/2026 theo lệnh anh), handle @orbiballfc; ảnh đại diện + ảnh bìa đã đặt (apps/xuong-video/scripts/vat-ly/kenh-orbiball/ra/)",
         "anh": "duyệt logo",
-        "trang_thai": "dang"
+        "trang_thai": "xong"
       },
       {
         "ma": "G2",
         "ten": "Tạo kênh YouTube",
-        "viec": "tạo kênh @orbiball + gắn vào máy đăng (nen-dang.json, xv_may.dang)",
+        "viec": "XONG 28/11/2026: kênh https://www.youtube.com/@orbiballfc (UC-Optna7QtvASbXG-B68B5Q), vault #727, xv_may 18 dang youtube 16:00 trần 1/ngày",
         "anh": "bảo tạo",
-        "trang_thai": "chua"
+        "trang_thai": "xong"
       },
       {
         "ma": "G3",

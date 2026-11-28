@@ -121,5 +121,7 @@ assert.ok(vanNguoiDung(goc, 'top-n', [], 'en', hk).includes('3496181930676276') 
   assert.strictEqual(khuonTrung(t!, cu), null, 'bản mã không còn cùng khung với 80 tên trước');
   assert.ok(giuHook(t!, hook) >= GIU_HOOK_TOI_THIEU, 'giữ đủ ≥35% chữ hook (Phòng Nội dung)');
   assert.ok(t!.length >= 25 && t!.length <= 110 && !/[—–]/.test(t!), 'đúng trần ký tự, không gạch dài');
-  assert.ok(tachTieuDe(hook, []), 'kênh sạch cũng dùng được (hook lạ, chưa có tiêu đề cũ)'); }
+  assert.ok(tachTieuDe(hook, []), 'kênh sạch cũng dùng được (hook lạ, chưa có tiêu đề cũ)');
+  assert.ok(/^(Which one|Can you tell|How fast|Most people|One of these|Only 1 in 10|Look closely|Think you)/.test(t!), 'phải đổi CÂU MỞ, không được chỉ đổi từ trên khuôn');
+  assert.ok(t!.endsWith(hook) || t!.endsWith(hook.split(/(?<=[.?!…])\s+/u).slice(1).join(' ')), 'câu mở mới chỉ được ghép THÊM phía trước, hook gốc phải còn nguyên'); }
 console.log('may-de: phần thuần đạt');

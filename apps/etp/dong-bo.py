@@ -607,6 +607,9 @@ def main():
     try:
         import thu_vien_phim; kq.update(thu_vien_phim.chay(EA.T_NHA))
     except Exception as e: loi.append(f"thu_vien: {e}")
+    try:   # CHÍNH SÁCH PHIM (Policy risk / medium / safe — Dol 28/11/2026): đọc dần 25 trang / lượt, trọn vòng ~1,5 giờ → etp.thu_vien_phim.chinh_sach (etp2 hiện ở ngăn phim + phiếu lên camp)
+        kq.update(thu_vien_phim.quet_chinh_sach(EA.T_NHA))
+    except Exception as e: loi.append(f"chinh_sach_phim: {e}")
     # MỖI BƯỚC MỘT try (09/11/2026: qc-fb-phim --dem quá 300 giây 3 lần / ngày 08/11 lúc kho spy nghẽn — thường 22 giây — kéo bỏ luôn bước chấm "có thể test")
     try:
         # số QC FB tra theo tên phim (máy cào spy đã tra từ khoá etp_phim) → bộ chấm trừ / loại phim nhiều QC (anh 02/11/2026 "ít camp fb")

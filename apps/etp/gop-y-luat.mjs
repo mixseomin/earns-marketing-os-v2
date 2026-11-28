@@ -108,6 +108,8 @@ export const LUAT = [
   { card: 'phieu-phanh-2811', tep: 'apps/etp/dong_phim.py', co: 'if d.get("phieu_id"): return None   # phiếu = nút anh bấm', vi: 'dòng phiếu anh Gửi không bị phanh "chỉ lên theo lệnh" giữ (anh 28/11/2026 "nhiều camp đang sx mà ko thấy phản hồi gì")' },
   { card: 'cho-anh-khong-han-2811', tep: 'apps/etp/manh.py', co: 'if CHO_ANH.search(gc or ""): return None', vi: 'bước đang chờ anh duyệt (Chờ lên / Chờ duyệt / phiếu) không bị Mạnh giết "quá hạn" — anh 28/11/2026 "set lệnh rồi không muốn động tay"' },
   { card: 'cho-anh-khong-han-2811', tep: 'apps/etp/manh.py', co: 'ht = han_buoc(loai, buoc, gc, han)', vi: 'mục 1 Mạnh đọc hạn qua một hàm thuần han_buoc (tự kiểm --tu-kiem)' },
+  { card: 'chinh-sach-phim-2811', tep: 'apps/etp/thu_vien_phim.py', co: '"chinh_sach": x.get("policy_rate")', vi: 'Dol 28/11/2026: cột Policy (risk / medium / safe) của Ethopex lưu vào etp.thu_vien_phim.chinh_sach' },
+  { card: 'chinh-sach-phim-2811', tep: 'apps/etp/dong-bo.py', co: 'thu_vien_phim.quet_chinh_sach(EA.T_NHA)', vi: 'Ethopex chấm lại cả phim cũ → mỗi lượt đồng bộ đọc dần danh sách lọc &policy=' },
   { card: 'cho-anh-khong-han-2811', tep: 'apps/xuong-video/scripts/ethopex/loi_ky_thuat.py', co: '|anh bỏ ở etp2|', vi: 'anh bỏ bản ở Chờ lên = dừng (quyết định của anh), không hiện "lỗi" + không thử lại' },
   { card: 'phieu-phanh-2811', tep: 'apps/etp/dong_phim.py', co: 'if d.get("phieu_id"): return b_camp_phieu(d)', vi: 'bước camp của dòng phiếu chỉ đọc camp len-phieu.py đã lên, không nhân bản thêm' },
   { card: 'po-0811', tep: 'apps/etp/dong_phim.py', co: 'MAU_PO_MAY = ["ai", "goc", "goc"]', vi: 'máy dòng phim chỉ dựng PO.5 + PO.1 (anh 08/11/2026 "Có mẫu PO5 mới trộn cùng PO"; PO.2 / .3 / .4 không vào máy)' },

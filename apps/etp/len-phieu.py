@@ -70,7 +70,9 @@ def chay_lenh(cl, p, a, cr):
 
 def ghi_kq(cl, pid, camp, loi):
     loi_s = (loi or "").replace("$", "")[:400]
-    q(f"update etp.cho_len set camp_id = {int(camp) if camp else 'null'}, camp_loi = {('$L$' + loi_s + '$L$') if loi else 'null'}, cap_nhat = now() where id = {int(cl)}")
+    # lỗi KHÔNG đè camp đã ghi (anh 28/11/2026: tiến trình chờ quá hạn ghi lỗi + camp_id null đè camp tiến trình kia vừa lên → thẻ báo lỗi, camp mồ côi)
+    q(f"update etp.cho_len set camp_id = {int(camp) if camp else 'camp_id'}, camp_loi = {('$L$' + loi_s + '$L$') if loi else 'null'}, cap_nhat = now() where id = {int(cl)}"
+      + ("" if camp else " and camp_id is null"))
     if not pid: return
     if camp: q(f"update etp.phieu_len set camp_ids = array_append(camp_ids, {int(camp)}), cap_nhat = now() where id = {int(pid)} and not ({int(camp)} = any(camp_ids))")
     # phiếu xong khi mọi bản (không bỏ) đã có camp; có bản lỗi → loi (thẻ có nút Lên camp lại)
@@ -109,6 +111,8 @@ def chay(cl):
     cr = int(x["creative_id"])
     bo = chon_bo(p)   # anh chọn bộ trên phiếu (0491 phieu_len.bo, anh 27/11/2026) — trống = bộ mặc định phim mới
     if not bo: ghi_kq(cl, p["id"], None, "thiếu bộ lên camp (camp đang sản xuất không chọn bộ và etp.cau_hinh bo_phim_moi trống)"); return
+    san = camp_san(cr, p["content_id"])
+    if san: ghi_kq(cl, p["id"], san, None); print(f"cho_len #{cl}: creative #{cr} đã có camp phiếu #{san} — ghi vào thẻ, không lên lại", flush=True); return
     if not giu(cl): print(f"cho_len #{cl}: tiến trình khác đang lên camp thẻ này — không lên trùng", flush=True); return
     try:
         if not CG.ve_hop_le("tao_camp", content_id=p["content_id"]):   # vé nút đã hết hạn / đã dùng → cấp lại từ bản ghi ✓ Duyệt thẻ của anh
@@ -118,6 +122,11 @@ def chay(cl):
         chay_lenh(cl, p, lenh(p, cr, bo), cr)
     finally: tha(cl)
 
+def camp_san(cr, cid):
+    """camp phiếu đã lên cho creative cr (tên ten_camp '… cr moi #cr') mà thẻ chưa ghi — nhận về thẻ thay vì gọi nhan-ban lần hai (nhan-ban từ chối creative đã có camp)"""
+    v = q(f"select camp_id from etp.camp where creative_id = {int(cr)} and content_id = {int(cid)} and ten like '%cr moi #{int(cr)}%' order by camp_id desc limit 1")
+    return int(v) if v else None
+
 def giu(cl):
     """giữ thẻ trước khi gọi nhan-ban (một tiến trình một thẻ) — True nếu giữ được"""
     return bool(q(f"""update etp.cho_len set muc = muc || jsonb_build_object('len_camp', now()), cap_nhat = now() where id = {int(cl)} and camp_id is null
@@ -126,7 +135,8 @@ def tha(cl): q(f"update etp.cho_len set muc = muc - 'len_camp' where id = {int(c
 
 # THẺ CẦN LÊN (Huy gọi, manh.py): phiếu anh đã ✓ Duyệt bằng tài khoản admin, creative đã tải, chưa camp, không lỗi thật (lỗi nhan-ban giữ nguyên chờ anh), không ai đang giữ
 SQL_CAN_LEN = f"""select c.id from etp.cho_len c where c.phieu_id is not null and c.trang_thai = 'da_len' and c.creative_id is not null and c.camp_id is null
-  and (c.camp_loi is null or c.camp_loi like '{HET_VE[:30]}%') and c.muc ->> 'bai' is null and c.duyet_luc > now() - interval '3 days'
+  and (c.camp_loi is null or c.camp_loi like '{HET_VE[:30]}%'
+       or (c.camp_loi like '%đã có camp (#%' and exists (select 1 from etp.camp k where k.creative_id = c.creative_id and k.ten like '%cr moi #' || c.creative_id || '%'))) and c.muc ->> 'bai' is null and c.duyet_luc > now() - interval '3 days'
   and c.duyet_ai in (select x.email from users x join members m on m.user_id = x.id and m.role = 'admin')
   and (c.muc ->> 'len_camp' is null or (c.muc ->> 'len_camp')::timestamptz < now() - interval '{GIU_PHUT} minutes') order by c.id"""
 

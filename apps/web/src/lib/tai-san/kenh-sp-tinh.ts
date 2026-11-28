@@ -39,6 +39,8 @@ export type KenhSp = {
   social?: import('./social-tro-ve-tinh').TroVe | null;
   /** KÊNH SOCIAL (máy không phải la_san_pham, có mục loai 'social' trong so-kenh.json): nơi đăng + trang đích của máy */
   nen?: NenKenh[]; siteDich?: string | null;
+  /** 🌱 SEEDING (anh 28/11/2026): kênh mục tiêu + bình luận máy đã đặt dưới video top của họ; subMoi = người đăng ký tăng từ ngày bình luận đầu */
+  seeding?: { kenh: SeedKenh[]; subMoi: number | null } | null;
   /** tiền từng nguồn trong KY_TIEN ngày (khoá = nguon_tien[].ma; null = nguồn chưa có máy đọc số) + tổng (null = không nguồn nào đo được) — trang tính từ sổ doanh thu */
   tien?: { tong: number | null; nguon: Record<string, { usd: number; don: number } | null> } | null;
   /** tên + nhóm của dạng bài (kho scripts/ke-hoach-goc/dang-bai.json, server tra sẵn) — khối 🧩 Mẫu nội dung */ dangTen?: Record<string, { ten: string; nhom: string }>;
@@ -439,4 +441,24 @@ export function cayNguonTien(nguon: NguonTien[] | undefined, tien: KenhSp['tien'
     ...nguon.map((n): DongKe => { const t = tien?.nguon[n.ma];
       return { id: `tien/${n.ma}`, chu: `${n.ten}${n.mang ? ` · ${MANG[n.mang]}` : ''}`, mau: n.mang ? undefined : 'var(--fg-3)',
         phu: [n.mang ? (t ? `${usd(t.usd)} · ${t.don} đơn / ${KY_TIEN} ngày` : '–') : 'chưa có máy đọc số', n.link ? `link đối tác: ${n.link}` : '', n.ghi ?? ''].filter(Boolean).join(' · ') }; })];
+}
+
+/** 🌱 SEEDING — một kênh mục tiêu + số bình luận của kênh nhà dưới video của họ (bảng xv_seeding_kenh / xv_seeding_bl) */
+export type SeedKenh = { kenhId: string; ten: string; handle: string | null; nguoiDk: number | null; chuDe: string | null; video: number;
+  dat: number; hien: number; doHien: number; like24: number | null; like72: number | null; traLoi: number | null; nhap: number };
+export const COT_SEED = ['BL đã đặt', '% còn hiện', 'Like 24h', 'Like 72h', 'Trả lời'];
+const tong = (xs: (number | null)[]) => (xs.some((x) => x != null) ? xs.reduce<number>((a, x) => a + (x ?? 0), 0) : null);
+const oSeed = (ds: SeedKenh[]): (number | null)[] => { const dat = ds.reduce((a, k) => a + k.dat, 0), doH = ds.reduce((a, k) => a + k.doHien, 0);
+  return [dat, doH ? Math.round((100 * ds.reduce((a, k) => a + k.hien, 0)) / doH) : null, tong(ds.map((k) => k.like24)), tong(ds.map((k) => k.like72)), tong(ds.map((k) => k.traLoi))]; };
+/** điểm kênh mục tiêu = (like 72h + 3 × trả lời) / bình luận còn hiện — dùng chọn "kênh mục tiêu tốt nhất". Thuần. */
+export const diemSeed = (k: SeedKenh) => (k.hien ? ((k.like72 ?? k.like24 ?? 0) + 3 * (k.traLoi ?? 0)) / k.hien : -1);
+export function caySeeding(s: KenhSp['seeding']): DongKe[] {
+  if (!s || !s.kenh.length) return [];
+  const ds = [...s.kenh].sort((a, b) => diemSeed(b) - diemSeed(a) || (b.nguoiDk ?? 0) - (a.nguoiDk ?? 0)), dat = ds.reduce((a, k) => a + k.dat, 0);
+  const tot = ds.find((k) => k.dat && diemSeed(k) > 0), nhap = ds.reduce((a, k) => a + k.nhap, 0);
+  const so = (n: number | null) => (n == null ? '–' : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n));
+  return [{ id: 'seed', nhom: true, chu: `🌱 Seeding (${ds.length} kênh mục tiêu)`, o: oSeed(ds), oTieuDe: COT_SEED,
+    phu: [`sub mới ${s.subMoi ?? '–'}`, `sub / 100 BL ${dat && s.subMoi != null ? ((100 * s.subMoi) / dat).toFixed(1) : '–'}`, `tốt nhất: ${tot ? tot.ten : 'chưa đủ số'}`, nhap ? `${nhap} BL chờ Phòng Nội dung` : ''].filter(Boolean).join(' · ') },
+    ...ds.map((k): DongKe => ({ id: `seed/${k.kenhId}`, icon: 'youtube', chu: `${k.ten}${k.handle ? ` · ${k.handle}` : ''}`, o: oSeed([k]), oTen: COT_SEED, mau: k.dat ? undefined : 'var(--fg-3)',
+      phu: [`${so(k.nguoiDk)} sub`, k.chuDe ?? '', `${k.video} video top`, k.dat ? '' : 'chưa bình luận', k.nhap ? `${k.nhap} chờ duyệt` : ''].filter(Boolean).join(' · ') }))];
 }

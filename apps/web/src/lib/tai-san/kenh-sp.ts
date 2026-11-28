@@ -96,6 +96,11 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
       coalesce(v.dang->>'dang_bai', v.de->>'kieu') AS dang_bai, v.de->>'loai' AS de_loai
     FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE ${chon} AND ${loaiVid} AND NOT coalesce(v.luu_tru, false) ORDER BY v.created_at DESC`)) as unknown as
     { ma: string; slug: string; ten: string; xuat: boolean; cham: string | null; chan: string[] | null; cham_luc: string | null; giay: string | null; ngay_lam: string | null; da_dang: boolean; playlist: string | null; mau: string | null; y_tuong: string | null; ngay: string | null; url: string | null; xem: number | null; tep: string | null; dd: Record<string, unknown> | null; lx: Record<string, unknown> | null; dang_bai: string | null; de_loai: string | null }[];
+  const seedK = (await d.execute(sql`SELECT k.may, k.kenh_id, k.ten, k.handle, k.nguoi_dk, k.chu_de, jsonb_array_length(k.video_top) AS video,
+      count(b.id) FILTER (WHERE b.trang_thai = 'da_dang')::int AS dat, count(b.id) FILTER (WHERE b.con_hien)::int AS hien, count(b.id) FILTER (WHERE b.con_hien IS NOT NULL)::int AS do_hien,
+      sum(b.like_24h)::int AS l24, sum(b.like_72h)::int AS l72, sum(b.tra_loi)::int AS tl, count(b.id) FILTER (WHERE b.trang_thai IN ('nhap', 'cho_cham'))::int AS nhap, min(b.dang_luc)::date::text AS dau
+    FROM xv_seeding_kenh k LEFT JOIN xv_seeding_bl b ON b.may = k.may AND b.kenh_id = k.kenh_id WHERE k.bat AND k.may IN ${may.map((m) => m.ma)} GROUP BY k.id`)) as unknown as
+    { may: string; kenh_id: string; ten: string; handle: string | null; nguoi_dk: number | null; chu_de: string | null; video: number; dat: number; hien: number; do_hien: number; l24: number | null; l72: number | null; tl: number | null; nhap: number; dau: string | null }[];
   const lich = ((await d.execute(sql`SELECT ds FROM xv_lich_du_kien`)) as unknown as { ds: { may: string; ngay: string; gio?: string; nen: string; title?: string; slug?: string | null }[] }[]).flatMap((r) => r.ds ?? []);
   // góp ý #1951: EMAIL quản lý từng nền — acct của nơi đăng → platform_accounts.email; Page không có email thì lấy tài khoản đại diện / liên kết đầu tiên có email
   const accts = [...new Set(may.flatMap((m) => (m.dang ?? []).map((x) => Number(x.br?.acct)).filter((n) => Number.isInteger(n) && n > 0)))];
@@ -135,6 +140,10 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
             .filter((x, i) => i < 10 || (!!x.slug && cua.some((v) => v.slug === x.slug && !v.da_dang)))
             .map((x) => ({ ngay: x.ngay, gio: x.gio ?? null, nen: x.nen, tieuDe: x.title ?? '', slug: x.slug ?? null })) }; })(),
       // 📡 Nền đăng cho MỌI kênh (anh 16/11/2026: trước chỉ kênh social có khối này): nền máy đã gắn + mọi nền khác trong sổ nền, hiện mờ "chưa gắn"
+      seeding: (() => { const r = seedK.filter((x) => x.may === m.ma); if (!r.length) return null;
+        const dau = r.map((x) => x.dau).filter((x): x is string => !!x).sort()[0], truoc = dau ? ds.filter((x) => x.ngay < dau && x.nguoiDk != null).at(-1) : undefined, nay = ds.filter((x) => x.nguoiDk != null).at(-1);
+        return { subMoi: truoc && nay ? nay.nguoiDk! - truoc.nguoiDk! : null, kenh: r.map((x) => ({ kenhId: x.kenh_id, ten: x.ten, handle: x.handle, nguoiDk: x.nguoi_dk, chuDe: x.chu_de, video: Number(x.video),
+          dat: x.dat, hien: x.hien, doHien: x.do_hien, like24: x.l24, like72: x.l72, traLoi: x.tl, nhap: x.nhap })) }; })(),
       videos, nen: tomNenDang(m.dang ?? [], cua, hom, SO_NEN), ...xa };
   });
 }

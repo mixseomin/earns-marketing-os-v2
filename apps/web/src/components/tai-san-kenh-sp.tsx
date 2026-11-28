@@ -8,7 +8,7 @@ import { useShallowParam } from '@/lib/url-shallow';
 import { DataTable, Pager, Panel, type DataColumn } from '@/components/ui';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { DongHo, nutTuanTu } from '@/components/ui/dong-ho';
-import { cayHangCho, cayKeHoach, cayMauSocial, cayNenDang, cayNguonTien, laDemo, cayLoTrinh, cayMau, cayNguoi, caySoKenh, cayPlaylist, cayPlaylistThat, lichKenh, locGap, phanTrangNhom, thongKeMau, tomLoTrinh, COT_MAU, type DongKe, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
+import { cayHangCho, cayKeHoach, cayMauSocial, cayNenDang, caySeeding, cayNguonTien, laDemo, cayLoTrinh, cayMau, cayNguoi, caySoKenh, cayPlaylist, cayPlaylistThat, lichKenh, locGap, phanTrangNhom, thongKeMau, tomLoTrinh, COT_MAU, type DongKe, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
 import { CHANG_VIDEO as CHANG, KenhNgan, useNganKenh } from './kenh-ngan';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -46,7 +46,7 @@ const O_TEN_KENH = 180;
 function cayKenh(k: KenhSp): Dong[] {
   // 📂 Playlist: playlist THẬT (kenh.json, máy đang chạy theo) nếu kênh đã chia; chưa thì playlist theo kế hoạch (so-kenh.json)
   const pl = k.playlist?.length ? cayPlaylistThat(k.playlist, k.so) : k.so ? cayPlaylist(k.so) : [];
-  return [...[...(k.so ? [...caySoKenh(k.so), ...cayMau(k.so, thongKeMau(k.so, k.videos, k.yTuongTuSinh ?? [])), ...cayHangCho(k.so, k.videos, k.yTuongTuSinh ?? []), ...(k.nguoi ? cayNguoi(k.nguoi.ds, k.nguoi.dungNha) : [])] : []), ...cayNguonTien(k.so?.nguon_tien, k.tien ?? null), ...(k.so?.loai === 'social' ? cayMauSocial(k.videos, k.dangTen) : []), ...cayNenDang(k.nen ?? []), ...(k.so ? cayLoTrinh(k.so) : []), ...pl].map((x) => ({ loai: 'ke' as const, k, ...x })), ...cayKeHoach(k).map((x) => ({ loai: 'ke' as const, k, ...x })), { loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đăng bài (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
+  return [...[...(k.so ? [...caySoKenh(k.so), ...cayMau(k.so, thongKeMau(k.so, k.videos, k.yTuongTuSinh ?? [])), ...cayHangCho(k.so, k.videos, k.yTuongTuSinh ?? []), ...(k.nguoi ? cayNguoi(k.nguoi.ds, k.nguoi.dungNha) : [])] : []), ...cayNguonTien(k.so?.nguon_tien, k.tien ?? null), ...(k.so?.loai === 'social' ? cayMauSocial(k.videos, k.dangTen) : []), ...cayNenDang(k.nen ?? []), ...caySeeding(k.seeding), ...(k.so ? cayLoTrinh(k.so) : []), ...pl].map((x) => ({ loai: 'ke' as const, k, ...x })), ...cayKeHoach(k).map((x) => ({ loai: 'ke' as const, k, ...x })), { loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đăng bài (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
     ...k.videos.map((v) => ({ loai: 'video' as const, k, v }))];
 }
 const LOAI_LICH: LoaiLichNho = {

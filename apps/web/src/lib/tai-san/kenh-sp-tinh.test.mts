@@ -194,3 +194,14 @@ import { tinhTienKenh, cayNguonTien } from './kenh-sp-tinh';
   const c = cayNguonTien(ng, t); assert.ok(/\$21\.00/.test(c[0]!.phu!) && /\$19\.75 · 1 đơn/.test(c[1]!.phu!) && /chưa có máy đọc số/.test(c[3]!.phu!));
   assert.deepStrictEqual(cayNguonTien(undefined, null), []);
 }
+
+// 🌱 Seeding: nhóm + dòng kênh, % còn hiện, tốt nhất theo điểm, sub/100 BL
+{
+  const { caySeeding } = await import('./kenh-sp-tinh');
+  const k = (id: string, dat: number, hien: number, l72: number | null, tl: number | null) => ({ kenhId: id, ten: id, handle: null, nguoiDk: 1000, chuDe: null, video: 5, dat, hien, doHien: dat, like24: null, like72: l72, traLoi: tl, nhap: 0 });
+  assert.deepEqual(caySeeding(null), []);
+  const r = caySeeding({ subMoi: 3, kenh: [k('A', 4, 2, 2, 0), k('B', 2, 2, 10, 1), k('C', 0, 0, null, null)] });
+  assert.equal(r.length, 4); assert.equal(r[1]!.id, 'seed/B');
+  assert.deepEqual(r[0]!.o, [6, 67, null, 12, 1]);
+  assert.match(r[0]!.phu!, /sub \/ 100 BL 50\.0/); assert.match(r[0]!.phu!, /tốt nhất: B/);
+}

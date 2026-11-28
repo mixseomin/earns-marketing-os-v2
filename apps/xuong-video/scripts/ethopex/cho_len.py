@@ -18,6 +18,10 @@ DAU = "⏸ CHỜ ANH DUYỆT"   # người gọi dò chuỗi này (dong_phim, th
 LY = "CHỜ ANH DUYỆT TRƯỚC KHI LÊN (etp2 › Camp › Chờ lên)"
 KET_TREO = "2 hours"      # 'dang_len' quá ngần này (máy chết giữa lượt) → về 'duyet'
 LOI_NGHI = "6 hours"      # lên lỗi → thử lại sau ngần này
+# LỖI KỸ THUẬT thử lại sớm (Chờ lên #135, 28/11/2026: Ethopex sập 22:45 → thẻ treo 6 giờ dù máy ghi "máy tự thử lại"): câu lỗi mở đầu bằng DAU_KT
+# (lượt đổ giữa chừng, cổng chữ hỏng kỹ thuật theo loi_ky_thuat) → chỉ nghỉ LOI_NGHI_KT. Lỗi nội dung giữ LOI_NGHI.
+LOI_NGHI_KT = "30 minutes"; DAU_KT = "lượt lên"
+NGHI_SQL = f"case when c.loi like '{DAU_KT}%' then interval '{LOI_NGHI_KT}' else interval '{LOI_NGHI}' end"
 
 def _sql(q):
     import soat_doan as SD
@@ -47,7 +51,7 @@ def loc(lo, ma):
     ks = ",".join(s(x["_khoa"]) for x in lo)
     _sql(f"update etp.cho_len set trang_thai = 'duyet', cap_nhat = now(), loi = 'lượt lên trước bị cắt giữa chừng' where trang_thai = 'dang_len' and cap_nhat < now() - interval '{KET_TREO}' and khoa in ({ks})")
     r = {}
-    for l in (_sql(f"select row_to_json(t) from (select c.id, c.khoa, c.trang_thai, c.creative_id, c.ket, c.video, c.loi, coalesce(p.kieu, c.kieu) kieu, p.chu phieu_chu, p.link phieu_link, c.cap_nhat < now() - interval '{LOI_NGHI}' cu from etp.cho_len c left join etp.phieu_len p on p.id = c.phieu_id where c.khoa in ({ks})) t") or "").splitlines():
+    for l in (_sql(f"select row_to_json(t) from (select c.id, c.khoa, c.trang_thai, c.creative_id, c.ket, c.video, c.loi, coalesce(p.kieu, c.kieu) kieu, p.chu phieu_chu, p.link phieu_link, c.cap_nhat < now() - {NGHI_SQL} cu from etp.cho_len c left join etp.phieu_len p on p.id = c.phieu_id where c.khoa in ({ks})) t") or "").splitlines():
         if l.strip(): v = json.loads(l); r[v["khoa"]] = v
     di, moi, ra = [], [], []
     for x in lo:
@@ -71,7 +75,7 @@ def loc(lo, ma):
                     if g: x["den"] = round(float(g), 1)
                 if x.get("tv") and (_sql(f"select coalesce(chu_qc->>'lop_free', '') from etp.thu_vien where id = {int(x['tv'])}") or "").strip() == "true": x["lop_free"] = True   # dấu lớp Free đọc lúc lên, không lấy ảnh chụp muc
                 di.append(x); continue
-        if tt == "duyet": ra.append(dong_cho(x, ma, f"anh đã duyệt (#{v['id']}) nhưng lên lỗi, thử lại sau {LOI_NGHI}: {v.get('loi')}", False)); continue
+        if tt == "duyet": ra.append(dong_cho(x, ma, f"anh đã duyệt (#{v['id']}) nhưng lên lỗi, thử lại sau {LOI_NGHI_KT if str(v.get('loi') or '').startswith(DAU_KT) else LOI_NGHI}: {v.get('loi')}", False)); continue
         ra.append(dong_cho(x, ma, f"{LY} #{v['id']}" + (" — đang lên" if tt == "dang_len" else "")))
     if ra: print(f"{DAU}: {sum(1 for o in ra if o.get('cho_anh'))} bản chờ anh duyệt ở etp2 › Camp › Chờ lên", flush=True)
     return di, moi, ra
@@ -139,10 +143,21 @@ def xong(lo, out, ai_mac="len-creative"):
                      f" update etp.mau_dung set creative_ids = array_append(creative_ids, {cr}), buoc = 'xong', trang_thai = 'xong', ghi = 'creative #{cr} đã lên (duyệt ở Chờ lên #{x['_cho_len']})', cap_nhat = now()"
                      f" where {int(x['tv'])} = any(tv_ids) and not ({cr} = any(creative_ids));" if x.get("tv") else ""))
         else:
-            _sql(f"update etp.cho_len set trang_thai = 'duyet', loi = {s(str(o.get('loi') or 'không tạo được creative')[:400])}, cap_nhat = now() where id = {x['_cho_len']}")
+            import loi_ky_thuat as LK
+            ly = str(o.get('loi') or 'không tạo được creative')
+            if LK.ky_thuat(ly) is True: ly = f"{DAU_KT} lỗi kỹ thuật: {LK.de_hieu(ly)}"
+            _sql(f"update etp.cho_len set trang_thai = 'duyet', loi = {s(ly[:400])}, cap_nhat = now() where id = {x['_cho_len']}")
+
+def cau_do(e):
+    """lỗi làm lượt đổ → câu cho thẻ: SystemExit / RuntimeError mang câu của máy; lỗi lập trình (KeyError…) kèm tên loại, không để trơ "'creative_id'" """
+    if isinstance(e, str): m = e
+    elif isinstance(e, (SystemExit, RuntimeError)) and str(e): m = str(e)
+    else: m = f"{type(e).__name__}: {e}"
+    return f"{DAU_KT} dừng giữa chừng: {m}"
 
 def nha(lo, ly):
-    """lượt đổ giữa chừng sau khi đã nhận → trả về 'duyet' để lượt sau lên lại"""
+    """lượt đổ giữa chừng sau khi đã nhận → trả về 'duyet' để lượt sau lên lại (sau LOI_NGHI_KT)"""
+    ly = cau_do(ly)
     for x in lo:
         if x.get("_cho_len"):
             try: _sql(f"update etp.cho_len set trang_thai = 'duyet', loi = {s(str(ly)[:400])}, cap_nhat = now() where id = {x['_cho_len']} and trang_thai = 'dang_len'")
@@ -150,9 +165,9 @@ def nha(lo, ly):
 
 def chay_len():
     """bản đã duyệt chưa ai nhận (người gọi gốc là lệnh một lần: sửa CTA, dựng lại logo…) → chạy len-creative theo từng dạng"""
-    ds = [json.loads(l) for l in (_sql(f"""select row_to_json(t) from (select id, khoa, dang, muc from etp.cho_len where trang_thai = 'duyet'
+    ds = [json.loads(l) for l in (_sql(f"""select row_to_json(t) from (select id, khoa, dang, muc from etp.cho_len c where trang_thai = 'duyet'
             and not (coalesce(muc, '{{}}'::jsonb) ? 'cr_cu')   -- creative CŨ (phiếu CU): len-phieu.py tạo bản cùng video, không tải lại
-            and (loi is null or cap_nhat < now() - interval '{LOI_NGHI}') order by duyet_luc nulls last, id limit 20) t""") or "").splitlines() if l.strip()]
+            and (c.loi is null or c.cap_nhat < now() - {NGHI_SQL}) order by duyet_luc nulls last, id limit 20) t""") or "").splitlines() if l.strip()]
     nhom = {}
     for v in ds: nhom.setdefault(v["dang"] or "canh cuoi", []).append({**v["muc"], "khoa_cho": v["khoa"]})
     for gi, (dang, lo) in enumerate(nhom.items()):
@@ -169,6 +184,8 @@ def tu_kiem():
     assert khoa({"file": "box3:/x/y.mp4"}) == "p:box3:/x/y.mp4" and khoa({"file": "/x", "khoa_cho": "m:ab"}) == "m:ab"
     d = dong_cho({"content_id": 1, "lang": "en", "ten": "t", "lo": "l"}, "ma"); assert d["ok"] is False and d["cho_anh"] and LY in d["loi"]
     m = _muc({"file": "f", "ten_tep": "x", "_khoa": "k", "loi": "e", "tv": 3}); assert m == {"file": "f", "tv": 3}
+    assert cau_do(KeyError("creative_id")) == "lượt lên dừng giữa chừng: KeyError: 'creative_id'" and cau_do(RuntimeError("Ethopex chỉ trả 0/1")).endswith("Ethopex chỉ trả 0/1")
+    assert "'lượt lên%'" in NGHI_SQL and "lượt lên trước bị cắt giữa chừng".startswith(DAU_KT)
     cq = open(os.path.join(D, "chu-qc.py")).read(); assert 'x.get("kieu")' in cq and "def chu_theo_kieu" in cq, "chu-qc.py phải tạo chữ theo kiểu anh chọn ở Chờ lên"
     src = open(os.path.join(D, "len-creative.py")).read()
     for k in ("CL.loc(", "CL.ghi_cho(", "CL.xong("): assert k in src, f"len-creative.py thiếu {k} — cổng chờ anh duyệt bị gỡ"

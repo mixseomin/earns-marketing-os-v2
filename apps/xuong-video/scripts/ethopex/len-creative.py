@@ -129,6 +129,9 @@ EOF'""", timeout=3600)
     if not r.stdout.strip():   # bulk-jobs không in gì = lệnh trên box3 đổ (lech_tao / phim cấm / API) — nêu nguyên văn stderr thay vì IndexError câm (CC2 #7083 #7086, 26/11/2026)
         sys.exit(f"bulk-jobs trên box3 không trả creative: {(r.stderr or 'không có stderr').strip()[-400:]}")
     crs = json.loads(r.stdout.strip().splitlines()[-1])
+    # ETHOPEX TRẢ THIẾU CREATIVE (Chờ lên #135, 28/11/2026 22:57: cổng Ethopex 500/502 → bulk-jobs trả [] → bản không có creative_id đi tiếp tới cổng chữ,
+    # đổ KeyError 'creative_id', thẻ chỉ ghi "'creative_id'"): số creative phải khớp số bản, lệch thì cả lô dừng với câu rõ, lượt sau thử lại (ghép zip sai thứ tự còn tệ hơn)
+    if len(crs) != len(lo): raise RuntimeError(f"Ethopex chỉ trả {len(crs)}/{len(lo)} creative cho lô {ma} (bulk-jobs phía Ethopex lỗi, HTTP Error 5xx) — cả lô thử lại")
     XG.bao("day", ma, "ghi studio", 0, len(lo), ep=True)
     # 4. studio
     import importlib.util as iu
@@ -175,7 +178,7 @@ EOF'""", timeout=3600)
         x.pop("loi", None); cong1(x)
         for _ in range(LK.THU_LAI):
             if LK.ky_thuat(x.get("loi")) is not True: break
-            print("thử lại cổng", x["creative_id"], str(x["loi"])[:80], flush=True); time.sleep(LK.NGHI); x.pop("loi", None); cong1(x)
+            print("thử lại cổng", x.get("creative_id"), str(x["loi"])[:80], flush=True); time.sleep(LK.NGHI); x.pop("loi", None); cong1(x)
     def cong1(x):   # cổng treo / đổ (TimeoutExpired…) thành lỗi kỹ thuật của đoạn, không kéo sập cả lô
         try: cong2(x)
         except Exception as e: x["loi"] = f"{type(e).__name__}: {str(e)[:150]}"

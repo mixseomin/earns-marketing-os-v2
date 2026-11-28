@@ -1,0 +1,461 @@
+{
+  "tieu_de": "MAN UTD vs BRENTFORD",
+  "phu_de": "Premier League · Matchweek 12 · Old Trafford",
+  "nguon": "Wikipedia (đội hình đội một), lấy 2026-11-28",
+  "doi": [
+    {
+      "ten": "Manchester United",
+      "ngan": "MUN",
+      "kieu": "tron",
+      "mau": [
+        "#da291c",
+        "#ffffff"
+      ],
+      "chu": "#ffffff",
+      "tm": [
+        "#1fa34a",
+        "#0b3d1c"
+      ],
+      "wiki": {
+        "trang": "Manchester_United_F.C.",
+        "khung": "Template:Manchester_United_F.C._squad"
+      },
+      "san": "Old Trafford",
+      "cauthu": [
+        {
+          "so": 1,
+          "ten": "Senne Lammens",
+          "vt": "GK",
+          "qt": "BEL",
+          "ngan": "Lammens"
+        },
+        {
+          "so": 2,
+          "ten": "Diogo Dalot",
+          "vt": "DF",
+          "qt": "POR",
+          "ngan": "Dalot"
+        },
+        {
+          "so": 3,
+          "ten": "Noussair Mazraoui",
+          "vt": "DF",
+          "qt": "MAR",
+          "ngan": "Mazraoui"
+        },
+        {
+          "so": 4,
+          "ten": "Matthijs de Ligt",
+          "vt": "DF",
+          "qt": "NED",
+          "ngan": "De Ligt"
+        },
+        {
+          "so": 5,
+          "ten": "Harry Maguire",
+          "vt": "DF",
+          "qt": "ENG",
+          "ngan": "Maguire"
+        },
+        {
+          "so": 6,
+          "ten": "Lisandro Martínez",
+          "vt": "DF",
+          "qt": "ARG",
+          "ngan": "Martínez"
+        },
+        {
+          "so": 7,
+          "ten": "Mason Mount",
+          "vt": "MF",
+          "qt": "ENG",
+          "ngan": "Mount"
+        },
+        {
+          "so": 8,
+          "ten": "Bruno Fernandes",
+          "vt": "MF",
+          "qt": "POR",
+          "ngan": "Fernandes"
+        },
+        {
+          "so": 9,
+          "ten": "Marcus Rashford",
+          "vt": "FW",
+          "qt": "ENG",
+          "ngan": "Rashford"
+        },
+        {
+          "so": 10,
+          "ten": "Matheus Cunha",
+          "vt": "FW",
+          "qt": "BRA",
+          "ngan": "Cunha"
+        },
+        {
+          "so": 11,
+          "ten": "Joshua Zirkzee",
+          "vt": "FW",
+          "qt": "NED",
+          "ngan": "Zirkzee"
+        },
+        {
+          "so": 12,
+          "ten": "Karl Darlow",
+          "vt": "GK",
+          "qt": "WAL",
+          "ngan": "Darlow"
+        },
+        {
+          "so": 13,
+          "ten": "Patrick Dorgu",
+          "vt": "DF",
+          "qt": "DEN",
+          "ngan": "Dorgu"
+        },
+        {
+          "so": 15,
+          "ten": "Leny Yoro",
+          "vt": "DF",
+          "qt": "FRA",
+          "ngan": "Yoro"
+        },
+        {
+          "so": 16,
+          "ten": "Amad Diallo",
+          "vt": "FW",
+          "qt": "CIV",
+          "ngan": "Diallo"
+        },
+        {
+          "so": 17,
+          "ten": "Andrey Santos",
+          "vt": "MF",
+          "qt": "BRA",
+          "ngan": "Andrey"
+        },
+        {
+          "so": 18,
+          "ten": "Youri Tielemans",
+          "vt": "MF",
+          "qt": "BEL",
+          "ngan": "Tielemans"
+        },
+        {
+          "so": 19,
+          "ten": "Bryan Mbeumo",
+          "vt": "FW",
+          "qt": "CMR",
+          "ngan": "Mbeumo"
+        },
+        {
+          "so": 20,
+          "ten": "Carlos Baleba",
+          "vt": "MF",
+          "qt": "CMR",
+          "ngan": "Baleba"
+        },
+        {
+          "so": 22,
+          "ten": "Tom Heaton",
+          "vt": "GK",
+          "qt": "ENG",
+          "ngan": "Heaton"
+        },
+        {
+          "so": 23,
+          "ten": "Luke Shaw",
+          "vt": "DF",
+          "qt": "ENG",
+          "ngan": "Shaw"
+        },
+        {
+          "so": 25,
+          "ten": "Manuel Ugarte",
+          "vt": "MF",
+          "qt": "URU",
+          "ngan": "Ugarte"
+        },
+        {
+          "so": 26,
+          "ten": "Ayden Heaven",
+          "vt": "DF",
+          "qt": "ENG",
+          "ngan": "Heaven"
+        },
+        {
+          "so": 30,
+          "ten": "Benjamin Šeško",
+          "vt": "FW",
+          "qt": "SVN",
+          "ngan": "Šeško"
+        },
+        {
+          "so": 31,
+          "ten": "Shea Lacey",
+          "vt": "FW",
+          "qt": "ENG",
+          "ngan": "Lacey"
+        },
+        {
+          "so": 37,
+          "ten": "Kobbie Mainoo",
+          "vt": "MF",
+          "qt": "ENG",
+          "ngan": "Mainoo"
+        },
+        {
+          "so": 38,
+          "ten": "Jack Fletcher",
+          "vt": "MF",
+          "qt": "ENG",
+          "ngan": "J. Fletcher"
+        },
+        {
+          "so": 39,
+          "ten": "Tyler Fletcher",
+          "vt": "MF",
+          "qt": "SCO",
+          "ngan": "T. Fletcher"
+        },
+        {
+          "so": 41,
+          "ten": "Harry Amass",
+          "vt": "DF",
+          "qt": "ENG",
+          "ngan": "Amass"
+        },
+        {
+          "so": 45,
+          "ten": "Dermot Mee",
+          "vt": "GK",
+          "qt": "NIR",
+          "ngan": "Mee"
+        }
+      ]
+    },
+    {
+      "ten": "Brentford",
+      "ngan": "BRE",
+      "kieu": "soc",
+      "mau": [
+        "#e30613",
+        "#ffffff"
+      ],
+      "chu": "#111111",
+      "tm": [
+        "#f2c200",
+        "#3a2f00"
+      ],
+      "wiki": {
+        "trang": "Brentford_F.C.",
+        "khung": "Template:Brentford_F.C._squad"
+      },
+      "cauthu": [
+        {
+          "so": 1,
+          "ten": "Caoimhín Kelleher",
+          "vt": "GK",
+          "qt": "IRL",
+          "ngan": "Kelleher"
+        },
+        {
+          "so": 2,
+          "ten": "Aaron Hickey",
+          "vt": "DF",
+          "qt": "SCO",
+          "ngan": "Hickey"
+        },
+        {
+          "so": 3,
+          "ten": "Rico Henry",
+          "vt": "DF",
+          "qt": "JAM",
+          "ngan": "Henry"
+        },
+        {
+          "so": 4,
+          "ten": "Sepp van den Berg",
+          "vt": "DF",
+          "qt": "NED",
+          "ngan": "van den Berg"
+        },
+        {
+          "so": 6,
+          "ten": "Yehor Yarmolyuk",
+          "vt": "MF",
+          "qt": "UKR",
+          "ngan": "Yarmolyuk"
+        },
+        {
+          "so": 7,
+          "ten": "Kevin Schade",
+          "vt": "FW",
+          "qt": "GER",
+          "ngan": "Schade"
+        },
+        {
+          "so": 8,
+          "ten": "Mathias Jensen",
+          "vt": "MF",
+          "qt": "DEN",
+          "ngan": "Jensen"
+        },
+        {
+          "so": 9,
+          "ten": "Igor Thiago",
+          "vt": "FW",
+          "qt": "BRA",
+          "ngan": "Thiago"
+        },
+        {
+          "so": 10,
+          "ten": "Josh Dasilva",
+          "vt": "MF",
+          "qt": "ENG",
+          "ngan": "Dasilva"
+        },
+        {
+          "so": 11,
+          "ten": "Dango Ouattara",
+          "vt": "FW",
+          "qt": "BFA",
+          "ngan": "Ouattara"
+        },
+        {
+          "so": 12,
+          "ten": "Hákon Valdimarsson",
+          "vt": "GK",
+          "qt": "ISL",
+          "ngan": "Valdimarsson"
+        },
+        {
+          "so": 13,
+          "ten": "Callum Wilson",
+          "vt": "FW",
+          "qt": "ENG",
+          "ngan": "Wilson"
+        },
+        {
+          "so": 14,
+          "ten": "Fábio Carvalho",
+          "vt": "MF",
+          "qt": "POR",
+          "ngan": "Carvalho"
+        },
+        {
+          "so": 17,
+          "ten": "Antoni Milambo",
+          "vt": "MF",
+          "qt": "NED",
+          "ngan": "Milambo"
+        },
+        {
+          "so": 18,
+          "ten": "Mamadou Sangaré",
+          "vt": "MF",
+          "qt": "MLI",
+          "ngan": "Sangaré"
+        },
+        {
+          "so": 19,
+          "ten": "Jaidon Anthony",
+          "vt": "FW",
+          "qt": "ENG",
+          "ngan": "Anthony"
+        },
+        {
+          "so": 20,
+          "ten": "Kristoffer Ajer",
+          "vt": "DF",
+          "qt": "NOR",
+          "ngan": "Ajer"
+        },
+        {
+          "so": 22,
+          "ten": "Nathan Collins",
+          "vt": "DF",
+          "qt": "IRL",
+          "ngan": "Collins"
+        },
+        {
+          "so": 23,
+          "ten": "Keane Lewis-Potter",
+          "vt": "MF",
+          "qt": "ENG",
+          "ngan": "Lewis-Potter"
+        },
+        {
+          "so": 24,
+          "ten": "Mikkel Damsgaard",
+          "vt": "MF",
+          "qt": "DEN",
+          "ngan": "Damsgaard"
+        },
+        {
+          "so": 25,
+          "ten": "El Hadji Malick Diouf",
+          "vt": "DF",
+          "qt": "SEN",
+          "ngan": "Diouf"
+        },
+        {
+          "so": 27,
+          "ten": "Vitaly Janelt",
+          "vt": "MF",
+          "qt": "GER",
+          "ngan": "Janelt"
+        },
+        {
+          "so": 31,
+          "ten": "Ellery Balcombe",
+          "vt": "GK",
+          "qt": "ENG",
+          "ngan": "Balcombe"
+        },
+        {
+          "so": 33,
+          "ten": "Michael Kayode",
+          "vt": "DF",
+          "qt": "ITA",
+          "ngan": "Kayode"
+        },
+        {
+          "so": 36,
+          "ten": "Kim Ji-soo",
+          "vt": "DF",
+          "qt": "KOR",
+          "ngan": "Kim"
+        },
+        {
+          "so": 39,
+          "ten": "Gustavo Nunes",
+          "vt": "FW",
+          "qt": "BRA",
+          "ngan": "Nunes"
+        },
+        {
+          "so": 44,
+          "ten": "Jannik Schuster",
+          "vt": "DF",
+          "qt": "AUT",
+          "ngan": "Schuster"
+        },
+        {
+          "so": 47,
+          "ten": "Kaye Furo",
+          "vt": "FW",
+          "qt": "BEL",
+          "ngan": "Furo"
+        },
+        {
+          "so": 48,
+          "ten": "Benjamin Fredrick",
+          "vt": "DF",
+          "qt": "NGA",
+          "ngan": "Fredrick"
+        }
+      ]
+    }
+  ]
+}

@@ -237,7 +237,12 @@ async function dungTran(t, ngayDang) {
     '',
     `#MarbleFootball #${H.replace(/[^A-Za-z0-9]/g, '')} #${A.replace(/[^A-Za-z0-9]/g, '')}`,
   ].join('\n');
-  const { tieu_de: tdN, ...hookN } = HOOK.ngang, { tieu_de: tdR, ...hookR } = HOOK.reel;
+  // XOAY CÂU MÓC (anh 28/11/2026 "các tên video cứ giống nhau"): mỗi bản chọn mục trong kho hook.json có qc ÍT DÙNG GẦN ĐÂY NHẤT trên máy này (chưa dùng = trước hết),
+  // đọc dang.hook.qc của các video trước — tiêu đề hai trận liền nhau không bao giờ cùng một khuôn.
+  const dungGan = ssh(`${ENV}; psql "$DATABASE_URL" -tAc "select v.dang->'hook'->>'qc' from xv_may_video v join xv_may m on m.id = v.may_id where m.ma = '${MAY}' and v.dang->'hook'->>'qc' is not null order by v.id desc limit 40"`).split('\n').map((x) => x.trim()).filter(Boolean);
+  const chonHook = (kho) => [...kho].map((h, i) => ({ h, i, gan: dungGan.indexOf(h.qc) })).sort((x, y) => (x.gan < 0 ? -1 : y.gan < 0 ? 1 : y.gan - x.gan) || x.i - y.i)[0].h;
+  const { tieu_de: tdN, ...hookN } = chonHook([HOOK.ngang].flat()), { tieu_de: tdR, ...hookR } = chonHook([HOOK.reel].flat());
+  console.log(`· tiêu đề: ngang "${tdN}" · reel "${tdR}"`);
   const daDung = new Set(ssh(`${ENV}; psql "$DATABASE_URL" -tAc "select dang->>'title' from xv_may_video where dang->>'title' is not null"`).split('\n').map((x) => x.trim()));
   const tieuDe = (mau) => { const t0 = mau.replace('{H}', H).replace('{A}', A); if (!daDung.has(t0)) return t0; const t1 = `${t0} (${ko.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })})`; return daDung.has(t1) ? `${t1} #${seed}` : t1; };
   if (!(gR > 10 && gR <= 59.5)) throw new Error(`reel ${gR.toFixed(1)} s ngoài 10–59,5 s: YouTube không xếp vào Shorts (lam.mjs phải cắt highlight)`);

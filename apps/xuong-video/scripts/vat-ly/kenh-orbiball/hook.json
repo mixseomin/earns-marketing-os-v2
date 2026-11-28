@@ -1,6 +1,93 @@
 {
-  "_ghi": "Hook cho tiêu đề video trận bóng Orbiball (dung-tran.mjs). Mỗi hook là tiêu đề VIDEO THẬT đã chạy lâu (spy YouTube), Phòng Nội dung bắt tiêu đề bám hook.goc. tieu_de: {H} {A} = tên ngắn hai đội. ngang = bản 16:9, reel = bản dọc.",
-  "ngang": { "qc": "yt:lWMu4UMqQrc", "goc": "This Marble Match Will Blow Your Mind! 🤯", "page": "YouTube", "ngay": 0, "nguon": "youtube", "luot_xem": 124501, "tieu_de": "This Marble Match Will Blow Your Mind! {H} vs {A} Prediction" },
-  "reel": { "qc": "yt:lB3CYyIQ67I", "goc": "The World's most Dangerous marble run race", "page": "YouTube", "ngay": 367082, "nguon": "youtube", "tieu_de": "The World's Most Dangerous Marble Race! {H} vs {A}" },
-  "goc": { "sp": 9301, "id": 163436, "loai": "ai_tinh_huong", "ten": "Fan Premier League xem trận đấu" }
+ "_ghi": "Kho câu móc tiêu đề video trận Orbiball (dung-tran.mjs). Mỗi mục là tiêu đề VIDEO THẬT nhiều lượt xem (yt-dlp ytsearch, đo 28/11/2026), tieu_de chỉ sửa nhẹ + gắn {H} vs {A}. Máy chọn mục có qc ÍT DÙNG GẦN ĐÂY NHẤT trên kênh (đọc dang.hook.qc của video trước) để tiêu đề không lặp một khuôn (anh 28/11/2026: 'các tên video cứ giống nhau'). ngang = bản 16:9, reel = bản dọc. Thêm câu = thêm một mục.",
+ "ngang": [
+  {
+   "qc": "yt:lWMu4UMqQrc",
+   "goc": "This Marble Match Will Blow Your Mind! 🤯",
+   "page": "YouTube",
+   "ngay": 0,
+   "nguon": "youtube",
+   "luot_xem": 124501,
+   "tieu_de": "This Marble Match Will Blow Your Mind! {H} vs {A} Prediction"
+  },
+  {
+   "qc": "yt:xE7ppL4jgNU",
+   "goc": "WORLD CUP 2026 - Group Stage Round 1 | Can They Beat The Keeper?",
+   "page": "YouTube",
+   "ngay": 373282,
+   "nguon": "youtube",
+   "luot_xem": 373282,
+   "tieu_de": "Can They Beat The Keeper? {H} vs {A} | Marble Football Prediction"
+  },
+  {
+   "qc": "yt:85iAX6N2K_U",
+   "goc": "32 Teams, Single Elimination, ZERO Second Chances | World Cup 2026 Marble Race",
+   "page": "YouTube",
+   "ngay": 303746,
+   "nguon": "youtube",
+   "luot_xem": 303746,
+   "tieu_de": "ZERO Second Chances! {H} vs {A} | Marble Race Prediction"
+  },
+  {
+   "qc": "yt:7AYfvDa60OM",
+   "goc": "⚽ COPA AMERICA 2024 🏆 TOURNAMENT | Soccer Marble Simulation",
+   "page": "YouTube",
+   "ngay": 946085,
+   "nguon": "youtube",
+   "luot_xem": 946085,
+   "tieu_de": "⚽ {H} vs {A} 🏆 Who Wins? | Soccer Marble Simulation"
+  },
+  {
+   "qc": "yt:XMjEdHv3A2o",
+   "goc": "32 Clubs Basketball Marble Race - Only 1 Wins",
+   "page": "YouTube",
+   "ngay": 297917,
+   "nguon": "youtube",
+   "luot_xem": 297917,
+   "tieu_de": "{H} vs {A} Marble Race - Only 1 Wins!"
+  }
+ ],
+ "reel": [
+  {
+   "qc": "yt:lB3CYyIQ67I",
+   "goc": "The World's most Dangerous marble run race",
+   "page": "YouTube",
+   "ngay": 367082,
+   "nguon": "youtube",
+   "tieu_de": "The World's Most Dangerous Marble Race! {H} vs {A}"
+  },
+  {
+   "qc": "yt:XMjEdHv3A2o",
+   "goc": "32 Clubs Basketball Marble Race - Only 1 Wins",
+   "page": "YouTube",
+   "ngay": 297917,
+   "nguon": "youtube",
+   "luot_xem": 297917,
+   "tieu_de": "Only 1 Wins! {H} vs {A} Marble Race"
+  },
+  {
+   "qc": "yt:xE7ppL4jgNU",
+   "goc": "WORLD CUP 2026 - Group Stage Round 1 | Can They Beat The Keeper?",
+   "page": "YouTube",
+   "ngay": 373282,
+   "nguon": "youtube",
+   "luot_xem": 373282,
+   "tieu_de": "Can They Beat The Keeper? {H} vs {A} ⚽"
+  },
+  {
+   "qc": "yt:85iAX6N2K_U",
+   "goc": "32 Teams, Single Elimination, ZERO Second Chances | World Cup 2026 Marble Race",
+   "page": "YouTube",
+   "ngay": 303746,
+   "nguon": "youtube",
+   "luot_xem": 303746,
+   "tieu_de": "ZERO Second Chances! {H} vs {A} Marble Football"
+  }
+ ],
+ "goc": {
+  "sp": 9301,
+  "id": 163436,
+  "loai": "ai_tinh_huong",
+  "ten": "Fan Premier League xem trận đấu"
+ }
 }

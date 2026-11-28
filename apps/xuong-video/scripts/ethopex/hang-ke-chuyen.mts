@@ -47,7 +47,8 @@ const kc = new Map((await q<{ content_id: number; thang: number; thua: number }>
   FROM etp.creative cr JOIN s ON s.cr = cr.creative_id WHERE cr.dang = 'kể chuyện' GROUP BY 1`)).map((r) => [Number(r.content_id), r]));
 // 'loi_may' = máy sinh hỏng vì lỗi MÁY (br / mạng), không phải phim hỏng → không chặn 3 ngày (29/10/2026: br chưa gắn profile làm bỏ oan 2 phim)
 // dòng phim KT (anh chọn chạy): dòng 'loai' (máy bỏ sau 3 lần hỏng) KHÔNG chặn 3 ngày — chỉ chặn khi đang có bản sinh / sẵn sàng (04/11/2026 dòng #5 chờ mù 4 giờ)
-const choDong = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT content_id FROM etp.thu_vien WHERE trang_thai IN ('dang_sinh', 'san_sang') AND creative_id IS NULL`)).map((r) => Number(r.content_id)));
+// chỉ bản KỂ CHUYỆN đang chờ mới chặn dòng KT — 28/11/2026 dòng 7122 (166743) + 7127 (88231) đứng 9 giờ vì thư viện còn bản ảnh tĩnh / ảnh động 'san_sang' của cùng phim
+const choDong = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT content_id FROM etp.thu_vien WHERE trang_thai IN ('dang_sinh', 'san_sang') AND creative_id IS NULL AND dang = 'kể chuyện'`)).map((r) => Number(r.content_id)));
 const cho = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT content_id FROM etp.thu_vien WHERE (trang_thai IN ('dang_sinh', 'san_sang') AND creative_id IS NULL) OR (tao > now() - interval '3 days' AND trang_thai <> 'loi_may')`)).map((r) => Number(r.content_id)));
 // CỔNG 18+ CỦA PHIM (kiem-phim-18.py — nhan-ban chặn lên camp theo đúng sổ này): phim trong danh sách cấm / soát hình không đạt / chưa từng soát mà chưa có camp
 // thì KHÔNG sinh KT (29/10/2026: máy sinh làm KT cho phim 164995 đã cấm "mặt dính máu" → creative #61967 chấm sạch mà không lên được camp, phí cả lượt)
@@ -61,7 +62,7 @@ const live = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT conten
 const coKt = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT content_id FROM etp.creative WHERE dang = 'kể chuyện' AND tu_choi IS NULL AND content_id IS NOT NULL`)).map((r) => Number(r.content_id)));
 const hang = ds.map((p, i) => {
   const id = Number(p.id), s = so14.get(id), k = kc.get(id), lai = s ? s.thu - s.chi : 0;
-  const bo = chan18(id) ?? (nhomGoc.get(id) !== 'au_my' ? `phim ngoài Âu-Mỹ (nhóm gốc '${nhomGoc.get(id) || 'chưa chấm'}')` : (dong.has(p.id) ? choDong.has(id) : cho.has(id)) ? 'đã có bản chờ chạy / vừa sinh' : tt[p.id]?.tt === 'poster_loai' ? 'poster bị loại (soát phim mới)' : k && k.thua >= 2 && !k.thang ? `kể chuyện đã thua ${k.thua} lần, chưa thắng` : !p.url ? 'thiếu link trang phim' : null);
+  const bo = chan18(id) ?? (nhomGoc.get(id) !== 'au_my' ? `phim ngoài Âu-Mỹ (nhóm gốc '${nhomGoc.get(id) || 'chưa chấm'}')` : (dong.has(p.id) ? choDong.has(id) : cho.has(id)) ? 'đã có bản chờ chạy / vừa sinh' : tt[p.id]?.tt === 'poster_loai' ? 'poster bị loại (soát phim mới)' : k && k.thua >= 2 && !k.thang ? `kể chuyện đã thua ${k.thua} lần, chưa thắng` : !p.url ? 'thiếu link trang phim' : /\.(jpe?g|png|webp|gif)(@|\?|$)/i.test(p.url) ? 'link phim là tệp ảnh, không phải trang phim (không có tập để đọc)' : null);
   const diem = dong.has(p.id) ? 5000 : nhan.has(p.id) ? 4000 : !coKt.has(id) && live.has(id) ? 2000 + lai : !s ? 500 - Math.min(i, 399) : lai > 0 ? 1000 + lai : 100 + lai;
   return { content_id: id, ten: p.ten, url: p.url, nguon: p.nguon, lang: p.locale?.startsWith('es') ? 'es' : 'en', nhom_goc: nhomGoc.get(id) ?? '', diem: Math.round(diem * 100) / 100, lai14: Math.round(lai * 100) / 100, chi14: Math.round((s?.chi ?? 0) * 100) / 100, kc: k ?? null, bo };
 }).filter((x) => !x.bo && (coCamp.has(x.content_id) || dong.has(String(x.content_id)))).sort((a, b) => b.diem - a.diem).slice(0, so);   // phim chưa có camp nhà → cắt $0, không sinh KT (anh 03/11/2026)

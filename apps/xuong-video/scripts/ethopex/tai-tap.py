@@ -11,6 +11,28 @@ def lay(url, ref=None):
     # link phim ES có dấu (domé, niña…) — mã hoá phần ngoài ASCII, giữ nguyên ký tự đã mã hoá (anh 24/10/2026: 12 phim lô 26/10 hỏng vì 'ascii' codec)
     url = urllib.parse.quote(url, safe=":/?#[]@!$&'()*+,;=%~")
     return urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=40).read()
+def la_anh(b):
+    """bytes có THẬT là ảnh không — đọc chữ ký tệp (JPEG / PNG / WEBP / GIF / AVIF), không đọc cỡ. Máy chủ ảnh phim (Tencent EO) trả trang chặn HTML
+    "<!DOCTYPE html>… TEOJsChallengeSdk" cho nơi gọi không mang Referer → 28/11/2026 phim 88090 nằm poster.jpg là HTML 7 KB, qua mọi cổng "> 2000 byte" → dòng KT 7125 chết ở bước CTA."""
+    return len(b) >= 2000 and (b[:3] == b"\xff\xd8\xff" or b[:8] == b"\x89PNG\r\n\x1a\n" or (b[:4] == b"RIFF" and b[8:12] == b"WEBP")
+                               or b[:6] in (b"GIF87a", b"GIF89a") or b[4:12] in (b"ftypavif", b"ftypheic"))
+
+def poster_tot(po):
+    """poster.jpg trên đĩa dùng được không — MỘT cổng cho mọi nơi đọc poster (da_het, cta-logo…). Tệp không phải ảnh → đổi tên sang .hong (giữ để soát,
+    không xoá) để lần tải sau ghi lại bản thật, thay vì nằm đó mãi chặn mọi lượt dựng."""
+    try: b = open(po, "rb").read()
+    except OSError: return False
+    if la_anh(b): return True
+    os.replace(po, po + ".hong"); print(f"poster hỏng (không phải ảnh, {len(b)} byte) → {po}.hong", file=sys.stderr); return False
+
+def tai_poster(goc, ra, u=None):
+    """tải poster (og:image trang phim) về <ra>/poster.jpg — MỘT đường tải cho mọi nơi (main, cta-logo…): mang Referer trang phim (thiếu Referer = trang chặn HTML),
+    kiểm chữ ký ảnh trước khi ghi. Trả True khi ghi được ảnh thật."""
+    u = u or og_anh(goc)
+    if not u: return False
+    b = lay(u, ref=goc)
+    if not la_anh(b): raise ValueError(f"poster không phải ảnh ({len(b)} byte, đầu {b[:15]!r})")
+    open(os.path.join(ra, "poster.jpg"), "wb").write(b); return True
 def sach(u): return u.replace("\\u0026", "&").replace("\\u002F", "/").replace("\\/", "/").rstrip("\\")
 
 def video_trong(html, u=""):
@@ -141,8 +163,7 @@ def da_het(ra):
     lp = os.path.join(ra, "phu-de")
     if os.path.exists(lp) and open(lp).read().strip() not in ("", "-") and not all(os.path.exists(os.path.join(ra, f"tap{n:02d}.mp4.pd")) for n in range(1, k + 1)): return False
     # cần cả poster: thư mục đủ tập mà thiếu poster (lần đầu tải poster hỏng / VPS 07/11/2026 #270 #273) trước đây trả ngay → poster không bao giờ được tải lại
-    po = os.path.join(ra, "poster.jpg")
-    return k > 0 and os.path.exists(po) and os.path.getsize(po) > 2000 and all(os.path.exists(os.path.join(ra, f"tap{n:02d}.mp4")) for n in range(1, k + 1))
+    return k > 0 and poster_tot(os.path.join(ra, "poster.jpg")) and all(os.path.exists(os.path.join(ra, f"tap{n:02d}.mp4")) for n in range(1, k + 1))
 
 def mo_ta(url):
     """TÓM TẮT THẬT của phim (20/11/2026: link rút gọn reelslink.com dẫn về trang App Store → máy đọc lời giới thiệu ỨNG DỤNG "Download ReelShort - Stream Drama & TV…" làm tóm tắt phim,
@@ -222,9 +243,7 @@ def main(goc, ra, so=3):
     if og:
         try:
             u = H.unescape(og.group(1) or og.group(2)).split("@")[0]   # 21/10/2026: tên có dấu nháy ra "&#x27;" → 400 nếu không giải mã HTML
-            b = lay(u, ref=goc)
-            if len(b) < 2000 or b[:1] in (b"<", b"{"): raise ValueError("poster không phải ảnh")
-            open(os.path.join(ra, "poster.jpg"), "wb").write(b)
+            tai_poster(goc, ra, u)
         except Exception as e: print("poster loi:", e, file=sys.stderr)
     het = False   # True = gặp tập khoá / hết tập trước trần → đã dò HẾT tập miễn phí (ghi dấu tap-het)
     for n in range(1, so + 1):

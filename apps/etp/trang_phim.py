@@ -25,7 +25,11 @@ def _link(url):
     Ethopex) → None, ghi rõ, không chặn. Đường dẫn có dấu / chữ Nhật (NetShort es / ja) được mã hoá trước khi gọi."""
     if not url.startswith("http"): return (None, f"trang Ethopex: {url}")
     try:
-        with urllib.request.urlopen(urllib.request.Request(urllib.parse.quote(url, safe=":/?&=%#@+,;~"), headers={"user-agent": UA}), timeout=20) as r: return (r.status < 400, None)
+        with urllib.request.urlopen(urllib.request.Request(urllib.parse.quote(url, safe=":/?&=%#@+,;~"), headers={"user-agent": UA}), timeout=20) as r:
+            # link tập 1 trỏ vào TỆP ẢNH (poster DramaBox …/42000021382.jpg — 28/11/2026 phim 85250 Deny Me, Dragon King): ảnh tải được nên trước đây tính "sống",
+            # trong khi đó không phải trang phim → người bấm QC rơi vào một tấm ảnh, máy kể chuyện / cắt tập không có tập nào để đọc. Đọc VẬT là loại nội dung trả về.
+            if (r.headers.get_content_maintype() or "") == "image": return (False, f"link tập 1 là tệp ảnh ({r.headers.get_content_type()}), không phải trang phim")
+            return (r.status < 400, None)
     except urllib.error.HTTPError as e: return (False, f"HTTP {e.code}") if e.code in (404, 410) else (None, f"HTTP {e.code}")
     except Exception as e: return (None, type(e).__name__)
 

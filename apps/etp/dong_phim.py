@@ -75,7 +75,8 @@ def sql(cau, spy=False):
     r = subprocess.run([*SSH, B, f'{nen}; psql "$DATABASE_URL" -qtA -F"\t" -v ON_ERROR_STOP=1 -f -'],
                        input=cau, capture_output=True, text=True, timeout=180)
     if r.returncode: raise RuntimeError(r.stderr.strip()[-300:])
-    return r.stdout.strip()
+    # chỉ cắt xuống dòng: strip() trơn ăn cả TAB đầu → hàng mà ô đầu rỗng lệch hết cột (28/11/2026 dòng AT 7124 đọc cho_len.camp_id rỗng ra camp_id = 1 → bước chạy theo dõi camp #1)
+    return r.stdout.strip("\n")
 def s(v): return "null" if v is None else "$Q$" + str(v).replace("$Q$", "") + "$Q$"
 def js(v): return "$J$" + json.dumps(v, ensure_ascii=False).replace("$J$", "") + "$J$::jsonb"
 def box(lenh, timeout=1800, ve=None):

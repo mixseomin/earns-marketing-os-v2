@@ -327,10 +327,10 @@ if (a.includes('--nap')) {
   if (!DANG_VIDEO.length) { console.error(`--dang ${lay('--dang')} không phải dạng video (${DANG_TAT_CA.join(', ')})`); process.exit(1); }
   const { tt, gocs, hooksCho, hookDaDung, hookCho } = await khoGocHook(ma, Number(m.id), sp), xetHook = await xetHookNhuCham(ma);
   if (tt.length && tt.every((t) => /^VN/i.test(t))) { (sp as { ngon_ngu?: 'vi' }).ngon_ngu = 'vi'; DANG_VIDEO.splice(0, DANG_VIDEO.length, ...DANG_VIDEO.filter((d) => d !== 'giai-thich-giong' && d !== 'cau-noi-theo-nuoc')); console.log('· máy thị trường VN: viết tiếng Việt'); }
-  const daCo = (await db.execute(sql`SELECT v.dang->'goc'->>'id' AS goc, v.dang->>'title' AS title FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)`)) as unknown as { goc: string | null; title: string | null }[];
+  const daCo = (await db.execute(sql`SELECT v.dang->'goc'->>'id' AS goc, v.dang->>'title' AS title FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false) ORDER BY v.id DESC`)) as unknown as { goc: string | null; title: string | null }[];
   const dem = new Map<number, number>(); for (const x of daCo) if (x.goc) dem.set(Number(x.goc), (dem.get(Number(x.goc)) ?? 0) + 1);
   const thuTu = [...gocs].sort((g1, g2) => (dem.get(g1.id) ?? 0) - (dem.get(g2.id) ?? 0));   // góc chưa dùng trước, rồi góc dùng ít
-  const daDung = daCo.map((x) => x.title ?? '').filter(Boolean);
+  const daDung = daCo.map((x) => x.title ?? '').filter(Boolean);   // mới → cũ, 80 tên đầu đúng thứ tự phòng chấm soát khung
   let vnd = 0, n = 0, i = 0, hongLien = 0; const ra: string[] = [];
   for (const g of thuTu) {
     if (n >= N) break;
@@ -356,7 +356,9 @@ if (a.includes('--nap')) {
   const N = Math.max(1, Math.min(20, Number(lay('--toi-da')) || 5)), m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
   // "dính đuôi nhãn của QC gốc" (hook-qc.mjs › loiHook) cũng là lỗi hook nhưng câu không có chữ "hook" → bài saidly kẹt mãi (10/11/2026)
   // "hình: chữ … đè / undefined" do MẪU dựng (đã sửa ở mau-dung.ts) — đề mới dựng lại bằng mẫu hiện hành xử luôn; vẫn hỏng thì sau 3 lần in ✗ cho người (saidly #1008, 11/11/2026)
-  const SUA_DUOC = /hook|câu móc|tiêu đề trùng|chưa gắn góc|sửa quá xa|đuôi nhãn|^hình:|^hình lệch chủ đề tiêu đề|đã \d+\/\d+ lượt chấm chưa DUYỆT/;
+  // "tiêu đề cùng khung" (cham-dang 6b, 28/11/2026) là lỗi ĐỀ như "tiêu đề trùng" nhưng câu chặn không có chữ "trùng" → 15 bài 5 máy (militarycalc 8, front-porch 3,
+  // ratesbyroom 3, astrolas 1, examweight 1) nằm kẹt quá 1 giờ vì vòng tự làm lại KHÔNG nhận bài (examweight lam-tuong-60913). Thêm vào đây.
+  const SUA_DUOC = /hook|câu móc|tiêu đề trùng|tiêu đề cùng khung|chưa gắn góc|sửa quá xa|đuôi nhãn|^hình:|^hình lệch chủ đề tiêu đề|đã \d+\/\d+ lượt chấm chưa DUYỆT/;
   const LOI_BAO_NGOAI = /^Phòng Nội dung \(kiem-bai\) chưa DUYỆT bản này: (?:KHONG_DUYET|SUA_LAI)$/;
   const ds0 = ((await db.execute(sql`SELECT v.id, v.slug, v.mau, v.dang, v.cham->'chan_cung' AS chan, v.cham->'canh_bao' AS canh FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)
     AND v.cham->>'ket' = 'SUA_LAI' AND coalesce(v.da_dang, '{}'::jsonb) = '{}'::jsonb ORDER BY v.id`)) as unknown as { id: number; slug: string; mau: string | null; dang: Record<string, unknown> | null; chan: string[] | null; canh: string[] | null }[])
@@ -368,7 +370,7 @@ if (a.includes('--nap')) {
   const { sinhDe } = await import('../src/lib/xuong-video/may-de');
   const sp = await spCua(ma), { tt, gocs, hooksCho, hookDaDung, hookCho } = await khoGocHook(ma, Number(m.id), sp), xetHook = await xetHookNhuCham(ma);
   if (tt.length && tt.every((t) => /^VN/i.test(t))) (sp as { ngon_ngu?: 'vi' }).ngon_ngu = 'vi';
-  const daDung = ((await db.execute(sql`SELECT dang->>'title' AS t FROM xv_may_video WHERE may_id = ${m.id} AND NOT coalesce(luu_tru, false)`)) as unknown as { t: string | null }[]).map((x) => x.t ?? '').filter(Boolean);
+  const daDung = ((await db.execute(sql`SELECT dang->>'title' AS t FROM xv_may_video WHERE may_id = ${m.id} AND NOT coalesce(luu_tru, false) ORDER BY id DESC`)) as unknown as { t: string | null }[]).map((x) => x.t ?? '').filter(Boolean);
   let vnd = 0, n = 0; const ra: string[] = [];
   for (const v of ds) {
     if (n >= N) break;

@@ -6,7 +6,7 @@ import { z } from 'zod/v4';
 import type { MauMayDung } from './may-dung-mau';
 import type { DeNapMay } from './may';
 import { giaChuCents } from './kieu';
-import { loiHook, giuHook, dongHookBai, bangChungHook, CHU_VIET, chuManHinh } from './hook-qc.mjs';
+import { loiHook, giuHook, dongHookBai, bangChungHook, khuonTrung, CHU_VIET, chuManHinh } from './hook-qc.mjs';
 
 /** Dạng trong kho (scripts/ke-hoach-goc/dang-bai.json) → mẫu studio dựng được. Dạng chưa có mẫu → null (ô để máy đăng dùng bài kho như cũ). */
 export const MAU_CUA_DANG: Record<string, MauMayDung | null> = {
@@ -404,6 +404,16 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
       // hook kế cũng NGUYÊN CÂU là tiêu đề cũ thì đổi sang nó cũng chỉ trùng lại (astrolas 27/11/2026: 0/2 đề) → giữ hook hiện tại để lượt sau KHOÁ + dặn đổi chủ thể,
       // thay vì xả hết 4 lượt đi thử lần lượt các câu đã dùng. Chỉ bỏ hook hiện tại khi còn hook KHÁC chưa từng là tiêu đề.
       if (hd && (o.hooks ?? []).some((h) => h.id !== hd.id && !boHook.has(h.id) && !tuMayDe(h.chu).length && !daCo.has(tdChuan(h.chu)))) { boHook.add(hd.id); hookCu = null; khoaTruoc = false; }
+    }
+    // CÙNG KHUNG TÊN (Phòng Nội dung cham-dang 6b / soatKhuonDaDuyet, 28/11/2026): Jaccard ≥ 0.6 hoặc chung ≥ 5 từ liền với 80 tên trước. Trước đây máy sinh
+    // chỉ kiểm TRÙNG Y HỆT → đề "Ever had that night before the NREMT where your brain just... freezes?" lọt qua, bị chặn rồi kẹt vì vòng --lam-lai-sua cũng không nhận
+    // (examweight 28/11/2026, 15 bài cùng lỗi). Chặn ngay trước khi dựng, bắt viết lại tiêu đề KHÁC KHUÔN, không đốt tiền dựng một bài chắc SỬA LẠI.
+    // 80 tên GẦN NHẤT như phòng chấm (cham-dang.mjs soatKhuonDaDuyet: id < v.id desc limit 80) → daDung xếp mới→cũ.
+    const khungCu = khuonTrung(de.dang.title ?? '', (o.daDung ?? []).slice(0, 80));
+    if (khungCu) { loiCu.push(`tiêu đề cùng khung với một bài cũ của máy: "${khungCu}" — KHÔNG chỉ đổi vài chữ, hãy đổi tình huống / đối tượng / câu cú cho khác hẳn mà vẫn bám hook QC`); const hd = timHook(hooksLuot, maHook) ?? hookCu;
+      // đổi hook khác (nếu còn) để mô hình không lại bám đúng câu cũ; hết hook thì giữ hook hiện tại, lượt sau khoá + dặn đổi chủ thể.
+      if (hd && (o.hooks ?? []).some((h) => h.id !== hd.id && !boHook.has(h.id) && !tuMayDe(h.chu).length)) { boHook.add(hd.id); hookCu = null; khoaTruoc = false; }
+      continue;
     }
     // HOOK XÉT NHƯ LÚC CHẤM (12/11/2026, ratesbyroom "Booking a hotel in Osaka? Check prices first." lọc kho qua, bài sửa thành "…for two? Check prices first." bị chặn
     // "khác ngách + hứa sai" — lỗi đã báo sửa 2 lần vẫn quay lại): lọc kho xét CÂU GỐC, phòng chấm xét TIÊU ĐỀ ĐÃ SỬA → hai khoá sổ, Ngọc xét lại từ đầu, kết luận lật.

@@ -117,12 +117,19 @@ def chay(cl):
     if san: ghi_kq(cl, p["id"], san, None); print(f"cho_len #{cl}: creative #{cr} đã có camp phiếu #{san} — ghi vào thẻ, không lên lại", flush=True); return
     if not giu(cl): print(f"cho_len #{cl}: tiến trình khác đang lên camp thẻ này — không lên trùng", flush=True); return
     try:
-        if not CG.ve_hop_le("tao_camp", content_id=p["content_id"]):   # vé nút đã hết hạn / đã dùng → cấp lại từ bản ghi ✓ Duyệt thẻ của anh
+        if not ve_con_song(p["content_id"]):   # vé nút đã hết hạn / đã dùng / sắp hết → cấp lại từ bản ghi ✓ Duyệt thẻ của anh
             ve, ly = CG.ve_lenh_ghi(cr, p["content_id"], int(p["ns"]))
             if not ve: ghi_kq(cl, p["id"], None, f"không cấp lại được vé lên camp: {ly}"); return
             os.environ["ETP_VE"] = ve; print(f"vé mới từ bản ghi: {ly}", flush=True)
         chay_lenh(cl, p, lenh(p, cr, bo), cr)
     finally: tha(cl)
+
+# VÉ PHẢI CÒN SỐNG QUA LÚC NHAN-BAN KIỂM (thẻ #126, 28/11/2026 "--mien chỉ đi cùng vé TRỰC TIẾP"): vé nút sống ve_phut phút, nhan-ban chờ khe tới 90 giây
+# + nạp mã trước khi hỏi vé → vé còn 1–2 phút lúc tệp này kiểm thì hết hạn giữa chừng. Còn dưới VE_DU_PHUT phút = coi như hết, cấp vé mới từ bản ghi nút anh bấm.
+VE_DU_PHUT = 5
+def ve_con_song(ct):
+    ma = CG._ma_ve(None)
+    return bool(ma and CG.ve_hop_le("tao_camp", content_id=ct) and q(f"select 1 from etp.ve_tay where ma = '{ma}' and het_han > now() + interval '{VE_DU_PHUT} minutes'"))
 
 def camp_san(cr, cid):
     """camp phiếu đã lên cho creative cr (tên ten_camp '… cr moi #cr') mà thẻ chưa ghi — nhận về thẻ thay vì gọi nhan-ban lần hai (nhan-ban từ chối creative đã có camp)"""

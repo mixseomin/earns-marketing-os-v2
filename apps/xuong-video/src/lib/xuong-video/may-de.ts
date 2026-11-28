@@ -435,7 +435,13 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     if (hookCu) {
       const khoaCuoi = tachTieuDe(hookCu.chu, o.daDung ?? []) ?? (cauHook(hookCu.chu) || null);
       const lechCuoi = r.data.chu.title.length > 110 || r.data.chu.title.length < 25 || loiHook([r.data.chu.title], hookCu.chu).length > 0 || !!khuonTrung(r.data.chu.title, (o.daDung ?? []).slice(0, 80));
-      if (khoaCuoi && lechCuoi && !daCo.has(tdChuan(khoaCuoi))) { r.data.chu.title = khoaCuoi; r.data.hook_qc = hookCu.id; maHook = maHookKhop(hooksLuot, r.data.hook_qc, r.data.chu.title); }
+      if (khoaCuoi && lechCuoi && !daCo.has(tdChuan(khoaCuoi))) {
+        r.data.chu.title = khoaCuoi; r.data.hook_qc = hookCu.id;
+        // Hook khoá từ lượt TRƯỚC có thể không còn trong kho lượt này (kho đổi theo boHook) → kiemDe báo "chưa chọn hook QC gốc" dù tiêu đề bám đúng hook.
+        // Đưa lại hook đó vào danh sách của lượt để tiêu đề và mã hook cùng một nguồn (militarycalc so-sanh-43006 lượt sau bản vá đầu, 28/11/2026).
+        if (!timHook(hooksLuot, hookCu.id)) hooksLuot.push(hookCu);
+        maHook = hookCu.id;
+      }
     }
     const de = rapDe({ sp: o.sp, goc: o.goc, dang_bai: o.dang_bai, mau, de: r.data.de, chu: r.data.chu, dich: o.dich, hook: timHook(hooksLuot, maHook) });
     // lượt KHOÁ ở trên gán tiêu đề / moc = NGUYÊN câu hook QC, mà câu QC gốc hay có gạch dài (lượt sau 0be6a7dd7 vẫn 2/6 đề chết "gạch ngang dài") → thay lần nữa trên bài đã ráp

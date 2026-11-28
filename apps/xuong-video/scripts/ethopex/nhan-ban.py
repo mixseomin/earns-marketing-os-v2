@@ -539,11 +539,23 @@ def giong_doi(d, pl):
         if (a.get(k) or "") != (pa.get(k) or ""): lech.append(f"ad.{k}: {a.get(k)} → {pa.get(k)}")
     if pl.get("pixel_id_arb") != d.get("pixel_id"): lech.append(f"pixel: {d.get('pixel_id')} → {pl.get('pixel_id_arb')}")
     if lech: raise ValueError("clone camp đội phải giống hệt gốc trừ ngân sách (anh 23/11/2026) — lệch: " + "; ".join(lech))
+def nham_creative(goc_id):
+    """MÃ CREATIVE GÕ NHẦM VÀO CHỖ CAMP GỐC (28/11/2026 10:57 UTC: lệnh trực tiếp 50 camp K ★ ROAS gửi #116753 — là creative của camp #111490 — Ethopex trả 404
+    "campaign not found", canh-bao báo lỗi lệnh roas): số không có trong sổ camp (nhà + team) mà là creative_id của camp nào đó → lý do (chặn tại chỗ, không gửi Ethopex);
+    số là camp thật / camp vừa tạo chưa đồng bộ (không trùng creative nào) / đọc sổ lỗi → None (đi tiếp như cũ)."""
+    try:
+        r = q(f"""select case when exists(select 1 from etp.camp where camp_id = {int(goc_id)}) or exists(select 1 from etp.camp_ngoai where camp_id = {int(goc_id)}) then ''
+                  else coalesce((select string_agg('#' || camp_id, ',' order by camp_id) from (select camp_id from etp.camp where creative_id = {int(goc_id)}
+                  union select camp_id from etp.camp_ngoai where creative_id = {int(goc_id)}) t), '') end""")
+    except Exception: return None
+    return f"#{int(goc_id)} không phải camp mà là creative (của camp {r}) — camp gốc phải là mã camp, vd {r.split(',')[0]}" if r else None
+
 def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, nhan=None, ep=False, hoi_cho=False, ns_tay=None):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
     — anh 22/10/2026 "camp cùng phim thì chủ động thêm góc khác"; trước đó phải đi br form (dung-camp.sh).
     roas + moi (anh 18/11/2026, đợt lên hồi chợ — sổ luật hoi_cho): camp ★ ROAS từ CREATIVE MỚI trên khuôn (ad = creative mới, không phải bài cũ; bộ đổi được).
     hoi_cho (đợt lên hồi chợ): nhân bản BÀI CŨ của camp từng lãi trước đợt sụt — camp gốc đã tắt vẫn dùng được bài đăng (như ROAS)."""
+    if (ly := nham_creative(goc_id)): raise ChanLuat(ly)   # mọi đường (nhân bản / ★ ROAS / tạo camp / sang bộ) dựng payload ở đây — một chốt cho cả lớp
     d = api(f"/api/v1/campaigns/{goc_id}"); c = d["campaign"]; g = (d.get("ad_groups") or [{}])[0]; a = (g.get("ads") or [{}])[0]
     # AD KHÔNG MANG PHIM (24/11/2026, camp #108852 ★ ROAS creative mới): Ethopex trả content_id = 0 trên ad dựng từ creative, dù creative + phim có thật
     # → nhánh ROAS "dùng lại creative + content" bỏ qua, gãy "không có mã bài đăng"; nhánh nhân bản thường gửi content 0. Sổ etp.camp giữ phim

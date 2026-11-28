@@ -224,7 +224,8 @@ if (!process.argv.includes('--ep') && !process.argv.includes('--chi-duyet') && !
   else { const moi = ra.split('\n').filter((x) => x.startsWith('✓ tập mới')); if (moi.length) tele(moi.join('\n')); }
 }
 // SỐ KÊNH SOCIAL ĐÃ CHUYỂN (anh 14/11/2026: chỉ số kênh social trong tab Kênh nội dung còn trống): cùng lượt mỗi giờ này, không tiến trình riêng — 0₫, chỉ đọc số công khai
-if (!process.argv.includes('--ep') && !arg('kenh')) { try { console.log(box('scripts/may-dung.mts --so-kenh --social')); } catch (e) { console.log(`⚠ đo số kênh social hỏng: ${String(e.stderr || e.message).trim().split('\n').pop()}`); } }
+// + mọi máy la_san_pham KHÔNG nằm trong kenh.json (vd Orbiball: chỉ đăng, không chạy kênh) — trước đây chỉ máy trong kenh.json được đo nên kênh mới không có ảnh / số trên mos2 (anh 29/11/2026)
+if (!process.argv.includes('--ep') && !arg('kenh')) { try { console.log(box('scripts/may-dung.mts --so-kenh')); console.log(box('scripts/may-dung.mts --so-kenh --social')); } catch (e) { console.log(`⚠ đo số kênh social hỏng: ${String(e.stderr || e.message).trim().split('\n').pop()}`); } }
 
 // KÊNH CÓ SỔ MÁY VIẾT (G8 Astrolas, 07/11/2026): không qua lam-tap (máy viết + long-tieng + nap-tap riêng), cùng lượt mỗi giờ này, không có tiến trình nền riêng
 if (!process.argv.includes('--ep') && (!arg('kenh') || arg('kenh') === 'astrolas')) spawnSync(process.execPath, [join(DIR, 'chay-so-kenh.mjs')], { stdio: 'inherit', timeout: 150 * 60_000, killSignal: 'SIGKILL' });

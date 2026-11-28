@@ -97,6 +97,13 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
     FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE ${chon} AND ${loaiVid} AND NOT coalesce(v.luu_tru, false) ORDER BY v.created_at DESC`)) as unknown as
     { ma: string; slug: string; ten: string; xuat: boolean; cham: string | null; chan: string[] | null; cham_luc: string | null; giay: string | null; ngay_lam: string | null; da_dang: boolean; playlist: string | null; mau: string | null; y_tuong: string | null; ngay: string | null; url: string | null; xem: number | null; tep: string | null; dd: Record<string, unknown> | null; lx: Record<string, unknown> | null; dang_bai: string | null; de_loai: string | null }[];
   const lich = ((await d.execute(sql`SELECT ds FROM xv_lich_du_kien`)) as unknown as { ds: { may: string; ngay: string; gio?: string; nen: string; title?: string; slug?: string | null }[] }[]).flatMap((r) => r.ds ?? []);
+  // góp ý #1951: EMAIL quản lý từng nền — acct của nơi đăng → platform_accounts.email; Page không có email thì lấy tài khoản đại diện / liên kết đầu tiên có email
+  const accts = [...new Set(may.flatMap((m) => (m.dang ?? []).map((x) => Number(x.br?.acct)).filter((n) => Number.isInteger(n) && n > 0)))];
+  const mailRows = accts.length ? (await d.execute(sql`SELECT p.id, coalesce(nullif(p.email, ''), nullif(r.email, ''),
+      (SELECT nullif(l.email, '') FROM platform_accounts l WHERE jsonb_typeof(p.linked_accounts) = 'array' AND p.linked_accounts @> to_jsonb(l.id) AND coalesce(l.email, '') <> '' ORDER BY l.id LIMIT 1)) AS email
+    FROM platform_accounts p LEFT JOIN platform_accounts r ON r.id = p.represents_account_id WHERE p.id IN ${accts}`)) as unknown as { id: number; email: string | null }[] : [];
+  const mailAcct = new Map(mailRows.map((r) => [String(r.id), r.email]));
+  for (const m of may) for (const x of m.dang ?? []) { const a = x.br?.acct; if (a != null) (x as { email?: string | null }).email = mailAcct.get(String(a)) ?? null; }
   const hs = hoSoKenh(), nguonY = docNguonYTuong(lt), gioNay = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
   return may.map((m) => {
     const ds: SoNgayKenh[] = so.filter((r) => r.san_pham === `may:${m.ma}`).map((r) => ({ ngay: r.ngay.slice(0, 10), xem: Number(r.hien), daDang: Number(r.so_muc), nguoiDk: r.nguoi_dk == null ? null : Number(r.nguoi_dk) }));

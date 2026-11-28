@@ -12,7 +12,7 @@
 //   node dung-tran.mjs --espn <id> [--ngay YYYY-MM-DD]   dựng đúng một trận ESPN (ép ngày đăng nếu cần)
 //   node dung-tran.mjs --tu-kiem             tự kiểm phần chấm + xếp ngày
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, readdirSync, openSync, closeSync, statSync, unlinkSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, readdirSync, openSync, closeSync, statSync, unlinkSync, writeSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { layDoiHinh, chonXi } from './doi-hinh.mjs';
@@ -276,7 +276,15 @@ if (process.argv.includes('--tu-kiem')) {
 }
 
 const KHOA = join(process.env.HOME, '.cache', 'dung-tran.khoa'); mkdirSync(dirname(KHOA), { recursive: true });
-if (!process.argv.includes('--xem')) try { closeSync(openSync(KHOA, 'wx')); } catch { if (Date.now() - statSync(KHOA).mtimeMs < 120 * 60_000) { console.log(`· ${MAY} dung-tran: lượt dựng khác đang chạy`); process.exit(0); } unlinkSync(KHOA); closeSync(openSync(KHOA, 'wx')); }
+// Khoá ghi pid: lượt bị giết (timeout, Ctrl-C) không chạy được 'exit' nên để khoá lại — 28/11/2026 khoá mồ côi 14:14 làm vòng ghi "ok" cả ngày mà không dựng gì.
+// Pid chết → lấy lại khoá. Khoá thật sự bận → thoát 75 (thử lại sau), KHÔNG thoát 0: dang-lien-tuc coi mã 0 là đã xong việc trong ngày.
+const giuKhoa = () => { const fd = openSync(KHOA, 'wx'); writeSync(fd, String(process.pid)); closeSync(fd); };
+const conSong = (pid) => { try { process.kill(pid, 0); return true; } catch (e) { return e.code === 'EPERM'; } };
+if (!process.argv.includes('--xem')) try { giuKhoa(); } catch {
+  const pid = Number(readFileSync(KHOA, 'utf8').trim()), tre = Date.now() - statSync(KHOA).mtimeMs;
+  if (pid && conSong(pid) && tre < 120 * 60_000) { console.log(`· ${MAY} dung-tran: lượt dựng khác đang chạy (pid ${pid}) — thử lại lượt sau`); process.exit(75); }
+  console.log(`· ${MAY} dung-tran: gỡ khoá mồ côi (${pid ? `pid ${pid} đã chết` : 'không có pid'}, ${Math.round(tre / 60_000)} phút)`); unlinkSync(KHOA); giuKhoa();
+}
 if (!process.argv.includes('--xem')) process.on('exit', () => { try { unlinkSync(KHOA); } catch { /* đã gỡ */ } });
 const thieuCu = ['ffmpeg', 'ffprobe', 'magick', 'ssh', 'scp'].filter((c) => { try { execFileSync('which', [c], { stdio: 'ignore' }); return false; } catch { return true; } });
 if (!existsSync('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')) thieuCu.push('Google Chrome');

@@ -40,6 +40,25 @@ export function loiHook(dong, goc) {
   return loi;
 }
 
+/** TÊN RẬP KHUÔN (anh 28/11/2026, Orbiball: "Cấm ko bao giờ đc dùng tên theo form ngu như vậy" — "This Marble Match Will Blow Your Mind! Man Utd vs Brentford
+ *  Prediction" rồi "… Everton vs Liverpool Prediction": cùng một bộ khung, chỉ thay tên đội). So tiêu đề mới với các tiêu đề khác CỦA CÙNG KÊNH:
+ *  chung một đoạn ≥ 5 từ nội dung liền nhau, hoặc ≥ 60% từ nội dung trùng (Jaccard) = rập khuôn. Trùng y hệt để luật trùng tiêu đề lo. Trả tiêu đề bị trùng khung, hoặc null. */
+export const TRAN_KHUON = { lien: 5, jaccard: 0.6 };
+export function khuonTrung(moi, khac = []) {
+  const a = tuNoiDung(moi); if (a.length < 3) return null;
+  const sa = new Set(a), mo = String(moi ?? '').trim().toLowerCase();
+  for (const k of khac) {
+    if (!k || String(k).trim().toLowerCase() === mo) continue;
+    const b = tuNoiDung(k); if (!b.length) continue;
+    const sb = new Set(b), chung = [...sa].filter((w) => sb.has(w)).length;
+    if (chung / new Set([...sa, ...sb]).size >= TRAN_KHUON.jaccard) return k;
+    let dai = 0; const tr = new Array(b.length + 1).fill(0);
+    for (let i = 1; i <= a.length; i++) for (let j = b.length; j >= 1; j--) { tr[j] = a[i - 1] === b[j - 1] ? tr[j - 1] + 1 : 0; if (tr[j] > dai) dai = tr[j]; }
+    if (dai >= TRAN_KHUON.lien) return k;
+  }
+  return null;
+}
+
 /** Con số trong dòng hook mà tệp SỰ THẬT của máy (apps/xuong-video/su-that/<máy>.md) không có — lời hứa sản phẩm chưa kiểm
  *  (#855 Saidly "165+ languages" chép từ QC máy phiên dịch đeo tai, sự thật: ~100 ngôn ngữ). Máy chưa có tệp sự thật → [] (không đoán). */
 export function soNgoaiSuThat(dong, suThat) {
@@ -81,7 +100,11 @@ if (process.argv[1]?.endsWith('hook-qc.mjs') && process.argv.includes('--tu-kiem
   t.equal(cauHook('Never miss a key idea. Capture meetings, conversations, and insights with Al-powered transcription and smart summaries.'), 'Never miss a key idea.');
   t.equal(cauHook('Blind ranking ways to get words on screen. 📊'), 'Blind ranking ways to get words on screen. 📊');
   t.ok(cauHook(`${'word '.repeat(30)}end.`) === '', 'không có dấu câu trước trần = bỏ');
-  console.log('hook-qc: 19 ca đạt'); process.exit(0);
+  t.equal(khuonTrung('This Marble Match Will Blow Your Mind! Everton vs Liverpool Prediction', ['This Marble Match Will Blow Your Mind! Man Utd vs Brentford Prediction']), 'This Marble Match Will Blow Your Mind! Man Utd vs Brentford Prediction', 'chỉ thay tên đội = rập khuôn');
+  t.equal(khuonTrung("The World's Most Dangerous Marble Race: Everton vs Liverpool", ["The World's Most Dangerous Marble Race: Man Utd vs Brentford #Shorts"]) !== null, true, 'khung reel thay đội = rập khuôn');
+  t.equal(khuonTrung('Merseyside Derby in Marbles: Can Everton Stop Liverpool?', ['This Marble Match Will Blow Your Mind! Man Utd vs Brentford Prediction', 'Can the Bees Sting United at Old Trafford? Marble Race Decides']), null, 'tên khác hẳn không bắt oan');
+  t.equal(khuonTrung('Same title exactly here ok', ['Same title exactly here ok']), null, 'trùng y hệt để luật trùng lo');
+  console.log('hook-qc: 23 ca đạt'); process.exit(0);
 }
 
 /** BẰNG CHỨNG của một hook trong kho (dùng chung mọi chỗ đưa hook cho AI / người đọc): QC spy = số ngày chạy · 'kenh:' = video thắng của chính kênh ·

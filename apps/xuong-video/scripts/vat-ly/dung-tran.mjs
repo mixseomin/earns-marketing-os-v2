@@ -16,6 +16,7 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, readdirSync
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { layDoiHinh, chonXi } from './doi-hinh.mjs';
+import { sinhTieuDe, khoHook } from './tieu-de-ai.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), KENH = join(DIR, 'kenh-orbiball');
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
@@ -237,14 +238,12 @@ async function dungTran(t, ngayDang) {
     '',
     `#MarbleFootball #${H.replace(/[^A-Za-z0-9]/g, '')} #${A.replace(/[^A-Za-z0-9]/g, '')}`,
   ].join('\n');
-  // XOAY CÂU MÓC (anh 28/11/2026 "các tên video cứ giống nhau"): mỗi bản chọn mục trong kho hook.json có qc ÍT DÙNG GẦN ĐÂY NHẤT trên máy này (chưa dùng = trước hết),
-  // đọc dang.hook.qc của các video trước — tiêu đề hai trận liền nhau không bao giờ cùng một khuôn.
-  const dungGan = ssh(`${ENV}; psql "$DATABASE_URL" -tAc "select v.dang->'hook'->>'qc' from xv_may_video v join xv_may m on m.id = v.may_id where m.ma = '${MAY}' and v.dang->'hook'->>'qc' is not null order by v.id desc limit 40"`).split('\n').map((x) => x.trim()).filter(Boolean);
-  const chonHook = (kho) => [...kho].map((h, i) => ({ h, i, gan: dungGan.indexOf(h.qc) })).sort((x, y) => (x.gan < 0 ? -1 : y.gan < 0 ? 1 : y.gan - x.gan) || x.i - y.i)[0].h;
-  const { tieu_de: tdN, ...hookN } = chonHook([HOOK.ngang].flat()), { tieu_de: tdR, ...hookR } = chonHook([HOOK.reel].flat());
-  console.log(`· tiêu đề: ngang "${tdN}" · reel "${tdR}"`);
-  const daDung = new Set(ssh(`${ENV}; psql "$DATABASE_URL" -tAc "select dang->>'title' from xv_may_video where dang->>'title' is not null"`).split('\n').map((x) => x.trim()));
-  const tieuDe = (mau) => { const t0 = mau.replace('{H}', H).replace('{A}', A); if (!daDung.has(t0)) return t0; const t1 = `${t0} (${ko.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })})`; return daDung.has(t1) ? `${t1} #${seed}` : t1; };
+  // TÊN = AI SINH THEO SỰ THẬT TRẬN (anh 28/11/2026: "cấm dùng tên theo form", "tên phải đa dạng, dùng AI sinh để có tính thời điểm") — bỏ khuôn '{H} vs {A}' của hook.json.
+  // tieu-de-ai.mjs: giữ câu móc spy thật (luật Phòng Nội dung), cấm trùng khung tên gần đây của kênh, cấm chữ số, cấm nói sai phong độ. Chi ~10₫/trận.
+  const khac = ssh(`${ENV}; psql "$DATABASE_URL" -tAc "select v.dang->>'title' from xv_may_video v join xv_may m on m.id = v.may_id where m.ma = '${MAY}' and v.dang->>'title' is not null order by v.id desc limit 40"`).split('\n').map((x) => x.trim()).filter(Boolean).reverse();
+  const tdAi = await sinhTieuDe({ su_that: moTa, ban: ['ngang', 'reel'], kho: khoHook(HOOK), khac });
+  const { title: tdN, hook: hookN } = tdAi.ten.ngang, { title: tdR, hook: hookR } = tdAi.ten.reel;
+  console.log(`· tiêu đề AI: ngang "${tdN}" · reel "${tdR}" ($${tdAi.chi_usd.toFixed(4)} ≈ ${Math.round(tdAi.chi_usd * 26000)}₫)`);
   if (!(gR > 10 && gR <= 59.5)) throw new Error(`reel ${gR.toFixed(1)} s ngoài 10–59,5 s: YouTube không xếp vào Shorts (lam.mjs phải cắt highlight)`);
   const han = { dang_tu: ngayDang, dang_den: vnNgay(t.ko - 3 * 3600_000) };
   const de = (mp4, g, k, bia, chu, duoi) => ({ loai: 'video-ngoai', video_url: url[mp4], giay: +g.toFixed(2), khung: [0, 1, 2].map((i) => url[`k${k}${i}.jpg`]), soat: [],
@@ -252,9 +251,9 @@ async function dungTran(t, ngayDang) {
   const chuDe = `${H} vs ${A}, ${giaiTen}, ${vnNgay(t.ko).split('-').reverse().join('/')}`;
   const nap = [
     { slug, chu_de: chuDe, mau: 'video-ngoai', nen_url: anh.nen, de: de(`tran-${seed}.mp4`, gN, 'n', 'bia-n.jpg', chuN, ''),
-      dang: { title: tieuDe(tdN), description: moTa, link: null, loai: 'thuong', playlist_ten: 'Marble Football', goc: HOOK.goc, hook: hookN, ...han } },
+      dang: { title: tdN, description: moTa, link: null, loai: 'thuong', playlist_ten: 'Marble Football', goc: HOOK.goc, hook: hookN, ...han } },
     { slug: `${slug}-reel`, chu_de: `${chuDe} (reel dọc)`, mau: 'video-ngoai', nen_url: anh.nen, de: de(`tran-${seed}-reel.mp4`, gR, 'r', 'bia-r.jpg', chuR, ', vertical 1080x1920'),
-      dang: { title: tieuDe(tdR), description: moTa.replace('\n\nMatch facts', ' Short: every goal of the simulated 90 minutes, then the final whistle.\n\nMatch facts'), link: null, loai: 'thuong', playlist_ten: 'Marble Football', goc: HOOK.goc, hook: hookR, ...han } },
+      dang: { title: tdR, description: moTa.replace('\n\nMatch facts', ' Short: every goal of the simulated 90 minutes, then the final whistle.\n\nMatch facts'), link: null, loai: 'thuong', playlist_ten: 'Marble Football', goc: HOOK.goc, hook: hookR, ...han } },
   ];
   writeFileSync(join(dir, 'nap.json'), JSON.stringify(nap, null, 1));
   const T = `${TSX} scripts/may-dung.mts --may ${MAY}`;
@@ -324,7 +323,7 @@ if (arg('espn')) {
 lich = lich.filter((t) => t.diem >= NGUONG);
 for (const t of lich) { const c = daCo(t); if (c) t.ngay = c.ngay, t.daCo = c.slug; }
 xepNgay(lich, dung, bay + 40 * 60_000);
-for (const t of lich.sort((a, b) => a.ko - b.ko)) console.log(`  ${t.daCo ? 'có' : t.ngay ? '->' : '--'} ${String(t.diem).padStart(3)} ${t.nha.ten} vs ${t.khach.ten} (${GIAI[t.giai]}) · bóng lăn ${vnGio(t.ko)} ${vnNgay(t.ko)} VN · ${t.daCo ? `đã có ${t.daCo}` : t.ngay ? `đăng ${t.ngay}` : 'hết chỗ trong trần'}`);
+for (const t of lich.sort((a, b) => a.ko - b.ko)) console.log(`  ${t.daCo ? 'có' : t.ngay ? '->' : '--'} ${String(t.diem).padStart(3)} [espn ${t.id}] ${t.nha.ten} vs ${t.khach.ten} (${GIAI[t.giai]}) · bóng lăn ${vnGio(t.ko)} ${vnNgay(t.ko)} VN · ${t.daCo ? `đã có ${t.daCo}` : t.ngay ? `đăng ${t.ngay}` : 'hết chỗ trong trần'}`);
 if (process.argv.includes('--xem')) process.exit(0);
 const toi = lich.filter((t) => !t.daCo && t.ngay && t.ngay <= mai).sort((a, b) => a.ngay.localeCompare(b.ngay) || b.diem - a.diem).slice(0, Number(arg('toi-da', 2)));
 if (!toi.length) { console.log(`· ${MAY} dung-tran: không trận nào tới hạn dựng (ngày đăng ≤ mai)`); process.exit(0); }

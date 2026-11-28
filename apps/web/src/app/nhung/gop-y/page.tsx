@@ -3,7 +3,7 @@
 // trong suốt phủ màn (nạp bằng <script src="https://mos2.on.tc/api/gop-y-ngoai/nut">). Hòm chính là GopYMos2 mà layout gốc đã gắn —
 // trang này chỉ nối: ?trang= → window.__trangGopY (card mang đúng trang người dùng đang đứng), ngữ cảnh + ảnh khung hình trang ngoài
 // gửi qua postMessage → window.__nguCanhTrang / hàng ảnh __anhGopY, mở hòm ('gop-y:mo'), hòm đóng ('gop-y:dong') → báo trang ngoài ẨN iframe (nút chuẩn nạp sẵn và giữ iframe để lần mở sau tức thì).
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { tieuDeNut, type DemGopY } from '@mos2/gop-y/nut';
 
 export default function NhungGopY() {
@@ -11,6 +11,7 @@ export default function NhungGopY() {
   // mới hiện trong ô đính kèm (~10–20 s) → dải báo trên cùng tới khi đủ ảnh; quá 60 s thì báo lỗi thay vì để im.
   const [cho, setCho] = useState<{ can: number; luc: number } | null>(null);
   const [baoCho, setBaoCho] = useState<string>('');
+  const [khongHom, setKhongHom] = useState(false);
   useEffect(() => {
     if (!cho) return;
     let goc: number | null = null;
@@ -87,7 +88,15 @@ export default function NhungGopY() {
       for (const u of Array.isArray(d.anhThem) ? d.anhThem.slice(0, 5) : []) if (typeof u === 'string' && u.startsWith('data:image/')) (w.__anhGopY ||= []).push(u); // ảnh thật trang ngoài đã chọn (castle 📷) — vào ô ảnh đính kèm như ảnh chụp trang
       const can = (typeof d.anh === 'string' && d.anh.startsWith('data:image/') ? 1 : 0) + (Array.isArray(d.anhThem) ? d.anhThem.slice(0, 5).filter((u) => typeof u === 'string' && u.startsWith('data:image/')).length : 0);
       if (can) setCho({ can, luc: Date.now() });
+      // HÒM CÓ THẬT KHÔNG (dantranh 28/11/2026, laptop "bấm Góp ý đơ cả trang"): layout chỉ dựng hòm khi có quyền (admin / khách trang công khai / …).
+      // Không có hòm mà vẫn báo trang ngoài hiện iframe = khung trong suốt phủ màn chặn mọi cú bấm. HomGopY báo 'gop-y:da-nhan' ngay trong lượt dispatch
+      // → không nghe thấy thì hiện thẻ báo (Đăng nhập / Đóng). Trang ngoài chỉ hiện iframe khi nhận 'gop-y:da-mo'.
+      let nhan = false; const an = () => { nhan = true; };
+      window.addEventListener('gop-y:da-nhan', an, { once: true });
       window.dispatchEvent(new CustomEvent('gop-y:mo'));
+      window.removeEventListener('gop-y:da-nhan', an);
+      setKhongHom(!nhan);
+      window.parent.postMessage({ loai: 'gop-y:da-mo', coHom: nhan }, goc);
     };
     const dong = (e: Event) => { if (goc !== '*') window.parent.postMessage({ loai: 'gop-y:dong', vuaGui: (e as CustomEvent<{ vuaGui?: number }>).detail?.vuaGui ?? null }, goc); };
     // số nút 💬 (đang làm / kẹt / chờ ý kiến) → trang ngoài tô nút của nó đúng chuẩn (packages/gop-y/src/nut.ts)
@@ -100,10 +109,30 @@ export default function NhungGopY() {
   return (
     <>
       <style>{'html,body{background:transparent!important}'}</style>
+      {khongHom && <TheKhongHom onDong={() => { setKhongHom(false); window.dispatchEvent(new CustomEvent('gop-y:dong')); }} />}
       {baoCho && (
         <div role="status" style={{ position: 'fixed', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 2147483001, maxWidth: 'min(560px, calc(100vw - 24px))', padding: '8px 14px', borderRadius: 8,
           background: baoCho.startsWith('⚠') ? 'var(--red, #b42318)' : 'var(--amber, #b54708)', color: '#fff', font: '600 13px system-ui, sans-serif', boxShadow: '0 4px 16px rgba(0,0,0,.35)' }}>{baoCho}</div>
       )}
     </>
+  );
+}
+
+// Thẻ báo khi khung nhúng không có hòm (phiên mos2 hết hạn / tài khoản không có quyền góp ý ở trang này): nói rõ lý do + Đăng nhập (tab mới, cookie *.on.tc
+// dùng chung → quay lại bấm 💬) + Đóng; bấm nền hoặc Esc cũng đóng — khung phủ màn không bao giờ được thành ngõ cụt.
+function TheKhongHom({ onDong }: { onDong: () => void }) {
+  useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onDong(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onDong]);
+  const nut: CSSProperties = { flex: 1, padding: 10, borderRadius: 8, font: '600 14px system-ui, sans-serif', textAlign: 'center', cursor: 'pointer', textDecoration: 'none' };
+  return (
+    <div onClick={(e) => { if (e.target === e.currentTarget) onDong(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 2147483001 }}>
+      <div role="dialog" aria-labelledby="gy-kh" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 'min(400px, calc(100vw - 32px))', background: '#11141a', color: '#e6e8ec', border: '1px solid #2a2f3a', borderRadius: 12, padding: 20, boxShadow: '0 10px 40px rgba(0,0,0,.5)', font: '15px system-ui, sans-serif' }}>
+        <h1 id="gy-kh" style={{ fontSize: 17, margin: '0 0 8px' }}>💬 Chưa mở được hòm góp ý</h1>
+        <p style={{ margin: '0 0 16px', color: '#a9b0bd', lineHeight: 1.45 }}>Phiên MOS2 của trình duyệt này đã hết hạn, hoặc tài khoản đang đăng nhập không có quyền góp ý ở trang này. Bấm Đăng nhập (mở tab mới), xong quay lại bấm 💬 lần nữa.</p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <a href="/login?next=%2F" target="_blank" rel="noopener" style={{ ...nut, background: '#6aa8f7', color: '#0b0d12' }}>Đăng nhập</a>
+          <button type="button" onClick={onDong} style={{ ...nut, background: 'transparent', color: '#e6e8ec', border: '1px solid #3a404c' }}>Đóng</button>
+        </div>
+      </div>
+    </div>
   );
 }

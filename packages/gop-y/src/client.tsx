@@ -585,7 +585,7 @@ export function HomGopY(p: CauHinhHom) {
   useEffect(() => {
     const e = (ev: ErrorEvent) => ghiLoiJs(ev.message || String(ev.error));
     const r = (ev: PromiseRejectionEvent) => ghiLoiJs(`promise: ${ev.reason instanceof Error ? ev.reason.message : String(ev.reason)}`);
-    const m = () => setMo(true);
+    const m = () => { setMo(true); window.dispatchEvent(new CustomEvent('gop-y:da-nhan')); };   // báo ngược (đồng bộ, cùng lượt dispatch): khung nhúng /nhung/gop-y biết hòm có thật, không thì hiện thẻ báo thay vì để iframe trong suốt chặn trang
     window.addEventListener('error', e); window.addEventListener('unhandledrejection', r); window.addEventListener('gop-y:mo', m);
     return () => { window.removeEventListener('error', e); window.removeEventListener('unhandledrejection', r); window.removeEventListener('gop-y:mo', m); };
   }, []);

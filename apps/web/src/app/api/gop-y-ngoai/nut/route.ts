@@ -26,6 +26,23 @@ const JS = `(() => {
   }
   function hien(co) { if (!khung) return; khung.style.visibility = co ? 'visible' : 'hidden'; khung.style.pointerEvents = co ? 'auto' : 'none'; }
   function guiMo() { if (!cho || !sanSang || !khung) return; khung.contentWindow.postMessage({ loai: 'gop-y:mo', trang: location.href, nguCanh: cho.nguCanh, anh: cho.anh, anhThem: cho.anhThem, coKhung: typeof window.__chupKhungTrang === 'function' }, GOC); }   // GIỮ cho tới khi đóng: iframe nạp lại (thẻ "cần đăng nhập" → hòm thật sau khi đăng nhập) báo san-sang lần nữa thì gửi lại
+  // BÁO CHỜ Ở TRANG NGOÀI (dantranh 28/11/2026, laptop "bấm Góp ý đơ cả trang"): iframe chỉ HIỆN + nhận chuột khi hòm báo 'gop-y:da-mo'.
+  // Trước đó bấm là hiện ngay khung trong suốt phủ màn: hòm còn đang nạp (máy chậm) hoặc không dựng được (phiên hết hạn) → trang đứng hình,
+  // không một dòng báo. Giờ: dải báo nhỏ có ✕ trong lúc chờ, quá 20 giây thì báo lỗi; Esc luôn đóng.
+  let bao = null, henCho = 0;
+  function baoTrang(chu, loi) {
+    if (!chu) { if (bao) bao.remove(); bao = null; return; }
+    if (!bao) {
+      bao = document.createElement('div'); bao.setAttribute('role', 'status');
+      bao.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483001;max-width:min(560px,calc(100vw - 24px));display:flex;gap:10px;align-items:center;padding:8px 10px 8px 14px;border-radius:8px;color:#fff;font:600 13px system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.35)';
+      const t = document.createElement('span'), x = document.createElement('button');
+      x.type = 'button'; x.textContent = '✕'; x.title = 'Đóng'; x.style.cssText = 'border:0;background:transparent;color:#fff;font:600 14px system-ui;cursor:pointer;padding:2px 6px';
+      x.onclick = () => dong();
+      bao.append(t, x); document.body.appendChild(bao);
+    }
+    bao.style.background = loi ? '#b42318' : '#b54708';
+    bao.firstChild.textContent = chu;
+  }
   function mo() {
     if (dangMo) return;
     dangMo = true;
@@ -33,13 +50,19 @@ const JS = `(() => {
     try { cho.nguCanh = String(window.__nguCanhTrang ? window.__nguCanhTrang() : '').slice(0, 1000); } catch (e) { console.warn('[gop-y] ngữ cảnh trang lỗi', e); }
     try { cho.anh = window.__chupTrang ? window.__chupTrang() : null; } catch (e) { console.warn('[gop-y] chụp trang lỗi', e); }
     try { cho.anhThem = window.__anhNgoaiTrang ? [].concat(window.__anhNgoaiTrang() || []).filter((u) => typeof u === 'string' && u.startsWith('data:image/')).slice(0, 5) : []; } catch (e) { console.warn('[gop-y] ảnh ngoài lỗi', e); }
-    tao(); hien(true); khung.focus(); guiMo();   // chưa nạp xong thì gửi lúc iframe báo 'gop-y:san-sang'
+    tao(); guiMo();   // chưa nạp xong thì gửi lúc iframe báo 'gop-y:san-sang'; iframe hiện khi hòm báo 'gop-y:da-mo'
+    baoTrang('⏳ Đang mở hòm góp ý…');
+    clearTimeout(henCho);
+    henCho = setTimeout(() => { if (dangMo && khung && khung.style.visibility !== 'visible') baoTrang('⚠ Hòm góp ý chưa mở được sau 20 giây (mạng chậm hoặc mos2 đang lỗi). Bấm ✕ rồi thử lại.', true); }, 20000);
   }
-  function dong() { dangMo = false; cho = null; hien(false); try { khung.blur(); } catch (e) { /* iframe đã gỡ */ } window.focus(); }   // iframe ẩn không được giữ bàn phím (phím tắt trang)
+  function daMo() { if (!dangMo) return; clearTimeout(henCho); baoTrang(''); hien(true); try { khung.focus(); } catch (e) { /* iframe đã gỡ */ } }
+  addEventListener('keydown', (e) => { if (e.key === 'Escape' && dangMo) dong(); });
+  function dong() { dangMo = false; cho = null; clearTimeout(henCho); baoTrang(''); hien(false); try { khung.blur(); } catch (e) { /* iframe đã gỡ */ } window.focus(); }   // iframe ẩn không được giữ bàn phím (phím tắt trang)
   addEventListener('message', (e) => {
     if (!khung || e.origin !== GOC || e.source !== khung.contentWindow) return;
     const d = e.data || {};
     if (d.loai === 'gop-y:san-sang') { sanSang = true; guiMo(); }
+    if (d.loai === 'gop-y:da-mo') daMo();
     if (d.loai === 'gop-y:dong') dong();
     if (d.loai === 'gop-y:dem') { dem = d; to(); }
     if (d.loai === 'gop-y:chup') chup();

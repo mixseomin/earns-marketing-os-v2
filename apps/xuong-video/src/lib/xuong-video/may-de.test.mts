@@ -132,4 +132,10 @@ assert.ok(vanNguoiDung(goc, 'top-n', [], 'en', hk).includes('3496181930676276') 
   assert.ok(!/Which one|spot it|guess wrong|1 in 10/.test(t!), 'không ghép câu đố vui vào bài không phải đố');
   assert.ok(/^(Most people get this wrong|Here is the part most people miss|Nobody explains this part|The part nobody mentions|Here is what nobody tells you|This is the part that catches people out)/.test(t!), 'câu mở trung tính đọc được với mọi ngách');
   assert.ok(giuHook(t!, hook) >= GIU_HOOK_TOI_THIEU, 'vẫn giữ đủ ≥35% chữ hook'); }
+// HOOK CỘT CHỮ: bản dựng bằng mã phải trả null khi phần CỘT (câu hỏi sau câu mở) cắt giữa từ ("How Should You Factor a Pension Into Your" — thêm câu mở "Most people
+// get this wrong: How Should You Factor a Pension Into…"), mô hình cắt đuôi khi gặp chữ dính liền (militarycalc so-sanh-43006, 28/11/2026). Null thì vòng gọi
+// giữ nguyên tiêu đề đã khoá (ép chép nguyên hook, mua đúng chữ) thay vì bỏ hết lượt.
+{ const dong = 'More is more. 💰 Every month a claim goes unfiled, that money stays with the government — and that claim can still be filed later.';
+  const t = tachTieuDe(dong, []);
+  assert.ok(t === null || /[a-z]$/i.test(t), `không ra tiêu đề cắt giữa cột chữ: ${t}`); }
 console.log('may-de: phần thuần đạt');

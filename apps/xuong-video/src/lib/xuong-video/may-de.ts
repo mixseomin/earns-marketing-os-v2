@@ -181,7 +181,14 @@ export function tachTieuDe(hook: string, daDung: string[]): string | null {
       'One of these is not like the others. ', 'Only 1 in 10 gets this right. ', 'Look closely before you answer. ', 'Think you can find it before the timer? ']
     : ['Most people get this wrong: ', 'Here is the part most people miss: ', 'Nobody explains this part: ', 'The part nobody mentions: ',
       'Here is what nobody tells you: ', 'This is the part that catches people out: '];
-  const ung = [...moCau.map((m) => `${m}${sach}`)]; if (duoi) ung.push(...moCau.map((m) => `${m}${duoi}`));
+  // CỘT CHỮ không được cắt giữa từ: hook dài hơn trần 110 thì bản cũ cắt theo KÝ TỰ → "Most people get this wrong: How Should You Factor a Pension Into Your"
+  // (rơi giữa cột chữ, tiêu đề đọc cụt; so-sanh-43006 lượt sau 28/11/2026). Ở đây cắt ở RANH GIỚI TỪ, dừng trước từ mang dấu ngăn (— – , ; :) để không
+  // dính gạch dài / vế lửng; bản dài nhất đứng trước, `dat` vẫn kiểm trần 110 và giữ ≥35% chữ hook nên cắt quá tay thì tự bị loại.
+  const cot = duoi || sach, banCot: string[] = []; let cs = '';
+  for (const w of cot.split(/\s+/).filter(Boolean)) { cs = cs ? `${cs} ${w}` : w; if (!/[—–,;:]$/.test(w)) banCot.push(cs); }
+  const ung = [...moCau.map((m) => `${m}${sach}`)];
+  for (const m of moCau) for (const c of banCot.slice().reverse()) ung.push(`${m}${c}`);
+  if (duoi) ung.push(...moCau.map((m) => `${m}${duoi}`));
   const dat = (t: string) => t.length >= 25 && t.length <= 110 && !co.has(chuan(t)) && !loiHook([t], sach).length
     && !CHU_VIET.test(t) && !/[—–]/.test(t) && !khuonTrung(t, daDung.slice(0, 80));
   return ung.find(dat) ?? null;

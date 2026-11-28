@@ -37,15 +37,18 @@ export function trenApp(): boolean {
 }
 
 // NẠP khung lên folder Default qua fetch (base64 → Blob → FormData). Trả mediaId (id ảnh vừa nạp) hoặc null.
-// base64 nạp theo MẢNH vào window.__b64 để không vượt giới hạn độ dài tham số lệnh (ảnh ~600KB → base64 ~800KB).
+// base64 nạp theo MẢNH vào window[<khoá riêng của lần nạp>] để không vượt giới hạn độ dài tham số lệnh (ảnh ~600KB → base64 ~800KB).
 // Loại tệp nạp (11/11/2026: thêm âm thanh cho đường khớp môi — narration nạp file giọng vào thư mục 'audio')
 const loaiTep = (f: string) => /\.mp3$/i.test(f) ? { mime: 'audio/mpeg', duoi: 'mp3' } : /\.wav$/i.test(f) ? { mime: 'audio/wav', duoi: 'wav' } : /\.jpe?g$/i.test(f) ? { mime: 'image/jpeg', duoi: 'jpg' } : { mime: 'image/png', duoi: 'png' };
 export async function napKhung(file: string, catDefault: number): Promise<number | null> {
   const b64 = readFileSync(file).toString('base64');
-  brEval(`window.__b64=""`);
-  for (let i = 0; i < b64.length; i += 300_000) brEval(`window.__b64+=${JSON.stringify(b64.slice(i, i + 300_000))}`);
-  const res = brEval<string>(`(async()=>{const s=window.__b64;const bin=atob(s);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);const fd=new FormData();fd.append("file",new Blob([a],{type:"${loaiTep(file).mime}"}),"f.${loaiTep(file).duoi}");fd.append("categoryId","${catDefault}");const r=await fetch("/library/upload/4",{method:"POST",headers:{"X-Requested-With":"XMLHttpRequest"},body:fd});return (await r.text()).trim().slice(0,50)})()`);
-  brEval(`window.__b64=""`);
+  // KHOÁ RIÊNG mỗi lần nạp (28/11/2026: máy sinh kể chuyện + dựng AD cùng nạp khung trên MỘT tab VideoExpress — một biến chung cho mọi tiến trình
+  // bị hai bên xen mảnh → atob "not correctly encoded", phiếu AD #41 / #44 / #51 hỏng). Mảnh của tiến trình nào nằm đúng khoá của nó.
+  const K = JSON.stringify(`__b64_${process.pid}_${Date.now()}`);
+  brEval(`window[${K}]=""`);
+  for (let i = 0; i < b64.length; i += 300_000) brEval(`window[${K}]+=${JSON.stringify(b64.slice(i, i + 300_000))}`);
+  const res = brEval<string>(`(async()=>{const s=window[${K}];const bin=atob(s);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);const fd=new FormData();fd.append("file",new Blob([a],{type:"${loaiTep(file).mime}"}),"f.${loaiTep(file).duoi}");fd.append("categoryId","${catDefault}");const r=await fetch("/library/upload/4",{method:"POST",headers:{"X-Requested-With":"XMLHttpRequest"},body:fd});return (await r.text()).trim().slice(0,50)})()`);
+  brEval(`delete window[${K}]`);
   if (!/^OK$/i.test(res)) { console.log(`  ! upload hỏng: ${res}`); return null; }
   const moi = getMedia(catDefault, 1).results[0];           // ảnh mới nhất = ảnh vừa nạp (upload đồng bộ)
   return moi ? moi.id : null;

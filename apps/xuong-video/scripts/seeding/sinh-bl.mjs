@@ -67,14 +67,36 @@ if (gt('--bu')) { SO = Math.max(0, Number(gt('--bu')) - Number(sql(`SELECT count
 // người xem đáng đáp nhất và viết câu trả lời → dòng nhap có tra_loi_cho = id bình luận đó (nap-bai nạp, Phòng Nội dung chấm, máy đăng trả lời đúng luồng).
 const ytTop = (url) => new Promise((ok, loi) => execFile('yt-dlp', ['-J', '--no-warnings', '--skip-download', '--write-comments',
   '--extractor-args', 'youtube:max_comments=15,15,0,0;comment_sort=top', url], { maxBuffer: 64 << 20, timeout: 180_000 }, (e, o) => (e ? loi(e) : ok(JSON.parse(o)))));
+// CHỌN VIDEO MỚI, ÍT BÌNH LUẬN (anh 28/11/2026: "phải chọn bài mới và đang có ít bình luận thì bài của mình mới lên cao"):
+// video_top trong sổ là video nhiều view nhất = video cũ hàng nghìn bình luận, câu của máy chìm. Nay đọc thẳng 10 video mới nhất của kênh,
+// chỉ giữ video đăng trong TUOI_MAX ngày và có ≤ BL_MAX bình luận, xếp ít bình luận trước.
+const TUOI_MAX = 7, BL_MAX = 150, BONG_DA = /(football|soccer|league|cup|uefa|laliga|fifa|premier|beat the keeper)/i;
+const ytJ = (args) => new Promise((ok, loi) => execFile('yt-dlp', ['-J', '--no-warnings', '--skip-download', ...args], { maxBuffer: 64 << 20, timeout: 180_000 }, (e, o) => (e ? loi(e) : ok(JSON.parse(o)))));
+async function videoMoi(kenhId, boQua = new Set()) {
+  const ds = await ytJ(['--flat-playlist', '--playlist-end', '10', `https://www.youtube.com/channel/${kenhId}/videos`]).catch(() => ({ entries: [] }));
+  const han = Date.now() - TUOI_MAX * 864e5, ra = [];
+  for (const e of ds.entries ?? []) {
+    if (!e?.id || boQua.has(e.id) || !BONG_DA.test(e.title ?? '')) continue;
+    const i = await ytJ([`https://www.youtube.com/watch?v=${e.id}`]).catch(() => null);
+    if (!i?.upload_date) continue;
+    const ngay = Date.parse(`${i.upload_date.slice(0, 4)}-${i.upload_date.slice(4, 6)}-${i.upload_date.slice(6, 8)}`), bl = Number(i.comment_count ?? 0);
+    if (ngay < han) break;   // danh sách xếp mới → cũ: quá hạn là dừng
+    if (bl <= BL_MAX) ra.push({ vid: e.id, vten: i.title, xem: i.view_count, bl, ngay: i.upload_date });
+  }
+  return ra.sort((x, y) => x.bl - y.bl);
+}
+const daCo = (sqlDk) => new Set(sql(`SELECT video_id FROM xv_seeding_bl WHERE may='${MAY.replace(/'/g, '')}' ${sqlDk}`).split('\n').filter(Boolean));
+
 if (gt('--tl-kenh')) {
   const M = MAY.replace(/'/g, ''), can = Math.max(0, Number(gt('--tl-kenh')) - Number(sql(`SELECT count(*) FROM xv_seeding_bl WHERE may='${M}' AND trang_thai='nhap' AND tra_loi_cho IS NOT NULL`)));
   if (!can) { console.log('· hàng chờ trả lời kênh target đủ'); process.exit(0); }
   const HANDLE = sql(`SELECT lower(e->'br'->>'handle') FROM xv_may m, jsonb_array_elements(m.dang) e WHERE m.ma='${M}' AND e->>'nen'='yt_binh_luan' LIMIT 1`);
-  const vs = JSON.parse(sql(`SELECT coalesce(json_agg(x),'[]') FROM (SELECT k.kenh_id, k.ten, v->>'id' vid FROM xv_seeding_kenh k CROSS JOIN LATERAL jsonb_array_elements(k.video_top) v
-    WHERE k.may='${M}' AND k.bat AND v->>'ten' ~* '(football|soccer|league|cup|uefa|laliga|fifa|premier|beat the keeper)'
-      AND NOT EXISTS (SELECT 1 FROM xv_seeding_bl b WHERE b.may=k.may AND b.video_id=v->>'id' AND b.tra_loi_cho IS NOT NULL)
-    ORDER BY (v->>'xem')::bigint DESC NULLS LAST LIMIT ${can * 2}) x`));
+  const vs = [], bo = daCo('AND tra_loi_cho IS NOT NULL');
+  for (const k of JSON.parse(sql(`SELECT coalesce(json_agg(x),'[]') FROM (SELECT kenh_id, ten FROM xv_seeding_kenh WHERE may='${M}' AND bat ORDER BY nguoi_dk DESC NULLS LAST) x`))) {
+    if (vs.length >= can * 2) break;
+    for (const v of await videoMoi(k.kenh_id, bo)) vs.push({ kenh_id: k.kenh_id, ten: k.ten, vid: v.vid });
+  }
+  console.log(`· ${vs.length} video mới (≤${TUOI_MAX} ngày, ≤${BL_MAX} bình luận)`);
   let tong = 0; const ghi = [];
   for (const v of vs) {
     if (ghi.length >= can) break;
@@ -106,14 +128,15 @@ Facts: never invent scores, minutes or results not stated in the title or commen
   process.exit(0);
 }
 
-// 1. chọn video: mỗi kênh chưa có bình luận nào của máy, lấy video nhiều view nhất chưa bình luận; kênh to trước.
-const ds = JSON.parse(sql(`SELECT coalesce(json_agg(x),'[]') FROM (
-  SELECT k.kenh_id, k.ten, k.nguoi_dk, v->>'id' vid, v->>'ten' vten, (v->>'xem')::bigint xem
-  FROM xv_seeding_kenh k CROSS JOIN LATERAL (SELECT v FROM jsonb_array_elements(k.video_top) v
-    WHERE v->>'ten' ~* '(football|soccer|league|cup|uefa|laliga|fifa|premier|beat the keeper)' /* video bóng đá của kênh, không lấy đua bi quốc gia */
-      AND NOT EXISTS (SELECT 1 FROM xv_seeding_bl b WHERE b.may=k.may AND b.video_id=v->>'id') ORDER BY (v->>'xem')::bigint DESC NULLS LAST LIMIT 1) t
+// 1. chọn video: mỗi kênh chưa có bình luận nào của máy (hoặc --kenh), lấy video MỚI ít bình luận nhất chưa bình luận; kênh to trước.
+const ds = [], boBl = daCo('');
+for (const k of JSON.parse(sql(`SELECT coalesce(json_agg(x),'[]') FROM (SELECT k.kenh_id, k.ten, k.nguoi_dk FROM xv_seeding_kenh k
   WHERE k.may='${MAY.replace(/'/g, '')}' AND k.bat ${KENH ? `AND k.kenh_id='${KENH.replace(/'/g, '')}'` : `AND NOT EXISTS (SELECT 1 FROM xv_seeding_bl b WHERE b.may=k.may AND b.kenh_id=k.kenh_id)`}
-  ORDER BY k.nguoi_dk DESC NULLS LAST LIMIT ${SO}) x`));
+  ORDER BY k.nguoi_dk DESC NULLS LAST) x`))) {
+  if (ds.length >= SO) break;
+  const v = (await videoMoi(k.kenh_id, boBl))[0];
+  if (v) { ds.push({ ...k, ...v }); console.log(`· ${k.ten}: ${v.vten} · ${v.ngay} · ${v.bl} bình luận`); }
+}
 if (!ds.length) { console.log('· không còn video nào để bình luận'); process.exit(0); }
 
 const yt = (url) => new Promise((ok, loi) => execFile('yt-dlp', ['-J', '--no-warnings', '--skip-download', '--write-comments',

@@ -1,6 +1,6 @@
 {
   "_ghi": "Hook cho tiêu đề video trận bóng Orbiball (dung-tran.mjs). Mỗi hook là tiêu đề VIDEO THẬT đã chạy lâu (spy YouTube), Phòng Nội dung bắt tiêu đề bám hook.goc. tieu_de: {H} {A} = tên ngắn hai đội. ngang = bản 16:9, reel = bản dọc.",
   "ngang": { "qc": "yt:lWMu4UMqQrc", "goc": "This Marble Match Will Blow Your Mind! 🤯", "page": "YouTube", "ngay": 0, "nguon": "youtube", "luot_xem": 124501, "tieu_de": "This Marble Match Will Blow Your Mind! {H} vs {A} Prediction" },
-  "reel": { "qc": "yt:lB3CYyIQ67I", "goc": "The World's most Dangerous marble run race", "page": "YouTube", "ngay": 367082, "nguon": "youtube", "tieu_de": "The World's Most Dangerous Marble Race: {H} vs {A}" },
+  "reel": { "qc": "yt:lB3CYyIQ67I", "goc": "The World's most Dangerous marble run race", "page": "YouTube", "ngay": 367082, "nguon": "youtube", "tieu_de": "The World's Most Dangerous Marble Race! {H} vs {A}" },
   "goc": { "sp": 9301, "id": 163436, "loai": "ai_tinh_huong", "ten": "Fan Premier League xem trận đấu" }
 }

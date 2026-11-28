@@ -161,6 +161,9 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
         if (!laK(d)) { const v = d.v, c = CHANG[v.trangThai];
           return <span style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: THUT_MUC, fontFamily: 'var(--font-sans)', minWidth: 0, width: '100%', overflow: 'hidden' }}>
             <span style={{ color: 'var(--fg-4)' }}>└</span>
+            {/* góp ý #1937: icon khung dọc / ngang — nhìn là biết khổ video (chữ vào rê chuột) */}
+            {v.kho && <span data-cot="kho" title={v.kho === 'doc' ? 'video dọc 9:16 (Shorts / Reels)' : 'video ngang 16:9'} style={{ flex: 'none', width: 16, display: 'inline-flex', justifyContent: 'center', alignItems: 'center', cursor: 'help' }}>
+              <span style={{ display: 'block', width: v.kho === 'doc' ? 8 : 14, height: v.kho === 'doc' ? 13 : 8, border: '1.5px solid var(--fg-2)', borderRadius: 2 }} /></span>}
             <button type="button" onClick={(e) => { e.stopPropagation(); ngan.moVideo(d.k.ma, v.slug); }} title={`${v.ten} — bấm mở video`}
               style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'inherit', font: 'inherit', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'underline dotted var(--fg-4)', flex: '1 1 0', minWidth: 0, textAlign: 'left' }}>{v.ten}</button>
             {/* góp ý #1622 + #1625: icon nền đã đăng đứng NGAY SAU TÊN, ô rộng cố định để cột trạng thái vẫn thẳng hàng

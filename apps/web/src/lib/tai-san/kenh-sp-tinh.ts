@@ -9,6 +9,7 @@ export type VideoKenh = { slug: string; ten: string; /** ngày làm xong (bản 
   /** BẢN XUẤT trên R2 (xv_may_video.video_url) — ngăn video phát thẳng tệp này khi tập chưa lên YouTube (DUYỆT chờ đăng vẫn xem được) */ tep?: string | null;
   /** mã playlist của tập (xv_may_video.dang.playlist — lam-tap ghi lúc nạp; G1) — null = tập cũ chưa chia playlist */ playlist?: string | null;
   /** SỬA LẠI đang ở giai đoạn nào (góp ý #1584) — chỉ có khi trangThai = 'sua_lai' (suaLaiGiaiDoan) */ suaLai?: SuaLai | null;
+  /** khổ video (khoVideo) — dọc 9:16 / ngang 16:9, hiện thành icon khung ở dòng bài (góp ý #1937) */ kho?: 'doc' | 'ngang';
   /** mẫu + ý tưởng trong sổ kênh (xv_may_video.dang.mau / y_tuong — lam-tap ghi lúc nạp) — null = kênh chưa có sổ / tập cũ */ mau?: string | null; yTuong?: string | null
   /** kênh social: các nơi đăng bài này đã lên (xv_may_video.da_dang, bỏ bài hẹn giờ chưa tới) */ nen?: string[];
   /** kênh social: DẠNG BÀI (mẫu nội dung) của bài — dang.dang_bai / de.kieu, bài cũ không ghi = so.dang_mac_dinh của kênh */ dangBai?: string | null };
@@ -65,6 +66,10 @@ export function tinhSoKenh(ds: SoNgayKenh[], hom: string): Pick<KenhSp, 'xem' | 
 }
 
 /** Chặng của một video kênh — đã đăng thắng mọi thứ; chưa có bản xuất = chưa xuất; có bản xuất mà Phòng Nội dung chưa chấm = chờ chấm. */
+/** Khổ video theo slug (góp ý #1937). Đo 28/11/2026: máy shorts xuất 1080×1920; kênh làm CẶP (trận bóng orbiball) thì bản `<slug>-reel` là dọc,
+ *  bản gốc có anh em `-reel` là ngang 16:9. Thuần. */
+export const khoVideo = (slug: string, cacSlug: string[]): 'doc' | 'ngang' =>
+  slug.endsWith('-reel') ? 'doc' : cacSlug.includes(`${slug}-reel`) ? 'ngang' : 'doc';
 export const changVideo = (v: { daDang: boolean; xuat: boolean; cham: string | null }): VideoKenh['trangThai'] =>
   v.daDang ? 'da_dang' : !v.xuat ? 'chua_xuat' : v.cham === 'DUYET' ? 'duyet' : v.cham === 'SUA_LAI' ? 'sua_lai' : 'cho_cham';
 

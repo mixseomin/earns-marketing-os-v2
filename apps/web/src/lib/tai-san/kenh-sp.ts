@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DANG_BAI } from '@/lib/dang-bai';
 import type { CoHoi, KhoDangKenh } from '../../../../xuong-video/src/lib/xuong-video/prompt-opus';
-import { changVideo, suaLaiGiaiDoan,lichKenhHs, yTuongTuSinh, soTheoPlaylist, tinhSoKenh, tomNenDang, type NenSo, type DangLam, type HoSoKenhLich, type KenhSp, type NguoiLaSo, type SoKenh, type SoNgayKenh, type TapCho } from './kenh-sp-tinh';
+import { changVideo, khoVideo, suaLaiGiaiDoan,lichKenhHs, yTuongTuSinh, soTheoPlaylist, tinhSoKenh, tomNenDang, type NenSo, type DangLam, type HoSoKenhLich, type KenhSp, type NguoiLaSo, type SoKenh, type SoNgayKenh, type TapCho } from './kenh-sp-tinh';
 
 /** Đọc một tệp JSON trong apps/xuong-video (đường tương đối từ gốc app) — cwd của web có thể là gốc repo hoặc apps/web. */
 function docTepXv<T>(tep: string): T | null {
@@ -103,7 +103,7 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
     const handle = (m.dang ?? []).find((x) => x.nen === 'youtube')?.br?.handle, l = lichKenhHs(hs[m.ma], hom, gioNay);
     const cua = vids.filter((v) => v.ma === m.ma).map((v) => (loai === 'social' ? baiSocial(v, hom) : { ...v, nen: undefined as string[] | undefined, nenSp: baiSocial(v, hom).nen }));   // góp ý #1625: kênh sản phẩm cũng mang nền đã lên (YouTube + Facebook…) cho icon dòng bài
     const videos = cua.map((v) => ({ slug: v.slug, ten: v.ten.replace(/\s*#shorts\s*/i, ''), ngayLam: v.ngay_lam, trangThai: changVideo({ daDang: v.da_dang, xuat: v.xuat, cham: v.cham }),
-      ngayDang: v.ngay?.slice(0, 10) ?? null, url: v.url, tep: v.tep, xem: v.xem, giay: v.giay == null ? null : Number(v.giay),
+      ngayDang: v.ngay?.slice(0, 10) ?? null, url: v.url, tep: v.tep, xem: v.xem, giay: v.giay == null ? null : Number(v.giay), kho: khoVideo(v.slug, cua.map((x) => x.slug)),
       // tập không ghi playlist (làm trước G1) của kênh chỉ MỘT playlist → playlist đó (cùng luật playlist.mjs › playlistCuaTap)
       mau: v.mau, yTuong: v.y_tuong, suaLai: v.cham === 'SUA_LAI' && !v.da_dang && v.xuat ? suaLaiGiaiDoan(v.slug, v.chan, v.cham_luc) : null,
       playlist: v.playlist ?? (hs[m.ma]?.playlist?.length === 1 ? hs[m.ma]!.playlist![0]!.ma : null), ...(v.nen ? { nen: v.nen, dangBai: v.dang_bai ?? (v.de_loai && DANG_TEN[v.de_loai] ? v.de_loai : null) ?? lt[m.ma]?.dang_mac_dinh ?? null } : 'nenSp' in v && v.nenSp.length ? { nen: v.nenSp, dangBai: null as string | null } : {}) }));
